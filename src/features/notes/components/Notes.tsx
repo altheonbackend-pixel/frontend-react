@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import api from '../../../shared/services/api';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 interface Note {
     id: number;
@@ -22,6 +22,7 @@ const Notes = () => {
     const [showForm, setShowForm] = useState(false);
     const [editingNote, setEditingNote] = useState<Note | null>(null);
     const [formData, setFormData] = useState({ title: '', content: '' });
+    const [confirmDeleteNoteId, setConfirmDeleteNoteId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchNotes();
@@ -36,7 +37,7 @@ const Notes = () => {
 
         try {
             const response = await api.get('/notes/');
-            setNotes(response.data);
+            setNotes(response.data.results ?? response.data);
         } catch (err) {
             console.error("Erreur lors du chargement des notes :", err);
             setError(t('notes.error.load'));
@@ -58,13 +59,10 @@ const Notes = () => {
     };
 
     const handleDelete = async (noteId: number) => {
-        if (!window.confirm(t('notes.delete_confirm'))) {
-            return;
-        }
-
         try {
-            await api.delete('/notes/${noteId}/');
+            await api.delete(`/notes/${noteId}/`);
             setNotes(notes.filter(note => note.id !== noteId));
+            setConfirmDeleteNoteId(null);
         } catch (err) {
                 console.error("Erreur lors de la suppression de la note :", err);
                 setError(t('notes.error.delete'));
@@ -80,13 +78,12 @@ const Notes = () => {
             e.preventDefault();
             setLoading(true);
 
-            const url = editingNote
-                ? `${API_BASE_URL}/notes/${editingNote.id}/`
-                : `${API_BASE_URL}/notes/`;
-            const method = editingNote ? axios.put : axios.post;
-
             try {
-                await method(url, formData);
+                if (editingNote) {
+                    await api.put(`/notes/${editingNote.id}/`, formData);
+                } else {
+                    await api.post('/notes/', formData);
+                }
                 setShowForm(false);
                 setEditingNote(null);
                 fetchNotes();
@@ -165,7 +162,7 @@ const Notes = () => {
                                             <button onClick={() => handleEdit(note)} className="action-button edit-button">
                                                 {t('notes.edit')}
                                             </button>
-                                            <button onClick={() => handleDelete(note.id)} className="action-button delete-button">
+                                            <button onClick={() => setConfirmDeleteNoteId(note.id)} className="action-button delete-button">
                                                 {t('notes.delete')}
                                             </button>
                                         </div>
@@ -177,6 +174,13 @@ const Notes = () => {
                         )}
                     </div>
                 )}
+            {confirmDeleteNoteId !== null && (
+                <ConfirmModal
+                    message={t('notes.delete_confirm')}
+                    onConfirm={() => handleDelete(confirmDeleteNoteId)}
+                    onCancel={() => setConfirmDeleteNoteId(null)}
+                />
+            )}
             </div>
         );
     };

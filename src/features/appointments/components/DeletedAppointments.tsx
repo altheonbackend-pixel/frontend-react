@@ -1,6 +1,5 @@
 // Fichier : src/components/DeletedAppointments.tsx
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../styles/Appointments.css';
@@ -24,7 +23,7 @@ const DeletedAppointments = () => {
 
         try {
             const response = await api.get('/appointments/deleted/');
-            setDeletedAppointments(response.data);
+            setDeletedAppointments(response.data.results ?? response.data);
         } catch (err) {
             console.error("Erreur lors de la récupération des rendez-vous supprimés :", err);
             setError(t('deleted_appointments.error.fetch'));

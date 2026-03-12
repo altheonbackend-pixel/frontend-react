@@ -1,7 +1,6 @@
 // Fichier : src/components/Patients.tsx
 
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -10,6 +9,7 @@ import '../../../shared/styles/ListStyles.css';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 interface PatientsProps {
     refreshPatients?: boolean;
@@ -22,9 +22,17 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const navigate = useNavigate();
 
-    const fetchPatients = async () => {
+    // Debounce the search term by 400 ms to avoid firing on every keystroke
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    const fetchPatients = useCallback(async () => {
         if (!token) {
             setError(t('patients.error.auth'));
             setLoading(false);
@@ -32,8 +40,10 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         }
 
         try {
-            const response = await api.get('/doctors/me/patients/');
-            setPatients(response.data);
+            const params: Record<string, string> = {};
+            if (debouncedSearch) params.search = debouncedSearch;
+            const response = await api.get('/doctors/me/patients/', { params });
+            setPatients(response.data.results ?? response.data);
             setError(null);
         } catch (err) {
             console.error('Erreur lors de la récupération des patients:', err);
@@ -41,11 +51,11 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [token, debouncedSearch, t]);
 
     useEffect(() => {
         fetchPatients();
-    }, [token, refreshPatients]);
+    }, [fetchPatients, refreshPatients]);
 
     const handleAddPatientClick = () => {
         navigate('/patients/add');
@@ -56,10 +66,6 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
     };
 
     const handleDeletePatient = async (patientId: string) => {
-        if (!window.confirm(t('patients.error.delete_confirm'))) {
-            return;
-        }
-        
         if (!token) {
             setError(t('patients.error.auth'));
             return;
@@ -68,6 +74,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         try {
             await api.delete(`/patients/${patientId}/`);
             setPatients(patients.filter(patient => patient.unique_id !== patientId));
+            setConfirmDeleteId(null);
             console.log(`Patient ${patientId} supprimé avec succès.`);
         } catch (err) {
             console.error('Erreur lors de la suppression du patient:', err);
@@ -97,11 +104,6 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         }
     };
 
-    // Logique de filtrage mise à jour pour le nom complet
-    const filteredPatients = patients.filter(patient =>
-        `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     if (loading) {
         return <div className="loading-message">{t('patients.loading')}</div>;
     }
@@ -111,6 +113,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
     }
 
     return (
+        <>
         <div className="patients-container">
             <div className="patients-header">
                 <h2 className="page-title">{t('patients.title')}</h2>
@@ -135,8 +138,8 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
             </div>
             
             <div id="patients-list-to-export" className="patients-list">
-                {filteredPatients.length > 0 ? (
-                    filteredPatients.map((patient) => (
+                {patients.length > 0 ? (
+                    patients.map((patient) => (
                         <div key={patient.unique_id} className="patient-card">
                             <div className="patient-info">
                                 <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
@@ -153,7 +156,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                                     {t('patients.edit')}
                                 </button>
                                 <button
-                                    onClick={() => handleDeletePatient(patient.unique_id)}
+                                    onClick={() => setConfirmDeleteId(patient.unique_id)}
                                     className="action-button delete-button"
                                 >
                                     {t('patients.delete')}
@@ -166,6 +169,14 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                 )}
             </div>
         </div>
+        {confirmDeleteId && (
+            <ConfirmModal
+                message={t('patients.error.delete_confirm')}
+                onConfirm={() => handleDeletePatient(confirmDeleteId)}
+                onCancel={() => setConfirmDeleteId(null)}
+            />
+        )}
+        </>
     );
 };
 

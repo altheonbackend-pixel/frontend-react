@@ -1,7 +1,6 @@
 // Fichier : src/components/Statistics.tsx
 
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
@@ -25,26 +25,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [authIsLoading, setAuthIsLoading] = useState<boolean>(true);
     const navigate = useNavigate();
-    const isAxiosInterceptorSet = useRef(false);
 
-    // Fonction de déconnexion centralisée
-    const logout = () => {
+    // Wrapped in useCallback so the stable reference can be used in the api response interceptor
+    const logout = useCallback(() => {
         localStorage.removeItem('token');
+        localStorage.removeItem('refresh_token');
         setToken(null);
         setUser(null);
         setProfile(null);
         setIsAuthenticated(false);
-        // Important: Utiliser replace pour ne pas ajouter la page de login à l'historique
-        navigate('/login', { replace: true }); 
-    };
+        navigate('/login', { replace: true });
+    }, [navigate]);
 
-    const getDoctorProfile = async (accessToken: string) => {
+    const getDoctorProfile = async () => {
         try {
-            const response = await api.get('/profile/', {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`
-                }
-            });
+            // No manual Authorization header needed — api.ts request interceptor injects it
+            const response = await api.get('/profile/');
             const profileData = response.data;
             setProfile(profileData);
             setUser({
@@ -57,6 +53,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
         } catch (err) {
             console.error('Erreur lors de la récupération du profil:', err);
+            // Let the api response interceptor handle 401/403 for mid-session calls.
+            // For the initial startup call (before interceptor is bound), handle it here.
             if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
                 logout();
             }
@@ -80,7 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const localToken = localStorage.getItem('token');
         if (!localToken) {
             setIsAuthenticated(false);
-            setAuthIsLoading(false); // Doit être false si aucun token n'existe
+            setAuthIsLoading(false);
             return;
         }
 
@@ -93,71 +91,58 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
                 setToken(localToken);
                 setIsAuthenticated(true);
-                await getDoctorProfile(localToken);
+                await getDoctorProfile();
             }
         } catch (error) {
             console.error('Erreur de décodage du token ou de récupération du profil:', error);
             logout();
         } finally {
-            // 💡 CORRECTION DU FLASH : setAuthIsLoading à false IMMÉDIATEMENT (suppression du setTimeout)
-            setAuthIsLoading(false); 
+            setAuthIsLoading(false);
         }
     };
 
+    // Register the 401/403 response interceptor on the central api instance so that
+    // any mid-session expired token triggers logout and navigation automatically.
+    // This replaces the previous global axios interceptors which did not fire on the api instance.
+    useEffect(() => {
+        const responseInterceptor = api.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    console.log('Requête non autorisée/expirée détectée. Déconnexion...');
+                    logout();
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        return () => {
+            api.interceptors.response.eject(responseInterceptor);
+        };
+    }, [logout]);
+
+    // Run token validity check once on mount
     useEffect(() => {
         checkTokenValidity();
-        
-        if (!isAxiosInterceptorSet.current) {
-            
-            // Intercepteur de Requête: Ajoute le Token
-            axios.interceptors.request.use(
-                config => {
-                    const localToken = localStorage.getItem('token');
-                    if (localToken) {
-                        config.headers.Authorization = `Bearer ${localToken}`;
-                    }
-                    return config;
-                },
-                error => Promise.reject(error)
-            );
-        
-            // Intercepteur de Réponse: Déconnexion automatique en cas d'erreur 401/403
-            const responseInterceptor = axios.interceptors.response.use(
-                (response) => response,
-                (error) => {
-                    if (error.response?.status === 401 || error.response?.status === 403) {
-                        console.log('Requête non autorisée/expirée détectée. Déconnexion...');
-                        logout(); 
-                    }
-                    return Promise.reject(error);
-                }
-            );
-            
-            isAxiosInterceptorSet.current = true;
-            
-            return () => {
-                axios.interceptors.response.eject(responseInterceptor);
-            };
-        }
-    }, []); 
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = async (credentials: any) => {
-        // setAuthIsLoading(true); // Pas nécessaire ici car l'état 'loading' du bouton Login.tsx suffit.
         try {
             const response = await api.post('/login/', credentials);
             const accessToken = response.data.access;
+            const refreshToken = response.data.refresh;
             localStorage.setItem('token', accessToken);
+            if (refreshToken) {
+                localStorage.setItem('refresh_token', refreshToken);
+            }
             setToken(accessToken);
             setIsAuthenticated(true);
-            await getDoctorProfile(accessToken);
+            await getDoctorProfile();
             navigate('/dashboard');
         } catch (error) {
             console.error('Erreur de connexion:', error);
-            // 💡 Ajouter un setAuthIsLoading(false) ici n'est pas nécessaire car c'est géré par le composant Login.tsx.
-            // Cependant, si une erreur survient, l'état de l'application reste cohérent.
             throw error;
-        } 
-        // NOTE: Pas de finally ici, car si succès, la navigation démonte le composant.
+        }
     };
 
     const value = { user, profile, token, login, logout, isAuthenticated, authIsLoading, updateProfileData };

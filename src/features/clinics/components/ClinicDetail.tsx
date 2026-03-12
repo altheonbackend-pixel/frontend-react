@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { type Workplace } from '../../../shared/types'; // Assurez-vous que l'import est correct
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import api from '../../../shared/services/api';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 // Définition des types pour les statistiques (conservés)
 interface DoctorStats {
@@ -41,6 +41,7 @@ const ClinicDetail = () => {
     const [stats, setStats] = useState<ClinicStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         const fetchClinicAndStats = async () => {
@@ -49,8 +50,8 @@ const ClinicDetail = () => {
             try {
                 setIsLoading(true);
                 const [clinicResponse, statsResponse] = await Promise.all([
-                    axios.get<Workplace>(`${API_BASE_URL}/workplaces/${id}/`),
-                    axios.get<ClinicStats>(`${API_BASE_URL}/workplaces/${id}/statistics/`)
+                    api.get(`/workplaces/${id}/`),
+                    api.get(`/workplaces/${id}/statistics/`)
                 ]);
                 setClinic(clinicResponse.data);
                 setStats(statsResponse.data);
@@ -71,15 +72,13 @@ const ClinicDetail = () => {
     };
 
     const handleDeleteClinic = async () => {
-        if (window.confirm(t('clinics.error.delete_confirm'))) {
-            try {
-                await api.delete('/workplaces/${id}/');
-                alert(t('clinics.success.delete'));
-                navigate('/clinics'); // Rediriger vers la liste des cliniques après suppression
-            } catch (err) {
-                console.error("Erreur lors de la suppression de la clinique:", err);
-                alert(t('clinics.error.delete_detail'));
-            }
+        try {
+            await api.delete(`/workplaces/${id}/`);
+            alert(t('clinics.success.delete'));
+            navigate('/clinics');
+        } catch (err) {
+            console.error("Erreur lors de la suppression de la clinique:", err);
+            alert(t('clinics.error.delete_detail'));
         }
     };
 
@@ -114,7 +113,7 @@ const ClinicDetail = () => {
                             {t('appointments.edit')} ✏️
                         </button>
                         <button
-                            onClick={handleDeleteClinic}
+                            onClick={() => setShowDeleteConfirm(true)}
                             className="delete-button action-button"
                         >
                             {t('appointments.delete')} 🗑️
@@ -170,6 +169,13 @@ const ClinicDetail = () => {
                         ))}
                     </ul>
                 </>
+            )}
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    message={t('clinics.error.delete_confirm')}
+                    onConfirm={handleDeleteClinic}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                />
             )}
         </div>
     );

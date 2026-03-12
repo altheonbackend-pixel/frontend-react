@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
-import axios from 'axios';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Appointment, type Patient, type Workplace } from '../../../shared/types';
 import AppointmentForm from './AppointmentForm';
@@ -41,15 +40,12 @@ const Appointments = () => {
         }
 
         try {
-            const response = await axios.get<AppointmentWithDetails[]>(`${API_BASE_URL}/appointments/`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            setAppointments(response.data);
+            const response = await api.get('/appointments/');
+            const list: AppointmentWithDetails[] = response.data.results ?? response.data;
+            setAppointments(list);
             
             // Correction ici : Spécifiez le type de l'objet 'appt'
-            const dates = response.data.map((appt: AppointmentWithDetails) => new Date(appt.appointment_date).toDateString());
+            const dates = list.map((appt: AppointmentWithDetails) => new Date(appt.appointment_date).toDateString());
             setAppointmentDates([...new Set(dates)]);
         } catch (err) {
             console.error("Erreur lors de la récupération des rendez-vous :", err);

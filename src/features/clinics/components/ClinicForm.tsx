@@ -62,7 +62,7 @@ const ClinicForm = () => {
         try {
             if (id) {
                 // Mode Modification: Le backend doit valider si l'utilisateur est le créateur
-                await api.put('/workplaces/${id}/', formData);
+                await api.put(`/workplaces/${id}/`, formData);
                 navigate(`/clinics/${id}`); // Rediriger vers les détails
             } else {
                 // Mode Ajout

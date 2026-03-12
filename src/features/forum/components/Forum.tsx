@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
@@ -46,7 +45,7 @@ const Forum = () => {
 
         try {
             const response = await api.get('/forum/posts/');
-            setPosts(response.data);
+            setPosts(response.data.results ?? response.data);
         } catch (err) {
             console.error("Erreur lors du chargement des posts :", err);
             setError(t('forum.error.load'));

@@ -1,7 +1,6 @@
 // Fichier : src/components/AppointmentForm.tsx
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 //import { useNavigate } from 'react-router-dom';
@@ -40,11 +39,11 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
             }
 
             try {
-                const patientsResponse = await axios.get<Patient[]>(`${API_BASE_URL}/patients/`);
-                setPatients(patientsResponse.data);
+                const patientsResponse = await api.get('/patients/');
+                setPatients(patientsResponse.data.results ?? patientsResponse.data);
 
-                const workplacesResponse = await axios.get<Workplace[]>(`${API_BASE_URL}/workplaces/`);
-                setWorkplaces(workplacesResponse.data);
+                const workplacesResponse = await api.get('/workplaces/');
+                setWorkplaces(workplacesResponse.data.results ?? workplacesResponse.data);
 
                 setLoading(false);
             } catch (err) {
@@ -87,7 +86,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
 
         try {
             if (appointment) {
-                await api.put('/appointments/${appointment.id}/', payload);
+                await api.put(`/appointments/${appointment.id}/`, payload);
             } else {
                 await api.post('/appointments/', payload);
             }

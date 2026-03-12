@@ -1,6 +1,5 @@
 // Fichier : src/components/DeleteAppointmentModal.tsx
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Appointment } from '../../../shared/types';
@@ -42,7 +41,7 @@ const DeleteAppointmentModal = ({ appointment, onSuccess, onCancel }: DeleteAppo
 
         try {
             // L'API devra gérer la logique de suppression et d'enregistrement des motifs
-            await api.delete('/appointments/${appointment.id}/', {
+            await api.delete(`/appointments/${appointment.id}/`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },

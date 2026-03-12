@@ -1,7 +1,6 @@
 // Fichier : src/components/ReferralsList.tsx
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Referral } from '../../../shared/types';
@@ -27,7 +26,7 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
             }
             try {
                 const response = await api.get(`/referrals/`);
-                setReferrals(response.data);
+                setReferrals(response.data.results ?? response.data);
                 setError(null);
             } catch (err) {
                 console.error('Erreur lors de la récupération des référencements:', err);

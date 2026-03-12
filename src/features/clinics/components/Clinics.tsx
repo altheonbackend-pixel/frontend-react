@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { type Workplace } from '../../../shared/types';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/ListStyles.css';
 import api from '../../../shared/services/api';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 const ClinicList = () => {
     const { t } = useTranslation();
     const [clinics, setClinics] = useState<Workplace[]>([]);
@@ -16,12 +16,13 @@ const ClinicList = () => {
     const { token, user } = useAuth();
     // Assurez-vous que l'ID de l'utilisateur est bien l'ID du docteur (comme dans ClinicDetail)
     const currentDoctorId = user?.id; 
+    const [confirmDeleteClinicId, setConfirmDeleteClinicId] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchClinics = async () => {
             try {
-                const response = await axios.get<Workplace[]>(`${API_BASE_URL}/workplaces/`);
-                setClinics(response.data);
+                const response = await api.get('/workplaces/');
+                setClinics(response.data.results ?? response.data);
             } catch (err) {
                 console.error("Erreur lors de la récupération des cliniques", err);
                 setError(t('clinics.error.load'));
@@ -36,15 +37,13 @@ const ClinicList = () => {
     }, [token]);
 
     const handleDelete = async (clinicId: number) => {
-        if (window.confirm(t('clinics.error.delete_confirm'))) {
-            try {
-                await api.delete('/workplaces/${clinicId}/');
-                setClinics(clinics.filter(clinic => clinic.id !== clinicId));
-            } catch (err) {
-                console.error("Erreur lors de la suppression de la clinique", err);
-                // Le message d'erreur est spécifique si l'utilisateur n'est pas le créateur.
-                alert(t('clinics.error.delete_forbidden'));
-            }
+        try {
+            await api.delete(`/workplaces/${clinicId}/`);
+            setClinics(clinics.filter(clinic => clinic.id !== clinicId));
+            setConfirmDeleteClinicId(null);
+        } catch (err) {
+            console.error("Erreur lors de la suppression de la clinique", err);
+            alert(t('clinics.error.delete_forbidden'));
         }
     };
 
@@ -94,7 +93,7 @@ const ClinicList = () => {
                                                 {t('appointments.edit')}
                                             </Link>
                                             <button 
-                                                onClick={() => handleDelete(clinic.id)} 
+                                                onClick={() => setConfirmDeleteClinicId(clinic.id)} 
                                                 className="action-button delete-button"
                                             >
                                                 {t('appointments.delete')}
@@ -106,6 +105,13 @@ const ClinicList = () => {
                         );
                     })}
                 </ul>
+            )}
+            {confirmDeleteClinicId !== null && (
+                <ConfirmModal
+                    message={t('clinics.error.delete_confirm')}
+                    onConfirm={() => handleDelete(confirmDeleteClinicId)}
+                    onCancel={() => setConfirmDeleteClinicId(null)}
+                />
             )}
         </div>
     );

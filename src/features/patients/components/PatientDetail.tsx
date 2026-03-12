@@ -8,6 +8,7 @@ import '../../../shared/styles/DetailStyles.css'; // Assurez-vous que ce fichier
 import ConsultationForm from '../../consultations/components/ConsultationForm';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 
@@ -33,6 +34,11 @@ const PatientDetails = () => {
     // État pour gérer l'ouverture/fermeture du menu d'actions
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null); // Référence pour détecter les clics en dehors du menu
+
+    // États pour les boîtes de confirmation de suppression
+    const [confirmDeleteConsultationId, setConfirmDeleteConsultationId] = useState<number | null>(null);
+    const [confirmDeleteProcedureId, setConfirmDeleteProcedureId] = useState<number | null>(null);
+    const [confirmDeleteReferralId, setConfirmDeleteReferralId] = useState<number | null>(null);
 
     // Effect pour récupérer les détails du patient au montage du composant ou si l'ID/token change
     useEffect(() => {
@@ -72,9 +78,7 @@ const PatientDetails = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await api.get(`/patients/${id}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const response = await api.get(`/patients/${id}/`);
             setPatient(response.data);
         } catch (err: any) { // Utiliser 'any' ou un type plus spécifique pour err
             console.error('Erreur lors de la récupération des détails du patient:', err);
@@ -118,12 +122,10 @@ const PatientDetails = () => {
 
     // Gestionnaires pour la suppression
     const handleDeleteConsultation = async (consultationId: number) => {
-        if (!window.confirm(t('patient_detail.error.delete_consultation'))) return;
         try {
-            await api.delete(`/consultations/${consultationId}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            fetchPatientDetails(); // Rafraîchir la liste après suppression
+            await api.delete(`/consultations/${consultationId}/`);
+            setConfirmDeleteConsultationId(null);
+            fetchPatientDetails();
         } catch (err: any) {
             console.error('Erreur lors de la suppression de la consultation:', err);
             setError(t('patient_detail.error.delete_general'));
@@ -134,12 +136,10 @@ const PatientDetails = () => {
     };
 
     const handleDeleteProcedure = async (procedureId: number) => {
-        if (!window.confirm(t('patient_detail.error.delete_procedure'))) return;
         try {
-            await api.delete(`/medical-procedures/${procedureId}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            fetchPatientDetails(); // Rafraîchir la liste après suppression
+            await api.delete(`/medical-procedures/${procedureId}/`);
+            setConfirmDeleteProcedureId(null);
+            fetchPatientDetails();
         } catch (err: any) {
             console.error('Erreur lors de la suppression de l\'acte médical:', err);
             setError(t('patient_detail.error.delete_general'));
@@ -150,13 +150,10 @@ const PatientDetails = () => {
     };
 
     const handleDeleteReferral = async (referralId: number) => {
-        if (!window.confirm(t('patient_detail.error.delete_referral'))) return;
         try {
-            // Utilisation de l'URL générique pour la suppression d'une référence
-            await api.delete(`/referrals/${referralId}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            fetchPatientDetails(); // Rafraîchir la liste après suppression
+            await api.delete(`/referrals/${referralId}/`);
+            setConfirmDeleteReferralId(null);
+            fetchPatientDetails();
         } catch (err: any) {
             console.error("Erreur lors de la suppression de l'orientation:", err);
             setError(t('patient_detail.error.delete_general'));
@@ -415,6 +412,7 @@ const PatientDetails = () => {
 
     // Rendu principal du composant
     return (
+        <>
         <div className="patient-details-container detail-container">
             <div className="patient-info-header detail-header">
                 <h2 className="patient-name">{t('patient_detail.title', { name: `${patient.first_name} ${patient.last_name}` })}</h2>
@@ -521,7 +519,7 @@ const PatientDetails = () => {
                                         <button onClick={() => handleEditConsultation(c)} className="edit-button action-button">
                                             {t('patients.edit')} ✏️
                                         </button>
-                                        <button onClick={() => handleDeleteConsultation(c.id)} className="delete-button action-button">
+                                        <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">
                                             {t('patients.delete')} 🗑️
                                         </button>
                                     </div>
@@ -565,7 +563,7 @@ const PatientDetails = () => {
                                         <button onClick={() => handleEditProcedure(p)} className="edit-button action-button">
                                             {t('patients.edit')} ✏️
                                         </button>
-                                        <button onClick={() => handleDeleteProcedure(p.id)} className="delete-button action-button">
+                                        <button onClick={() => setConfirmDeleteProcedureId(p.id)} className="delete-button action-button">
                                             {t('patients.delete')} 🗑️
                                         </button>
                                     </div>
@@ -594,7 +592,7 @@ const PatientDetails = () => {
                                         <button onClick={() => handleEditReferral(r)} className="edit-button action-button">
                                             {t('patients.edit')} ✏️
                                         </button>
-                                        <button onClick={() => handleDeleteReferral(r.id)} className="delete-button action-button">
+                                        <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">
                                             {t('patients.delete')} 🗑️
                                         </button>
                                     </div>
@@ -607,6 +605,28 @@ const PatientDetails = () => {
                 </div>
             </div>
         </div>
+        {confirmDeleteConsultationId !== null && (
+            <ConfirmModal
+                message={t('patient_detail.error.delete_consultation')}
+                onConfirm={() => handleDeleteConsultation(confirmDeleteConsultationId)}
+                onCancel={() => setConfirmDeleteConsultationId(null)}
+            />
+        )}
+        {confirmDeleteProcedureId !== null && (
+            <ConfirmModal
+                message={t('patient_detail.error.delete_procedure')}
+                onConfirm={() => handleDeleteProcedure(confirmDeleteProcedureId)}
+                onCancel={() => setConfirmDeleteProcedureId(null)}
+            />
+        )}
+        {confirmDeleteReferralId !== null && (
+            <ConfirmModal
+                message={t('patient_detail.error.delete_referral')}
+                onConfirm={() => handleDeleteReferral(confirmDeleteReferralId)}
+                onCancel={() => setConfirmDeleteReferralId(null)}
+            />
+        )}
+        </>
     );
 };
 

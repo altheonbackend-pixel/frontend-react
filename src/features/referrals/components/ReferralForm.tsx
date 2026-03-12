@@ -33,7 +33,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
             if (!token) return;
             try {
                 const response = await api.get('/doctors/');
-                setDoctors(response.data);
+                setDoctors(response.data.results ?? response.data);
             } catch (err) {
                 console.error('Erreur lors de la récupération des docteurs:', err);
                 setError(t('referrals.form.error.load_doctors'));

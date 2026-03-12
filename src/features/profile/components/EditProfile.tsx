@@ -39,7 +39,7 @@ const EditProfile = () => {
             try {
                 // Récupérer la liste de toutes les cliniques
                 const workplacesResponse = await api.get('/workplaces/');
-                const allWorkplaces: Workplace[] = workplacesResponse.data;
+                const allWorkplaces: Workplace[] = workplacesResponse.data.results ?? workplacesResponse.data;
                 setWorkplaces(allWorkplaces);
 
                 // Charger les données du profil du médecin
