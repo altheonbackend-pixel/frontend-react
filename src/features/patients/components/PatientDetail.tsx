@@ -16,7 +16,7 @@ const PatientDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate(); // Hook pour la navigation
-    const { token, user, logout } = useAuth(); // Récupère le token, l'utilisateur et la fonction logou
+    const { token, user, profile, logout } = useAuth(); // Récupère le token, l'utilisateur, profil et la fonction logout
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -438,26 +438,30 @@ const PatientDetails = () => {
                                     </button>
                                 </li>
                                 <li>
-                                    <button onClick={() => {
-                                        setShowProcedureForm(true);
-                                        setShowConsultationForm(false);
-                                        setShowReferralForm(false);
-                                        setProcedureToEdit(null);
-                                        setShowDropdown(false);
-                                    }} className="action-button dropdown-item">
-                                        ➕ {t('patient_detail.add_procedure')}
-                                    </button>
+                                    {(profile?.access_level ?? 1) >= 2 && (
+                                        <button onClick={() => {
+                                            setShowProcedureForm(true);
+                                            setShowConsultationForm(false);
+                                            setShowReferralForm(false);
+                                            setProcedureToEdit(null);
+                                            setShowDropdown(false);
+                                        }} className="action-button dropdown-item">
+                                            ➕ {t('patient_detail.add_procedure')}
+                                        </button>
+                                    )}
                                 </li>
                                 <li>
-                                    <button onClick={() => {
-                                        setShowReferralForm(true);
-                                        setShowConsultationForm(false);
-                                        setShowProcedureForm(false);
-                                        setReferralToEdit(null);
-                                        setShowDropdown(false);
-                                    }} className="action-button dropdown-item">
-                                        ➕ {t('patient_detail.add_referral')}
-                                    </button>
+                                    {(profile?.access_level ?? 1) >= 2 && (
+                                        <button onClick={() => {
+                                            setShowReferralForm(true);
+                                            setShowConsultationForm(false);
+                                            setShowProcedureForm(false);
+                                            setReferralToEdit(null);
+                                            setShowDropdown(false);
+                                        }} className="action-button dropdown-item">
+                                            ➕ {t('patient_detail.add_referral')}
+                                        </button>
+                                    )}
                                 </li>
                                 {/* Bouton pour exporter le dossier */}
                                 <li>
@@ -532,7 +536,7 @@ const PatientDetails = () => {
                 </div>
 
                 {/* Section : Historique des Actes Médicaux */}
-                <div className="patient-details-card detail-info-group">
+                <div className={`patient-details-card detail-info-group ${(profile?.access_level ?? 1) < 2 ? 'tab-disabled' : ''}`}>
                     <h3>{t('patient_detail.procedure_history')}</h3>
                     {patient.medical_procedures && patient.medical_procedures.length > 0 ? (
                         <ul className="detail-list">

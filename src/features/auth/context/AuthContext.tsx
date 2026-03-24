@@ -2,18 +2,21 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
-import { type DoctorProfile, type User } from '../../../shared/types';
+import { type DoctorProfile, type User, type AdminProfile } from '../../../shared/types';
 import api from '../../../shared/services/api';
 
 interface AuthContextType {
     user: User | null;
     profile: DoctorProfile | null;
+    adminProfile: AdminProfile | null;
     token: string | null;
+    userType: 'doctor' | 'admin' | null;
     login: (credentials: any) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     authIsLoading: boolean;
     updateProfileData: (newProfile: DoctorProfile) => void;
+    hasAccessLevel: (requiredLevel: number) => boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,7 +24,9 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<DoctorProfile | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
+    const [token, setToken] = useState<string | null>(localStorage.getItem('access_token') || localStorage.getItem('token'));
+    const [userType, setUserType] = useState<'doctor' | 'admin' | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [authIsLoading, setAuthIsLoading] = useState<boolean>(true);
     const navigate = useNavigate();
@@ -29,10 +34,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Wrapped in useCallback so the stable reference can be used in the api response interceptor
     const logout = useCallback(() => {
         localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('admin_profile');
         setToken(null);
         setUser(null);
         setProfile(null);
+        setAdminProfile(null);
+        setUserType(null);
         setIsAuthenticated(false);
         navigate('/login', { replace: true });
     }, [navigate]);
@@ -47,15 +56,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 id: profileData.id,
                 email: profileData.email,
                 full_name: profileData.full_name,
+                access_level: profileData.access_level || 1,
                 specialty: profileData.specialty,
                 phone_number: profileData.phone_number,
                 address: profileData.address,
             });
         } catch (err) {
             console.error('Erreur lors de la récupération du profil:', err);
-            // Let the api response interceptor handle 401/403 for mid-session calls.
-            // For the initial startup call (before interceptor is bound), handle it here.
-            if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+            // Only logout on 401 (token expired). 403 is handled by access level gating, not auth.
+            if (axios.isAxiosError(err) && err.response?.status === 401) {
                 logout();
             }
             throw err;
@@ -68,14 +77,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             id: newProfile.id,
             email: newProfile.email,
             full_name: newProfile.full_name,
+            access_level: newProfile.access_level,
             specialty: newProfile.specialty,
             phone_number: newProfile.phone_number,
             address: newProfile.address,
         });
     };
 
+    const hasAccessLevel = (requiredLevel: number): boolean => {
+        if (!profile) return false;
+        return profile.access_level >= requiredLevel;
+    };
+
     const checkTokenValidity = async () => {
-        const localToken = localStorage.getItem('token');
+        const localToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const storedAdminProfile = localStorage.getItem('admin_profile');
+
         if (!localToken) {
             setIsAuthenticated(false);
             setAuthIsLoading(false);
@@ -86,32 +103,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const decodedToken: any = jwtDecode(localToken);
             const currentTime = Date.now() / 1000;
             if (decodedToken.exp < currentTime) {
-                console.log('Token expiré');
+                console.log('Token expired');
                 logout();
             } else {
                 setToken(localToken);
                 setIsAuthenticated(true);
-                await getDoctorProfile();
+
+                // If admin profile stored, use it
+                if (storedAdminProfile) {
+                    setAdminProfile(JSON.parse(storedAdminProfile));
+                    setUserType('admin');
+                } else {
+                    // Otherwise treat as doctor and fetch profile
+                    setUserType('doctor');
+                    await getDoctorProfile();
+                }
             }
         } catch (error) {
-            console.error('Erreur de décodage du token ou de récupération du profil:', error);
-            logout();
+            console.error('Token decoding or profile fetch error:', error);
+            if (axios.isAxiosError(error)) {
+                const status = error.response?.status;
+                if (status === 401) {
+                    logout();
+                } else if (status === 403) {
+                    setIsAuthenticated(true);
+                } else {
+                    setIsAuthenticated(true);
+                }
+            } else {
+                logout();
+            }
         } finally {
             setAuthIsLoading(false);
         }
     };
 
-    // Register the 401/403 response interceptor on the central api instance so that
+    // Register the 401 response interceptor on the central api instance so that
     // any mid-session expired token triggers logout and navigation automatically.
-    // This replaces the previous global axios interceptors which did not fire on the api instance.
+    // Note: 403 (access denied) is NOT a logout condition — it's handled by access level gating.
     useEffect(() => {
         const responseInterceptor = api.interceptors.response.use(
             (response) => response,
             (error) => {
-                if (error.response?.status === 401 || error.response?.status === 403) {
-                    console.log('Requête non autorisée/expirée détectée. Déconnexion...');
+                // Only logout on 401 (token expired/invalid)
+                if (error.response?.status === 401) {
+                    console.log('Requête non autorisée détectée. Déconnexion...');
                     logout();
                 }
+                // 403 and all other errors: let the component handle it
                 return Promise.reject(error);
             }
         );
@@ -131,21 +170,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const response = await api.post('/login/', credentials);
             const accessToken = response.data.access;
             const refreshToken = response.data.refresh;
+            const loginUserData = response.data.user;
+            const userTypeFromResponse = loginUserData.user_type || 'doctor';
+
+            localStorage.setItem('access_token', accessToken);
             localStorage.setItem('token', accessToken);
+            localStorage.setItem('user_type', userTypeFromResponse);
             if (refreshToken) {
                 localStorage.setItem('refresh_token', refreshToken);
             }
             setToken(accessToken);
-            setIsAuthenticated(true);
-            await getDoctorProfile();
-            navigate('/dashboard');
+            setUserType(userTypeFromResponse);
+
+            // Handle admin login
+            if (userTypeFromResponse === 'admin') {
+                const adminData: AdminProfile = {
+                    user_type: 'admin',
+                    email: loginUserData.email,
+                    full_name: loginUserData.full_name,
+                };
+                setAdminProfile(adminData);
+                localStorage.setItem('admin_profile', JSON.stringify(adminData));
+                setIsAuthenticated(true);
+                navigate('/admin/dashboard');
+            }
+            // Handle doctor login
+            else if (userTypeFromResponse === 'doctor') {
+                setUser({
+                    id: loginUserData.id,
+                    email: loginUserData.email,
+                    full_name: loginUserData.full_name,
+                    access_level: loginUserData.access_level || 1,
+                    specialty: loginUserData.specialty,
+                });
+                setIsAuthenticated(true);
+                await getDoctorProfile();
+                navigate('/dashboard');
+            }
         } catch (error) {
-            console.error('Erreur de connexion:', error);
+            console.error('Login error:', error);
             throw error;
         }
     };
 
-    const value = { user, profile, token, login, logout, isAuthenticated, authIsLoading, updateProfileData };
+    const value = { user, profile, adminProfile, token, userType, login, logout, isAuthenticated, authIsLoading, updateProfileData, hasAccessLevel };
 
     return (
         <AuthContext.Provider value={value}>

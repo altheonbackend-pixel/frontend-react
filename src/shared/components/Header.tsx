@@ -28,6 +28,12 @@ const Header = () => {
                             <NavLink to="/notes" className="nav-item">{t('nav.notes')}</NavLink>
                             <NavLink to="/clinics" className="nav-item">{t('nav.clinics')}</NavLink>
                             <NavLink to="/forum" className="nav-item">{t('nav.forum')}</NavLink>
+                            {(profile?.access_level ?? 1) >= 2 && (
+                                <>
+                                    <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
+                                    <NavLink to="/global-stats" className="nav-item">Global Stats</NavLink>
+                                </>
+                            )}
                         </>
                     )}
                 </div>

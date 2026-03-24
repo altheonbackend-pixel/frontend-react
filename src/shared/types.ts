@@ -4,6 +4,7 @@ export interface User {
     id: number;
     email: string;
     full_name: string;
+    access_level?: 1 | 2;
     specialty?: string | null;
     phone_number?: string | null;
     address?: string | null;
@@ -13,6 +14,7 @@ export interface DoctorProfile {
     id: number;
     full_name: string;
     email: string;
+    access_level: 1 | 2;
     specialty: string | null;
     license_number: string | null;
     phone_number: string | null;
@@ -167,4 +169,32 @@ export interface GlobalStats {
 export interface AuthTokens {
     refresh: string;
     access: string;
+}
+
+export interface AdminProfile {
+    user_type: 'admin';
+    email: string;
+    full_name: string;
+}
+
+export interface AdminStats {
+    total_doctors: number;
+    total_active_doctors: number;
+    total_patients: number;
+    total_appointments: number;
+    total_consultations: number;
+    total_procedures: number;
+    total_referrals: number;
+    doctors_by_access_level: {
+        [key: string]: number;
+    };
+}
+
+export interface AdminDoctor {
+    id: number;
+    full_name: string;
+    email: string;
+    specialty: string | null;
+    access_level: 1 | 2;
+    is_active: boolean;
 }

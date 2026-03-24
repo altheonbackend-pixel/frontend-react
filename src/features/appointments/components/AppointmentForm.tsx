@@ -154,6 +154,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                             name="appointment_date"
                             value={formData.appointment_date}
                             onChange={handleChange}
+                            min={new Date().toISOString().slice(0, 16)}
                             required
                         />
                     </div>

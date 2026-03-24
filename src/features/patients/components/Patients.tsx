@@ -12,7 +12,7 @@ import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 interface PatientsProps {
-    refreshPatients?: boolean;
+    refreshPatients?: number | boolean;
 }
 
 const Patients = ({ refreshPatients }: PatientsProps) => {

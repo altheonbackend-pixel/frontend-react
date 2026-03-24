@@ -123,6 +123,7 @@ const EditProfile = () => {
                 phone_number: response.data.phone_number,
                 address: response.data.address,
                 workplaces: response.data.workplaces,
+                access_level: response.data.access_level || 1,
             };
             
             updateProfileData(updatedProfile);
