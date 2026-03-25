@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import '../../../shared/styles/ListStyles.css';
+import '../styles/PatientsList.css';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { type Workplace } from '../../../shared/types';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/ListStyles.css';
+import '../styles/ClinicsList.css';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 const ClinicList = () => {

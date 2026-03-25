@@ -1,0 +1,338 @@
+/* ============================================================================
+   CLINICS LIST - Professional Medical Dashboard Styling
+   ============================================================================ */
+
+.clinic-list-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    background: #f8f9fa;
+    min-height: 100vh;
+}
+
+.clinic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.clinic-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+/* ============================================================================
+   ADD CLINIC BUTTON
+   ============================================================================ */
+
+.add-clinic-button {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.add-clinic-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    background: linear-gradient(135deg, #357abd, #2a5a9a);
+}
+
+/* ============================================================================
+   CLINICS GRID/LIST
+   ============================================================================ */
+
+.clinic-items-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.clinic-item {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    border-top: 4px solid #4a90e2;
+    display: flex;
+    flex-direction: column;
+}
+
+.clinic-item:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transform: translateY(-4px);
+    border-top-color: #357abd;
+}
+
+/* ============================================================================
+   CLINIC INFO
+   ============================================================================ */
+
+.clinic-info {
+    padding: 20px;
+    flex: 1;
+}
+
+.clinic-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.clinic-address {
+    font-size: 13px;
+    color: #666;
+    margin: 0 0 12px 0;
+    line-height: 1.6;
+    min-height: 26px;
+}
+
+.clinic-status {
+    font-size: 13px;
+    color: #666;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================================================
+   STATUS BADGES
+   ============================================================================ */
+
+.status-public {
+    display: inline-block;
+    background: #d4edda;
+    color: #155724;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-private {
+    display: inline-block;
+    background: #fff3cd;
+    color: #856404;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+/* ============================================================================
+   CLINIC ACTIONS
+   ============================================================================ */
+
+.clinic-actions {
+    display: flex;
+    gap: 8px;
+    padding: 16px 20px;
+    border-top: 1px solid #e8e8e8;
+    background: #f8f9fa;
+    flex-wrap: wrap;
+}
+
+.action-button {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 80px;
+}
+
+.details-button {
+    background: #4a90e2;
+    color: white;
+    border: 1px solid #4a90e2;
+}
+
+.details-button:hover {
+    background: #357abd;
+    border-color: #357abd;
+    box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.edit-button {
+    background: #f0f4ff;
+    color: #4a90e2;
+    border: 1px solid #4a90e2;
+}
+
+.edit-button:hover {
+    background: #e7f0ff;
+    border-color: #357abd;
+    color: #357abd;
+}
+
+.delete-button {
+    background: #fff5f5;
+    color: #e74c3c;
+    border: 1px solid #e74c3c;
+}
+
+.delete-button:hover {
+    background: #ffe5e5;
+    border-color: #c82333;
+    color: #c82333;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.no-clinic-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 12px;
+    color: #999;
+    font-size: 16px;
+    margin: 0;
+}
+
+.no-clinic-message::before {
+    content: "🏥";
+    display: block;
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+/* ============================================================================
+   LOADING & ERROR STATES
+   ============================================================================ */
+
+.loading-text {
+    text-align: center;
+    padding: 40px;
+    font-size: 16px;
+    color: #666;
+}
+
+.error-text {
+    background: #fff5f5;
+    border: 1px solid #f5a0a0;
+    color: #c82333;
+    padding: 16px;
+    border-radius: 8px;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .clinic-list-container {
+        padding: 16px;
+    }
+
+    .clinic-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .clinic-title {
+        font-size: 24px;
+    }
+
+    .add-clinic-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .clinic-items-list {
+        grid-template-columns: 1fr;
+    }
+
+    .clinic-actions {
+        gap: 6px;
+    }
+
+    .action-button {
+        min-width: 70px;
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .clinic-list-container {
+        padding: 12px;
+    }
+
+    .clinic-item {
+        border-radius: 8px;
+    }
+
+    .clinic-info {
+        padding: 16px;
+    }
+
+    .clinic-actions {
+        padding: 12px 16px;
+        gap: 4px;
+    }
+
+    .clinic-title {
+        font-size: 20px;
+    }
+
+    .clinic-name {
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .clinic-address {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+
+    .clinic-status {
+        font-size: 12px;
+    }
+
+    .action-button {
+        flex: 1;
+        min-width: 60px;
+        padding: 6px 10px;
+    }
+
+    .add-clinic-button {
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+}
