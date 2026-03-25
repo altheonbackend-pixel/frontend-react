@@ -43,11 +43,14 @@ const Statistics = () => {
                 const statsResponse = await api.get('/doctors/stats/');
                 const patientsResponse = await api.get('/doctors/patients/stats/');
 
+                // Handle paginated response - extract results from paginated response
+                const patientsData = patientsResponse.data.results || patientsResponse.data;
+
                 setStats({
                     total_patients: statsResponse.data.total_patients,
                     total_consultations: statsResponse.data.total_consultations,
                     total_medical_procedures: statsResponse.data.total_medical_procedures,
-                    patients: patientsResponse.data
+                    patients: patientsData
                 });
             } catch (err) {
                 console.error("Erreur lors du chargement des statistiques:", err);
