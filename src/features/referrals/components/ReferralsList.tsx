@@ -125,10 +125,6 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="action-buttons">
-                                        <button className="btn-small">View</button>
-                                        <button className="btn-small primary">Follow Up</button>
-                                    </div>
                                 </div>
                             </div>
                         </li>

@@ -14,7 +14,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     flex-wrap: wrap;
     gap: 16px;
 }
@@ -34,7 +34,7 @@
 }
 
 /* ============================================================================
-   SEARCH CONTAINER
+   SEARCH & FILTER
    ============================================================================ */
 
 .search-container {
@@ -45,11 +45,10 @@
     width: 100%;
     max-width: 400px;
     padding: 12px 16px;
-    border: 1px solid #e0e0e0;
+    border: 2px solid #e8e8e8;
     border-radius: 8px;
     font-size: 14px;
-    transition: all 0.3s ease;
-    background: white;
+    transition: all 0.2s;
 }
 
 .search-input:focus {
@@ -58,19 +57,14 @@
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
 }
 
-.search-input::placeholder {
-    color: #999;
-}
-
 /* ============================================================================
-   PATIENTS GRID/LIST
+   PATIENT CARDS - Grid Layout
    ============================================================================ */
 
 .patients-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
     gap: 20px;
-    list-style: none;
     padding: 0;
     margin: 0;
 }
@@ -79,19 +73,16 @@
     background: white;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding: 20px;
     transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+    overflow: hidden;
     border-left: 4px solid #4a90e2;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
 }
 
 .patient-card:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     transform: translateY(-4px);
-    border-left-color: #357abd;
 }
 
 /* ============================================================================
@@ -99,38 +90,45 @@
    ============================================================================ */
 
 .patient-info {
+    padding: 20px;
     flex: 1;
-    min-width: 0;
 }
 
 .patient-name {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     color: #1a1a1a;
-    margin: 0 0 8px 0;
-    word-break: break-word;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
 }
 
 .patient-dob {
     font-size: 13px;
     color: #666;
-    margin: 0;
-    word-break: break-word;
+    margin: 0 0 12px 0;
+    line-height: 1.6;
 }
 
-.patient-dob strong {
-    color: #333;
-    font-weight: 600;
+.patient-details {
+    font-size: 13px;
+    color: #666;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* ============================================================================
-   ACTION BUTTONS
+   PATIENT ACTIONS
    ============================================================================ */
 
 .patient-actions {
     display: flex;
     gap: 8px;
-    flex-shrink: 0;
+    padding: 16px 20px;
+    border-top: 1px solid #e8e8e8;
+    background: #f8f9fa;
+    flex-wrap: wrap;
 }
 
 .action-button {
@@ -146,6 +144,8 @@
     align-items: center;
     justify-content: center;
     white-space: nowrap;
+    flex: 1;
+    min-width: 80px;
 }
 
 .details-button {
@@ -158,6 +158,48 @@
     background: #357abd;
     border-color: #357abd;
     box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.add-button {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.add-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    background: linear-gradient(135deg, #357abd, #2a5a9a);
+}
+
+.export-button {
+    background: #f0f4ff;
+    color: #4a90e2;
+    border: 1px solid #4a90e2;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.export-button:hover {
+    background: #e7f0ff;
+    border-color: #357abd;
+    color: #357abd;
 }
 
 .edit-button {
@@ -182,33 +224,6 @@
     background: #ffe5e5;
     border-color: #c82333;
     color: #c82333;
-}
-
-.add-button {
-    background: linear-gradient(135deg, #4a90e2, #357abd);
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    font-size: 13px;
-}
-
-.add-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
-}
-
-.export-button {
-    background: white;
-    color: #4a90e2;
-    border: 2px solid #4a90e2;
-    padding: 8px 16px;
-    font-size: 13px;
-}
-
-.export-button:hover {
-    background: #f0f4ff;
-    border-color: #357abd;
-    color: #357abd;
 }
 
 /* ============================================================================
@@ -276,32 +291,28 @@
         width: 100%;
     }
 
-    .header-buttons .action-button {
-        flex: 1;
-        max-width: 200px;
+    .add-button,
+    .export-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .search-input {
+        max-width: 100%;
     }
 
     .patients-list {
         grid-template-columns: 1fr;
     }
 
-    .patient-card {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
     .patient-actions {
-        width: 100%;
-        flex-wrap: wrap;
+        gap: 6px;
     }
 
     .action-button {
-        flex: 1;
-        min-width: 100px;
-    }
-
-    .search-input {
-        max-width: 100%;
+        min-width: 70px;
+        padding: 6px 12px;
+        font-size: 11px;
     }
 }
 
@@ -311,8 +322,16 @@
     }
 
     .patient-card {
-        padding: 16px;
         border-radius: 8px;
+    }
+
+    .patient-info {
+        padding: 16px;
+    }
+
+    .patient-actions {
+        padding: 12px 16px;
+        gap: 4px;
     }
 
     .page-title {
@@ -320,19 +339,24 @@
     }
 
     .patient-name {
-        font-size: 15px;
+        font-size: 16px;
+        margin-bottom: 8px;
     }
 
     .patient-dob {
         font-size: 12px;
+        margin-bottom: 8px;
     }
 
     .action-button {
+        flex: 1;
+        min-width: 60px;
         padding: 6px 10px;
-        font-size: 11px;
     }
 
-    .patient-actions {
-        gap: 4px;
+    .add-button,
+    .export-button {
+        padding: 8px 16px;
+        font-size: 12px;
     }
 }
