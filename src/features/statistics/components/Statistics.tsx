@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import axios from 'axios';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/ListStyles.css';
@@ -54,6 +55,11 @@ const Statistics = () => {
                 });
             } catch (err) {
                 console.error("Erreur lors du chargement des statistiques:", err);
+                if (axios.isAxiosError(err)) {
+                    console.error("Status:", err.response?.status);
+                    console.error("Response:", err.response?.data);
+                    console.error("URL:", err.config?.url);
+                }
                 setError(t('statistics.error.load'));
             } finally {
                 setLoading(false);
