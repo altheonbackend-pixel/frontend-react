@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Referral } from '../../../shared/types';
-import '../../../shared/styles/DetailStyles.css';
+import '../styles/ReferralsList.css';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 
@@ -48,27 +48,88 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
     }
 
     return (
-        <div className="patients-container">
-            <h2 className="page-title">{t('referrals.list_title')}</h2>
+        <div className="referrals-container">
+            <div className="referrals-header">
+                <h1 className="referrals-title">{t('referrals.list_title')}</h1>
+                <p className="referrals-subtitle">Manage and track all patient referrals</p>
+            </div>
+
             {referrals.length === 0 ? (
-                <p className="no-patients-message">{t('referrals.no_referrals')}</p>
+                <div className="no-referrals-message">
+                    <p>{t('referrals.no_referrals')}</p>
+                </div>
             ) : (
-                <ul className="patients-list">
+                <ul className="referrals-grid">
                     {referrals.map(referral => (
-                        <li key={referral.id} className="patient-card">
-                            <div className="patient-info">
-                                <h4>
-                                    {t('referrals.patient_ref')} 
-                                    <Link to={`/patients/${referral.patient_details?.unique_id}`} className="patient-link">
-                                        {referral.patient_details?.first_name} {referral.patient_details?.last_name || ''}
-                                    </Link>
-                                </h4>
-                                <p><strong>{t('referrals.specialty')}</strong> {referral.specialty_requested}</p>
-                                <p><strong>{t('referrals.reason')}</strong> {referral.reason_for_referral}</p>
-                                <p className="date-info">
-                                    {t('referrals.created_on')} {new Date(referral.date_of_referral).toLocaleDateString()} {t('referrals.by')} {referral.referred_by_details?.full_name}
-                                </p>
-                                <p><strong>{t('referrals.referred_to')}</strong> Dr. {referral.referred_to_details?.full_name}</p>
+                        <li key={referral.id} className="referral-card normal">
+                            <div className="referral-content">
+                                {/* Header Section */}
+                                <div className="referral-header">
+                                    <h3 className="referral-patient-name">
+                                        <span className="patient-badge">Patient</span>
+                                        <Link
+                                            to={`/patients/${referral.patient_details?.unique_id}`}
+                                            className="patient-link"
+                                        >
+                                            {referral.patient_details?.first_name} {referral.patient_details?.last_name || ''}
+                                        </Link>
+                                    </h3>
+                                    <p className="referral-date">
+                                        {new Date(referral.date_of_referral).toLocaleDateString()}
+                                    </p>
+                                </div>
+
+                                {/* Body Section */}
+                                <div className="referral-body">
+                                    {/* Specialty */}
+                                    <div className="referral-field">
+                                        <span className="referral-label">{t('referrals.specialty')}</span>
+                                        <span className="specialty-tag">{referral.specialty_requested}</span>
+                                    </div>
+
+                                    {/* Reason */}
+                                    <div className="referral-field">
+                                        <span className="referral-label">{t('referrals.reason')}</span>
+                                        <p className="reason-text">{referral.reason_for_referral}</p>
+                                    </div>
+
+                                    {/* Referred To */}
+                                    <div className="referral-field">
+                                        <span className="referral-label">Referred To</span>
+                                        <span className="referral-value">
+                                            Dr. {referral.referred_to_details?.full_name}
+                                        </span>
+                                    </div>
+
+                                    {/* Referred By */}
+                                    <div className="referral-field">
+                                        <span className="referral-label">Referred By</span>
+                                        <span className="referral-value">
+                                            Dr. {referral.referred_by_details?.full_name}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Footer Section */}
+                                <div className="referral-footer">
+                                    <div className="doctor-info">
+                                        <div className="doctor-avatar">
+                                            {referral.referred_to_details?.full_name?.charAt(0) || 'D'}
+                                        </div>
+                                        <div>
+                                            <p className="doctor-name">
+                                                Dr. {referral.referred_to_details?.full_name?.split(' ')[0]}
+                                            </p>
+                                            <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
+                                                {referral.specialty_requested}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="action-buttons">
+                                        <button className="btn-small">View</button>
+                                        <button className="btn-small primary">Follow Up</button>
+                                    </div>
+                                </div>
                             </div>
                         </li>
                     ))}
