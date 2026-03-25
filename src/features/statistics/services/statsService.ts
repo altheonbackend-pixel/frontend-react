@@ -3,10 +3,10 @@
 import api from '../../../shared/services/api';
 
 export const getDoctorStats = () =>
-    api.get('/doctors/stats/');
+    api.get('/doctor/stats/');
 
 export const getDoctorPatientStats = () =>
-    api.get('/doctors/patients/stats/');
+    api.get('/doctor-patients/stats/');
 
 export const getGlobalStats = () =>
     api.get('/stats/global/');

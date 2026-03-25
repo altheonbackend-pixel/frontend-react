@@ -41,8 +41,8 @@ const Statistics = () => {
             }
 
             try {
-                const statsResponse = await api.get('/doctors/stats/');
-                const patientsResponse = await api.get('/doctors/patients/stats/');
+                const statsResponse = await api.get('/doctor/stats/');
+                const patientsResponse = await api.get('/doctor-patients/stats/');
 
                 // Handle paginated response - extract results from paginated response
                 const patientsData = patientsResponse.data.results || patientsResponse.data;
