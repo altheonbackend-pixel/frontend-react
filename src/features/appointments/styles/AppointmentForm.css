@@ -101,3 +101,118 @@
     font-size: 1.2rem;
     color: #007bff;
 }
+/* ============================================================================
+   MOBILE RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .form-modal-overlay {
+        padding: 1rem;
+        align-items: flex-start;
+    }
+
+    .appointment-form-container {
+        width: 95%;
+        max-width: 90vw;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        border-radius: 12px;
+    }
+
+    .appointment-form-container h3 {
+        font-size: 1.2rem;
+        margin-bottom: 1.2rem;
+    }
+
+    .appointment-form .form-group {
+        margin-bottom: 0.9rem;
+    }
+
+    .appointment-form .form-group label {
+        font-size: 0.95rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .appointment-form .form-group input,
+    .appointment-form .form-group select,
+    .appointment-form .form-group textarea {
+        padding: 0.6rem;
+        font-size: 1rem;
+    }
+
+    .appointment-form .form-actions {
+        gap: 0.8rem;
+        margin-top: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .appointment-form .submit-button,
+    .appointment-form .cancel-button {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.9rem;
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .appointment-form-container {
+        width: 100%;
+        max-width: 100vw;
+        padding: 1rem;
+        margin: 0;
+        border-radius: 8px;
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .appointment-form-container h3 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .appointment-form .form-group {
+        margin-bottom: 0.8rem;
+    }
+
+    .appointment-form .form-group label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
+
+    .appointment-form .form-group input,
+    .appointment-form .form-group select,
+    .appointment-form .form-group textarea {
+        padding: 0.5rem;
+        font-size: 16px;
+        border-radius: 4px;
+    }
+
+    .appointment-form .form-actions {
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-direction: column-reverse;
+    }
+
+    .appointment-form .submit-button,
+    .appointment-form .cancel-button {
+        padding: 0.8rem;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .error-message {
+        font-size: 0.85rem;
+        margin-top: 0.8rem;
+    }
+
+    .loading-message {
+        font-size: 1rem;
+        padding: 1.5rem;
+    }
+}

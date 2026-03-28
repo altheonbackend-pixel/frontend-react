@@ -77,3 +77,108 @@
 .logout-button:hover {
     background-color: #c0392b;
 }
+/* ============================================================================
+   MOBILE RESPONSIVE DESIGN
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .main-header {
+        padding: 1rem;
+    }
+
+    .main-nav {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .nav-links {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+
+    .nav-logo {
+        font-size: 1.2rem;
+    }
+
+    .nav-item {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+    }
+
+    .auth-links {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .user-info-container {
+        flex-direction: row;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .user-name {
+        font-size: 0.9rem;
+    }
+
+    .user-specialty {
+        font-size: 0.7rem;
+    }
+
+    .logout-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-header {
+        padding: 0.75rem;
+    }
+
+    .main-nav {
+        gap: 1rem;
+    }
+
+    .nav-links {
+        gap: 0.25rem;
+        font-size: 0.85rem;
+    }
+
+    .nav-logo {
+        font-size: 1rem;
+    }
+
+    .nav-item {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.5rem;
+    }
+
+    .auth-links {
+        gap: 0.5rem;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .user-info-container {
+        font-size: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .user-name {
+        font-size: 0.8rem;
+    }
+
+    .user-specialty {
+        display: none;
+    }
+
+    .logout-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+}
