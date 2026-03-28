@@ -42,9 +42,12 @@ const Appointments = () => {
         try {
             const response = await api.get('/appointments/');
             const list: AppointmentWithDetails[] = response.data.results ?? response.data;
-            setAppointments(list);
+            // Sort by newest first (reverse chronological order)
+            const sortedList = list.sort((a, b) => {
+                return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
+            });
+            setAppointments(sortedList);
             
-            // Correction ici : Spécifiez le type de l'objet 'appt'
             const dates = list.map((appt: AppointmentWithDetails) => new Date(appt.appointment_date).toDateString());
             setAppointmentDates([...new Set(dates)]);
         } catch (err) {
@@ -106,12 +109,17 @@ const Appointments = () => {
         navigate('/deleted-appointments');
     };
 
-    const appointmentsForSelectedDate = appointments.filter(appt => {
-        const apptDate = new Date(appt.appointment_date);
-        return apptDate.getFullYear() === date.getFullYear() &&
-               apptDate.getMonth() === date.getMonth() &&
-               apptDate.getDate() === date.getDate();
-    });
+    const appointmentsForSelectedDate = appointments
+        .filter(appt => {
+            const apptDate = new Date(appt.appointment_date);
+            return apptDate.getFullYear() === date.getFullYear() &&
+                   apptDate.getMonth() === date.getMonth() &&
+                   apptDate.getDate() === date.getDate();
+        })
+        // Sort by newest first within selected date
+        .sort((a, b) => {
+            return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
+        });
 
     const tileClassName = ({ date, view }: { date: Date, view: string }) => {
         if (view === 'month') {

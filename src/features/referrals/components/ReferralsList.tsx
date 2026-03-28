@@ -26,7 +26,11 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
             }
             try {
                 const response = await api.get(`/referrals/`);
-                setReferrals(response.data.results ?? response.data);
+                const referralsList = response.data.results ?? response.data;
+                const sortedReferrals = referralsList.sort((a: Referral, b: Referral) => {
+                  return new Date(b.date_of_referral).getTime() - new Date(a.date_of_referral).getTime();
+                });
+                setReferrals(sortedReferrals);
                 setError(null);
             } catch (err) {
                 console.error('Erreur lors de la récupération des référencements:', err);

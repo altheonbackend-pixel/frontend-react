@@ -43,7 +43,11 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
             const params: Record<string, string> = {};
             if (debouncedSearch) params.search = debouncedSearch;
             const response = await api.get('/doctors/me/patients/', { params });
-            setPatients(response.data.results ?? response.data);
+            const patientsList = response.data.results ?? response.data;
+            const sortedPatients = patientsList.sort((a: Patient, b: Patient) => {
+              return (b.unique_id || "").localeCompare(a.unique_id || "");
+            });
+            setPatients(sortedPatients);
             setError(null);
         } catch (err) {
             console.error('Erreur lors de la récupération des patients:', err);

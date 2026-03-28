@@ -37,7 +37,11 @@ const Notes = () => {
 
         try {
             const response = await api.get('/notes/');
-            setNotes(response.data.results ?? response.data);
+            const notesList = response.data.results ?? response.data;
+            const sortedNotes = notesList.sort((a: Note, b: Note) => {
+              return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            });
+            setNotes(sortedNotes);
         } catch (err) {
             console.error("Erreur lors du chargement des notes :", err);
             setError(t('notes.error.load'));

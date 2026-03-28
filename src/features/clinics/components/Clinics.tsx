@@ -22,7 +22,11 @@ const ClinicList = () => {
         const fetchClinics = async () => {
             try {
                 const response = await api.get('/workplaces/');
-                setClinics(response.data.results ?? response.data);
+                const clinicsList = response.data.results ?? response.data;
+                const sortedClinics = clinicsList.sort((a: Workplace, b: Workplace) => {
+                  return (b.id || 0) - (a.id || 0);
+                });
+                setClinics(sortedClinics);
             } catch (err) {
                 console.error("Erreur lors de la récupération des cliniques", err);
                 setError(t('clinics.error.load'));
