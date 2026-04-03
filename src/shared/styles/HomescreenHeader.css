@@ -1,19 +1,22 @@
 /* ============================================================
-   HOMESCREEN HEADER
-   The hero section shown on the dashboard welcome screen.
+   HOMESCREEN HEADER (Landing page hero)
+   Flex row layout: [header-info] [lang-switcher]
+   No absolute positioning — safe on all screen sizes.
    ============================================================ */
 
 .homescreen-header {
   width: 100%;
-  padding: var(--space-12) var(--page-padding) var(--space-8);
-  text-align: center;
+  padding: var(--space-10) var(--page-padding) var(--space-8);
   border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 .header-info {
-  margin: 0 auto;
-  max-width: var(--content-tight);
-  padding: 0 var(--space-4);
+  flex: 1;
+  text-align: left;
 }
 
 .company-name {
@@ -25,9 +28,7 @@
   line-height: var(--leading-tight);
 }
 
-.company-name span {
-  color: var(--accent);
-}
+.company-name span { color: var(--accent); }
 
 .slogan {
   font-size: var(--text-lg);
@@ -35,14 +36,15 @@
   font-weight: var(--fw-light);
   font-style: italic;
   line-height: var(--leading-relaxed);
+  margin: 0;
 }
 
-/* ── Language switcher positioned top-right on homescreen ── */
+/* ── Lang switcher — inline in header row, NOT absolute ── */
 .homescreen-lang-switcher {
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
-  z-index: var(--z-raised);
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-1);
+  padding-top: var(--space-1);
 }
 
 /* ── Feature highlights ── */
@@ -72,11 +74,15 @@
 }
 
 .feature-item {
-  background: var(--bg-base);
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: var(--space-5) var(--space-6);
-  width: 220px;
+  flex: 1;
+  min-width: 180px;
+  max-width: 260px;
   box-shadow: var(--shadow-sm);
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -100,30 +106,22 @@
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .homescreen-header {
-    padding: var(--space-8) var(--space-4) var(--space-6);
+    padding: var(--space-6) var(--space-4) var(--space-5);
   }
 
-  .company-name {
-    font-size: var(--text-3xl);
-  }
+  .company-name { font-size: var(--text-3xl); }
+  .slogan { font-size: var(--text-base); }
 
-  .slogan {
-    font-size: var(--text-base);
-  }
-
-  .feature-list {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .feature-item {
-    width: 100%;
-    max-width: 400px;
-  }
+  .feature-list { flex-direction: column; align-items: center; }
+  .feature-item { width: 100%; max-width: 420px; }
 }
 
 @media (max-width: 480px) {
-  .company-name {
-    font-size: var(--text-2xl);
+  .homescreen-header {
+    padding: var(--space-5) var(--space-3) var(--space-4);
+    gap: var(--space-3);
   }
+
+  .company-name { font-size: var(--text-2xl); letter-spacing: -0.4px; }
+  .slogan { font-size: var(--text-sm); }
 }

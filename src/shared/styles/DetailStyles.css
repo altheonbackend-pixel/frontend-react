@@ -434,6 +434,10 @@
    RESPONSIVE
    ============================================================ */
 
+@media (max-width: 900px) {
+  .detail-container { padding: 0 var(--space-4) var(--space-8); }
+}
+
 @media (max-width: 768px) {
   .detail-container {
     padding: var(--space-4);
@@ -443,13 +447,12 @@
   .detail-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--space-3);
   }
 
   .detail-header h1,
   .detail-header h2,
-  .patient-name {
-    font-size: var(--text-2xl);
-  }
+  .patient-name { font-size: var(--text-2xl); }
 
   .patient-actions,
   .appointment-actions,
@@ -465,7 +468,35 @@
     gap: var(--space-1);
   }
 
-  .info-item strong {
-    min-width: auto;
+  .info-item strong { min-width: auto; }
+
+  .detail-info-group { padding: var(--space-4); }
+
+  .calendar-container {
+    padding: var(--space-4);
   }
+}
+
+@media (max-width: 480px) {
+  .detail-header h1,
+  .detail-header h2,
+  .patient-name { font-size: var(--text-xl); }
+
+  .action-button,
+  .edit-button,
+  .delete-button,
+  .add-consultation-button,
+  .add-procedure-button,
+  .export-pdf-button,
+  .create-appt-button,
+  .view-deleted-button,
+  .edit-profile-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .patient-actions,
+  .appointment-actions { width: 100%; }
+
+  .detail-list-item { padding: var(--space-4); }
 }

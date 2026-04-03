@@ -74,7 +74,7 @@
 .clinic-items-list,
 .patients-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-5);
   list-style: none;
   padding: 0;
@@ -323,9 +323,7 @@
     align-items: flex-start;
   }
 
-  .header-buttons {
-    width: 100%;
-  }
+  .header-buttons { width: 100%; }
 
   .add-button,
   .export-button {
@@ -333,18 +331,18 @@
     justify-content: center;
   }
 
-  .search-input {
-    max-width: 100%;
-  }
-
-  .clinic-items-list,
-  .patients-list {
-    grid-template-columns: 1fr;
-  }
+  .search-input { max-width: 100%; }
 
   .clinic-title,
-  .page-title {
-    font-size: var(--text-2xl);
+  .page-title { font-size: var(--text-2xl); }
+}
+
+/* ── Two-column cards on mid-size phones ── */
+@media (max-width: 640px) {
+  .clinic-items-list,
+  .patients-list {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
   }
 }
 
@@ -363,5 +361,13 @@
   .action-button {
     padding: 0.35rem 0.75rem;
     min-width: 60px;
+  }
+}
+
+/* Single column on small phones */
+@media (max-width: 400px) {
+  .clinic-items-list,
+  .patients-list {
+    grid-template-columns: 1fr;
   }
 }
