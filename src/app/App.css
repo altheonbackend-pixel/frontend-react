@@ -1,6 +1,7 @@
 /* ============================================================
-   APP SHELL + DYNAMIC MESH GRADIENT BACKGROUND
-   Animated blobs create the glassmorphic background atmosphere.
+   APP SHELL + ANIMATED MESH GRADIENT BACKGROUND
+   One seamless gradient that slowly morphs across the viewport.
+   Colors flow: azure-blue → lavender → rose/pink → peach → loop.
    All design tokens live in src/index.css
    ============================================================ */
 
@@ -8,68 +9,32 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #FFFFFF;
-  position: relative;
-  overflow-x: hidden;
+
+  /* ── The animated gradient ──
+     A large 400×400% gradient canvas that slowly pans.
+     background-position keyframes make the colors drift
+     across the screen — no visible shapes, just color flow. */
+  background: linear-gradient(
+    -45deg,
+    #C8DEFA,   /* soft azure-blue  (left anchor) */
+    #DDD8F8,   /* muted lavender   */
+    #F5D0CC,   /* rose/blush pink  */
+    #FAE0D0,   /* warm peach       */
+    #E8D5F5,   /* pale violet      */
+    #C8DEFA    /* azure again — seamless loop */
+  );
+  background-size: 400% 400%;
+  animation: gradientFlow 18s ease infinite;
+}
+
+@keyframes gradientFlow {
+  0%   { background-position: 0%   50%; }
+  25%  { background-position: 100% 50%; }
+  50%  { background-position: 100% 0%;  }
+  75%  { background-position: 0%   100%;}
+  100% { background-position: 0%   50%; }
 }
 
 main {
   flex: 1;
-}
-
-/* ── Animated mesh blobs ── */
-/* Each blob is a large, fully blurred circle that drifts slowly.
-   position: fixed keeps them behind all content regardless of scroll.
-   z-index: -1 places them under the page content. */
-
-.mesh-blob {
-  position: fixed;
-  border-radius: 50%;
-  filter: blur(100px);
-  pointer-events: none;
-  z-index: -1;
-  will-change: transform;
-}
-
-/* Blob 1 — Rose/Red · top-left */
-.mesh-blob-1 {
-  width: 650px;
-  height: 650px;
-  background: #FEE1DF;
-  top: -180px;
-  left: -180px;
-  animation: blobFloat 60s ease-in-out infinite;
-}
-
-/* Blob 2 — Azure · top-right */
-.mesh-blob-2 {
-  width: 550px;
-  height: 550px;
-  background: #DFF5FA;
-  top: 5%;
-  right: -140px;
-  animation: blobFloatB 60s ease-in-out infinite;
-  animation-delay: -15s;
-}
-
-/* Blob 3 — Yellow · bottom-center */
-.mesh-blob-3 {
-  width: 600px;
-  height: 600px;
-  background: #FDF9DE;
-  bottom: -150px;
-  left: 25%;
-  animation: blobFloatC 60s ease-in-out infinite;
-  animation-delay: -30s;
-}
-
-/* Blob 4 — Orange/Peach · bottom-left */
-.mesh-blob-4 {
-  width: 500px;
-  height: 500px;
-  background: #FEECDE;
-  bottom: 5%;
-  left: -100px;
-  animation: blobFloatD 60s ease-in-out infinite;
-  animation-delay: -45s;
 }

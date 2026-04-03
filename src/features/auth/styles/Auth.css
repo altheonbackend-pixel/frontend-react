@@ -11,8 +11,7 @@
   justify-content: center;
   min-height: 100vh;
   padding: var(--space-6) var(--space-4);
-  background: var(--bg-aura);
-  background-attachment: fixed;
+  background: transparent;
 }
 
 /* ── Floating card ── */
