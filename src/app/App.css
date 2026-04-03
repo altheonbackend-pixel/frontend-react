@@ -1,36 +1,17 @@
-/* src/index.css */
+/* ============================================================
+   APP SHELL
+   Global layout wrapper — nothing feature-specific here.
+   All design tokens live in src/index.css
+   ============================================================ */
 
-/* Réinitialisation de base pour supprimer les marges et le rembourrage par défaut */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/* Assurer que les éléments racine occupent toute la hauteur de la fenêtre */
-html,
-body,
-#root {
-  height: 100%;
-}
-
-/* Styles pour le corps de l'application */
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Styles pour le conteneur principal de l'application */
 .App {
-  min-height: 100vh; /* Utiliser la hauteur de la fenêtre (viewport height) */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--bg-aura);
+  background-attachment: fixed;
 }
 
-/* Assurer que le contenu principal prend l'espace restant */
 main {
-  flex-grow: 1;
+  flex: 1;
 }

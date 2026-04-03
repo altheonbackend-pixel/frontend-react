@@ -12,7 +12,7 @@ function Dashboard() {
 
     return (
         <div className="dashboard-container">
-            <header className="dashboard-header">
+            <header className="dashboard-page-header">
                 <h1>{t('dashboard.title')}</h1>
             </header>
             <main className="dashboard-content">
@@ -30,7 +30,7 @@ function Dashboard() {
                     <Link to="/my-stats" className="nav-button">{t('dashboard.nav.stats_user')}</Link> 
 
                     {/* Lien vers les statistiques GLOBALEs (Statistics_Globale.tsx) */}
-                    <Link to="/global-stats" className="nav-button primary-button">{t('dashboard.nav.stats_global')}</Link> 
+                    <Link to="/global-stats" className="nav-button">{t('dashboard.nav.stats_global')}</Link>
                 </nav>
             </main>
         </div>

@@ -1,126 +1,165 @@
-/*=====================================
-  Styles pour les pages de texte long
-  (Forum, Notes, etc.)
-=====================================*/
+/* ============================================================
+   TEXT / CONTENT PAGE STYLES
+   Used by: Forum, Notes, and any long-form content page.
+   ============================================================ */
 
-/* --- Conteneur de la page --- */
+/* ── Page container ── */
 .text-page-container {
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 2rem;
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    font-family: 'Segoe UI', Arial, sans-serif;
-    line-height: 1.7; /* Améliore la lisibilité des paragraphes */
-    color: #333;
+  max-width: var(--content-tight);
+  margin: var(--space-8) auto;
+  padding: 0 var(--page-padding) var(--space-12);
+  animation: fadeUp 0.35s ease both;
 }
 
-/* --- Titre de la page --- */
+/* ── Page header ── */
 .page-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #e0e0e0;
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
 }
 
 .page-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #004d40;
-    margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
-/* --- Style des sections de contenu (ex: un sujet de forum, une note) --- */
+/* ── Content section (forum post, note, etc.) ── */
 .content-section {
-    background-color: #f8f9fa;
-    border-left: 5px solid #00796b;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    border-radius: 8px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.content-section:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* Left accent stripe */
+.content-section-accented {
+  border-left: 3px solid var(--accent);
 }
 
 .content-section h2 {
-    font-size: 1.8rem;
-    color: #00796b;
-    margin-top: 0;
-    margin-bottom: 1rem;
+  font-size: var(--text-xl);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+  letter-spacing: -0.3px;
 }
 
 .content-section p {
-    font-size: 1rem;
-    margin-bottom: 1rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-3);
 }
 
-/* --- Style pour les citations ou blocs de texte mis en évidence --- */
+/* ── Quote / highlight block ── */
 .quote-block {
-    border-left: 4px solid #ccc;
-    padding-left: 1.25rem;
-    margin: 1.5rem 0;
-    font-style: italic;
-    color: #555;
+  border-left: 3px solid var(--border-strong);
+  padding: var(--space-3) var(--space-5);
+  margin: var(--space-5) 0;
+  font-style: italic;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
-/* --- Style pour les listes (ordonnées et non ordonnées) --- */
+/* ── Lists ── */
 ul, ol {
-    margin-bottom: 1.5rem;
-    padding-left: 1.5rem;
+  margin-bottom: var(--space-5);
+  padding-left: var(--space-5);
 }
 
 li {
-    margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  font-size: var(--text-sm);
 }
 
-/* --- Pied de section (informations sur l'auteur, la date) --- */
+/* ── Section footer (author, date) ── */
 .section-footer {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 1rem;
-    font-size: 0.9rem;
-    color: #777;
-    margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
-.author, .date {
-    font-weight: 600;
+.author {
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
 }
 
-/* --- Séparateur entre les entrées (ex: entre les réponses d'un forum) --- */
+.date {
+  color: var(--text-muted);
+}
+
+/* ── Separator ── */
 .separator {
-    border-top: 1px dashed #ddd;
-    margin: 2rem 0;
+  border: none;
+  border-top: 1px dashed var(--border-default);
+  margin: var(--space-6) 0;
 }
 
-/* --- Styles pour les boutons et liens dans le contenu --- */
+/* ── Content button ── */
 .content-button {
-    background-color: #00796b;
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    text-decoration: none;
-    display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .content-button:hover {
-    background-color: #004d40;
+  background: var(--accent-lighter);
+  box-shadow: var(--shadow-xs);
 }
 
-/* --- Responsive design pour une meilleure lisibilité sur mobile --- */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .text-page-container {
-        padding: 1rem;
-        margin: 1rem;
-    }
-    
-    .page-header h1 {
-        font-size: 2rem;
-    }
-    
-    .content-section {
-        padding: 1rem;
-    }
+  .text-page-container {
+    padding: var(--space-4);
+    margin: var(--space-4) auto;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .content-section {
+    padding: var(--space-4);
+  }
 }

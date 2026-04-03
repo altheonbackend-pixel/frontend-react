@@ -1,46 +1,80 @@
-/* Le conteneur principal qui prend toute la hauteur de l'écran */
+/* ============================================================
+   AUTH PAGES — Login & Register
+   Full-screen Aura gradient with a centred floating card.
+   ============================================================ */
+
+/* ── Full-screen wrapper ── */
 .auth-page-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; 
-  min-height: 100vh; 
-  background-color: #f0f2f5; 
-  padding-top: 0; 
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-6) var(--space-4);
+  background: var(--bg-aura);
+  background-attachment: fixed;
 }
 
-/* Le conteneur blanc du formulaire (la "carte") */
+/* ── Floating card ── */
 .auth-container {
   width: 100%;
-  max-width: 450px; 
-  /* 💡 Padding minimal pour le conteneur */
-  padding: 1.25rem 2.5rem; 
-  background-color: white;
-  border-radius: 12px; 
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); 
+  max-width: 440px;
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-10) var(--space-8);
   text-align: center;
-  margin: 1rem auto; 
-  transition: all 0.3s ease;
+  animation: fadeUp 0.4s ease both;
 }
 
-/* --- NOUVEAU STYLE DE TITRE (SANS ICÔNE) --- */
+/* ── Brand mark ── */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.auth-brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.auth-brand-name {
+  font-size: var(--text-lg);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+
+/* ── Title ── */
 .login-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #2c3e50; 
-  /* Marge minimale au-dessus du formulaire */
-  margin-top: 0; 
-  margin-bottom: 1rem; 
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-2);
+  line-height: var(--leading-tight);
 }
 
-/* Suppression des styles inutiles pour l'icône */
-/* .auth-header, .login-icon ne sont plus nécessaires */
+.auth-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-6);
+}
 
-/* --- Le formulaire --- */
+/* ── Form ── */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem; 
+  gap: var(--space-4);
 }
 
 .form-group {
@@ -49,84 +83,162 @@
 
 .form-group label {
   display: block;
-  font-weight: 600;
-  margin-bottom: 0.3rem; 
-  color: #495057;
-  font-size: 0.95rem; 
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
 }
 
-.form-group input {
+/* Inputs use the global .input class;
+   these overrides ensure the auth card's inputs match */
+.form-group input,
+.form-group select {
   width: 100%;
-  padding: 0.7rem; 
-  border: 1px solid #ced4da; 
-  border-radius: 8px; 
-  box-sizing: border-box;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  font-size: 1rem;
-}
-
-.form-group input:focus {
+  padding: 0.7rem 1rem;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
   outline: none;
-  border-color: #16a34a; 
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2); 
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  box-sizing: border-box;
 }
 
-/* Bouton de soumission */
-.login-button { 
-  padding: 0.8rem 1.5rem; 
-  margin-top: 0.6rem; 
-  background-color: #16a34a; 
-  color: white;
+.form-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Submit / login button ── */
+.login-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  margin-top: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--accent);
   border: none;
-  border-radius: 8px; 
+  border-radius: var(--radius-pill);
   cursor: pointer;
-  font-size: 1rem; 
-  font-weight: 600;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
-  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.2); 
+  transition:
+    background var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.25);
 }
 
 .login-button:hover:not(:disabled) {
-  background-color: #15803d; 
-  box-shadow: 0 6px 15px rgba(22, 163, 74, 0.3);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
   transform: translateY(-1px);
 }
 
-.login-button:disabled {
-    background-color: #aeb5c2;
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
+.login-button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-/* Messages d'erreur */
-.error-message {
-  color: #dc2626; 
-  background-color: #fee2e2; 
-  border: 1px solid #dc2626;
-  padding: 8px; 
-  border-radius: 8px; 
-  margin-bottom: 0.8rem; 
-  font-size: 0.9rem; 
+.login-button:disabled {
+  background: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Success message ── */
+.success-message {
+  background: var(--color-success-light);
+  border: 1px solid #6EE7B7;
+  color: var(--color-success-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
   text-align: center;
 }
 
-/* Lien d'inscription */
+/* ── Optional field label hint ── */
+.optional-label {
+  font-size: var(--text-xs);
+  font-weight: var(--fw-normal);
+  color: var(--text-muted);
+  margin-left: var(--space-1);
+}
+
+/* ── Error ── */
+.error-message {
+  background: var(--color-danger-light);
+  border: 1px solid #FCA5A5;
+  color: var(--color-danger-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+
+/* ── Footer link ── */
 .register-link-text {
-  /* Marge minimale après le bouton */
-  margin-top: 1rem; 
-  color: #6c757d;
-  font-size: 0.95rem; 
+  margin-top: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 .register-link-text a {
-  color: #16a34a; 
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
   text-decoration: none;
-  font-weight: 700;
-  transition: color 0.3s ease;
+  transition: color var(--transition-fast);
 }
 
 .register-link-text a:hover {
-  color: #15803d; 
+  color: var(--accent-hover);
   text-decoration: underline;
+}
+
+/* ── Divider with text ── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* ── Auth page footer ── */
+.auth-footer {
+  margin-top: auto;
+  padding: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .auth-container {
+    padding: var(--space-8) var(--space-6);
+    border-radius: var(--radius-lg);
+  }
+
+  .login-title {
+    font-size: var(--text-xl);
+  }
 }

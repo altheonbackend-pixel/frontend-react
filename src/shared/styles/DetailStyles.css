@@ -1,301 +1,377 @@
-/*=====================================
-    Styles pour les vues de détails
-    (PatientDetail, AppointmentDetail, etc.)
-=====================================*/
+/* ============================================================
+   DETAIL PAGE STYLES
+   Used by: PatientDetail, ClinicDetail, AppointmentDetail, etc.
+   ============================================================ */
 
-/* --- Conteneur principal de détails --- */
+/* ── Page container ── */
 .detail-container {
-    background-color: #f9f9f9;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 30px;
-    margin: 30px auto;
-    max-width: 900px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    animation: fadeIn 0.5s ease-in-out;
+  max-width: var(--content-tight);
+  margin: var(--space-8) auto;
+  padding: 0 var(--page-padding) var(--space-12);
+  animation: fadeUp 0.35s ease both;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- En-tête de la page de détails --- */
+/* ── Detail header ── */
 .detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    border-bottom: 2px solid #e0e0e0;
-    padding-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.detail-header h1, .detail-header h2 {
-    color: #004d40;
-    font-size: 2.2rem;
-    font-weight: 600;
-    margin: 0;
+.detail-header h1,
+.detail-header h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
-/* --- Titre du patient --- */
 .patient-name {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0;
-    text-align: left;
-    word-break: break-word;
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: var(--leading-tight);
 }
 
-/* --- Groupes d'informations --- */
-.detail-info-group {
-    margin-bottom: 25px;
-    padding: 20px;
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    transition: box-shadow 0.3s ease-in-out;
-}
-
-.detail-info-group:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-
-.detail-info-group h3 {
-    color: #00796b;
-    font-size: 1.5rem;
-    margin-top: 0;
-    border-bottom: 1px solid #b2dfdb;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-}
-
-.info-item {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 1rem;
-    line-height: 1.6;
-}
-
-.info-item strong {
-    color: #444;
-    min-width: 150px;
-    font-weight: 600;
-    margin-right: 10px;
-}
-
-/* --- Listes de détails (consultations, procédures, etc.) --- */
-.detail-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.detail-list-item {
-    background-color: #f0f8ff;
-    border: 1px solid #cce7ff;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.detail-list-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-
-.detail-list-item p {
-    margin: 5px 0;
-    line-height: 1.6;
-}
-
-.detail-list-item strong {
-    color: #004d40;
-}
-
-/* --- Styles des boutons d'action --- */
-.patient-actions, .appointment-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+/* ── Action buttons (in the detail header) ── */
+.patient-actions,
+.appointment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .entry-actions {
-    display: flex;
-    justify-content: flex-start;
-    gap: 10px;
-    margin-top: 15px;
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
 }
 
-
-.action-button {
-  padding: 8px 16px; /* Ajuste le padding (rembourrage) interne des boutons */
-  font-size: 14px; /* Réduit la taille de la police du texte des boutons */
-  /* Vous pouvez aussi ajuster les marges si nécessaire */
-  margin: 5px; 
-}
-
-.edit-button, .delete-button,
-.add-consultation-button, .add-procedure-button,
-.export-pdf-button, .create-appt-button, .view-deleted-button,
+/* All action buttons in detail views use the global pill system */
+.action-button,
+.edit-button,
+.delete-button,
+.add-consultation-button,
+.add-procedure-button,
+.export-pdf-button,
+.create-appt-button,
+.view-deleted-button,
 .edit-profile-button {
-    padding: 6px 12px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
-.action-button:hover, .edit-button:hover, .delete-button:hover,
-.add-consultation-button:hover, .add-procedure-button:hover,
-.export-pdf-button:hover, .create-appt-button:hover,
-.view-deleted-button:hover, .edit-profile-button:hover {
-    filter: brightness(0.9);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+.action-button:hover,
+.edit-button:hover,
+.delete-button:hover,
+.add-consultation-button:hover,
+.add-procedure-button:hover,
+.export-pdf-button:hover,
+.create-appt-button:hover,
+.view-deleted-button:hover,
+.edit-profile-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Couleurs des boutons (harmonisation) */
-.action-button:nth-child(1), .add-consultation-button, .create-appt-button { background-color: #00796b; color: white; }
-.action-button:nth-child(2), .add-procedure-button { background-color: #42a5f5; color: white; }
-.action-button:nth-child(3), .edit-profile-button { background-color: #3b82f6; color: white; }
-.action-button:nth-child(4), .export-pdf-button, .view-deleted-button { background-color: #fdd835; color: #333; }
-.edit-button { background-color: #00796b; color: white; }
-.delete-button { background-color: #d32f2f; color: white; }
+/* Specific colour assignments */
+.add-consultation-button,
+.create-appt-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+.add-consultation-button:hover,
+.create-appt-button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
 
-/* --- Styles du calendrier --- */
+.add-procedure-button {
+  background: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--text-inverse);
+}
+.add-procedure-button:hover {
+  background: var(--color-info-dark);
+  border-color: var(--color-info-dark);
+}
+
+.edit-button,
+.edit-profile-button {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.edit-button:hover,
+.edit-profile-button:hover {
+  background: var(--accent-lighter);
+}
+
+.delete-button {
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.delete-button:hover {
+  background: var(--color-danger-light);
+}
+
+.export-pdf-button,
+.view-deleted-button {
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+.export-pdf-button:hover,
+.view-deleted-button:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* ── Info groups (sections within a detail page) ── */
+.detail-info-group {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+.detail-info-group:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.detail-info-group h3 {
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ── Key-value info items ── */
+.info-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.info-item strong {
+  min-width: 140px;
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.info-item span,
+.info-item p {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+/* ── List items (consultation/procedure cards) ── */
+.detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-list-item {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.detail-list-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+
+.detail-list-item p {
+  margin: var(--space-1) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.detail-list-item strong {
+  color: var(--text-primary);
+  font-weight: var(--fw-semibold);
+}
+
+/* ── Calendar ── */
 .calendar-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 30px;
-    padding: 25px;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .react-calendar {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    max-width: 100%;
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: 360px !important;
 }
 
 .react-calendar button {
-    border: none;
-    background: none;
-    padding: 10px;
-    font-size: 1rem;
-    cursor: pointer;
+  font-family: var(--font-body) !important;
+  border: none;
+  background: none;
+  padding: var(--space-3) !important;
+  cursor: pointer;
+  border-radius: var(--radius-sm) !important;
+  transition: background var(--transition-fast) !important;
 }
 
 .react-calendar__navigation button {
-    font-size: 1.2rem;
-    color: #004d40;
-}
-
-.react-calendar__tile {
-    padding: 12px;
+  font-size: var(--text-base) !important;
+  font-weight: var(--fw-semibold) !important;
+  color: var(--text-primary) !important;
 }
 
 .react-calendar__tile--active,
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
-    background: #00796b;
-    color: white;
-    border-radius: 8px;
+  background: var(--accent) !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-sm) !important;
 }
 
 .react-calendar__tile--now {
-    background: #e0f2f1;
-    color: #004d40;
-    font-weight: bold;
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+  font-weight: var(--fw-bold) !important;
 }
 
-.react-calendar__tile--range,
-.react-calendar__tile--range:enabled:hover {
-    background-color: #b2dfdb;
-    color: #004d40;
+.react-calendar__tile:hover {
+  background: var(--accent-lighter) !important;
 }
 
-/* --- Autres styles (messages, etc.) --- */
+/* ── Status / loading / error ── */
 .loading-message,
 .error-message,
 .no-data-message,
 .no-profile-data {
-    text-align: center;
-    margin-top: 2rem;
-    font-size: 1.125rem;
-    color: #4b5563;
+  text-align: center;
+  margin: var(--space-8) 0;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  padding: var(--space-8);
 }
 
 .error-message {
-    color: #d32f2f;
-    font-weight: bold;
+  background: var(--color-danger-light);
+  border: 1px solid #FCA5A5;
+  color: var(--color-danger-dark);
+  border-radius: var(--radius-md);
+  font-weight: var(--fw-medium);
 }
 
-/* CLASSE POUR CACHER LES ÉLÉMENTS PENDANT L'EXPORTATION PDF */
+/* ── PDF export — hide elements during export ── */
 .hide-for-pdf {
-    display: none !important;
+  display: none !important;
 }
 
-/* --- Responsive design pour les petits écrans --- */
-@media (max-width: 768px) {
-    .detail-container {
-        padding: 20px;
-        margin: 20px;
-    }
-
-    .detail-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .detail-header h1, .detail-header h2 {
-        font-size: 1.8rem;
-        margin-bottom: 15px;
-    }
-
-    .patient-actions, .appointment-actions, .entry-actions {
-        flex-direction: column;
-        width: 100%;
-        gap: 10px;
-    }
-
-    .action-button, .add-consultation-button, .add-procedure-button,
-    .export-pdf-button, .create-appt-button, .view-deleted-button,
-    .edit-button, .delete-button, .edit-profile-button {
-        width: 100%;
-        padding: 10px 15px;
-        font-size: 0.9rem;
-    }
-
-    .info-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .info-item strong {
-        min-width: auto;
-        margin-bottom: 5px;
-    }
-}
-
-/* --- Access Level Gating --- */
+/* ── Disabled tab (access level gating) ── */
 .tab-disabled {
-    opacity: 0.5;
-    pointer-events: none;
-    background-color: #f5f5f5;
-    padding: 1rem;
-    border-radius: 4px;
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.4);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .detail-container {
+    padding: var(--space-4);
+    margin: var(--space-4) auto;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .detail-header h1,
+  .detail-header h2,
+  .patient-name {
+    font-size: var(--text-2xl);
+  }
+
+  .patient-actions,
+  .appointment-actions,
+  .entry-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
+
+  .info-item strong {
+    min-width: auto;
+  }
 }

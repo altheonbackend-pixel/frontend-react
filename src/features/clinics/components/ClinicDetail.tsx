@@ -83,91 +83,83 @@ const ClinicDetail = () => {
     };
 
     if (isLoading) {
-        return <div className="text-center mt-8">{t('clinics.loading_detail')}</div>;
+        return <div className="loading-message">{t('clinics.loading_detail')}</div>;
     }
 
     if (error) {
-        return <div className="text-center mt-8 text-red-500">{error}</div>;
+        return <div className="error-message">{error}</div>;
     }
 
     if (!clinic) {
-        return <div className="text-center mt-8">{t('clinics.not_found')}</div>;
+        return <div className="loading-message">{t('clinics.not_found')}</div>;
     }
 
-    // Le backend doit s'assurer que clinic.creator contient l'ID du docteur.
-    // Vérifier si l'utilisateur connecté est le créateur de cette clinique
     const isCreator = clinic.creator === currentDoctorId;
-    
-    // Rendu...
+
     return (
-        <div className="container mx-auto p-4 detail-container">
+        <div className="detail-container">
             <div className="detail-header">
-                <h1 className="text-3xl font-bold mb-4">{clinic.name}</h1>
-                {/* Conditionnel basé sur isCreator */}
+                <h1>{clinic.name}</h1>
                 {isCreator && (
-                    <div className="flex space-x-4">
-                        <button
-                            onClick={handleEditClinic}
-                            className="edit-button action-button"
-                        >
-                            {t('appointments.edit')} ✏️
+                    <div className="patient-actions">
+                        <button onClick={handleEditClinic} className="edit-button action-button">
+                            {t('appointments.edit')}
                         </button>
-                        <button
-                            onClick={() => setShowDeleteConfirm(true)}
-                            className="delete-button action-button"
-                        >
-                            {t('appointments.delete')} 🗑️
+                        <button onClick={() => setShowDeleteConfirm(true)} className="delete-button action-button">
+                            {t('appointments.delete')}
                         </button>
                     </div>
                 )}
             </div>
-            
-            {/* Le reste du rendu des détails et statistiques (inchangé) */}
-            <div className="clinic-info-details detail-info-group">
-                <p className="text-lg text-gray-700 mb-2"><strong>{t('clinics.label.address')}:</strong> {clinic.address}</p>
-                <p className="text-lg text-gray-700 mb-4"><strong>{t('clinics.status_label')}</strong> {clinic.is_public ? t('clinics.status.public') : t('clinics.status.private')}</p>
+
+            <div className="detail-info-group">
+                <div className="info-item"><strong>{t('clinics.label.address')}</strong><span>{clinic.address}</span></div>
+                <div className="info-item"><strong>{t('clinics.status_label')}</strong><span>{clinic.is_public ? t('clinics.status.public') : t('clinics.status.private')}</span></div>
             </div>
-            {/* ... Rendu des statistiques ... */}
+
             {stats && (
                 <>
-                    <h2 className="text-2xl font-bold mt-8 mb-4">{t('clinics.stats.general')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                        {/* ... Stats Totales ... */}
-                        <div className="bg-blue-100 p-4 rounded-lg shadow-sm">
-                            <h3 className="text-xl font-semibold">{t('clinics.stats.doctors')}</h3>
-                            <p className="text-3xl">{stats.total_stats.doctors}</p>
-                        </div>
-                        <div className="bg-green-100 p-4 rounded-lg shadow-sm">
-                            <h3 className="text-xl font-semibold">{t('clinics.stats.patients')}</h3>
-                            <p className="text-3xl">{stats.total_stats.patients}</p>
-                        </div>
-                        <div className="bg-purple-100 p-4 rounded-lg shadow-sm">
-                            <h3 className="text-xl font-semibold">{t('clinics.stats.appointments')}</h3>
-                            <p className="text-3xl">{stats.total_stats.appointments}</p>
-                        </div>
-                        <div className="bg-orange-100 p-4 rounded-lg shadow-sm">
-                            <h3 className="text-xl font-semibold">{t('clinics.stats.consultations')}</h3>
-                            <p className="text-3xl">{stats.total_stats.consultations}</p>
-                        </div>
-                        <div className="bg-red-100 p-4 rounded-lg shadow-sm">
-                            <h3 className="text-xl font-semibold">{t('clinics.stats.procedures')}</h3>
-                            <p className="text-3xl">{stats.total_stats.medical_procedures}</p>
+                    <div className="detail-info-group">
+                        <h3>{t('clinics.stats.general')}</h3>
+                        <div className="clinic-stats-grid">
+                            <div className="clinic-stat-card">
+                                <span className="clinic-stat-number">{stats.total_stats.doctors}</span>
+                                <span className="clinic-stat-label">{t('clinics.stats.doctors')}</span>
+                            </div>
+                            <div className="clinic-stat-card">
+                                <span className="clinic-stat-number">{stats.total_stats.patients}</span>
+                                <span className="clinic-stat-label">{t('clinics.stats.patients')}</span>
+                            </div>
+                            <div className="clinic-stat-card">
+                                <span className="clinic-stat-number">{stats.total_stats.appointments}</span>
+                                <span className="clinic-stat-label">{t('clinics.stats.appointments')}</span>
+                            </div>
+                            <div className="clinic-stat-card">
+                                <span className="clinic-stat-number">{stats.total_stats.consultations}</span>
+                                <span className="clinic-stat-label">{t('clinics.stats.consultations')}</span>
+                            </div>
+                            <div className="clinic-stat-card">
+                                <span className="clinic-stat-number">{stats.total_stats.medical_procedures}</span>
+                                <span className="clinic-stat-label">{t('clinics.stats.procedures')}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold mt-8 mb-4">{t('clinics.stats.breakdown')}</h2>
-                    <ul className="space-y-4">
-                        {stats.doctors_breakdown.map((doctor) => (
-                            <li key={doctor.id} className="bg-gray-100 p-4 rounded-lg shadow-sm">
-                                <h3 className="text-xl font-semibold">{doctor.name}</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 text-sm">
-                                    <p>{t('clinics.stats.consultations')}: <span className="font-bold">{doctor.consultations}</span></p>
-                                    <p>{t('clinics.stats.appointments')}: <span className="font-bold">{doctor.appointments}</span></p>
-                                    <p>{t('clinics.stats.procedures')}: <span className="font-bold">{doctor.medical_procedures}</span></p>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="detail-info-group">
+                        <h3>{t('clinics.stats.breakdown')}</h3>
+                        <ul className="detail-list">
+                            {stats.doctors_breakdown.map((doctor) => (
+                                <li key={doctor.id} className="detail-list-item">
+                                    <strong>{doctor.name}</strong>
+                                    <div className="clinic-doctor-stats">
+                                        <p>{t('clinics.stats.consultations')}: <strong>{doctor.consultations}</strong></p>
+                                        <p>{t('clinics.stats.appointments')}: <strong>{doctor.appointments}</strong></p>
+                                        <p>{t('clinics.stats.procedures')}: <strong>{doctor.medical_procedures}</strong></p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </>
             )}
             {showDeleteConfirm && (

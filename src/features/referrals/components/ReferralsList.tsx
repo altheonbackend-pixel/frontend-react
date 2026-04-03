@@ -124,7 +124,7 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
                                             <p className="doctor-name">
                                                 Dr. {referral.referred_to_details?.full_name?.split(' ')[0]}
                                             </p>
-                                            <p style={{ margin: 0, fontSize: '12px', color: '#999' }}>
+                                            <p className="doctor-specialty-hint">
                                                 {referral.specialty_requested}
                                             </p>
                                         </div>

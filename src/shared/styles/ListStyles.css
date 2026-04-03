@@ -1,173 +1,367 @@
-/* --- Styles généraux pour les pages cliniques et patients --- */
+/* ============================================================
+   SHARED LIST PAGE STYLES
+   Used by: Clinics, Patients (generic list pattern),
+            and any page with a header + card list layout.
+   ============================================================ */
+
+/* ── Page containers ── */
 .clinic-list-container,
 .patients-container {
-    max-width: 960px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1rem;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
 }
 
-/* --- En-tête de la page (titre et boutons) --- */
+/* ── Page header row (title + buttons) ── */
 .clinic-header,
 .patients-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
 }
+
 .header-buttons {
-    display: flex;
-    /* Augmenter l'espace entre les boutons */
-    gap: 1rem; /* Modifié de 0.5rem à 1rem */
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
 }
+
+/* ── Page title ── */
 .clinic-title,
 .page-title {
-    font-size: 1.875rem;
-    font-weight: 700;
-    color: #1f2937;
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
-/* --- Boutons (liens et <button>) --- */
-.action-button {
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-    transition: all 0.2s ease-in-out;
-    text-decoration: none;
-    cursor: pointer;
-    display: inline-block;
-    text-align: center;
-    border: none;
-    color: white; /* Couleur du texte par défaut pour les boutons */
+/* ── Search bar ── */
+.search-container {
+  margin-bottom: var(--space-5);
 }
 
-/* Styles spécifiques des boutons */
-.add-button {
-    background-color: #16a34a; /* Vert */
+.search-input {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.65rem 1.2rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  box-shadow: var(--shadow-xs);
 }
 
-.add-button:hover {
-    background-color: #15803d; /* Vert foncé au survol */
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 
-.export-button {
-    background-color: #3b82f6; /* Bleu */
+.search-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
 }
 
-.export-button:hover {
-    background-color: #2563eb; /* Bleu foncé au survol */
-}
-
-.details-button {
-    background-color: #6b7280; /* Gris */
-}
-
-.details-button:hover {
-    background-color: #4b5563; /* Gris foncé au survol */
-}
-
-.edit-button {
-    background-color: #eab308; /* Jaune */
-}
-
-.edit-button:hover {
-    background-color: #ca8a04; /* Jaune foncé au survol */
-}
-
-.delete-button {
-    background-color: #dc2626; /* Rouge */
-}
-
-.delete-button:hover {
-    background-color: #b91c1c; /* Rouge foncé au survol */
-}
-
-/* --- Styles pour les listes de cliniques et de patients --- */
+/* ── Card list ── */
 .clinic-items-list,
 .patients-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    list-style: none;
-    padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-5);
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
+/* ── Individual card ── */
 .clinic-item,
 .patient-card {
-    background-color: #ffffff;
-    padding: 1.5rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease-in-out;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base),
+    border-color var(--transition-base);
 }
 
 .clinic-item:hover,
 .patient-card:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
 }
 
-/* --- Styles spécifiques aux informations des patients --- */
+/* ── Card info area ── */
+.patient-info,
+.clinic-info {
+  padding: var(--space-5) var(--space-5);
+  flex: 1;
+}
+
 .patient-info h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1f2937;
+  font-size: var(--text-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
 }
 
 .patient-info p {
-    margin: 0.25rem 0 0;
-    color: #4b5563;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: var(--space-1) 0;
 }
 
-.patient-actions {
-    display: flex;
-    gap: 0.5rem;
+/* ── Card action footer ── */
+.patient-actions,
+.clinic-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-subtle);
+  flex-wrap: wrap;
 }
 
-/* --- Messages de statut --- */
+/* ── Action buttons (card-level) ── */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 72px;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+}
+
+/* Button variants */
+.add-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+  flex: 0;
+  padding: 0.6rem 1.4rem;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--fw-semibold);
+  transition: all var(--transition-fast);
+}
+.add-button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.export-button {
+  background: transparent;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-default);
+  padding: 0.6rem 1.4rem;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: var(--fw-semibold);
+  transition: all var(--transition-fast);
+}
+.export-button:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.details-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+.details-button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.edit-button {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.edit-button:hover {
+  background: var(--accent-lighter);
+}
+
+.delete-button {
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.delete-button:hover {
+  background: var(--color-danger-light);
+}
+
+/* ── Empty / loading / error states ── */
 .loading-message,
 .error-message,
-.no-patients-message {
-    text-align: center;
-    margin-top: 2rem;
-    font-size: 1.125rem;
-}
-
-.loading-message {
-    color: #4b5563;
+.no-patients-message,
+.no-clinic-message {
+  text-align: center;
+  padding: var(--space-12) var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  background: var(--bg-base);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  grid-column: 1 / -1;
 }
 
 .error-message {
-    color: #dc2626;
-    font-weight: 500;
+  background: var(--color-danger-light);
+  border-color: #FCA5A5;
+  color: var(--color-danger-dark);
+  font-weight: var(--fw-medium);
 }
 
-.no-patients-message {
-    color: #6b7280;
+/* ── Add patient / sub-page wrapper ── */
+.add-patient-container {
+  max-width: var(--content-tight);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
 }
 
-/* --- Styles pour le champ de recherche --- */
-.search-container {
-    margin-bottom: 1rem;
-    padding: 0 1rem;
+.add-patient-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
 }
 
-.search-input {
+/* ── Back / breadcrumb button ── */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.4rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.back-button:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* ── Edit patient page ── */
+.edit-patient-container {
+  max-width: var(--content-tight);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .clinic-list-container,
+  .patients-container {
+    padding: var(--space-4);
+  }
+
+  .clinic-header,
+  .patients-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-buttons {
     width: 100%;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s ease-in-out;
+  }
+
+  .add-button,
+  .export-button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .search-input {
+    max-width: 100%;
+  }
+
+  .clinic-items-list,
+  .patients-list {
+    grid-template-columns: 1fr;
+  }
+
+  .clinic-title,
+  .page-title {
+    font-size: var(--text-2xl);
+  }
 }
 
-.search-input:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-}
+@media (max-width: 480px) {
+  .clinic-title,
+  .page-title {
+    font-size: var(--text-xl);
+  }
 
+  .patient-actions,
+  .clinic-actions {
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .action-button {
+    padding: 0.35rem 0.75rem;
+    min-width: 60px;
+  }
+}

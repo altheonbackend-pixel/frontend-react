@@ -149,7 +149,7 @@ const Register = () => {
 
                     <div className="form-group">
                         <label htmlFor="registration_code">
-                            {t('register.code_label')} <span style={{ color: '#999', fontSize: '0.9em' }}>(Optional)</span>
+                            {t('register.code_label')} <span className="optional-label">(Optional)</span>
                         </label>
                         <input
                             type="text"
@@ -161,12 +161,12 @@ const Register = () => {
                         />
                     </div>
 
-                    <button type="submit" disabled={loading}>
+                    <button type="submit" disabled={loading} className="login-button">
                         {loading ? t('register.loading') : t('register.submit')}
                     </button>
 
-                    <p className="link-back">
-                        Already have an account? <a href="/login" style={{ color: '#3498db', textDecoration: 'none' }}>Login here</a>
+                    <p className="register-link-text">
+                        Already have an account? <a href="/login">Login here</a>
                     </p>
                 </form>
             </div>

@@ -38,9 +38,9 @@ const Header = () => {
                     )}
                 </div>
                 <div className="auth-links">
-                    <div style={{ display: 'flex', gap: '5px', marginRight: '10px' }}>
-                        <button onClick={() => changeLanguage('fr')} style={{ cursor: 'pointer', padding: '2px 5px' }}>FR</button>
-                        <button onClick={() => changeLanguage('en')} style={{ cursor: 'pointer', padding: '2px 5px' }}>EN</button>
+                    <div className="lang-switcher">
+                        <button onClick={() => changeLanguage('fr')} className={`lang-btn${i18n.language?.startsWith('fr') ? ' active' : ''}`}>FR</button>
+                        <button onClick={() => changeLanguage('en')} className={`lang-btn${i18n.language?.startsWith('en') ? ' active' : ''}`}>EN</button>
                     </div>
 
                     {isAuthenticated ? (

@@ -161,16 +161,16 @@ function Statistics_Globale() {
     // --- Composant de Contrôles de Recherche et Tri ---
     const renderControls = () => (
         <section className="stats-section stats-controls">
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <label style={{ fontWeight: 'bold' }}>
+            <div className="stats-search-row">
+                <label className="stats-search-label">
                     {t('statistics_global.search_label')}
                 </label>
                 <input
                     type="text"
+                    className="stats-search-input"
                     placeholder={t('statistics_global.search_placeholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flexGrow: 1 }}
                 />
             </div>
         </section>

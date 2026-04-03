@@ -1,225 +1,293 @@
-/* Fichier : src/components/Appointments.css */
+/* ============================================================
+   APPOINTMENTS PAGE
+   ============================================================ */
 
-/* Style pour la page des rendez-vous en général */
 .appointments-page {
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-    font-family: Arial, sans-serif;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
 }
 
-/* Conteneur principal du calendrier et des boutons */
+/* ── Calendar card ── */
 .calendar-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+  padding: var(--space-6);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Style de base du calendrier si nécessaire */
+/* ── Calendar widget ── */
 .react-calendar {
-    border: none;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    padding: 10px;
+  border: 1px solid var(--border-default) !important;
+  border-radius: var(--radius-lg) !important;
+  font-family: var(--font-body) !important;
+  font-size: var(--text-sm) !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  max-width: 380px !important;
+  background: var(--bg-base) !important;
 }
 
-/* Style pour les tuiles de date qui ont un rendez-vous */
+.react-calendar button {
+  font-family: var(--font-body) !important;
+  padding: 10px !important;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm) !important;
+  transition: background var(--transition-fast) !important;
+  color: var(--text-primary) !important;
+}
+
+.react-calendar__navigation button {
+  font-size: var(--text-base) !important;
+  font-weight: var(--fw-semibold) !important;
+  color: var(--text-primary) !important;
+}
+
+.react-calendar__tile--active,
+.react-calendar__tile--active:enabled:hover,
+.react-calendar__tile--active:enabled:focus {
+  background: var(--accent) !important;
+  color: var(--text-inverse) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+.react-calendar__tile--now {
+  background: var(--accent-light) !important;
+  color: var(--accent) !important;
+  font-weight: var(--fw-bold) !important;
+}
+
+.react-calendar__tile:hover {
+  background: var(--accent-lighter) !important;
+  color: var(--accent) !important;
+}
+
+/* ── Appointment date has event ── */
 .react-calendar__tile.has-appointment {
-    background-color: #d1f7e0 !important; /* Vert clair pour la couleur de fond */
-    color: #004d40; /* Couleur du texte pour un bon contraste */
-    border-radius: 5px;
-    font-weight: bold;
+  background: var(--color-success-light) !important;
+  color: var(--color-success-dark) !important;
+  border-radius: var(--radius-sm) !important;
+  font-weight: var(--fw-bold) !important;
 }
 
 .react-calendar__tile.has-appointment:hover {
-    background-color: #a8e6cf !important; /* Une nuance plus foncée au survol */
+  background: #A7F3D0 !important;
 }
 
-
-/* Styles pour les boutons "Créer un rendez-vous" et "Voir les rendez-vous supprimés" */
-.create-appt-button,
-.view-deleted-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
+/* ── Calendar action buttons ── */
 .create-appt-button {
-    background-color: #00796b;
-    color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.65rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.20);
 }
 
 .create-appt-button:hover {
-    background-color: #004d40;
-    transform: translateY(-2px);
+  background: var(--accent-hover);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.30);
+  transform: translateY(-1px);
 }
 
 .view-deleted-button {
-    background-color: #c0c0c0;
-    color: #333;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.65rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .view-deleted-button:hover {
-    background-color: #a0a0a0;
-    transform: translateY(-2px);
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
-/* Liste des rendez-vous */
+/* ── Appointments list ── */
 .appointments-list {
-    text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
+/* ── Appointment card ── */
 .appointment-item {
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.appointment-item:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
 }
 
 .appointment-item p {
-    margin: 5px 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: var(--space-1) 0;
+  line-height: var(--leading-normal);
 }
 
+/* ── Card action buttons ── */
 .appointment-actions {
-    margin-top: 15px;
-    display: flex;
-    gap: 10px;
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
 }
 
-/* Boutons d'action */
 .action-button {
-    padding: 8px 12px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
 }
 
 .edit-button {
-    background-color: #2196f3;
-    color: white;
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
 }
-
-.edit-button:hover {
-    background-color: #1976d2;
-}
+.edit-button:hover { background: var(--accent-lighter); }
 
 .delete-button {
-    background-color: #f44336;
-    color: white;
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.delete-button:hover { background: var(--color-danger-light); }
+
+/* ── Deleted appointments page ── */
+.deleted-appointments-page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
 }
 
-.delete-button:hover {
-    background-color: #d32f2f;
+.deleted-appointments-page h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-6);
 }
-/* ============================================================================
-   MOBILE RESPONSIVE DESIGN
-   ============================================================================ */
 
+/* Deleted state modifier — visually dims the card */
+.appointment-item.deleted {
+  border-left: 3px solid var(--color-danger);
+  opacity: 0.85;
+}
+
+/* ── Danger submit button (DeleteAppointmentModal) ── */
+.btn-danger-submit {
+  padding: 0.65rem 1.6rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--color-danger);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-danger-submit:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.btn-danger-submit:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .appointments-page {
-        padding: 12px;
-    }
+  .appointments-page { padding: var(--space-4); }
 
-    .calendar-container {
-        gap: 12px;
-        margin-bottom: 20px;
-    }
+  .calendar-container {
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    padding: var(--space-4);
+  }
 
-    .react-calendar {
-        padding: 6px;
-        width: 100%;
-        max-width: 100%;
-    }
+  .react-calendar {
+    max-width: 100% !important;
+  }
 
-    .react-calendar button {
-        padding: 5px !important;
-        font-size: 0.8rem !important;
-    }
+  .create-appt-button,
+  .view-deleted-button {
+    width: 100%;
+    justify-content: center;
+  }
 
-    .create-appt-button,
-    .view-deleted-button {
-        padding: 8px 16px;
-        font-size: 14px;
-        width: 100%;
-    }
+  .appointment-item {
+    padding: var(--space-4);
+  }
 
-    .appointment-item {
-        padding: 12px;
-        margin-bottom: 12px;
-    }
+  .appointment-actions {
+    gap: var(--space-2);
+    flex-wrap: wrap;
+  }
 
-    .appointment-item p {
-        font-size: 0.9rem;
-    }
-
-    .appointment-actions {
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-
-    .action-button {
-        padding: 6px 10px;
-        font-size: 0.85rem;
-        flex: 1;
-        min-width: 70px;
-    }
+  .action-button {
+    flex: 1;
+    min-width: 80px;
+  }
 }
 
 @media (max-width: 480px) {
-    .appointments-page {
-        padding: 8px;
-    }
+  .react-calendar button {
+    padding: 6px !important;
+    font-size: var(--text-xs) !important;
+  }
 
-    .calendar-container {
-        gap: 10px;
-        margin-bottom: 15px;
-    }
+  .appointment-actions {
+    flex-direction: column;
+  }
 
-    .react-calendar {
-        padding: 4px;
-        border-radius: 6px;
-    }
-
-    .react-calendar button {
-        padding: 3px !important;
-        font-size: 0.7rem !important;
-    }
-
-    .create-appt-button,
-    .view-deleted-button {
-        padding: 6px 12px;
-        font-size: 12px;
-        width: 100%;
-    }
-
-    .appointment-item {
-        padding: 10px;
-        margin-bottom: 10px;
-        border-radius: 6px;
-    }
-
-    .appointment-item p {
-        font-size: 0.85rem;
-        margin: 4px 0;
-    }
-
-    .appointment-actions {
-        gap: 4px;
-        flex-direction: column;
-    }
-
-    .action-button {
-        padding: 8px;
-        font-size: 0.8rem;
-        width: 100%;
-    }
+  .action-button { width: 100%; }
 }

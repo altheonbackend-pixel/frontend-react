@@ -1,27 +1,477 @@
-/* src/index.css */
+/* ============================================================
+   ALTHEON CONNECT — DESIGN SYSTEM
+   Single source of truth for all design tokens.
+   To change the theme, update the variables in :root only.
+   ============================================================ */
 
-/* Réinitialisation de base */
-* {
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ── Design Tokens ── */
+:root {
+
+  /* --- Palette --- */
+  /* Aura backgrounds — the signature gradient of this app */
+  --bg-aura:         linear-gradient(135deg, #FFF5F2 0%, #FFFFFF 45%, #F3F0FF 100%);
+  --bg-base:         #FFFFFF;
+  --bg-subtle:       #FAFAFA;
+  --bg-muted:        #F7F5FF;   /* light lavender — table stripes, card footers */
+  --bg-cream:        #FFF5F2;   /* warm left tone */
+  --bg-lavender:     #F3F0FF;   /* cool right tone */
+
+  /* Text */
+  --text-primary:    #1A1A1A;
+  --text-secondary:  #5C5C6E;
+  --text-muted:      #9B9BAD;
+  --text-inverse:    #FFFFFF;
+  --text-link:       #7C3AED;
+
+  /* Accent — violet is the primary brand colour */
+  --accent:          #7C3AED;
+  --accent-hover:    #6D28D9;
+  --accent-light:    #EDE9FE;
+  --accent-lighter:  #F5F3FF;
+
+  /* Secondary accent — rose for secondary/destructive */
+  --accent-secondary:       #EC4899;
+  --accent-secondary-hover: #DB2777;
+  --accent-secondary-light: #FCE7F3;
+
+  /* Semantic colours */
+  --color-success:       #10B981;
+  --color-success-light: #D1FAE5;
+  --color-success-dark:  #065F46;
+  --color-warning:       #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-warning-dark:  #92400E;
+  --color-danger:        #EF4444;
+  --color-danger-hover:  #DC2626;
+  --color-danger-light:  #FEE2E2;
+  --color-danger-dark:   #991B1B;
+  --color-info:          #3B82F6;
+  --color-info-light:    #EFF6FF;
+  --color-info-dark:     #1E3A8A;
+
+  /* Borders */
+  --border-default: #E8E4F0;
+  --border-subtle:  #F0EEF8;
+  --border-focus:   #A78BFA;
+  --border-strong:  #C4B5FD;
+
+  /* Shadows — violet-tinted for brand consistency */
+  --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm:    0 1px 4px rgba(124, 58, 237, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:    0 4px 16px rgba(124, 58, 237, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:    0 8px 32px rgba(124, 58, 237, 0.12), 0 4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-xl:    0 16px 48px rgba(124, 58, 237, 0.16), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(167, 139, 250, 0.35);
+
+  /* Border radius */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   24px;
+  --radius-pill: 9999px;
+
+  /* Typography */
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --text-xs:      0.75rem;    /* 12px */
+  --text-sm:      0.875rem;   /* 14px */
+  --text-base:    1rem;       /* 16px */
+  --text-lg:      1.125rem;   /* 18px */
+  --text-xl:      1.25rem;    /* 20px */
+  --text-2xl:     1.5rem;     /* 24px */
+  --text-3xl:     1.875rem;   /* 30px */
+  --text-4xl:     2.25rem;    /* 36px */
+  --fw-light:     300;
+  --fw-normal:    400;
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+  --leading-tight:  1.25;
+  --leading-snug:   1.375;
+  --leading-normal: 1.5;
+  --leading-relaxed:1.625;
+
+  /* Spacing scale */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Layout */
+  --content-max:   1200px;
+  --content-tight: 900px;
+  --page-padding:  2rem;
+
+  /* Transitions */
+  --transition-fast:   120ms ease;
+  --transition-base:   220ms ease;
+  --transition-slow:   350ms ease;
+
+  /* Z-index scale */
+  --z-base:    1;
+  --z-raised:  10;
+  --z-overlay: 100;
+  --z-modal:   1000;
+  --z-toast:   9999;
+}
+
+/* ── Base Reset ── */
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Assurer que les éléments racine (HTML, body, et le conteneur React #root) occupent toute la hauteur disponible */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
   height: 100%;
 }
 
-/* Le conteneur principal de l'application doit aussi prendre toute la hauteur */
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--fw-normal);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background: var(--bg-aura);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── App shell ── */
 .App {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
-/* Permettre au contenu principal de l'application de s'étendre et de prendre l'espace restant */
 main {
-  flex-grow: 1;
+  flex: 1;
+}
+
+/* ── Typography defaults ── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-body);
+  font-weight: var(--fw-bold);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+}
+
+p {
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+}
+
+/* ── Global utility classes ── */
+
+/* Page wrapper — use on every top-level page container */
+.page-wrapper {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--page-padding);
+}
+
+.page-wrapper-tight {
+  max-width: var(--content-tight);
+  margin: 0 auto;
+  padding: var(--page-padding);
+}
+
+/* Card — base white card */
+.card {
+  background: var(--bg-base);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-subtle);
+  transition: box-shadow var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Global Button System ── */
+/* All buttons derive from .btn. Variant classes add colour. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: 0.6rem 1.4rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  line-height: 1;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Primary — violet fill */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Secondary — outlined violet */
+.btn-secondary {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent-light);
+}
+
+/* Ghost — no border, light bg on hover */
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+}
+
+/* Danger */
+.btn-danger {
+  background: transparent;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-light);
+}
+
+/* Danger fill */
+.btn-danger-fill {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: var(--text-inverse);
+}
+.btn-danger-fill:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+  border-color: var(--color-danger-hover);
+}
+
+/* Success */
+.btn-success {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--text-inverse);
+}
+.btn-success:hover:not(:disabled) {
+  background: var(--color-success-dark);
+  border-color: var(--color-success-dark);
+}
+
+/* Muted — subtle grey */
+.btn-muted {
+  background: var(--bg-subtle);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+.btn-muted:hover:not(:disabled) {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Size modifiers */
+.btn-sm {
+  padding: 0.4rem 1rem;
+  font-size: var(--text-xs);
+}
+.btn-lg {
+  padding: 0.8rem 2rem;
+  font-size: var(--text-base);
+}
+.btn-full {
+  width: 100%;
+}
+
+/* ── Global Input System ── */
+.input,
+.textarea,
+.select-input {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-input, var(--radius-md));
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus,
+.textarea:focus,
+.select-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: var(--leading-relaxed);
+}
+
+/* ── Global Badge / Status chips ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  letter-spacing: 0.02em;
+}
+
+.badge-success  { background: var(--color-success-light); color: var(--color-success-dark); }
+.badge-danger   { background: var(--color-danger-light);  color: var(--color-danger-dark); }
+.badge-warning  { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.badge-info     { background: var(--color-info-light);    color: var(--color-info-dark); }
+.badge-accent   { background: var(--accent-light);        color: var(--accent); }
+.badge-muted    { background: var(--bg-muted);            color: var(--text-secondary); }
+
+/* ── Global feedback messages ── */
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  line-height: var(--leading-normal);
+}
+.alert-error   { background: var(--color-danger-light);  color: var(--color-danger-dark);  border: 1px solid #FCA5A5; }
+.alert-success { background: var(--color-success-light); color: var(--color-success-dark); border: 1px solid #6EE7B7; }
+.alert-warning { background: var(--color-warning-light); color: var(--color-warning-dark); border: 1px solid #FCD34D; }
+.alert-info    { background: var(--color-info-light);    color: var(--color-info-dark);    border: 1px solid #93C5FD; }
+
+/* ── Divider ── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--space-6) 0;
+}
+
+/* ── Fade-in animation ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-up  { animation: fadeUp  0.35s ease both; }
+.animate-fade-in  { animation: fadeIn  0.25s ease both; }
+.animate-scale-in { animation: scaleIn 0.25s ease both; }
+
+/* ── Scrollbar styling ── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border-strong); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* ── Selection colour ── */
+::selection {
+  background: var(--accent-light);
+  color: var(--accent);
 }

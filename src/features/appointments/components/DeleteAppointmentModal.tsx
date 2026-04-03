@@ -99,7 +99,7 @@ const DeleteAppointmentModal = ({ appointment, onSuccess, onCancel }: DeleteAppo
                     </div>
                     
                     <div className="form-actions">
-                        <button type="submit" disabled={loading} className="delete-confirm-button">
+                        <button type="submit" disabled={loading} className="btn-danger-submit">
                             {loading ? t('delete_appointment.loading') : t('delete_appointment.submit')}
                         </button>
                         <button type="button" onClick={onCancel} className="cancel-button">

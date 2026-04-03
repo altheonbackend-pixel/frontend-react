@@ -1,187 +1,217 @@
-/*=====================================
-  Styles pour le Tableau de Bord
-  (Dashboard.tsx)
-=====================================*/
+/* ============================================================
+   DOCTOR DASHBOARD
+   ============================================================ */
 
-/* --- Conteneur principal de la page --- */
-.dashboard-container,
-.text-page-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 80vh;
-    padding: 2rem;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f2f5;
-    text-align: center;
+/* ── Page container ── */
+.dashboard-container {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
 }
 
-/* --- Section principale du contenu --- */
-.dashboard-content,
-.content-section {
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    padding: 3rem;
-    max-width: 900px;
-    width: 100%;
-    animation: fadeIn 0.8s ease-in-out;
+/* ── Page header (title above the card) ── */
+.dashboard-page-header {
+  max-width: var(--content-tight);
+  margin: 0 auto var(--space-4);
+  padding: 0;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+.dashboard-page-header h1 {
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  letter-spacing: -0.3px;
 }
 
-/* --- Titre de bienvenue --- */
+/* ── Welcome section ── */
+.dashboard-content {
+  background: var(--bg-base);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-10) var(--space-12);
+  max-width: var(--content-tight);
+  margin: 0 auto var(--space-8);
+}
+
 .dashboard-content h2 {
-    font-size: 2.2rem;
-    color: #004d40;
-    margin-bottom: 1rem;
+  font-size: var(--text-3xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-2);
 }
 
-/* --- Section des statistiques (horizontal) --- */
+.dashboard-content p {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-6);
+}
+
+/* ── Stat cards row ── */
 .stats-summary {
-    display: flex;
-    justify-content: center; /* Centrer les cartes */
-    flex-wrap: wrap;
-    margin: 1.5rem 0; /* Espacement réduit */
-    gap: 1.2rem; /* Espacement réduit entre les cartes */
-    width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
 }
 
 .stat-card {
-    background-color: #e0f2f1;
-    padding: 1.2rem 1.5rem; /* Réduction du padding */
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    min-width: 130px; /* Réduction de la largeur minimale */
-    text-align: center;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+  transition:
+    box-shadow var(--transition-base),
+    transform var(--transition-base),
+    background var(--transition-base);
+  cursor: default;
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  background: var(--bg-base);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
 }
 
 .stat-value {
-    font-size: 2.2rem; /* Légère réduction de la taille de la police */
-    font-weight: 700;
-    color: #004d40;
-    margin: 0;
+  font-size: var(--text-4xl);
+  font-weight: var(--fw-bold);
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: var(--space-2);
+  letter-spacing: -1px;
 }
 
 .stat-label {
-    font-size: 0.9rem; /* Légère réduction de la taille de la police */
-    color: #00796b;
-    margin-top: 0.5rem;
-    font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* --- Paragraphe de description --- */
-.dashboard-content p {
-    font-size: 1.1rem;
-    color: #555;
-    line-height: 1.6;
-    margin-bottom: 2rem;
-}
-
-/* --- Navigation du tableau de bord --- */
+/* ── Dashboard navigation buttons ── */
 .dashboard-nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
-/* --- Boutons de navigation --- */
 .nav-button {
-    background-color: #00796b;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    box-shadow: 0 4px 10px rgba(0, 121, 107, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.65rem 1.4rem;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  background: var(--accent-lighter);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .nav-button:hover {
-    background-color: #004d40;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  background: var(--accent-light);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  color: var(--accent-hover);
 }
 
-/* --- Styles pour les messages de chargement et d'erreur --- */
-.loading-text, .error-text {
-    font-size: 1.1rem;
-    color: #757575;
-    margin-top: 1rem;
+/* ── Loading / error states ── */
+.loading-text {
+  text-align: center;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  padding: var(--space-8);
 }
 
 .error-text {
-    color: #d32f2f;
+  text-align: center;
+  font-size: var(--text-base);
+  color: var(--color-danger);
+  padding: var(--space-8);
 }
 
-/* --- Styles pour le tableau des statistiques patients --- */
+/* ── Patient stats table ── */
 .patients-stats-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-6);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  overflow: hidden;
 }
 
 .patients-stats-table th,
 .patients-stats-table td {
-    border: 1px solid #e0e0e0;
-    padding: 12px 15px;
-    text-align: left;
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.patients-stats-table th {
-    background-color: #f5f5f5;
-    font-weight: 600;
-    color: #333;
-    text-transform: uppercase;
+.patients-stats-table thead th {
+  background: var(--bg-muted);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--border-default);
 }
 
-.patients-stats-table tr:nth-child(even) {
-    background-color: #fafafa;
+.patients-stats-table tbody tr:nth-child(even) {
+  background: var(--bg-subtle);
 }
 
-.patients-stats-table tr:hover {
-    background-color: #e8f5e9;
+.patients-stats-table tbody tr:hover {
+  background: var(--accent-lighter);
 }
 
-
-/* --- Responsive design --- */
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .dashboard-content,
-    .content-section {
-        padding: 2rem;
-        max-width: 100%;
-    }
-    
-    .dashboard-content h2 {
-        font-size: 1.8rem;
-    }
+  .dashboard-container {
+    padding: var(--space-4);
+  }
 
-    .stats-summary {
-        flex-direction: column;
-        align-items: center;
-    }
+  .dashboard-content {
+    padding: var(--space-6) var(--space-5);
+  }
 
-    .stat-card {
-        width: 80%; /* Prend plus de largeur sur mobile */
-        text-align: center;
-    }
+  .dashboard-content h2 {
+    font-size: var(--text-2xl);
+  }
 
-    .nav-button {
-        width: 100%;
-        text-align: center;
-    }
+  .stats-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+
+  .nav-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-value {
+    font-size: var(--text-3xl);
+  }
 }

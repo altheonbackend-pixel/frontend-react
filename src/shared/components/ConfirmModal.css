@@ -1,35 +1,91 @@
-/* Shared ConfirmModal styles */
+/* ============================================================
+   CONFIRM MODAL
+   Reusable confirmation dialog with pill-shaped buttons.
+   ============================================================ */
+
 .confirm-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.40);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-4);
 }
 
 .confirm-modal {
-    background: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    max-width: 380px;
-    width: 90%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-8);
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  animation: scaleIn 0.22s ease both;
+  text-align: center;
 }
 
 .confirm-modal-message {
-    font-size: 1rem;
-    color: #333;
-    margin: 0;
-    text-align: center;
+  font-size: var(--text-base);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+  margin: 0;
 }
 
 .confirm-modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
+  display: flex;
+  gap: var(--space-3);
+  justify-content: center;
+}
+
+/* Confirm (danger) button */
+.confirm-modal-actions .btn-danger-fill,
+.confirm-modal-actions button:first-child {
+  padding: 0.6rem 1.6rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--color-danger);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.confirm-modal-actions .btn-danger-fill:hover,
+.confirm-modal-actions button:first-child:hover {
+  background: var(--color-danger-hover);
+  transform: translateY(-1px);
+}
+
+/* Cancel button */
+.confirm-modal-actions .btn-muted,
+.confirm-modal-actions button:last-child {
+  padding: 0.6rem 1.6rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.confirm-modal-actions .btn-muted:hover,
+.confirm-modal-actions button:last-child:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }

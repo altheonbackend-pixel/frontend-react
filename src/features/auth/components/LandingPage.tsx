@@ -19,7 +19,7 @@ const LandingPage: React.FC = () => {
             <Login /> 
 
             {/* 3. Zone d'information ou de pied de page (optionnel) */}
-            <footer style={{ marginTop: 'auto', padding: '10px', color: '#7f8c8d' }}>
+            <footer className="auth-footer">
                 {t('landing.footer', { year: new Date().getFullYear() })}
             </footer>
         </div>
