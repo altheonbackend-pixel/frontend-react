@@ -65,7 +65,7 @@
 /* ── Patient grid ── */
 .patients-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-5);
   list-style: none;
   padding: 0;
@@ -254,6 +254,10 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .patients-container { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .patients-container { padding: var(--space-4); }
   .patients-header { flex-direction: column; align-items: flex-start; }
@@ -261,10 +265,16 @@
   .header-buttons { width: 100%; }
   .add-button, .export-button { flex: 1; justify-content: center; }
   .search-input { max-width: 100%; }
-  .patients-list { grid-template-columns: 1fr; }
 }
 
+/* Two-column grid on mid-size phones (600px-768px) */
+@media (max-width: 640px) {
+  .patients-list { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+}
+
+/* Single column on small phones */
 @media (max-width: 480px) {
+  .patients-list { grid-template-columns: 1fr; }
   .page-title { font-size: var(--text-xl); }
   .patient-info { padding: var(--space-4); }
   .patient-actions { padding: var(--space-2) var(--space-4); }

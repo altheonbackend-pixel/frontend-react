@@ -1,13 +1,14 @@
 /* ============================================================
    MAIN NAVIGATION HEADER
-   Frosted-glass bar that sits on top of the Aura background.
+   Three-column flex layout: [logo] [nav-links] [auth-links]
+   Logo is standalone so language-toggle never causes overlap.
    ============================================================ */
 
 .main-header {
   position: sticky;
   top: 0;
   z-index: var(--z-raised);
-  background: rgba(255, 255, 255, 0.80);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
@@ -17,17 +18,16 @@
 
 .main-nav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 64px;
+  height: 60px;
   max-width: var(--content-max);
   margin: 0 auto;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
-/* ── Logo ── */
+/* ── Logo — standalone flex child, never inside nav-links ── */
 .nav-logo {
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--fw-bold);
   color: var(--text-primary);
   text-decoration: none;
@@ -37,6 +37,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  white-space: nowrap;
 }
 
 .nav-logo::before {
@@ -49,31 +50,32 @@
   flex-shrink: 0;
 }
 
-.nav-logo:hover {
-  color: var(--accent);
-}
+.nav-logo:hover { color: var(--accent); }
 
-/* ── Nav links ── */
+/* ── Centre nav links ── */
+/* overflow: hidden prevents nav items from ever pushing auth-links */
 .nav-links {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .nav-item {
-  padding: 0.4rem 0.85rem;
+  padding: 0.38rem 0.8rem;
   font-size: var(--text-sm);
   font-weight: var(--fw-medium);
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: var(--radius-pill);
   border: 1.5px solid transparent;
+  white-space: nowrap;
   transition:
     color var(--transition-fast),
     background var(--transition-fast),
     border-color var(--transition-fast);
-  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -88,11 +90,11 @@
   font-weight: var(--fw-semibold);
 }
 
-/* ── Auth / right section ── */
+/* ── Right section: lang + user info + logout ── */
 .auth-links {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
@@ -108,16 +110,18 @@
   font-weight: var(--fw-semibold);
   color: var(--text-primary);
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .user-specialty {
   font-size: var(--text-xs);
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ── Logout button ── */
 .logout-button {
-  padding: 0.4rem 1.1rem;
+  padding: 0.38rem 1rem;
   font-size: var(--text-sm);
   font-weight: var(--fw-semibold);
   color: var(--color-danger);
@@ -125,11 +129,11 @@
   border: 1.5px solid var(--color-danger);
   border-radius: var(--radius-pill);
   cursor: pointer;
+  white-space: nowrap;
   transition:
     background var(--transition-fast),
     color var(--transition-fast),
     box-shadow var(--transition-fast);
-  white-space: nowrap;
 }
 
 .logout-button:hover {
@@ -137,14 +141,14 @@
   box-shadow: var(--shadow-xs);
 }
 
-/* ── Language switcher (inline styles in Header.tsx — these override) ── */
+/* ── Language switcher ── */
 .lang-switcher {
   display: flex;
   gap: var(--space-1);
 }
 
 .lang-btn {
-  padding: 0.3rem 0.65rem;
+  padding: 0.28rem 0.6rem;
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
   color: var(--text-muted);
@@ -164,58 +168,59 @@
 
 /* ============================================================
    RESPONSIVE
+   Breakpoints: 1024 → 900 → 768 → 640 → 480
    ============================================================ */
 
+/* ── Tablet landscape: shrink nav items ── */
 @media (max-width: 1024px) {
-  .nav-item {
-    padding: 0.4rem 0.65rem;
-    font-size: var(--text-xs);
-  }
+  .main-header { padding: 0 var(--space-5); }
+  .nav-item { padding: 0.35rem 0.65rem; font-size: var(--text-xs); }
+  .auth-links { gap: var(--space-2); }
+  .user-info-container { display: none; }  /* reclaim space on mid screens */
 }
 
-@media (max-width: 768px) {
-  .main-header {
-    padding: 0 var(--space-4);
-  }
-
+/* ── 900px: wrap nav to second row ── */
+@media (max-width: 900px) {
   .main-nav {
     height: auto;
     flex-wrap: wrap;
-    padding: var(--space-3) 0;
-    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    gap: var(--space-2);
   }
 
+  .nav-logo   { order: 1; }
+  .auth-links { order: 2; margin-left: auto; }
+
+  /* Nav links drop to full-width second row */
   .nav-links {
     order: 3;
     width: 100%;
+    overflow: visible;
     flex-wrap: wrap;
     gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-subtle);
   }
 
-  .nav-item {
-    font-size: var(--text-xs);
-    padding: 0.35rem 0.65rem;
-  }
-
-  .auth-links {
-    gap: var(--space-3);
-  }
-
-  .user-info-container {
-    align-items: flex-start;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-3);
-  }
+  .nav-item { font-size: var(--text-xs); padding: 0.3rem 0.6rem; }
 }
 
-@media (max-width: 480px) {
-  .user-specialty {
-    display: none;
-  }
+/* ── Tablet portrait ── */
+@media (max-width: 768px) {
+  .main-header { padding: 0 var(--space-4); }
+  .auth-links { gap: var(--space-2); }
+}
 
-  .logout-button {
-    padding: 0.35rem 0.85rem;
-    font-size: var(--text-xs);
-  }
+/* ── Large phones ── */
+@media (max-width: 640px) {
+  .nav-profile-link { display: none; }   /* accessible via /profile in nav row */
+  .logout-button { padding: 0.28rem 0.75rem; font-size: var(--text-xs); }
+}
+
+/* ── Small phones ── */
+@media (max-width: 480px) {
+  .main-header { padding: 0 var(--space-3); }
+  .nav-logo { font-size: var(--text-base); }
+  .lang-btn { padding: 0.22rem 0.5rem; font-size: 0.65rem; }
+  .logout-button { padding: 0.22rem 0.6rem; }
 }

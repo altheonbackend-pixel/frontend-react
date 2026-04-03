@@ -143,7 +143,20 @@ li {
   box-shadow: var(--shadow-xs);
 }
 
+/* ── Inline form in text pages (Notes) — not in a modal ── */
+/* Prevents modal-only rules (max-height: 92vh) from applying inline */
+.text-page-container .form-container {
+  max-height: none;
+  overflow-y: visible;
+  max-width: 100%;
+  animation: none;
+}
+
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .text-page-container { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .text-page-container {
     padding: var(--space-4);
@@ -155,11 +168,12 @@ li {
     align-items: flex-start;
   }
 
-  .page-header h1 {
-    font-size: var(--text-2xl);
-  }
+  .page-header h1 { font-size: var(--text-2xl); }
+  .content-section { padding: var(--space-4); }
+}
 
-  .content-section {
-    padding: var(--space-4);
-  }
+@media (max-width: 480px) {
+  .page-header h1 { font-size: var(--text-xl); }
+  .content-section { padding: var(--space-3); }
+  .content-button { width: 100%; justify-content: center; }
 }

@@ -36,7 +36,7 @@
 /* ── Referrals grid ── */
 .referrals-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: var(--space-5);
   list-style: none;
   padding: 0;
@@ -300,11 +300,14 @@
 @media (max-width: 768px) {
   .referrals-container { padding: var(--space-4); }
   .referrals-title { font-size: var(--text-2xl); }
-  .referrals-grid { grid-template-columns: 1fr; }
   .referral-field { grid-template-columns: 1fr; gap: var(--space-1); }
   .referral-footer { flex-direction: column; align-items: flex-start; }
   .action-buttons { width: 100%; }
   .btn-small { flex: 1; justify-content: center; }
+}
+
+@media (max-width: 640px) {
+  .referrals-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 480px) {

@@ -19,7 +19,7 @@
   padding: var(--space-4);
 }
 
-/* ── Modal container ── */
+/* ── Modal container (inside .form-overlay or .form-modal-overlay) ── */
 .form-container,
 .appointment-form-container {
   background: var(--bg-glass);
@@ -31,9 +31,16 @@
   padding: var(--space-8) var(--space-8);
   width: 100%;
   max-width: 580px;
+  animation: scaleIn 0.25s ease both;
+}
+
+/* When inside an overlay, restrict height and allow scroll */
+.form-overlay .form-container,
+.form-modal-overlay .form-container,
+.form-overlay .appointment-form-container,
+.form-modal-overlay .appointment-form-container {
   max-height: 92vh;
   overflow-y: auto;
-  animation: scaleIn 0.25s ease both;
 }
 
 /* ── Modal title ── */

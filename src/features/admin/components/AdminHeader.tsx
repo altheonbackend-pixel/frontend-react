@@ -14,12 +14,13 @@ const AdminHeader = () => {
     return (
         <header className="admin-header">
             <nav className="admin-nav">
+                {/* Logo — standalone */}
+                <NavLink to="/admin/dashboard" className="admin-logo-text">
+                    ⚙️ Altheon Admin
+                </NavLink>
+
+                {/* Centre nav */}
                 <div className="admin-nav-links">
-                    <div className="admin-logo">
-                        <NavLink to="/admin/dashboard" className="admin-logo-text">
-                            ⚙️ Altheon Admin
-                        </NavLink>
-                    </div>
                     <NavLink to="/admin/dashboard" className="admin-nav-item">
                         Dashboard
                     </NavLink>
@@ -27,16 +28,14 @@ const AdminHeader = () => {
                         Manage Doctors
                     </NavLink>
                 </div>
+
+                {/* Right section */}
                 <div className="admin-auth-links">
                     {adminProfile && (
                         <>
                             <div className="admin-user-info-container">
-                                <span className="admin-user-name">
-                                    {adminProfile.full_name}
-                                </span>
-                                <span className="admin-user-email">
-                                    {adminProfile.email}
-                                </span>
+                                <span className="admin-user-name">{adminProfile.full_name}</span>
+                                <span className="admin-user-email">{adminProfile.email}</span>
                             </div>
                             <button onClick={handleLogout} className="admin-logout-button">
                                 Logout

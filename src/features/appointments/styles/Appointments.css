@@ -14,10 +14,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-5);
-  margin-bottom: var(--space-8);
-  padding: var(--space-6);
-  background: var(--bg-base);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-5);
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
@@ -245,18 +247,20 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .appointments-page { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .appointments-page { padding: var(--space-4); }
 
   .calendar-container {
-    gap: var(--space-4);
-    margin-bottom: var(--space-5);
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
     padding: var(--space-4);
   }
 
-  .react-calendar {
-    max-width: 100% !important;
-  }
+  .react-calendar { max-width: 100% !important; }
 
   .create-appt-button,
   .view-deleted-button {
@@ -264,19 +268,16 @@
     justify-content: center;
   }
 
-  .appointment-item {
-    padding: var(--space-4);
-  }
-
-  .appointment-actions {
-    gap: var(--space-2);
-    flex-wrap: wrap;
-  }
+  .appointment-item { padding: var(--space-4); }
 
   .action-button {
     flex: 1;
     min-width: 80px;
   }
+}
+
+@media (max-width: 640px) {
+  .appointments-list h3 { font-size: var(--text-base); }
 }
 
 @media (max-width: 480px) {
@@ -285,9 +286,6 @@
     font-size: var(--text-xs) !important;
   }
 
-  .appointment-actions {
-    flex-direction: column;
-  }
-
+  .appointment-actions { flex-direction: column; }
   .action-button { width: 100%; }
 }

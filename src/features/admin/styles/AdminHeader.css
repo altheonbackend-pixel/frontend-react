@@ -30,30 +30,26 @@
 /* ── Nav row ── */
 .admin-nav {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  height: 64px;
+  height: 60px;
   max-width: var(--content-max);
   margin: 0 auto;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
-/* ── Logo ── */
-.admin-logo {
-  flex-shrink: 0;
-}
-
+/* ── Logo — standalone flex child ── */
 .admin-logo-text {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;
   color: var(--admin-text);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--fw-bold);
   letter-spacing: -0.4px;
   transition: color var(--transition-fast);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .admin-logo-text::before {
@@ -84,12 +80,14 @@
   letter-spacing: 0.04em;
 }
 
-/* ── Nav links ── */
+/* ── Centre nav links ── */
 .admin-nav-links {
   display: flex;
   align-items: center;
   gap: var(--space-1);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .admin-nav-item {
@@ -169,29 +167,40 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .admin-header { padding: 0 var(--space-5); }
+  .admin-nav-item { padding: 0.35rem 0.65rem; font-size: var(--text-xs); }
+  .admin-user-info-container { display: none; }
+}
+
 @media (max-width: 768px) {
   .admin-header { padding: 0 var(--space-4); }
 
   .admin-nav {
     height: auto;
     flex-wrap: wrap;
-    padding: var(--space-3) 0;
-    gap: var(--space-3);
+    padding: var(--space-2) 0;
+    gap: var(--space-2);
   }
+
+  .admin-logo-text { order: 1; }
+  .admin-auth-links { order: 2; margin-left: auto; gap: var(--space-2); }
 
   .admin-nav-links {
     order: 3;
     width: 100%;
+    overflow: visible;
     flex-wrap: wrap;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--admin-border);
   }
 
-  .admin-nav-item { font-size: var(--text-xs); padding: 0.35rem 0.65rem; }
+  .admin-nav-item { font-size: var(--text-xs); padding: 0.3rem 0.6rem; }
+}
 
-  .admin-auth-links { gap: var(--space-3); }
-
-  .admin-user-info-container {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
-  }
+@media (max-width: 480px) {
+  .admin-header { padding: 0 var(--space-3); }
+  .admin-logo-text { font-size: var(--text-base); }
+  .admin-user-email { display: none; }
 }

@@ -16,10 +16,13 @@ const Header = () => {
     return (
         <header className="main-header">
             <nav className="main-nav">
+                {/* Logo — standalone so it never shifts when nav items change width */}
+                <NavLink to="/dashboard" className="nav-logo">
+                    Altheon Connect
+                </NavLink>
+
+                {/* Centre nav links — overflow-hidden prevents pushing auth-links */}
                 <div className="nav-links">
-                    <NavLink to="/dashboard" className="nav-logo">
-                        Altheon Connect
-                    </NavLink>
                     {isAuthenticated && (
                         <>
                             <NavLink to="/dashboard" className="nav-item">{t('nav.dashboard')}</NavLink>
@@ -37,6 +40,8 @@ const Header = () => {
                         </>
                     )}
                 </div>
+
+                {/* Right section — lang toggle + user info + logout */}
                 <div className="auth-links">
                     <div className="lang-switcher">
                         <button onClick={() => changeLanguage('fr')} className={`lang-btn${i18n.language?.startsWith('fr') ? ' active' : ''}`}>FR</button>
@@ -45,15 +50,11 @@ const Header = () => {
 
                     {isAuthenticated ? (
                         <>
-                            <NavLink to="/profile" className="nav-item">{t('nav.profile')}</NavLink>
+                            <NavLink to="/profile" className="nav-item nav-profile-link">{t('nav.profile')}</NavLink>
                             <div className="user-info-container">
-                                <span className="user-name">
-                                    Dr. {user?.full_name}
-                                </span>
+                                <span className="user-name">Dr. {user?.full_name}</span>
                                 {profile?.specialty && (
-                                    <span className="user-specialty">
-                                        {profile.specialty}
-                                    </span>
+                                    <span className="user-specialty">{profile.specialty}</span>
                                 )}
                             </div>
                             <button onClick={logout} className="logout-button">{t('nav.logout')}</button>

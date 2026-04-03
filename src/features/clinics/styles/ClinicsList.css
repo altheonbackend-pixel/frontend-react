@@ -55,7 +55,7 @@
 /* ── Clinics grid ── */
 .clinic-items-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-5);
   list-style: none;
   padding: 0;
@@ -258,7 +258,7 @@
 /* ── Clinic detail — doctor breakdown ── */
 .clinic-doctor-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--space-3);
   margin-top: var(--space-3);
 }
@@ -275,10 +275,14 @@
   .clinic-header { flex-direction: column; align-items: flex-start; }
   .clinic-title { font-size: var(--text-2xl); }
   .add-clinic-button { width: 100%; justify-content: center; }
-  .clinic-items-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .clinic-items-list { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
 }
 
 @media (max-width: 480px) {
+  .clinic-items-list { grid-template-columns: 1fr; }
   .clinic-title { font-size: var(--text-xl); }
   .clinic-info { padding: var(--space-4); }
   .clinic-actions { padding: var(--space-2) var(--space-4); gap: var(--space-1); }
