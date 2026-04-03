@@ -278,9 +278,31 @@
   .doctor-email { min-width: 140px; }
 }
 
+@media (max-width: 900px) {
+  .admin-doctor-list { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .admin-doctor-list { padding: var(--space-4); }
   .admin-doctor-list h1 { font-size: var(--text-2xl); margin-bottom: var(--space-4); }
-  .doctors-table { min-width: 560px; }
   .pagination { flex-wrap: wrap; gap: var(--space-3); }
+  /* Hide email column — col 3 */
+  .doctors-table th:nth-child(3),
+  .doctors-table td.doctor-email { display: none; }
+}
+
+@media (max-width: 640px) {
+  /* Also hide specialty (col 4) and ID (col 1) — keep Name, Access Level, Status, Actions */
+  .doctors-table th:nth-child(4),
+  .doctors-table td.doctor-specialty { display: none; }
+  .doctors-table th:nth-child(1),
+  .doctors-table td.doctor-id { display: none; }
+  .access-level-select { min-width: 110px; font-size: var(--text-xs); }
+}
+
+@media (max-width: 480px) {
+  .admin-doctor-list h1 { font-size: var(--text-xl); }
+  .pagination { flex-direction: column; align-items: center; }
+  .pagination-info { order: -1; }
+  .btn { padding: 0.35rem 0.7rem; font-size: 0.65rem; }
 }

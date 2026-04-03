@@ -297,6 +297,10 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 900px) {
+  .referrals-container { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .referrals-container { padding: var(--space-4); }
   .referrals-title { font-size: var(--text-2xl); }
