@@ -79,12 +79,12 @@
     background var(--transition-fast),
     box-shadow var(--transition-fast),
     transform var(--transition-fast);
-  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
 }
 
 .access-back-btn:hover {
   background: var(--accent-hover);
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
 

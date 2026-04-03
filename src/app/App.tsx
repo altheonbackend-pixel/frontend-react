@@ -74,10 +74,21 @@ function App() {
         return <div>Loading application...</div>;
     }
 
+    // Shared animated mesh background blobs
+    const MeshBackground = () => (
+        <>
+            <div className="mesh-blob mesh-blob-1" />
+            <div className="mesh-blob mesh-blob-2" />
+            <div className="mesh-blob mesh-blob-3" />
+            <div className="mesh-blob mesh-blob-4" />
+        </>
+    );
+
     // Admin routes
     if (isAuthenticated && userType === 'admin') {
         return (
             <div className="App">
+                <MeshBackground />
                 <Suspense fallback={<PageLoader />}>
                     <Routes>
                         <Route path="/admin/*" element={<PrivateAdminRoutes />} />
@@ -92,6 +103,7 @@ function App() {
     // Doctor routes (default)
     return (
         <div className="App">
+            <MeshBackground />
             {isAuthenticated && <Header />}
 
             <Suspense fallback={<PageLoader />}>

@@ -324,6 +324,100 @@
   font-weight: var(--fw-medium);
 }
 
+/* ── Dropdown menu (PatientDetail action menu) ── */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  /* inherits from .action-button */
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  z-index: var(--z-raised);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease both;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.dropdown-item:hover {
+  background: var(--accent-lighter);
+  color: var(--accent);
+}
+
+.dropdown-item.danger {
+  color: var(--color-danger);
+}
+
+.dropdown-item.danger:hover {
+  background: var(--color-danger-light);
+  color: var(--color-danger-dark);
+}
+
+/* ── Download link (file attachments) ── */
+.download-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.download-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* ── Attachment section ── */
+.attachment-section {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ── Content button (primary action in text pages) ── */
+.content-button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+}
+
+.content-button:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 /* ── PDF export — hide elements during export ── */
 .hide-for-pdf {
   display: none !important;

@@ -9,11 +9,11 @@
   /* Admin-specific overrides — all other tokens inherit from :root */
   --admin-bg:          #1E1040;   /* deep violet-navy */
   --admin-bg-hover:    #2D1A5E;
-  --admin-border:      rgba(167, 139, 250, 0.15);
+  --admin-border:      rgba(99, 102, 241, 0.15);
   --admin-text:        #E9E4FF;
   --admin-text-muted:  #9B8FD4;
   --admin-accent:      #A78BFA;   /* lighter violet for dark background */
-  --admin-accent-bg:   rgba(167, 139, 250, 0.15);
+  --admin-accent-bg:   rgba(99, 102, 241, 0.15);
 }
 
 /* ── Bar ── */
@@ -77,7 +77,7 @@
   padding: 0.15rem 0.6rem;
   background: var(--admin-accent-bg);
   color: var(--admin-accent);
-  border: 1px solid rgba(167, 139, 250, 0.30);
+  border: 1px solid rgba(99, 102, 241, 0.30);
   border-radius: var(--radius-pill);
   font-size: var(--text-xs);
   font-weight: var(--fw-semibold);
@@ -114,7 +114,7 @@
 .admin-nav-item.active {
   color: var(--admin-accent);
   background: var(--admin-accent-bg);
-  border-color: rgba(167, 139, 250, 0.25);
+  border-color: rgba(99, 102, 241, 0.25);
   font-weight: var(--fw-semibold);
 }
 

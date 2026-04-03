@@ -19,9 +19,9 @@
 .auth-container {
   width: 100%;
   max-width: 440px;
-  background: rgba(255, 255, 255, 0.90);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
@@ -133,12 +133,12 @@
     background var(--transition-fast),
     box-shadow var(--transition-fast),
     transform var(--transition-fast);
-  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
 }
 
 .login-button:hover:not(:disabled) {
   background: var(--accent-hover);
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.35);
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
 

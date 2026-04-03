@@ -11,26 +11,27 @@
 :root {
 
   /* --- Palette --- */
-  /* Aura backgrounds — the signature gradient of this app */
-  --bg-aura:         linear-gradient(135deg, #FFF5F2 0%, #FFFFFF 45%, #F3F0FF 100%);
+  /* Mesh gradient background — animated blobs handle color, base is white */
+  --bg-aura:         #FFFFFF;
   --bg-base:         #FFFFFF;
+  --bg-glass:        rgba(255, 255, 255, 0.85);  /* glassmorphic card surface */
   --bg-subtle:       #FAFAFA;
-  --bg-muted:        #F7F5FF;   /* light lavender — table stripes, card footers */
-  --bg-cream:        #FFF5F2;   /* warm left tone */
-  --bg-lavender:     #F3F0FF;   /* cool right tone */
+  --bg-muted:        #EEF2FF;   /* soft indigo — table stripes, card footers */
+  --bg-cream:        #FEE1DF;   /* warm rose blob tone */
+  --bg-lavender:     #F3F0FF;   /* cool lavender tag tone */
 
   /* Text */
   --text-primary:    #1A1A1A;
-  --text-secondary:  #5C5C6E;
-  --text-muted:      #9B9BAD;
+  --text-secondary:  #636E72;
+  --text-muted:      #636E72;
   --text-inverse:    #FFFFFF;
-  --text-link:       #7C3AED;
+  --text-link:       #6366F1;
 
-  /* Accent — violet is the primary brand colour */
-  --accent:          #7C3AED;
-  --accent-hover:    #6D28D9;
-  --accent-light:    #EDE9FE;
-  --accent-lighter:  #F5F3FF;
+  /* Accent — indigo is the primary brand colour */
+  --accent:          #6366F1;
+  --accent-hover:    #4F46E5;
+  --accent-light:    #E0E7FF;
+  --accent-lighter:  #F3F0FF;   /* soft lavender for hover states/tags */
 
   /* Secondary accent — rose for secondary/destructive */
   --accent-secondary:       #EC4899;
@@ -53,25 +54,25 @@
   --color-info-dark:     #1E3A8A;
 
   /* Borders */
-  --border-default: #E8E4F0;
-  --border-subtle:  #F0EEF8;
-  --border-focus:   #A78BFA;
-  --border-strong:  #C4B5FD;
+  --border-default: #E5E7EB;
+  --border-subtle:  #F3F4F6;
+  --border-focus:   #818CF8;
+  --border-strong:  #A5B4FC;
 
-  /* Shadows — violet-tinted for brand consistency */
+  /* Shadows — indigo-tinted for brand consistency */
   --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm:    0 1px 4px rgba(124, 58, 237, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md:    0 4px 16px rgba(124, 58, 237, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg:    0 8px 32px rgba(124, 58, 237, 0.12), 0 4px 8px rgba(0, 0, 0, 0.05);
-  --shadow-xl:    0 16px 48px rgba(124, 58, 237, 0.16), 0 8px 16px rgba(0, 0, 0, 0.06);
-  --shadow-focus: 0 0 0 3px rgba(167, 139, 250, 0.35);
+  --shadow-sm:    0 1px 4px rgba(99, 102, 241, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:    0 4px 16px rgba(99, 102, 241, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:    0 8px 32px rgba(99, 102, 241, 0.12), 0 4px 8px rgba(0, 0, 0, 0.05);
+  --shadow-xl:    0 16px 48px rgba(99, 102, 241, 0.16), 0 8px 16px rgba(0, 0, 0, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(99, 102, 241, 0.30);
 
   /* Border radius */
   --radius-xs:   4px;
   --radius-sm:   8px;
   --radius-md:   12px;
   --radius-lg:   16px;
-  --radius-xl:   24px;
+  --radius-xl:   32px;
   --radius-pill: 9999px;
 
   /* Typography */
@@ -152,8 +153,7 @@ body {
   font-weight: var(--fw-normal);
   line-height: var(--leading-normal);
   color: var(--text-primary);
-  background: var(--bg-aura);
-  background-attachment: fixed;
+  background: #FFFFFF;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -222,10 +222,12 @@ input, textarea, select {
   padding: var(--page-padding);
 }
 
-/* Card — base white card */
+/* Card — glassmorphic surface card */
 .card {
-  background: var(--bg-base);
-  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-subtle);
   transition: box-shadow var(--transition-base);
@@ -458,6 +460,35 @@ input, textarea, select {
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Mesh blob animation — 60s slow-motion loop ── */
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  20%       { transform: translate(60px, -80px) scale(1.06); }
+  40%       { transform: translate(-50px, 60px) scale(0.94); }
+  60%       { transform: translate(80px, 30px) scale(1.04); }
+  80%       { transform: translate(-30px, -50px) scale(0.97); }
+}
+
+@keyframes blobFloatB {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  25%       { transform: translate(-70px, 50px) scale(1.08); }
+  50%       { transform: translate(50px, -60px) scale(0.93); }
+  75%       { transform: translate(-40px, -30px) scale(1.05); }
+}
+
+@keyframes blobFloatC {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33%       { transform: translate(40px, 70px) scale(1.07); }
+  66%       { transform: translate(-60px, -40px) scale(0.96); }
+}
+
+@keyframes blobFloatD {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  30%       { transform: translate(-80px, -60px) scale(1.05); }
+  60%       { transform: translate(60px, 50px) scale(0.95); }
+  90%       { transform: translate(30px, -40px) scale(1.03); }
 }
 
 .animate-fade-up  { animation: fadeUp  0.35s ease both; }
