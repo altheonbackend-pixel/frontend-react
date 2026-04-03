@@ -11,20 +11,22 @@
   flex-direction: column;
 
   /* ── The animated gradient ──
-     A large 400×400% gradient canvas that slowly pans.
-     background-position keyframes make the colors drift
-     across the screen — no visible shapes, just color flow. */
+     Predominantly white with very faint pastel whispers at the edges.
+     Colors are ~10–15% saturation on white — soft, airy, eye-pleasing.
+     White stops between colours keep the centre clean and bright.
+     28s slow drift for a calm, barely-perceptible movement. */
   background: linear-gradient(
     -45deg,
-    #C8DEFA,   /* soft azure-blue  (left anchor) */
-    #DDD8F8,   /* muted lavender   */
-    #F5D0CC,   /* rose/blush pink  */
-    #FAE0D0,   /* warm peach       */
-    #E8D5F5,   /* pale violet      */
-    #C8DEFA    /* azure again — seamless loop */
+    #E6EFFE,   /* whisper blue-lavender */
+    #FFFFFF,   /* pure white            */
+    #FCE9E8,   /* whisper blush-rose    */
+    #FFFFFF,   /* pure white            */
+    #EEE8FC,   /* whisper soft violet   */
+    #FFFFFF,   /* pure white            */
+    #E6EFFE    /* whisper blue — loops  */
   );
   background-size: 400% 400%;
-  animation: gradientFlow 18s ease infinite;
+  animation: gradientFlow 28s ease infinite;
 }
 
 @keyframes gradientFlow {
