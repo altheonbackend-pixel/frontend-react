@@ -6,9 +6,11 @@
 /* ── Page container ── */
 .text-page-container {
   max-width: var(--content-tight);
+  width: 100%;
   margin: var(--space-8) auto;
   padding: 0 var(--page-padding) var(--space-12);
   animation: fadeUp 0.35s ease both;
+  box-sizing: border-box;
 }
 
 /* ── Page header ── */
@@ -161,6 +163,8 @@ li {
   .text-page-container {
     padding: var(--space-4);
     margin: var(--space-4) auto;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   .page-header {
@@ -169,7 +173,7 @@ li {
   }
 
   .page-header h1 { font-size: var(--text-2xl); }
-  .content-section { padding: var(--space-4); }
+  .content-section { padding: var(--space-4); overflow-x: auto; }
 }
 
 @media (max-width: 480px) {

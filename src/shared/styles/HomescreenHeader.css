@@ -106,22 +106,20 @@
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .homescreen-header {
-    padding: var(--space-6) var(--space-4) var(--space-5);
+    padding: var(--space-5) var(--space-4) var(--space-4);
   }
-
-  .company-name { font-size: var(--text-3xl); }
-  .slogan { font-size: var(--text-base); }
-
+  .company-name { font-size: var(--text-2xl); }
+  .slogan { font-size: var(--text-sm); }
   .feature-list { flex-direction: column; align-items: center; }
   .feature-item { width: 100%; max-width: 420px; }
 }
 
 @media (max-width: 480px) {
   .homescreen-header {
-    padding: var(--space-5) var(--space-3) var(--space-4);
-    gap: var(--space-3);
+    padding: var(--space-4) var(--space-3) var(--space-3);
+    gap: var(--space-2);
   }
-
-  .company-name { font-size: var(--text-2xl); letter-spacing: -0.4px; }
-  .slogan { font-size: var(--text-sm); }
+  .company-name { font-size: var(--text-xl); letter-spacing: -0.3px; }
+  /* Hide the long slogan on very small screens to save vertical space */
+  .slogan { display: none; }
 }

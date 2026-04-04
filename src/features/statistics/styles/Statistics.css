@@ -4,9 +4,12 @@
 
 .stats-container {
   max-width: var(--content-max);
+  width: 100%;
   margin: 0 auto;
   padding: var(--space-8) var(--page-padding);
   animation: fadeUp 0.35s ease both;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ── Header ── */
@@ -31,6 +34,8 @@
   padding: var(--space-6) var(--space-8);
   margin-bottom: var(--space-6);
   box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .stats-section h2 {
@@ -47,8 +52,10 @@
 /* ── Stats grid (metric cards) ── */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-4);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ── Stat card ── */
