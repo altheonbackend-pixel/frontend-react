@@ -64,11 +64,11 @@ const AdminDoctorList = () => {
                         ) : (
                             doctors.map((doctor) => (
                                 <tr key={doctor.id} className={`doctor-row ${doctor.is_active ? 'active' : 'inactive'}`}>
-                                    <td className="doctor-id">{doctor.id}</td>
-                                    <td className="doctor-name">{doctor.full_name}</td>
-                                    <td className="doctor-email">{doctor.email}</td>
-                                    <td className="doctor-specialty">{doctor.specialty || 'N/A'}</td>
-                                    <td className="doctor-access-level">
+                                    <td className="doctor-id" data-label="ID">{doctor.id}</td>
+                                    <td className="doctor-name" data-label="Name">{doctor.full_name}</td>
+                                    <td className="doctor-email" data-label="Email">{doctor.email}</td>
+                                    <td className="doctor-specialty" data-label="Specialty">{doctor.specialty || 'N/A'}</td>
+                                    <td className="doctor-access-level" data-label="Access Level">
                                         <select
                                             className={`access-level-select level-${doctor.access_level}`}
                                             value={doctor.access_level}
@@ -78,17 +78,16 @@ const AdminDoctorList = () => {
                                             <option value={2}>Level 2 (Advanced)</option>
                                         </select>
                                     </td>
-                                    <td className="doctor-status">
+                                    <td className="doctor-status" data-label="Status">
                                         <span className={`status-badge ${doctor.is_active ? 'status-active' : 'status-inactive'}`}>
                                             {doctor.is_active ? '✓ Active' : '✗ Inactive'}
                                         </span>
                                     </td>
-                                    <td className="doctor-actions">
+                                    <td className="doctor-actions" data-label="Action">
                                         {doctor.is_active ? (
                                             <button
                                                 className="btn btn-deactivate"
                                                 onClick={() => deactivateDoctor(doctor.id)}
-                                                title="Deactivate doctor"
                                             >
                                                 Deactivate
                                             </button>
@@ -96,7 +95,6 @@ const AdminDoctorList = () => {
                                             <button
                                                 className="btn btn-activate"
                                                 onClick={() => activateDoctor(doctor.id)}
-                                                title="Activate doctor"
                                             >
                                                 Activate
                                             </button>

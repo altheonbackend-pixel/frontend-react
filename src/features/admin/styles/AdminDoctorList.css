@@ -292,15 +292,93 @@
 }
 
 @media (max-width: 640px) {
-  /* Also hide specialty (col 4) and ID (col 1) — keep Name, Access Level, Status, Actions */
-  .doctors-table th:nth-child(4),
-  .doctors-table td.doctor-specialty { display: none; }
-  .doctors-table th:nth-child(1),
-  .doctors-table td.doctor-id { display: none; }
-  .access-level-select { min-width: 110px; font-size: var(--text-xs); }
+  /* ── Convert table to cards ── */
+  .table-responsive {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow-x: visible;
+    padding: 0;
+  }
+
+  .doctors-table,
+  .doctors-table tbody,
+  .doctors-table tr,
+  .doctors-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .doctors-table thead { display: none; }
+
+  .doctor-row {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-base);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .doctor-row.inactive { opacity: 0.65; }
+
+  /* Remove row hover background — cards handle their own bg */
+  .doctor-row:hover td { background: transparent; }
+
+  .doctors-table td {
+    padding: var(--space-1) 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    color: var(--text-primary);
+  }
+
+  /* Label prefix from data-label attribute */
+  .doctors-table td::before {
+    content: attr(data-label);
+    font-weight: var(--fw-semibold);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-width: 88px;
+    flex-shrink: 0;
+  }
+
+  /* Hide ID and email cells — less important on mobile */
+  .doctor-id,
+  .doctor-email { display: none !important; }
+
+  /* Name row — larger text */
+  .doctor-name {
+    font-size: var(--text-base);
+    font-weight: var(--fw-semibold);
+    color: var(--text-primary);
+    min-width: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-1);
+  }
+
+  /* Select stretches to fill remaining card width */
+  .access-level-select {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--text-xs);
+  }
+
+  /* Status badge and action button align naturally */
+  .doctor-status .status-badge { font-size: var(--text-xs); }
+
+  .doctor-actions { margin-top: var(--space-2); }
+  .doctor-actions .btn { width: 100%; justify-content: center; }
 }
 
 @media (max-width: 480px) {
+  .admin-doctor-list { padding: var(--space-3); }
   .admin-doctor-list h1 { font-size: var(--text-xl); }
   .pagination { flex-direction: column; align-items: center; }
   .pagination-info { order: -1; }

@@ -176,31 +176,48 @@
 @media (max-width: 768px) {
   .admin-header { padding: 0 var(--space-4); }
 
+  /* Row 1: Logo (left) + Auth/Logout (right) */
+  /* Row 2: Nav links (full width strip) */
   .admin-nav {
     height: auto;
     flex-wrap: wrap;
-    padding: var(--space-2) 0;
+    padding: var(--space-2) 0 0;
+    gap: 0;
+  }
+
+  .admin-logo-text {
+    order: 1;
+    flex: 1;          /* grow to push auth to the right */
+  }
+
+  .admin-auth-links {
+    order: 2;
+    flex-shrink: 0;
     gap: var(--space-2);
   }
 
-  .admin-logo-text { order: 1; }
-  .admin-auth-links { order: 2; margin-left: auto; gap: var(--space-2); }
-
+  /* Nav strip sits below logo+auth on its own row */
   .admin-nav-links {
     order: 3;
+    flex: none;        /* override flex:1 from desktop */
     width: 100%;
-    overflow: visible;
-    flex-wrap: wrap;
+    overflow-x: auto;  /* horizontal scroll if needed */
+    overflow-y: visible;
+    flex-wrap: nowrap; /* keep items on one line */
     gap: var(--space-1);
-    padding-top: var(--space-2);
+    padding: var(--space-2) 0;
     border-top: 1px solid var(--admin-border);
+    margin-top: var(--space-2);
+    scrollbar-width: none; /* hide scrollbar */
   }
+  .admin-nav-links::-webkit-scrollbar { display: none; }
 
-  .admin-nav-item { font-size: var(--text-xs); padding: 0.3rem 0.6rem; }
+  .admin-nav-item { font-size: var(--text-xs); padding: 0.3rem 0.7rem; white-space: nowrap; }
 }
 
 @media (max-width: 480px) {
   .admin-header { padding: 0 var(--space-3); }
   .admin-logo-text { font-size: var(--text-base); }
   .admin-user-email { display: none; }
+  .admin-logout-button { padding: 0.3rem 0.75rem; font-size: var(--text-xs); }
 }

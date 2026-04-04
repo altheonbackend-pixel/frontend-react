@@ -129,13 +129,23 @@
 @media (max-width: 768px) {
   .admin-dashboard { padding: var(--space-4); }
   .admin-dashboard h1 { font-size: var(--text-2xl); margin-bottom: var(--space-5); }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-4); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .stat-card { padding: var(--space-4) var(--space-5); }
   .stat-icon { font-size: 1.7rem; min-width: 44px; }
   .stat-number { font-size: var(--text-2xl); }
 }
 
+@media (max-width: 640px) {
+  .stats-grid { gap: var(--space-3); }
+  .stat-card { padding: var(--space-3) var(--space-4); flex-direction: column; text-align: center; }
+  .stat-icon { min-width: auto; font-size: 1.5rem; }
+  .stat-content h3 { font-size: 0.65rem; }
+  .stat-number { font-size: var(--text-xl); }
+}
+
 @media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .stat-card { gap: var(--space-3); }
+  .admin-dashboard { padding: var(--space-3); }
+  .admin-dashboard h1 { font-size: var(--text-xl); }
+  /* Keep 2-col grid — single column is too sparse */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-2); }
 }
