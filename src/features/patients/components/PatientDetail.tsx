@@ -11,6 +11,7 @@ import ReferralForm from '../../referrals/components/ReferralForm';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
+import PageLoader from '../../../shared/components/PageLoader';
 
 const PatientDetails = () => {
     const { t } = useTranslation();
@@ -399,7 +400,7 @@ const PatientDetails = () => {
 
     // Affichage conditionnel basé sur les états de chargement, d'erreur ou de données manquantes
     if (loading) {
-        return <div className="loading-message">{t('patient_detail.loading')}</div>;
+        return <PageLoader message={t('patient_detail.loading')} />;
     }
     if (error) {
         return <div className="error-message">Erreur : {error} ❌</div>;

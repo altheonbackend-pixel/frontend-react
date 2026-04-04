@@ -5,6 +5,7 @@ import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import PageLoader from '../../../shared/components/PageLoader';
 
 interface Note {
     id: number;
@@ -100,7 +101,7 @@ const Notes = () => {
         };
 
         if (loading) {
-            return <div className="text-page-container loading-message">{t('notes.loading_page')}</div>;
+            return <PageLoader message={t('notes.loading_page')} />;
         }
 
         if (error) {

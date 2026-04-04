@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import '../styles/AdminDashboard.css';
+import PageLoader from '../../../shared/components/PageLoader';
 
 const AdminDashboard = () => {
     const { stats, isLoading, error, fetchStats } = useAdmin();
@@ -10,12 +11,7 @@ const AdminDashboard = () => {
     }, []);
 
     if (isLoading) {
-        return (
-            <div className="admin-dashboard">
-                <h1>Dashboard</h1>
-                <div className="loading-spinner">Loading statistics...</div>
-            </div>
-        );
+        return <PageLoader message="Loading Dashboard" />;
     }
 
     if (error) {

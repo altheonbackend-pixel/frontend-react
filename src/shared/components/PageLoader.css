@@ -1,0 +1,184 @@
+/* ============================================================
+   PAGE LOADER — ECG Monitor Animation
+   Unique medical-themed loading indicator.
+   ============================================================ */
+
+.page-loader {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-4);
+  animation: fadeUp 0.3s ease both;
+}
+
+/* ── Card ── */
+.page-loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-10) var(--space-12);
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px rgba(99, 102, 241, 0.06),
+    0 0 60px rgba(99, 102, 241, 0.06);
+  min-width: 320px;
+  max-width: 440px;
+  width: 90%;
+}
+
+/* ── ECG monitor strip ── */
+.ecg-monitor {
+  position: relative;
+  width: 100%;
+  height: 72px;
+  background: #0d0f1a;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(99, 102, 241, 0.20);
+}
+
+/* Faint grid lines */
+.ecg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
+  background-size: 20px 17px;
+}
+
+/* Moving scan bar (the sweep line on a real ECG monitor) */
+.ecg-scan {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(99, 102, 241, 0.5) 50%,
+    transparent 100%
+  );
+  animation: ecg-scan 2s linear infinite;
+  will-change: transform;
+}
+
+@keyframes ecg-scan {
+  from { transform: translateX(-2px); }
+  to   { transform: translateX(calc(100vw)); }
+}
+
+/* SVG fills the monitor */
+.ecg-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Glow layer — thick blurred copy */
+.ecg-glow {
+  fill: none;
+  stroke: #818cf8;
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: blur(4px);
+  opacity: 0.35;
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: ecg-draw 2s ease-in-out infinite;
+}
+
+/* Main sharp trace */
+.ecg-trace {
+  fill: none;
+  stroke: #a5b4fc;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
+  animation: ecg-draw 2s ease-in-out infinite;
+}
+
+@keyframes ecg-draw {
+  0%   { stroke-dashoffset: 1600; opacity: 0; }
+  8%   { opacity: 1; }
+  75%  { stroke-dashoffset: 0; opacity: 1; }
+  90%  { stroke-dashoffset: 0; opacity: 0.2; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* Tiny dot that runs along the trace tip */
+.ecg-monitor::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a5b4fc;
+  box-shadow: 0 0 8px 3px rgba(165, 180, 252, 0.7);
+  transform: translateY(-50%);
+  animation: ecg-dot 2s ease-in-out infinite;
+  will-change: transform;
+  pointer-events: none;
+}
+
+@keyframes ecg-dot {
+  /* Follows the rightmost visible point of the trace roughly */
+  0%   { left: 0%; opacity: 0; }
+  8%   { opacity: 1; }
+  75%  { left: 100%; opacity: 1; }
+  76%  { opacity: 0; left: 100%; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* ── Label with animated dots ── */
+.page-loader-label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* Three bouncing dots */
+.loader-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-bottom: 1px;
+  animation: dot-bounce 1.4s ease-in-out infinite;
+}
+
+.loader-dot:nth-child(2) { animation-delay: 0.16s; }
+.loader-dot:nth-child(3) { animation-delay: 0.32s; }
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: 0.4; }
+  40%            { transform: translateY(-6px); opacity: 1;   }
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .page-loader-card {
+    padding: var(--space-8) var(--space-6);
+    min-width: 0;
+    width: 95%;
+  }
+
+  .ecg-monitor { height: 60px; }
+}

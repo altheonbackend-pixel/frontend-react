@@ -10,6 +10,7 @@ import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import PageLoader from '../../../shared/components/PageLoader';
 
 interface PatientsProps {
     refreshPatients?: number | boolean;
@@ -109,7 +110,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
     };
 
     if (loading) {
-        return <div className="loading-message">{t('patients.loading')}</div>;
+        return <PageLoader message={t('patients.loading')} />;
     }
 
     if (error) {

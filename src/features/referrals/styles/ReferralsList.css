@@ -297,6 +297,11 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .referrals-container { padding: var(--space-6) var(--space-5); }
+  .referrals-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+}
+
 @media (max-width: 900px) {
   .referrals-container { padding: var(--space-5) var(--space-4); }
 }

@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import '../styles/ClinicsList.css';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import PageLoader from '../../../shared/components/PageLoader';
 const ClinicList = () => {
     const { t } = useTranslation();
     const [clinics, setClinics] = useState<Workplace[]>([]);
@@ -52,7 +53,7 @@ const ClinicList = () => {
     };
 
     if (isLoading) {
-        return <div className="loading-text">{t('clinics.loading')}</div>;
+        return <PageLoader message={t('clinics.loading')} />;
     }
 
     if (error) {

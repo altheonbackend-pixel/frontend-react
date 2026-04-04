@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import api from '../../../shared/services/api';
+import PageLoader from '../../../shared/components/PageLoader';
 
 interface ForumComment {
     id: number;
@@ -91,7 +92,7 @@ const Forum = () => {
     };
 
     if (loading) {
-        return <div className="text-page-container loading-message">{t('forum.loading')}</div>;
+        return <PageLoader message={t('forum.loading')} />;
     }
 
     if (error) {

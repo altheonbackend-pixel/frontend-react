@@ -9,6 +9,7 @@ import '../../../shared/styles/ListStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import '../../../shared/styles/Dashboard.css';
 import api from '../../../shared/services/api';
+import PageLoader from '../../../shared/components/PageLoader';
 
 interface Stats {
     total_patients: number;
@@ -70,7 +71,7 @@ const Statistics = () => {
     }, [token]);
 
     if (loading) {
-        return <div className="text-page-container loading-message">{t('statistics.loading')}</div>;
+        return <PageLoader message={t('statistics.loading')} />;
     }
 
     if (error) {

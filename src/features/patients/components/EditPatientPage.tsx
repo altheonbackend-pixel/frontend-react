@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import PatientForm from './PatientForm';
 import { type Patient } from '../../../shared/types';
 import api from '../../../shared/services/api';
+import PageLoader from '../../../shared/components/PageLoader';
 
 const EditPatientPage = () => {
     const { t } = useTranslation();
@@ -48,7 +49,7 @@ const EditPatientPage = () => {
     };
 
     if (loading) {
-        return <div className="loading-message">{t('edit_patient.loading')}</div>;
+        return <PageLoader message={t('edit_patient.loading')} />;
     }
 
     if (error) {

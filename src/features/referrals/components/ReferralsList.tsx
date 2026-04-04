@@ -7,6 +7,7 @@ import { type Referral } from '../../../shared/types';
 import '../styles/ReferralsList.css';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
+import PageLoader from '../../../shared/components/PageLoader';
 
 interface ReferralsListProps {}
 
@@ -44,7 +45,7 @@ const ReferralsList: React.FC<ReferralsListProps> = () => {
     }, [token]);
 
     if (loading) {
-        return <div className="loading-message">{t('referrals.loading')}</div>;
+        return <PageLoader message={t('referrals.loading')} />;
     }
 
     if (error) {

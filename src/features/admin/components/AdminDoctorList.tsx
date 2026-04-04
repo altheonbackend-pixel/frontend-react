@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import '../styles/AdminDoctorList.css';
+import PageLoader from '../../../shared/components/PageLoader';
 
 const AdminDoctorList = () => {
     const { doctors, totalDoctors, currentPage, isLoading, error, fetchDoctors, updateDoctorAccessLevel, activateDoctor, deactivateDoctor } = useAdmin();
@@ -17,12 +18,7 @@ const AdminDoctorList = () => {
     const totalPages = Math.ceil(totalDoctors / pageSize);
 
     if (isLoading && doctors.length === 0) {
-        return (
-            <div className="admin-doctor-list">
-                <h1>Manage Doctors</h1>
-                <div className="loading-spinner">Loading doctors list...</div>
-            </div>
-        );
+        return <PageLoader message="Loading Doctors" />;
     }
 
     if (error) {

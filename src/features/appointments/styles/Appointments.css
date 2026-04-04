@@ -247,6 +247,11 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .appointments-page { padding: var(--space-6) var(--space-5); }
+  .react-calendar { max-width: 360px !important; }
+}
+
 @media (max-width: 900px) {
   .appointments-page { padding: var(--space-5) var(--space-4); }
 }

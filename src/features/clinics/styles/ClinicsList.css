@@ -270,6 +270,16 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .clinic-list-container { padding: var(--space-6) var(--space-5); }
+  .clinic-items-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); }
+}
+
+@media (max-width: 900px) {
+  .clinic-list-container { padding: var(--space-5) var(--space-4); }
+  .clinic-items-list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+
 @media (max-width: 768px) {
   .clinic-list-container { padding: var(--space-4); }
   .clinic-header { flex-direction: column; align-items: flex-start; }

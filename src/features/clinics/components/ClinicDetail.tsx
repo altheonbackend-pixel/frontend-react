@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import PageLoader from '../../../shared/components/PageLoader';
 
 // Définition des types pour les statistiques (conservés)
 interface DoctorStats {
@@ -83,7 +84,7 @@ const ClinicDetail = () => {
     };
 
     if (isLoading) {
-        return <div className="loading-message">{t('clinics.loading_detail')}</div>;
+        return <PageLoader message={t('clinics.loading_detail')} />;
     }
 
     if (error) {

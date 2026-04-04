@@ -254,6 +254,11 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .patients-container { padding: var(--space-6) var(--space-5); }
+  .patients-list { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-4); }
+}
+
 @media (max-width: 900px) {
   .patients-container { padding: var(--space-5) var(--space-4); }
 }
