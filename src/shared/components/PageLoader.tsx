@@ -2,11 +2,23 @@ import './PageLoader.css';
 
 interface PageLoaderProps {
     message?: string;
+    /** Fills the full viewport — used for app-boot loading */
+    fullScreen?: boolean;
+    /** Brand title shown above the ECG card — used for app-boot only */
+    brand?: string;
 }
 
-const PageLoader = ({ message = 'Loading' }: PageLoaderProps) => (
-    <div className="page-loader">
+const PageLoader = ({ message = 'Loading', fullScreen, brand }: PageLoaderProps) => (
+    <div className={`page-loader${fullScreen ? ' page-loader--full' : ''}`}>
         <div className="page-loader-card">
+
+            {/* Optional brand title */}
+            {brand && (
+                <div className="page-loader-brand">
+                    <span className="brand-dot" />
+                    {brand}
+                </div>
+            )}
 
             {/* ECG monitor strip */}
             <div className="ecg-monitor" aria-hidden="true">

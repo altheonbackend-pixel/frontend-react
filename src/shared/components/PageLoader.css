@@ -12,6 +12,12 @@
   animation: fadeUp 0.3s ease both;
 }
 
+/* Full-viewport variant — used on app boot */
+.page-loader--full {
+  min-height: 100vh;
+  background: var(--bg-subtle);
+}
+
 /* ── Card ── */
 .page-loader-card {
   display: flex;
@@ -29,6 +35,28 @@
   min-width: 320px;
   max-width: 440px;
   width: 90%;
+}
+
+/* ── Brand title (app boot only) ── */
+.page-loader-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.4px;
+  margin-bottom: var(--space-2);
+}
+
+.brand-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+  animation: dot-bounce 1.4s ease-in-out infinite;
 }
 
 /* ── ECG monitor strip ── */

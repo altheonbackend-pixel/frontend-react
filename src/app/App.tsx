@@ -37,9 +37,8 @@ const ReferralsList = lazy(() => import('../features/referrals/components/Referr
 const Statistics = lazy(() => import('../features/statistics/components/Statistics'));
 const StatisticsGlobale = lazy(() => import('../features/statistics/components/StatisticsGlobale'));
 
+import PageLoader from '../shared/components/PageLoader';
 import './App.css';
-
-const PageLoader = () => <div style={{ padding: '2rem', textAlign: 'center' }}>Loading...</div>;
 
 // Route guard component for admin-only routes
 const PrivateAdminRoutes = () => {
@@ -71,14 +70,14 @@ function App() {
     };
 
     if (authIsLoading) {
-        return <div>Loading application...</div>;
+        return <PageLoader message="Starting up" brand="Altheon Connect" fullScreen />;
     }
 
     // Admin routes
     if (isAuthenticated && userType === 'admin') {
         return (
             <div className="App">
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={<PageLoader message="Loading" />}>
                     <Routes>
                         <Route path="/admin/*" element={<PrivateAdminRoutes />} />
                         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
@@ -94,7 +93,7 @@ function App() {
         <div className="App">
             {isAuthenticated && <Header />}
 
-            <Suspense fallback={<PageLoader />}>
+            <Suspense fallback={<PageLoader message="Loading" />}>
                 <Routes>
                     {/* 1. Registration page */}
                     <Route path="/register" element={<Register />} />

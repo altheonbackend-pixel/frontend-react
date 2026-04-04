@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { type GlobalStats, type WorkplaceStats, type DoctorStats } from '../../../shared/types';
 import api from '../../../shared/services/api';
 import { useAuth } from '../../auth/hooks/useAuth'; 
-import '../styles/Statistics.css'; 
+import '../styles/Statistics.css';
+import PageLoader from '../../../shared/components/PageLoader';
 
 // Définition du type pour la configuration de tri
 interface SortConfig {
@@ -137,7 +138,7 @@ function Statistics_Globale() {
     // --- Rendu conditionnel et Composants ---
     
     if (authIsLoading || loading) {
-        return <div className="stats-container">{t('statistics_global.loading')}</div>;
+        return <PageLoader message={t('statistics_global.loading')} />;
     }
 
     if (!isAuthenticated) {
