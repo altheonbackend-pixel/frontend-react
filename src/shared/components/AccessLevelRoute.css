@@ -88,12 +88,23 @@
   transform: translateY(-1px);
 }
 
+@media (max-width: 768px) {
+  .access-restricted-container { padding: var(--space-6) var(--space-4); }
+  .access-restricted-card { padding: var(--space-8) var(--space-6); }
+}
+
+@media (max-width: 640px) {
+  .access-restricted-container { padding: var(--space-4) var(--space-3); }
+  .access-title { font-size: var(--text-xl); }
+}
+
 @media (max-width: 480px) {
   .access-restricted-card {
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-6) var(--space-5);
+    border-radius: var(--radius-lg);
   }
 
-  .access-title {
-    font-size: var(--text-xl);
-  }
+  .access-title { font-size: var(--text-xl); }
+  .access-message { font-size: var(--text-sm); }
+  .access-back-btn { width: 100%; justify-content: center; }
 }

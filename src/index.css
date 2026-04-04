@@ -506,3 +506,95 @@ input, textarea, select {
   background: var(--accent-light);
   color: var(--accent);
 }
+
+/* ── Global feedback messages (used across all pages) ── */
+.success-message {
+  background: var(--color-success-light);
+  border: 1px solid #6EE7B7;
+  color: var(--color-success-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  line-height: var(--leading-relaxed);
+}
+
+.error-message {
+  background: var(--color-danger-light);
+  border: 1px solid #FCA5A5;
+  color: var(--color-danger-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+  line-height: var(--leading-relaxed);
+}
+
+.no-data-message {
+  text-align: center;
+  padding: var(--space-10) var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-style: italic;
+}
+
+/* ── Toast notification (fixed top-right) ── */
+.toast-container {
+  position: fixed;
+  top: 72px;          /* below sticky header */
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+  width: calc(100vw - 2 * var(--space-4));
+  pointer-events: none;
+}
+
+.toast {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  line-height: var(--leading-relaxed);
+  box-shadow: var(--shadow-md);
+  pointer-events: all;
+  animation: fadeUp 0.2s ease both;
+}
+
+.toast-success {
+  background: var(--color-success-light);
+  border: 1px solid #6EE7B7;
+  color: var(--color-success-dark);
+}
+
+.toast-error {
+  background: var(--color-danger-light);
+  border: 1px solid #FCA5A5;
+  color: var(--color-danger-dark);
+}
+
+.toast-info {
+  background: var(--color-info-light);
+  border: 1px solid #93C5FD;
+  color: var(--color-info-dark);
+}
+
+/* ── Global responsive feedback ── */
+@media (max-width: 480px) {
+  .success-message,
+  .error-message {
+    font-size: var(--text-xs);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .toast-container {
+    top: 60px;
+    right: var(--space-3);
+    width: calc(100vw - 2 * var(--space-3));
+    max-width: 100%;
+  }
+}

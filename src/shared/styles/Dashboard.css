@@ -182,9 +182,15 @@
 }
 
 /* ── Responsive ── */
+@media (max-width: 1024px) {
+  .patients-stats-table th,
+  .patients-stats-table td { padding: var(--space-2) var(--space-3); }
+}
+
 @media (max-width: 900px) {
   .dashboard-container { padding: var(--space-5) var(--space-4); }
   .dashboard-content { padding: var(--space-8) var(--space-6); }
+  .patients-stats-table { font-size: var(--text-xs); }
 }
 
 @media (max-width: 768px) {
@@ -193,6 +199,17 @@
   .dashboard-content h2 { font-size: var(--text-2xl); }
   .stats-summary { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
   .nav-button { flex: 1; min-width: 140px; justify-content: center; }
+  /* Wrap table in scroll container */
+  .patients-stats-table { min-width: 480px; }
+}
+
+@media (max-width: 640px) {
+  .dashboard-content h2 { font-size: var(--text-xl); }
+  .dashboard-content p { font-size: var(--text-sm); }
+  .patients-stats-table th:nth-child(3),
+  .patients-stats-table td:nth-child(3),
+  .patients-stats-table th:nth-child(4),
+  .patients-stats-table td:nth-child(4) { display: none; }
 }
 
 @media (max-width: 480px) {
@@ -200,4 +217,5 @@
   .stats-summary { grid-template-columns: 1fr 1fr; }
   .stat-value { font-size: var(--text-3xl); }
   .stat-label { font-size: 0.65rem; }
+  .nav-button { min-width: 110px; font-size: var(--text-xs); padding: 0.5rem 0.9rem; }
 }

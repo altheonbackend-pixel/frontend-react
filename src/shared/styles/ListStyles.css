@@ -311,6 +311,18 @@
    RESPONSIVE
    ============================================================ */
 
+@media (max-width: 1024px) {
+  .clinic-list-container,
+  .patients-container { padding: var(--space-6) var(--space-5); }
+}
+
+@media (max-width: 900px) {
+  .clinic-list-container,
+  .patients-container { padding: var(--space-5) var(--space-4); }
+  .add-patient-container,
+  .edit-patient-container { padding: var(--space-5) var(--space-4); }
+}
+
 @media (max-width: 768px) {
   .clinic-list-container,
   .patients-container {

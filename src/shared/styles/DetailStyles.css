@@ -434,6 +434,10 @@
    RESPONSIVE
    ============================================================ */
 
+@media (max-width: 1024px) {
+  .detail-container { padding: 0 var(--space-6) var(--space-8); }
+}
+
 @media (max-width: 900px) {
   .detail-container { padding: 0 var(--space-4) var(--space-8); }
 }
@@ -475,6 +479,14 @@
   .calendar-container {
     padding: var(--space-4);
   }
+}
+
+@media (max-width: 640px) {
+  .detail-list-item { padding: var(--space-4); }
+  .entry-actions { gap: var(--space-1); }
+  .entry-actions .action-button,
+  .entry-actions .edit-button,
+  .entry-actions .delete-button { flex: 1; min-width: 70px; }
 }
 
 @media (max-width: 480px) {
