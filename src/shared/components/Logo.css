@@ -1,0 +1,133 @@
+/* ============================================================
+   ALTHEON LOGO MARK
+   ──────────────────────────────────────────────────────────
+   Structure
+     .altheon-logo           flex row: icon + wordmark
+       .logo-icon            SVG (40×40 viewBox)
+         .logo-leg           two strokes forming the A frame
+         .logo-ecg-glow      blurred cyan layer (depth)
+         .logo-ecg-trace     crisp animated cyan trace
+       .logo-wordmark        column: name + sub
+         .logo-name          ALTHEON — heavy weight
+         .logo-sub           CONNECT — spaced, muted
+
+   Variants
+     .logo--inverted         for dark/violet backgrounds (admin header)
+
+   Interaction
+     hover → ECG redraws with dash animation + glow intensifies
+   ============================================================ */
+
+/* ── Container ── */
+.altheon-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    user-select: none;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* ── SVG wrapper ── */
+.logo-icon {
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ── A-frame legs ── */
+.logo-leg {
+    stroke: #1a2332;
+    stroke-width: 2.8;
+    transition: stroke 0.25s ease;
+}
+
+/* ── ECG glow layer — soft blurred duplicate ── */
+.logo-ecg-glow {
+    fill: none;
+    stroke: #22d3ee;
+    stroke-width: 4;
+    opacity: 0.3;
+    /* CSS filter blur so no SVG <filter> id conflicts between instances */
+    filter: blur(2px);
+    transition: opacity 0.25s ease;
+}
+
+/* ── ECG trace — sharp, drawn via dashoffset ── */
+.logo-ecg-trace {
+    fill: none;
+    stroke: #22d3ee;
+    stroke-width: 1.6;
+    /* Path is ~80 SVG units long; 120 safely covers it */
+    stroke-dasharray: 120;
+    stroke-dashoffset: 0;
+}
+
+/* ── Wordmark ── */
+.logo-wordmark {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1;
+}
+
+.logo-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1a2332;
+    letter-spacing: 1.8px;
+    line-height: 1.15;
+    transition: color 0.25s ease;
+}
+
+.logo-sub {
+    font-size: 8.5px;
+    font-weight: 500;
+    color: #64748b;
+    letter-spacing: 3.2px;
+    line-height: 1.2;
+    transition: color 0.25s ease;
+}
+
+/* ============================================================
+   HOVER — ECG redraw
+   ============================================================ */
+.altheon-logo:hover .logo-ecg-trace {
+    animation: logo-ecg-draw 0.7s ease forwards;
+}
+
+.altheon-logo:hover .logo-ecg-glow {
+    opacity: 0.65;
+}
+
+@keyframes logo-ecg-draw {
+    0%   { stroke-dashoffset: 120; opacity: 0; }
+    12%  { opacity: 1; }
+    100% { stroke-dashoffset: 0;   opacity: 1; }
+}
+
+/* ============================================================
+   INVERTED VARIANT  (admin header — deep violet background)
+   ============================================================ */
+.logo--inverted .logo-leg {
+    stroke: #ffffff;
+}
+
+.logo--inverted .logo-name {
+    color: #ffffff;
+}
+
+.logo--inverted .logo-sub {
+    color: rgba(255, 255, 255, 0.50);
+}
+
+/* ECG stays cyan on both variants — consistent brand signal */
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 480px) {
+    .altheon-logo { gap: 8px; }
+    .logo-name    { font-size: 13px; letter-spacing: 1.4px; }
+    .logo-sub     { font-size: 7px;  letter-spacing: 2.5px; }
+}

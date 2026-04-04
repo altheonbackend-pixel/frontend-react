@@ -42,17 +42,7 @@
   transition: color var(--transition-fast);
 }
 
-.nav-logo::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex-shrink: 0;
-}
-
-.nav-logo:hover { color: var(--accent); }
+.nav-logo:hover { color: inherit; }
 
 /* ── Centre nav links ── */
 .nav-links {

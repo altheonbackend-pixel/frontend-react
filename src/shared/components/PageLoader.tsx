@@ -1,4 +1,5 @@
 import './PageLoader.css';
+import Logo from './Logo';
 
 interface PageLoaderProps {
     message?: string;
@@ -12,11 +13,10 @@ const PageLoader = ({ message = 'Loading', fullScreen, brand }: PageLoaderProps)
     <div className={`page-loader${fullScreen ? ' page-loader--full' : ''}`}>
         <div className="page-loader-card">
 
-            {/* Optional brand title */}
+            {/* Brand logo — shown on full-screen app-boot only */}
             {brand && (
                 <div className="page-loader-brand">
-                    <span className="brand-dot" />
-                    {brand}
+                    <Logo size="lg" />
                 </div>
             )}
 

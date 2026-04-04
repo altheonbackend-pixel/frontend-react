@@ -43,28 +43,14 @@
   align-items: center;
   gap: var(--space-2);
   text-decoration: none;
-  color: var(--admin-text);
-  font-size: var(--text-lg);
-  font-weight: var(--fw-bold);
-  letter-spacing: -0.4px;
-  transition: color var(--transition-fast);
+  transition: opacity var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.admin-logo-text::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--admin-accent);
-  flex-shrink: 0;
-}
+.admin-logo-text:hover { opacity: 0.85; }
 
-.admin-logo-text:hover {
-  color: var(--admin-accent);
-}
+.admin-logo-text:hover { color: inherit; }
 
 /* ── Admin badge pill (shown next to logo) ── */
 .admin-badge {
@@ -217,7 +203,6 @@
 
 @media (max-width: 480px) {
   .admin-header { padding: 0 var(--space-3); }
-  .admin-logo-text { font-size: var(--text-base); }
   .admin-user-email { display: none; }
   .admin-logout-button { padding: 0.3rem 0.75rem; font-size: var(--text-xs); }
 }

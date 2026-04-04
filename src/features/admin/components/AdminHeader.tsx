@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../styles/AdminHeader.css';
+import Logo from '../../../shared/components/Logo';
 
 const AdminHeader = () => {
     const { adminProfile, logout } = useAuth();
@@ -16,7 +17,8 @@ const AdminHeader = () => {
             <nav className="admin-nav">
                 {/* Logo — standalone */}
                 <NavLink to="/admin/dashboard" className="admin-logo-text">
-                    ⚙️ Altheon Admin
+                    <Logo size="md" variant="inverted" />
+                    <span className="admin-badge">ADMIN</span>
                 </NavLink>
 
                 {/* Centre nav */}

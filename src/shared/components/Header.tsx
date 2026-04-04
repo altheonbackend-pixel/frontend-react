@@ -5,6 +5,7 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import '../styles/Header.css';
 import { useTranslation } from 'react-i18next';
+import Logo from './Logo';
 
 const Header = () => {
     const { isAuthenticated, user, profile, logout } = useAuth();
@@ -19,7 +20,7 @@ const Header = () => {
             <nav className="main-nav">
                 {/* Logo — standalone flex child */}
                 <NavLink to="/dashboard" className="nav-logo" onClick={closeMenu}>
-                    Altheon Connect
+                    <Logo size="md" />
                 </NavLink>
 
                 {/* Desktop nav links (hidden on mobile, replaced by drawer) */}
