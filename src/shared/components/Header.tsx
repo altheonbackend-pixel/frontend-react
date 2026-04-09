@@ -6,6 +6,7 @@ import { useAuth } from '../../features/auth/hooks/useAuth';
 import '../styles/Header.css';
 import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
+import NotificationBell from './NotificationBell';
 
 const Header = () => {
     const { isAuthenticated, user, profile, logout } = useAuth();
@@ -54,6 +55,7 @@ const Header = () => {
 
                     {isAuthenticated ? (
                         <>
+                            <NotificationBell />
                             <NavLink to="/profile" className="nav-item nav-profile-desktop">{t('nav.profile')}</NavLink>
                             <div className="user-info-container">
                                 <span className="user-name">Dr. {user?.full_name}</span>

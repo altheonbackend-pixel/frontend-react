@@ -117,17 +117,34 @@ export interface Referral {
     id: number;
     patient: string;
     referred_to: number;
-    referred_by: number;
+    referred_by: number | null;
     specialty_requested: string;
+    specialty_display?: string;
     reason_for_referral: string;
     attached_documents: string | null;
     date_of_referral: string;
-    referral_date: string;
-    reason: string;
     comments: string | null;
-    referred_to_details?: DoctorProfile;
-    referred_by_details?: DoctorProfile;
-    patient_details?: Patient;
+    // Phase 3 lifecycle fields
+    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected';
+    status_display?: string;
+    urgency: 'routine' | 'urgent' | 'emergency';
+    urgency_display?: string;
+    response_notes: string;
+    responded_at: string | null;
+    workplace?: number | null;
+    referred_to_details?: { id: number; full_name: string; specialty: string };
+    referred_by_details?: { id: number; full_name: string; specialty: string };
+    patient_details?: { unique_id: string; first_name: string; last_name: string };
+}
+
+export interface Notification {
+    id: number;
+    type: string;
+    title: string;
+    body: string;
+    is_read: boolean;
+    link: string;
+    created_at: string;
 }
 
 export interface PatientList {
