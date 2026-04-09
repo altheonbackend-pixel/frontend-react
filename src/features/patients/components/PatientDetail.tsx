@@ -68,6 +68,7 @@ const PatientDetails = () => {
     const [conditionForm, setConditionForm] = useState({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
     const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
     const [formLoading, setFormLoading] = useState(false);
+    const [statusUpdating, setStatusUpdating] = useState(false);
 
     useEffect(() => {
         if (id && token) {
@@ -128,6 +129,19 @@ const PatientDetails = () => {
         setConsultationToEdit(null);
         setProcedureToEdit(null);
         setReferralToEdit(null);
+    };
+
+    const handleStatusChange = async (newStatus: string) => {
+        if (!patient) return;
+        setStatusUpdating(true);
+        try {
+            await api.patch(`/patients/${patient.unique_id}/set-status/`, { status: newStatus });
+            setPatient(prev => prev ? { ...prev, status: newStatus as PatientWithHistory['status'] } : null);
+        } catch {
+            /* silently fail */
+        } finally {
+            setStatusUpdating(false);
+        }
     };
 
     const handleDeleteConsultation = async (consultationId: number) => {
@@ -278,7 +292,18 @@ const PatientDetails = () => {
                     <div className="patient-meta">
                         {patient.date_of_birth && <span>{patient.age} yrs</span>}
                         {patient.blood_group && <span className="meta-badge">{patient.blood_group}</span>}
-                        <span className={`status-badge status-${patient.status}`}>{patient.status}</span>
+                        <select
+                            className={`patient-status-select status-${patient.status}`}
+                            value={patient.status || 'active'}
+                            onChange={e => handleStatusChange(e.target.value)}
+                            disabled={statusUpdating}
+                            title="Change patient status"
+                        >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="transferred">Transferred</option>
+                            <option value="deceased">Deceased</option>
+                        </select>
                     </div>
                 </div>
                 <div className="patient-actions">

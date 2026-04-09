@@ -365,3 +365,30 @@
     .patient-tabs { gap: 0; }
     .patient-tab { padding: 8px 12px; font-size: 13px; }
 }
+
+/* ── Patient status select ── */
+.patient-status-select {
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border-default);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 10px;
+    padding-right: 22px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23718096'/%3E%3C/svg%3E");
+}
+.patient-status-select.status-active { background-color: #c6f6d5; color: #276749; border-color: #9ae6b4; }
+.patient-status-select.status-inactive { background-color: #fed7d7; color: #742a2a; border-color: #feb2b2; }
+.patient-status-select.status-transferred { background-color: #bee3f8; color: #1a365d; border-color: #90cdf4; }
+.patient-status-select.status-deceased { background-color: #e2e8f0; color: #2d3748; border-color: #cbd5e0; }
+.patient-status-select:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Form hint ── */
+.form-hint { display: block; font-size: 11px; color: var(--text-muted); margin-top: 4px; }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/FormStyles.css';
@@ -33,6 +33,8 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const [loading, setLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [duplicates, setDuplicates] = useState<{ unique_id: string; first_name: string; last_name: string; date_of_birth: string | null }[]>([]);
+    const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Pré-remplir le formulaire si un patient à modifier est passé en prop
     useEffect(() => {
@@ -56,10 +58,30 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: value,
-        }));
+        const updated = { ...formData, [name]: value };
+        setFormData(updated);
+
+        // Duplicate detection: check when name fields change (only for new patients)
+        if (!patientToEdit && (name === 'first_name' || name === 'last_name' || name === 'date_of_birth')) {
+            const fn = name === 'first_name' ? value : updated.first_name;
+            const ln = name === 'last_name' ? value : updated.last_name;
+            const dob = name === 'date_of_birth' ? value : updated.date_of_birth;
+            if (dupTimerRef.current) clearTimeout(dupTimerRef.current);
+            if (fn.length >= 2 && ln.length >= 2) {
+                dupTimerRef.current = setTimeout(async () => {
+                    try {
+                        const params: Record<string, string> = { first_name: fn, last_name: ln };
+                        if (dob) params.date_of_birth = dob;
+                        const res = await api.get('/patients/check-duplicate/', { params });
+                        setDuplicates(res.data.duplicates || []);
+                    } catch {
+                        setDuplicates([]);
+                    }
+                }, 600);
+            } else {
+                setDuplicates([]);
+            }
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -143,7 +165,22 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                     <h3>{patientToEdit ? t('patient_form.title_edit') : t('patient_form.title_add')}</h3>
                     {successMessage && <div className="success-message">{successMessage}</div>}
                     {errorMessage && <div className="error-message">{errorMessage}</div>}
-                    
+
+                    {duplicates.length > 0 && (
+                        <div className="duplicate-warning">
+                            <strong>⚠ Possible duplicate patient detected:</strong>
+                            <ul>
+                                {duplicates.map(d => (
+                                    <li key={d.unique_id}>
+                                        {d.first_name} {d.last_name}
+                                        {d.date_of_birth && ` — DOB: ${d.date_of_birth}`}
+                                    </li>
+                                ))}
+                            </ul>
+                            <small>Review before creating a new record to avoid duplicates.</small>
+                        </div>
+                    )}
+
                     <div className="form-group">
                         <label htmlFor="first_name">{t('patient_form.label.first_name')} <span className="required">*</span></label>
                         <input type="text" id="first_name" name="first_name" value={formData.first_name} onChange={handleChange} required />

@@ -19,6 +19,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const { t } = useTranslation();
     const { token } = useAuth();
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
+    const [specialtyFilter, setSpecialtyFilter] = useState('');
     const [formData, setFormData] = useState({
         referred_to: '',
         specialty_requested: '',
@@ -28,19 +29,29 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const fetchDoctors = async (specialty?: string) => {
+        if (!token) return;
+        try {
+            const params: Record<string, string> = {};
+            if (specialty) params.specialty = specialty;
+            const response = await api.get('/doctors/', { params });
+            setDoctors(response.data.results ?? response.data);
+        } catch (err) {
+            console.error('Erreur lors de la récupération des docteurs:', err);
+            setError(t('referrals.form.error.load_doctors'));
+        }
+    };
+
     useEffect(() => {
-        const fetchDoctors = async () => {
-            if (!token) return;
-            try {
-                const response = await api.get('/doctors/');
-                setDoctors(response.data.results ?? response.data);
-            } catch (err) {
-                console.error('Erreur lors de la récupération des docteurs:', err);
-                setError(t('referrals.form.error.load_doctors'));
-            }
-        };
         fetchDoctors();
     }, [token]);
+
+    const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSpecialtyFilter(val);
+        setFormData(prev => ({ ...prev, referred_to: '' }));
+        fetchDoctors(val || undefined);
+    };
 
     useEffect(() => {
         if (referralToEdit) {
@@ -126,6 +137,19 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                 <h3>{isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}</h3>
                 {error && <div className="error-message">{error}</div>}
                 <form onSubmit={handleSubmit}>
+                    {/* Specialty filter to narrow doctor list */}
+                    <div className="form-group">
+                        <label htmlFor="specialty_filter">Filter by Specialty</label>
+                        <input
+                            type="text"
+                            id="specialty_filter"
+                            placeholder="e.g. cardiology, neurology..."
+                            value={specialtyFilter}
+                            onChange={handleSpecialtyFilter}
+                        />
+                        {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) found</small>}
+                    </div>
+
                     <div className="form-group">
                         <label htmlFor="referred_to">{t('referrals.form.doctor_label')}</label>
                         <select
@@ -138,7 +162,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                             <option value="">{t('referrals.form.select_doctor')}</option>
                             {doctors.map(doctor => (
                                 <option key={doctor.id} value={doctor.id}>
-                                    Dr. {doctor.full_name} - {doctor.specialty}
+                                    Dr. {doctor.full_name} - {doctor.specialty || 'General'}
                                 </option>
                             ))}
                         </select>
