@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import '../../../shared/styles/Dashboard.css';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
+import { type FollowUpConsultation } from '../../../shared/types';
 
 interface DashboardStats {
     total_patients: number;
@@ -35,6 +36,7 @@ interface RecentPatient {
 const QUICK_LINKS = [
     { to: '/patients/new', label: '+ New Patient', accent: true },
     { to: '/appointments', label: 'Appointments' },
+    { to: '/prescriptions', label: 'Prescriptions' },
     { to: '/referrals', label: 'Referrals' },
     { to: '/clinics', label: 'Clinics' },
     { to: '/forum', label: 'Forum' },
@@ -55,6 +57,7 @@ function Dashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [followUps, setFollowUps] = useState<FollowUpConsultation[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<RecentPatient[]>([]);
     const [searching, setSearching] = useState(false);
@@ -62,6 +65,7 @@ function Dashboard() {
 
     useEffect(() => {
         fetchDashboardStats();
+        fetchFollowUps();
     }, []);
 
     const fetchDashboardStats = async () => {
@@ -117,6 +121,16 @@ function Dashboard() {
             /* use empty stats */
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchFollowUps = async () => {
+        try {
+            const res = await api.get('/consultations/follow-ups/');
+            const data = res.data;
+            setFollowUps(Array.isArray(data) ? data : data.results || []);
+        } catch {
+            /* silently ignore */
         }
     };
 
@@ -270,6 +284,32 @@ function Dashboard() {
                     }
                 </div>
             </div>
+
+            {/* Follow-ups panel — full width below */}
+            {followUps.length > 0 && (
+                <div className="dashboard-panel dashboard-panel--followups">
+                    <div className="panel-header">
+                        <h3>
+                            <span className="followup-alert-dot" /> Due Follow-ups ({followUps.length})
+                        </h3>
+                        <Link to="/patients" className="panel-link">View patients →</Link>
+                    </div>
+                    <ul className="panel-list">
+                        {followUps.slice(0, 8).map(f => (
+                            <li key={f.id} className="panel-list-item">
+                                <div className="followup-date-badge">
+                                    {new Date(f.follow_up_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </div>
+                                <div className="appt-info">
+                                    <span className="appt-patient">{f.patient_name || f.patient}</span>
+                                    <span className="appt-reason">{f.reason_for_consultation}</span>
+                                </div>
+                                {f.diagnosis && <span className="followup-dx">{f.diagnosis}</span>}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 }

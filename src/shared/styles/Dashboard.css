@@ -325,6 +325,51 @@
 .patient-link { color: var(--accent); text-decoration: none; font-weight: 600; }
 .patient-link:hover { text-decoration: underline; }
 
+/* ── Follow-ups panel ── */
+.dashboard-panel--followups {
+  margin-top: var(--space-5);
+  max-width: var(--content-max);
+  margin-left: auto;
+  margin-right: auto;
+  border-left: 4px solid #e53e3e;
+}
+
+.followup-alert-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #e53e3e;
+  margin-right: 8px;
+  animation: pulse 1.8s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.followup-date-badge {
+  min-width: 52px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e53e3e;
+  background: #fff5f5;
+  border-radius: 6px;
+  padding: 4px 6px;
+  line-height: 1.3;
+}
+
+.followup-dx {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .patients-stats-table th,

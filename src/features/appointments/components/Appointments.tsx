@@ -12,6 +12,16 @@ import '../styles/Appointments.css';
 
 import api from '../../../shared/services/api';
 
+const STATUS_BADGE_COLORS: Record<string, string> = {
+    scheduled: '#3182ce',
+    confirmed: '#38a169',
+    completed: '#718096',
+    cancelled: '#e53e3e',
+    no_show: '#d69e2e',
+    rescheduled: '#805ad5',
+    pending: '#dd6b20',
+};
+
 interface AppointmentWithDetails extends Appointment {
     patient_details: Patient;
     workplace_details: Workplace;
@@ -109,6 +119,15 @@ const Appointments = () => {
         navigate('/deleted-appointments');
     };
 
+    const handleLifecycleAction = async (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
+        try {
+            await api.post(`/appointments/${apptId}/${action}/`);
+            fetchAppointments();
+        } catch (err) {
+            console.error(`Failed to ${action} appointment`, err);
+        }
+    };
+
     const appointmentsForSelectedDate = appointments
         .filter(appt => {
             const apptDate = new Date(appt.appointment_date);
@@ -157,11 +176,29 @@ const Appointments = () => {
                 ) : (
                     appointmentsForSelectedDate.map(appt => (
                         <div key={appt.id} className="appointment-item">
+                            <div className="appt-item-header">
+                                <span className="appt-status-badge" style={{ background: STATUS_BADGE_COLORS[appt.status] || '#718096' }}>
+                                    {appt.status.replace('_', ' ')}
+                                </span>
+                            </div>
                             <p><strong>{t('appointments.patient_label')}:</strong> {appt.patient_details ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}` : t('appointments.patient_unavailable')}</p>
                             <p><strong>{t('appointments.workplace_label')}:</strong> {appt.workplace_details ? appt.workplace_details.name : t('appointments.workplace_unavailable')}</p>
                             <p><strong>{t('appointments.time_label')}:</strong> {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             <p><strong>{t('appointments.reason_label')}:</strong> {appt.reason_for_appointment}</p>
+                            {appt.notes && <p className="appt-notes"><em>{appt.notes}</em></p>}
                             <div className="appointment-actions">
+                                {(appt.status === 'scheduled' || appt.status === 'pending') && (
+                                    <button onClick={() => handleLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
+                                )}
+                                {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                    <button onClick={() => handleLifecycleAction(appt.id, 'complete')} className="action-button complete-button">Complete</button>
+                                )}
+                                {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (
+                                    <button onClick={() => handleLifecycleAction(appt.id, 'cancel')} className="action-button cancel-appt-button">Cancel</button>
+                                )}
+                                {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                    <button onClick={() => handleLifecycleAction(appt.id, 'no_show')} className="action-button noshow-button">No Show</button>
+                                )}
                                 <button onClick={() => handleEditAppointment(appt)} className="action-button edit-button">{t('appointments.edit')}</button>
                                 <button onClick={() => handleDeleteClick(appt)} className="action-button delete-button">{t('appointments.delete')}</button>
                             </div>

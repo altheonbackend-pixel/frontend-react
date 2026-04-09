@@ -51,7 +51,11 @@ export interface Appointment {
     doctor: number;
     appointment_date: string;
     reason_for_appointment: string;
-    status: string;
+    status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'pending';
+    notes?: string | null;
+    cancellation_reason?: string | null;
+    confirmed_at?: string | null;
+    completed_at?: string | null;
     workplace: number;
     patient_details?: {
         unique_id: string;
@@ -63,6 +67,31 @@ export interface Appointment {
         name: string;
         address: string;
     };
+}
+
+export interface FollowUpConsultation {
+    id: number;
+    patient: string;
+    patient_name?: string;
+    follow_up_date: string;
+    reason_for_consultation: string;
+    diagnosis?: string | null;
+}
+
+export interface Prescription {
+    id: number;
+    consultation: number | null;
+    doctor: number;
+    patient: string;
+    patient_name?: string;
+    medication_name: string;
+    dosage: string;
+    frequency: string;
+    frequency_display?: string;
+    duration_days: number | null;
+    instructions: string;
+    is_active: boolean;
+    prescribed_at: string;
 }
 
 export interface Workplace {

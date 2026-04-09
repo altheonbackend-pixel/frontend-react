@@ -1,0 +1,307 @@
+/* ============================================================
+   PRESCRIPTIONS PAGE
+   ============================================================ */
+
+.prescriptions-page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-8) var(--page-padding);
+  animation: fadeUp 0.35s ease both;
+}
+
+.prescriptions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.prescriptions-header h2 {
+  font-size: var(--text-2xl);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+
+.prescriptions-sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.btn-create-rx {
+  padding: 0.65rem 1.5rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+.btn-create-rx:hover { background: var(--accent-hover); transform: translateY(-1px); }
+
+/* ── Filters ── */
+.rx-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.rx-filter-tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.rx-filter-tab {
+  padding: 0.4rem 1rem;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rx-filter-tab.active,
+.rx-filter-tab:hover {
+  border-color: var(--accent);
+  background: var(--accent-lighter);
+  color: var(--accent);
+}
+
+.rx-search {
+  flex: 1;
+  max-width: 320px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.rx-search:focus { border-color: var(--accent); }
+
+/* ── Grid ── */
+.rx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+/* ── Card ── */
+.rx-card {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.rx-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); }
+.rx-card--inactive { opacity: 0.65; }
+
+.rx-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.rx-med-name {
+  font-size: var(--text-base);
+  font-weight: var(--fw-bold);
+  color: var(--text-primary);
+}
+
+.rx-status-badge {
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  padding: 2px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.rx-status-badge.active { background: #c6f6d5; color: #276749; }
+.rx-status-badge.inactive { background: #fed7d7; color: #742a2a; }
+
+.rx-dosage {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  margin-bottom: var(--space-1);
+}
+
+.rx-details {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.rx-patient {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+.rx-patient-link { color: var(--accent); text-decoration: none; font-weight: 600; }
+.rx-patient-link:hover { text-decoration: underline; }
+
+.rx-instructions {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: var(--space-2);
+  border-left: 2px solid var(--border-subtle);
+  padding-left: var(--space-2);
+}
+
+.rx-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+}
+
+.rx-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.rx-btn {
+  padding: 0.3rem 0.85rem;
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rx-btn--edit { border-color: var(--accent); color: var(--accent); background: transparent; }
+.rx-btn--edit:hover { background: var(--accent-lighter); }
+.rx-btn--toggle { border-color: #718096; color: #718096; background: transparent; }
+.rx-btn--toggle:hover { background: #f7fafc; }
+.rx-btn--delete { border-color: var(--color-danger); color: var(--color-danger); background: transparent; }
+.rx-btn--delete:hover { background: var(--color-danger-light); }
+
+/* ── Error / States ── */
+.rx-error { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; border-radius: 8px; padding: 12px 16px; margin-bottom: var(--space-4); font-size: var(--text-sm); }
+.rx-loading, .rx-empty { color: var(--text-muted); font-size: var(--text-sm); padding: var(--space-6) 0; }
+
+/* ── Modal ── */
+.rx-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: var(--space-4);
+}
+
+.rx-modal {
+  background: var(--bg-base);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.rx-modal h3 {
+  font-size: var(--text-xl);
+  font-weight: var(--fw-bold);
+  margin: 0 0 var(--space-5);
+  color: var(--text-primary);
+}
+
+.rx-form { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.rx-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.rx-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.rx-form-group label { font-size: var(--text-sm); font-weight: var(--fw-semibold); color: var(--text-secondary); }
+.rx-form-group input,
+.rx-form-group select,
+.rx-form-group textarea {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+.rx-form-group input:focus,
+.rx-form-group select:focus,
+.rx-form-group textarea:focus { border-color: var(--accent); }
+
+.rx-form-checkbox label { flex-direction: row; gap: var(--space-2); align-items: center; cursor: pointer; }
+
+.rx-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+.rx-btn-submit {
+  flex: 1;
+  padding: 0.65rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-inverse);
+  background: var(--accent);
+  border: none;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rx-btn-submit:hover:not(:disabled) { background: var(--accent-hover); }
+.rx-btn-submit:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+.rx-btn-cancel {
+  padding: 0.65rem 1.2rem;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rx-btn-cancel:hover { background: var(--bg-muted); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .rx-form-row { grid-template-columns: 1fr; }
+  .prescriptions-header { flex-direction: column; }
+  .btn-create-rx { width: 100%; text-align: center; }
+  .rx-filters { flex-direction: column; align-items: stretch; }
+  .rx-search { max-width: 100%; }
+}

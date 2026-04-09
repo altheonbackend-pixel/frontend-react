@@ -40,6 +40,7 @@ const EditProfile = lazy(() => import('../features/profile/components/EditProfil
 const ReferralsList = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics = lazy(() => import('../features/statistics/components/Statistics'));
 const StatisticsGlobale = lazy(() => import('../features/statistics/components/StatisticsGlobale'));
+const Prescriptions = lazy(() => import('../features/prescriptions/components/Prescriptions'));
 
 import PageLoader from '../shared/components/PageLoader';
 import './App.css';
@@ -136,6 +137,7 @@ function App() {
                         <Route path="/clinics/:id" element={<ClinicDetail />} />
 
                         <Route path="/forum" element={<Forum />} />
+                        <Route path="/prescriptions" element={<Prescriptions />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/edit-profile" element={<EditProfile />} />
 
