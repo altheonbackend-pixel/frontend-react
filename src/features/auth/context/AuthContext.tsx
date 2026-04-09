@@ -17,6 +17,8 @@ interface AuthContextType {
     authIsLoading: boolean;
     updateProfileData: (newProfile: DoctorProfile) => void;
     hasAccessLevel: (requiredLevel: number) => boolean;
+    emailVerified: boolean;
+    profileComplete: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Wrapped in useCallback so the stable reference can be used in the api response interceptor
     const logout = useCallback(() => {
+        // Blacklist the refresh token server-side (fire-and-forget — don't block local logout)
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+            import('../../../shared/services/api').then(({ default: api }) => {
+                api.post('/auth/logout/', { refresh: refreshToken }).catch(() => {
+                    // Ignore errors — local logout proceeds regardless
+                });
+            });
+        }
         localStorage.removeItem('token');
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -213,7 +224,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const value = { user, profile, adminProfile, token, userType, login, logout, isAuthenticated, authIsLoading, updateProfileData, hasAccessLevel };
+    // Derived state — computed from profile each render
+    const emailVerified = userType === 'admin' || (profile?.email_verified ?? true);
+    const profileComplete = userType === 'admin' || !!(
+        profile?.phone_number && profile.phone_number.trim() &&
+        profile?.address && profile.address.trim()
+    );
+
+    const value = { user, profile, adminProfile, token, userType, login, logout, isAuthenticated, authIsLoading, updateProfileData, hasAccessLevel, emailVerified, profileComplete };
 
     return (
         <AuthContext.Provider value={value}>

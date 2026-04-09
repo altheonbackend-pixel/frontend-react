@@ -1,20 +1,44 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../context/AdminContext';
 import '../styles/AdminDashboard.css';
 import PageLoader from '../../../shared/components/PageLoader';
 
+interface StatCardProps {
+    icon: string;
+    label: string;
+    value: string | number;
+    onClick?: () => void;
+    variant?: 'default' | 'warning' | 'danger' | 'success';
+}
+
+const StatCard = ({ icon, label, value, onClick, variant = 'default' }: StatCardProps) => (
+    <div
+        className={`stat-card stat-card--${variant}${onClick ? ' stat-card--clickable' : ''}`}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+    >
+        <div className="stat-card__icon">{icon}</div>
+        <div className="stat-card__content">
+            <div className="stat-card__label">{label}</div>
+            <div className="stat-card__value">{value}</div>
+        </div>
+        {onClick && <div className="stat-card__arrow">→</div>}
+    </div>
+);
+
 const AdminDashboard = () => {
     const { stats, isLoading, error, fetchStats } = useAdmin();
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchStats();
     }, []);
 
-    if (isLoading) {
-        return <PageLoader message="Loading Dashboard" />;
-    }
+    if (isLoading && !stats) return <PageLoader message="Loading Dashboard" />;
 
-    if (error) {
+    if (error && !stats) {
         return (
             <div className="admin-dashboard">
                 <h1>Dashboard</h1>
@@ -34,73 +58,82 @@ const AdminDashboard = () => {
 
     return (
         <div className="admin-dashboard">
-            <h1>System Statistics</h1>
+            <div className="admin-dashboard__header">
+                <h1>Dashboard</h1>
+                <button className="btn-refresh" onClick={fetchStats} disabled={isLoading}>
+                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+            </div>
 
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-icon">👨‍⚕️</div>
-                    <div className="stat-content">
-                        <h3>Total Doctors</h3>
-                        <p className="stat-number">{stats.total_doctors}</p>
+            {error && <div className="error-banner">{error}</div>}
+
+            {/* Alerts section — things needing attention */}
+            {(stats.pending_doctors > 0) && (
+                <div className="admin-alerts">
+                    <div className="admin-alerts__title">Requires Attention</div>
+                    <div className="admin-alerts__items">
+                        {stats.pending_doctors > 0 && (
+                            <div className="admin-alert admin-alert--warning" onClick={() => navigate('/admin/doctors/pending')}>
+                                <span className="admin-alert__icon">⏳</span>
+                                <span><strong>{stats.pending_doctors}</strong> doctor registration{stats.pending_doctors !== 1 ? 's' : ''} pending approval</span>
+                                <span className="admin-alert__action">Review →</span>
+                            </div>
+                        )}
                     </div>
                 </div>
+            )}
 
-                <div className="stat-card">
-                    <div className="stat-icon">✅</div>
-                    <div className="stat-content">
-                        <h3>Active Doctors</h3>
-                        <p className="stat-number">{stats.total_active_doctors}</p>
-                    </div>
+            {/* Doctor Stats */}
+            <div className="admin-dashboard__section">
+                <h2 className="admin-dashboard__section-title">Doctors</h2>
+                <div className="stats-grid">
+                    <StatCard icon="👨‍⚕️" label="Total Doctors" value={stats.total_doctors} onClick={() => navigate('/admin/doctors')} />
+                    <StatCard icon="✅" label="Active Doctors" value={stats.total_active_doctors} variant="success" onClick={() => navigate('/admin/doctors?is_active=true')} />
+                    <StatCard icon="🚫" label="Inactive Doctors" value={stats.total_inactive_doctors} variant={stats.total_inactive_doctors > 0 ? 'warning' : 'default'} onClick={() => navigate('/admin/doctors?is_active=false')} />
+                    <StatCard icon="⏳" label="Pending Approval" value={stats.pending_doctors} variant={stats.pending_doctors > 0 ? 'warning' : 'default'} onClick={() => navigate('/admin/doctors/pending')} />
+                    <StatCard icon="❌" label="Rejected" value={stats.rejected_doctors} onClick={() => navigate('/admin/doctors/rejected')} />
+                    <StatCard
+                        icon="🎯"
+                        label="Access Levels"
+                        value={`L1: ${stats.doctors_by_access_level?.['1'] ?? 0}  |  L2: ${stats.doctors_by_access_level?.['2'] ?? 0}`}
+                    />
                 </div>
+            </div>
 
-                <div className="stat-card">
-                    <div className="stat-icon">👥</div>
-                    <div className="stat-content">
-                        <h3>Total Patients</h3>
-                        <p className="stat-number">{stats.total_patients}</p>
-                    </div>
+            {/* Platform Stats */}
+            <div className="admin-dashboard__section">
+                <h2 className="admin-dashboard__section-title">Platform Activity</h2>
+                <div className="stats-grid">
+                    <StatCard icon="👥" label="Total Patients" value={stats.total_patients} />
+                    <StatCard icon="📅" label="Appointments" value={stats.total_appointments} />
+                    <StatCard icon="📋" label="Consultations" value={stats.total_consultations} />
+                    <StatCard icon="🏥" label="Procedures" value={stats.total_procedures} />
+                    <StatCard icon="🔗" label="Referrals" value={stats.total_referrals} />
                 </div>
+            </div>
 
-                <div className="stat-card">
-                    <div className="stat-icon">📅</div>
-                    <div className="stat-content">
-                        <h3>Total Appointments</h3>
-                        <p className="stat-number">{stats.total_appointments}</p>
-                    </div>
+            {/* Clinic Stats */}
+            <div className="admin-dashboard__section">
+                <h2 className="admin-dashboard__section-title">Clinics</h2>
+                <div className="stats-grid">
+                    <StatCard icon="🏢" label="Total Clinics" value={stats.total_clinics} onClick={() => navigate('/admin/clinics')} />
+                    <StatCard icon="🌐" label="Public Clinics" value={stats.total_public_clinics} onClick={() => navigate('/admin/clinics')} />
+                    <StatCard icon="🔒" label="Private Clinics" value={stats.total_clinics - stats.total_public_clinics} />
                 </div>
+            </div>
 
-                <div className="stat-card">
-                    <div className="stat-icon">📋</div>
-                    <div className="stat-content">
-                        <h3>Total Consultations</h3>
-                        <p className="stat-number">{stats.total_consultations}</p>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon">🏥</div>
-                    <div className="stat-content">
-                        <h3>Total Procedures</h3>
-                        <p className="stat-number">{stats.total_procedures}</p>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon">🔗</div>
-                    <div className="stat-content">
-                        <h3>Total Referrals</h3>
-                        <p className="stat-number">{stats.total_referrals}</p>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-icon">🎯</div>
-                    <div className="stat-content">
-                        <h3>Access Levels</h3>
-                        <p className="stat-breakdown">
-                            L1: {stats.doctors_by_access_level?.['1'] ?? 0} | L2: {stats.doctors_by_access_level?.['2'] ?? 0}
-                        </p>
-                    </div>
+            {/* Forum Stats */}
+            <div className="admin-dashboard__section">
+                <h2 className="admin-dashboard__section-title">Forum</h2>
+                <div className="stats-grid">
+                    <StatCard icon="💬" label="Total Posts" value={stats.total_forum_posts} onClick={() => navigate('/admin/forum')} />
+                    <StatCard
+                        icon="🚷"
+                        label="Forum-Suspended Doctors"
+                        value={stats.forum_suspended_doctors}
+                        variant={stats.forum_suspended_doctors > 0 ? 'warning' : 'default'}
+                        onClick={() => navigate('/admin/doctors')}
+                    />
                 </div>
             </div>
         </div>

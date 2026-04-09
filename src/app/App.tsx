@@ -12,11 +12,15 @@ import AccessLevelRoute from '../shared/components/AccessLevelRoute';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/auth/components/LandingPage';
 import Register from '../features/auth/components/Register';
+import VerifyEmail from '../features/auth/components/VerifyEmail';
+import CompleteProfile from '../features/auth/components/CompleteProfile';
 
 // Admin components
-import AdminHeader from '../features/admin/components/AdminHeader';
+import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
+import AdminClinicList from '../features/admin/components/AdminClinicList';
+import AdminForumModeration from '../features/admin/components/AdminForumModeration';
 
 // Code-split lazy imports — each becomes a separate chunk
 const Dashboard = lazy(() => import('../features/auth/components/Dashboard'));
@@ -49,14 +53,20 @@ const PrivateAdminRoutes = () => {
     }
 
     return (
-        <>
-            <AdminHeader />
-            <Routes>
-                <Route path="/dashboard" element={<AdminDashboard />} />
-                <Route path="/doctors" element={<AdminDoctorList />} />
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </Routes>
-        </>
+        <div style={{ display: 'flex' }}>
+            <AdminSidebar />
+            <main style={{ marginLeft: '240px', flex: 1, minHeight: '100vh', background: '#f7fafc' }}>
+                <Routes>
+                    <Route path="/dashboard" element={<AdminDashboard />} />
+                    <Route path="/doctors" element={<AdminDoctorList initialTab="active" />} />
+                    <Route path="/doctors/pending" element={<AdminDoctorList initialTab="pending" />} />
+                    <Route path="/doctors/rejected" element={<AdminDoctorList initialTab="rejected" />} />
+                    <Route path="/clinics" element={<AdminClinicList />} />
+                    <Route path="/forum" element={<AdminForumModeration />} />
+                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                </Routes>
+            </main>
+        </div>
     );
 };
 
@@ -100,6 +110,12 @@ function App() {
 
                     {/* 2. Login/Landing page */}
                     <Route path="/login" element={<LandingPage />} />
+
+                    {/* 3. Email verification — accessible when logged in but not yet verified */}
+                    <Route path="/verify-email" element={<VerifyEmail />} />
+
+                    {/* 4. Profile completion gate — accessible after email verified, before profile complete */}
+                    <Route path="/complete-profile" element={<CompleteProfile />} />
 
                     {/* Protected routes for doctors */}
                     <Route element={<PrivateRoutes />}>

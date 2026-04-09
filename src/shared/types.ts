@@ -16,10 +16,17 @@ export interface DoctorProfile {
     email: string;
     access_level: 1 | 2;
     specialty: string | null;
+    specialty_display?: string | null;
     license_number: string | null;
     phone_number: string | null;
     address: string | null;
     workplaces?: Workplace[];
+    email_verified?: boolean;
+}
+
+export interface SpecialtyChoice {
+    value: string;
+    label: string;
 }
 
 export interface Patient {
@@ -163,7 +170,6 @@ export interface GlobalStats {
     total_referrals: number;
     total_procedures: number;
     stats_by_workplace: WorkplaceStats[];
-    stats_by_doctor: DoctorStats[];
 }
 
 export interface AuthTokens {
@@ -180,11 +186,18 @@ export interface AdminProfile {
 export interface AdminStats {
     total_doctors: number;
     total_active_doctors: number;
+    total_inactive_doctors: number;
+    pending_doctors: number;
+    rejected_doctors: number;
     total_patients: number;
     total_appointments: number;
     total_consultations: number;
     total_procedures: number;
     total_referrals: number;
+    total_clinics: number;
+    total_public_clinics: number;
+    total_forum_posts: number;
+    forum_suspended_doctors: number;
     doctors_by_access_level: {
         [key: string]: number;
     };
@@ -195,6 +208,37 @@ export interface AdminDoctor {
     full_name: string;
     email: string;
     specialty: string | null;
+    license_number: string | null;
     access_level: 1 | 2;
     is_active: boolean;
+    verification_status: 'pending_admin' | 'active' | 'rejected';
+    max_clinics_owned: number;
+    max_clinics_joined: number;
+    forum_suspended: boolean;
+    rejection_reason: string;
+    clinics_owned: number;
+    clinics_joined: number;
+    date_joined: string | null;
+}
+
+export interface AdminClinic {
+    id: number;
+    name: string;
+    address: string;
+    is_public: boolean;
+    creator_id: number | null;
+    creator_name: string | null;
+    creator_email: string | null;
+    member_count: number;
+}
+
+export interface AdminForumPost {
+    id: number;
+    title: string;
+    content: string;
+    created_at: string;
+    author_id: number;
+    author_name: string;
+    author_email: string;
+    comment_count: number;
 }

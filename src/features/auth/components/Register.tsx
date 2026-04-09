@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import HomescreenHeader from '../../../shared/components/HomescreenHeader';
 import '../styles/Auth.css';
 
 import api from '../../../shared/services/api';
+import type { SpecialtyChoice } from '../../../shared/types';
 
 const Register = () => {
     const { t } = useTranslation();
@@ -15,16 +16,21 @@ const Register = () => {
         email: '',
         password: '',
         license_number: '',
-        specialty: '',
+        specialty: 'general_practice',
         registration_code: '',
     });
 
+    const [specialties, setSpecialties] = useState<SpecialtyChoice[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const navigate = useNavigate();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    useEffect(() => {
+        api.get('/auth/specialties/').then(r => setSpecialties(r.data)).catch(() => {});
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prevData => ({
             ...prevData,
@@ -126,13 +132,20 @@ const Register = () => {
 
                     <div className="form-group">
                         <label htmlFor="specialty">{t('register.specialty')}</label>
-                        <input
-                            type="text"
+                        <select
                             id="specialty"
                             name="specialty"
                             value={formData.specialty}
                             onChange={handleChange}
-                        />
+                            required
+                        >
+                            {specialties.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                            {specialties.length === 0 && (
+                                <option value="general_practice">General Practice</option>
+                            )}
+                        </select>
                     </div>
 
                     <div className="form-group">
