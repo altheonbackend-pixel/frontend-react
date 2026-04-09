@@ -24,6 +24,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('');
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const navigate = useNavigate();
 
@@ -43,6 +44,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         try {
             const params: Record<string, string> = {};
             if (debouncedSearch) params.search = debouncedSearch;
+            if (statusFilter) params.status = statusFilter;
             const response = await api.get('/doctors/me/patients/', { params });
             const patientsList = response.data.results ?? response.data;
             const sortedPatients = patientsList.sort((a: Patient, b: Patient) => {
@@ -60,7 +62,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
 
     useEffect(() => {
         fetchPatients();
-    }, [fetchPatients, refreshPatients]);
+    }, [fetchPatients, refreshPatients, statusFilter]);
 
     const handleAddPatientClick = () => {
         navigate('/patients/add');
@@ -141,13 +143,37 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
+
+            {/* Status filter tabs */}
+            <div className="patients-status-filters">
+                {[
+                    { value: '', label: 'All' },
+                    { value: 'active', label: 'Active' },
+                    { value: 'inactive', label: 'Inactive' },
+                    { value: 'transferred', label: 'Transferred' },
+                    { value: 'deceased', label: 'Deceased' },
+                ].map(f => (
+                    <button
+                        key={f.value}
+                        className={`status-filter-btn${statusFilter === f.value ? ' active' : ''} filter-${f.value || 'all'}`}
+                        onClick={() => setStatusFilter(f.value)}
+                    >
+                        {f.label}
+                    </button>
+                ))}
+            </div>
             
             <div id="patients-list-to-export" className="patients-list">
                 {patients.length > 0 ? (
                     patients.map((patient) => (
                         <div key={patient.unique_id} className="patient-card">
                             <div className="patient-info">
-                                <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
+                                <div className="patient-name-row">
+                                    <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
+                                    {(patient as any).status && (
+                                        <span className={`patient-list-status status-${(patient as any).status}`}>{(patient as any).status}</span>
+                                    )}
+                                </div>
                                 <p className="patient-dob"><strong>{t('patients.dob_label')}</strong> {patient.date_of_birth || t('patients.dob_not_specified')}</p>
                             </div>
                             <div className="patient-actions">
