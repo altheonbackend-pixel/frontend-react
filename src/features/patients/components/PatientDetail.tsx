@@ -19,7 +19,55 @@ import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals';
+
+interface VitalsPoint {
+    id: number;
+    consultation_date: string;
+    weight: number | null;
+    height: number | null;
+    sp2: number | null;
+    temperature: number | null;
+    blood_pressure: string | null;
+}
+
+// ── Inline SVG sparkline for vitals trend ──────────────────────────────────
+function VitalSparkline({ label, data, color, dangerAbove, dangerBelow }: {
+    label: string;
+    data: { x: string; y: number }[];
+    color: string;
+    dangerAbove?: number;
+    dangerBelow?: number;
+}) {
+    const W = 240, H = 70, PAD = 8;
+    const ys = data.map(d => d.y);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const rangeY = maxY - minY || 1;
+    const toX = (i: number) => PAD + (i / (data.length - 1)) * (W - PAD * 2);
+    const toY = (v: number) => H - PAD - ((v - minY) / rangeY) * (H - PAD * 2);
+    const pts = data.map((d, i) => `${toX(i).toFixed(1)},${toY(d.y).toFixed(1)}`).join(' ');
+
+    return (
+        <div className="vital-sparkline-card">
+            <div className="vital-sparkline-label">{label}</div>
+            <div className="vital-sparkline-range">
+                <span>{maxY}</span>
+                <span>{minY}</span>
+            </div>
+            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+                {dangerAbove && <line x1={PAD} x2={W - PAD} y1={toY(dangerAbove)} y2={toY(dangerAbove)} stroke="#e53e3e" strokeDasharray="3 2" strokeWidth={1} opacity={0.6} />}
+                {dangerBelow && <line x1={PAD} x2={W - PAD} y1={toY(dangerBelow)} y2={toY(dangerBelow)} stroke="#e53e3e" strokeDasharray="3 2" strokeWidth={1} opacity={0.6} />}
+                <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                {data.map((d, i) => (
+                    <circle key={i} cx={toX(i)} cy={toY(d.y)} r={3} fill={
+                        (dangerAbove && d.y > dangerAbove) || (dangerBelow && d.y < dangerBelow) ? '#e53e3e' : color
+                    } />
+                ))}
+            </svg>
+            <div className="vital-sparkline-last">Latest: <strong>{data[data.length - 1].y}</strong></div>
+        </div>
+    );
+}
 
 const SEVERITY_COLORS: Record<string, string> = {
     mild: '#38a169',
@@ -69,6 +117,8 @@ const PatientDetails = () => {
     const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
     const [formLoading, setFormLoading] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
+    const [vitalsTrend, setVitalsTrend] = useState<VitalsPoint[]>([]);
+    const [vitalsLoading, setVitalsLoading] = useState(false);
 
     useEffect(() => {
         if (id && token) {
@@ -129,6 +179,19 @@ const PatientDetails = () => {
         setConsultationToEdit(null);
         setProcedureToEdit(null);
         setReferralToEdit(null);
+    };
+
+    const fetchVitalsTrend = async () => {
+        if (!id || vitalsTrend.length > 0) return;
+        setVitalsLoading(true);
+        try {
+            const res = await api.get(`/patients/${id}/vitals-trend/`);
+            setVitalsTrend(res.data.vitals || []);
+        } catch {
+            /* silently fail */
+        } finally {
+            setVitalsLoading(false);
+        }
     };
 
     const handleStatusChange = async (newStatus: string) => {
@@ -275,6 +338,7 @@ const PatientDetails = () => {
     const TABS: { key: Tab; label: string; count?: number }[] = [
         { key: 'overview', label: 'Overview' },
         { key: 'consultations', label: 'Consultations', count: patient.consultations?.length },
+        { key: 'vitals', label: 'Vitals Trend' },
         { key: 'conditions', label: 'Conditions', count: patient.conditions?.length },
         { key: 'allergies', label: 'Allergies', count: activeAllergies.length },
         { key: 'notes', label: 'Notes', count: patient.patient_notes?.length },
@@ -348,7 +412,7 @@ const PatientDetails = () => {
                     <button
                         key={tab.key}
                         className={`patient-tab${activeTab === tab.key ? ' active' : ''}`}
-                        onClick={() => setActiveTab(tab.key)}
+                        onClick={() => { setActiveTab(tab.key); if (tab.key === 'vitals') fetchVitalsTrend(); }}
                     >
                         {tab.label}
                         {tab.count !== undefined && tab.count > 0 && <span className="tab-count">{tab.count}</span>}
@@ -641,6 +705,72 @@ const PatientDetails = () => {
                 )}
 
                 {/* Referrals Tab */}
+                {activeTab === 'vitals' && (
+                    <div className="tab-panel">
+                        <h3>Vitals History</h3>
+                        {vitalsLoading ? (
+                            <p className="muted">Loading vitals...</p>
+                        ) : vitalsTrend.length === 0 ? (
+                            <p className="muted">No vitals recorded yet. Vitals are captured during consultations.</p>
+                        ) : (
+                            <div className="vitals-trend-container">
+                                <div className="vitals-trend-table-wrapper">
+                                    <table className="vitals-trend-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Weight (kg)</th>
+                                                <th>Height (cm)</th>
+                                                <th>SpO₂ (%)</th>
+                                                <th>Temp (°C)</th>
+                                                <th>Blood Pressure</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {vitalsTrend.map(v => (
+                                                <tr key={v.id}>
+                                                    <td>{new Date(v.consultation_date).toLocaleDateString()}</td>
+                                                    <td className={v.weight ? '' : 'muted'}>{v.weight ?? '—'}</td>
+                                                    <td className={v.height ? '' : 'muted'}>{v.height ?? '—'}</td>
+                                                    <td className={v.sp2 ? (Number(v.sp2) < 95 ? 'vitals-warning' : '') : 'muted'}>{v.sp2 ?? '—'}</td>
+                                                    <td className={v.temperature ? (Number(v.temperature) > 37.5 ? 'vitals-warning' : '') : 'muted'}>{v.temperature ?? '—'}</td>
+                                                    <td className={v.blood_pressure ? '' : 'muted'}>{v.blood_pressure ?? '—'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {/* Inline sparklines */}
+                                {vitalsTrend.filter(v => v.weight).length >= 2 && (
+                                    <div className="vitals-sparklines">
+                                        <VitalSparkline
+                                            label="Weight (kg)"
+                                            data={vitalsTrend.filter(v => v.weight !== null).map(v => ({ x: v.consultation_date, y: Number(v.weight) }))}
+                                            color="#6366f1"
+                                        />
+                                        {vitalsTrend.filter(v => v.sp2).length >= 2 && (
+                                            <VitalSparkline
+                                                label="SpO₂ (%)"
+                                                data={vitalsTrend.filter(v => v.sp2 !== null).map(v => ({ x: v.consultation_date, y: Number(v.sp2) }))}
+                                                color="#38a169"
+                                                dangerBelow={95}
+                                            />
+                                        )}
+                                        {vitalsTrend.filter(v => v.temperature).length >= 2 && (
+                                            <VitalSparkline
+                                                label="Temperature (°C)"
+                                                data={vitalsTrend.filter(v => v.temperature !== null).map(v => ({ x: v.consultation_date, y: Number(v.temperature) }))}
+                                                color="#ed8936"
+                                                dangerAbove={37.5}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {activeTab === 'referrals' && (
                     <div className="tab-panel">
                         <div className="tab-panel-header">
