@@ -77,16 +77,65 @@ export interface Consultation {
     id: number;
     patient: string;
     doctor: number;
+    workplace?: number | null;
     consultation_date: string;
+    consultation_type: 'in_person' | 'telemedicine' | 'home_visit';
+    consultation_type_display?: string;
     reason_for_consultation: string;
+    symptoms: string[];
     medical_report: string | null;
     diagnosis: string | null;
     medications: string | null;
+    follow_up_date: string | null;
     weight: number | null;
     height: number | null;
     sp2: number | null;
     temperature: number | null;
     blood_pressure: string | null;
+    visible_to_patient: boolean;
+}
+
+export interface PatientCondition {
+    id: number;
+    patient: string;
+    name: string;
+    icd_code: string;
+    status: 'active' | 'resolved' | 'chronic' | 'in_remission';
+    status_display?: string;
+    onset_date: string | null;
+    notes: string;
+    recorded_by: number | null;
+    recorded_by_name?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PatientAllergy {
+    id: number;
+    patient: string;
+    allergen: string;
+    reaction_type: 'drug' | 'food' | 'environmental' | 'other';
+    reaction_type_display?: string;
+    severity: 'mild' | 'moderate' | 'severe' | 'life_threatening';
+    severity_display?: string;
+    reaction_description: string;
+    is_active: boolean;
+    recorded_by: number | null;
+    recorded_by_name?: string;
+    created_at: string;
+}
+
+export interface PatientNote {
+    id: number;
+    title: string;
+    content: string;
+    note_type: string;
+    note_type_display?: string;
+    patient: string | null;
+    author: number;
+    author_name?: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface MedicalProcedure {
@@ -159,6 +208,10 @@ export interface PatientWithHistory extends Patient {
     consultations: Consultation[];
     medical_procedures: MedicalProcedure[];
     referrals: Referral[];
+    conditions: PatientCondition[];
+    allergy_records: PatientAllergy[];
+    patient_notes: PatientNote[];
+    status: string;
 }
 
 export interface WorkplaceStats {

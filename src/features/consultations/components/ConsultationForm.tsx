@@ -2,25 +2,34 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/FormStyles.css'; // Changement ici !
+import '../../../shared/styles/FormStyles.css';
 import api from '../../../shared/services/api';
 
-// Ajout de l'interface pour la consultation
+const COMMON_SYMPTOMS = [
+    'Fever', 'Cough', 'Shortness of breath', 'Fatigue', 'Headache',
+    'Sore throat', 'Runny nose', 'Chest pain', 'Nausea', 'Vomiting',
+    'Diarrhea', 'Abdominal pain', 'Back pain', 'Joint pain', 'Dizziness',
+    'Loss of appetite', 'Weight loss', 'Sweating', 'Chills', 'Rash',
+];
+
 interface Consultation {
-    id?: number; // Optionnel car absent lors de la création
+    id?: number;
     consultation_date: string;
+    consultation_type?: string;
     reason_for_consultation: string;
+    symptoms?: string[];
     medical_report: string | null;
     diagnosis: string | null;
     medications: string | null;
+    follow_up_date?: string | null;
     weight: number | null;
     height: number | null;
     sp2: number | null;
     temperature: number | null;
     blood_pressure: string | null;
+    visible_to_patient?: boolean;
 }
 
-// Ajout de la prop optionnelle consultationToEdit
 interface ConsultationFormProps {
     patientId: string;
     onSuccess: () => void;
@@ -32,42 +41,64 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const { t } = useTranslation();
     const { token } = useAuth();
     const [formData, setFormData] = useState({
+        consultation_type: 'in_person',
         reason_for_consultation: '',
         medical_report: '',
         diagnosis: '',
         medications: '',
+        follow_up_date: '',
         weight: '',
         height: '',
         sp2: '',
         temperature: '',
         blood_pressure: '',
+        visible_to_patient: false,
     });
+    const [symptoms, setSymptoms] = useState<string[]>([]);
+    const [customSymptom, setCustomSymptom] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    // Pré-remplir le formulaire si on est en mode modification
     useEffect(() => {
         if (consultationToEdit) {
             setFormData({
+                consultation_type: consultationToEdit.consultation_type || 'in_person',
                 reason_for_consultation: consultationToEdit.reason_for_consultation,
                 medical_report: consultationToEdit.medical_report || '',
                 diagnosis: consultationToEdit.diagnosis || '',
                 medications: consultationToEdit.medications || '',
+                follow_up_date: consultationToEdit.follow_up_date || '',
                 weight: consultationToEdit.weight !== null ? String(consultationToEdit.weight) : '',
                 height: consultationToEdit.height !== null ? String(consultationToEdit.height) : '',
                 sp2: consultationToEdit.sp2 !== null ? String(consultationToEdit.sp2) : '',
                 temperature: consultationToEdit.temperature !== null ? String(consultationToEdit.temperature) : '',
                 blood_pressure: consultationToEdit.blood_pressure || '',
+                visible_to_patient: consultationToEdit.visible_to_patient || false,
             });
+            setSymptoms(consultationToEdit.symptoms || []);
         }
     }, [consultationToEdit]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: value,
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value, type } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
         }));
+    };
+
+    const toggleSymptom = (symptom: string) => {
+        setSymptoms(prev =>
+            prev.includes(symptom) ? prev.filter(s => s !== symptom) : [...prev, symptom]
+        );
+    };
+
+    const addCustomSymptom = () => {
+        const trimmed = customSymptom.trim();
+        if (trimmed && !symptoms.includes(trimmed)) {
+            setSymptoms(prev => [...prev, trimmed]);
+            setCustomSymptom('');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -85,41 +116,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             const dataToSend = {
                 ...formData,
                 patient: patientId,
+                symptoms,
                 weight: formData.weight ? parseFloat(formData.weight) : null,
                 height: formData.height ? parseFloat(formData.height) : null,
                 sp2: formData.sp2 ? parseFloat(formData.sp2) : null,
                 temperature: formData.temperature ? parseFloat(formData.temperature) : null,
                 blood_pressure: formData.blood_pressure || null,
+                follow_up_date: formData.follow_up_date || null,
             };
 
             let response;
             if (consultationToEdit && consultationToEdit.id) {
-                // Modification (PUT)
-                response = await api.put(
-                    `/consultations/${consultationToEdit.id}/`,
-                    dataToSend,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
+                response = await api.put(`/consultations/${consultationToEdit.id}/`, dataToSend);
             } else {
-                // Création (POST)
-                response = await api.post('/consultations/', dataToSend, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                });
+                response = await api.post('/consultations/', dataToSend);
             }
 
             if (response.status === 201 || response.status === 200) {
                 onSuccess();
             }
         } catch (err) {
-            console.error('Erreur lors de l\'enregistrement de la consultation:', err);
             if (axios.isAxiosError(err) && err.response) {
                 const errorData = err.response.data;
                 const errorMessages = Object.values(errorData).flat().join(' ');
@@ -135,12 +151,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const isEditing = !!consultationToEdit;
 
     return (
-        <div className="form-overlay"> {/* Changement de classe ici */}
-            <div className="form-container"> {/* Changement de classe ici */}
+        <div className="form-overlay">
+            <div className="form-container">
                 <h3>{isEditing ? t('consultation.title_edit') : t('consultation.title_add')}</h3>
                 {errorMessage && <div className="error-message">{errorMessage}</div>}
-                <form onSubmit={handleSubmit} className="form"> {/* Changement de classe ici */}
-                    {/* Partie 1 : Champs des données physiques */}
+                <form onSubmit={handleSubmit} className="form">
+                    {/* Consultation type */}
+                    <div className="form-group">
+                        <label htmlFor="consultation_type">Consultation Type</label>
+                        <select id="consultation_type" name="consultation_type" value={formData.consultation_type} onChange={handleChange}>
+                            <option value="in_person">In Person</option>
+                            <option value="telemedicine">Telemedicine</option>
+                            <option value="home_visit">Home Visit</option>
+                        </select>
+                    </div>
+
+                    {/* Vitals */}
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="weight">{t('consultation.weight')}</label>
@@ -168,11 +194,45 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
                     <hr />
 
-                    {/* Partie 2 : Champs des motifs de consultation et symptômes */}
+                    {/* Clinical info */}
                     <div className="form-group">
                         <label htmlFor="reason_for_consultation">{t('consultation.reason')} <span className="required">*</span></label>
                         <textarea id="reason_for_consultation" name="reason_for_consultation" value={formData.reason_for_consultation} onChange={handleChange} required rows={3} />
                     </div>
+
+                    {/* Symptoms multi-select */}
+                    <div className="form-group">
+                        <label>Symptoms</label>
+                        <div className="symptoms-chips">
+                            {COMMON_SYMPTOMS.map(s => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    className={`symptom-chip${symptoms.includes(s) ? ' active' : ''}`}
+                                    onClick={() => toggleSymptom(s)}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="custom-symptom-row">
+                            <input
+                                type="text"
+                                placeholder="Add custom symptom..."
+                                value={customSymptom}
+                                onChange={e => setCustomSymptom(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomSymptom())}
+                            />
+                            <button type="button" onClick={addCustomSymptom} className="add-chip-btn">Add</button>
+                        </div>
+                        {symptoms.filter(s => !COMMON_SYMPTOMS.includes(s)).map(s => (
+                            <span key={s} className="symptom-chip active custom-chip">
+                                {s}
+                                <button type="button" onClick={() => toggleSymptom(s)} className="chip-remove">×</button>
+                            </span>
+                        ))}
+                    </div>
+
                     <div className="form-group">
                         <label htmlFor="diagnosis">{t('consultation.diagnosis')}</label>
                         <textarea id="diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} rows={3} />
@@ -184,6 +244,25 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     <div className="form-group">
                         <label htmlFor="medications">{t('consultation.medications')}</label>
                         <textarea id="medications" name="medications" value={formData.medications} onChange={handleChange} rows={3} />
+                    </div>
+
+                    {/* Follow-up date */}
+                    <div className="form-group">
+                        <label htmlFor="follow_up_date">Follow-up Date</label>
+                        <input type="date" id="follow_up_date" name="follow_up_date" value={formData.follow_up_date} onChange={handleChange} />
+                    </div>
+
+                    {/* Visible to patient toggle */}
+                    <div className="form-group form-checkbox">
+                        <label>
+                            <input
+                                type="checkbox"
+                                name="visible_to_patient"
+                                checked={formData.visible_to_patient}
+                                onChange={handleChange}
+                            />
+                            {' '}Visible to patient
+                        </label>
                     </div>
 
                     <div className="form-actions">
