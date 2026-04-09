@@ -69,8 +69,44 @@ export interface Workplace {
     id: number;
     name: string;
     address: string;
+    description: string;
+    phone: string;
+    email: string;
+    website: string;
     is_public: boolean;
-    creator: number;
+    join_policy: 'open' | 'request' | 'invite';
+    join_policy_display?: string;
+    max_doctors: number;
+    creator: number | null;
+    creator_details?: { id: number; full_name: string; specialty: string | null } | null;
+    member_count?: number;
+    is_member?: boolean;
+    is_creator?: boolean;
+    created_at?: string | null;
+}
+
+export interface JoinRequest {
+    id: number;
+    workplace: number;
+    workplace_name?: string;
+    doctor: number;
+    doctor_name?: string;
+    doctor_specialty?: string | null;
+    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+    status_display?: string;
+    message: string;
+    response_note: string;
+    created_at: string;
+    responded_at: string | null;
+}
+
+export interface ClinicMember {
+    id: number;
+    full_name: string;
+    specialty: string | null;
+    specialty_display?: string | null;
+    email: string;
+    is_creator: boolean;
 }
 
 export interface Consultation {
