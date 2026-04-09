@@ -105,3 +105,14 @@
 .patient-tab-content { padding: 20px 0; }
 .tab-panel {}
 .muted { color: #a0aec0; font-size: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .patient-tabs { gap: 0; }
+    .patient-tab { padding: 8px 12px; font-size: 12px; }
+    .clinic-header-actions { flex-direction: column; gap: 8px; }
+    .join-btn, .leave-btn { width: 100%; text-align: center; }
+}
+@media (max-width: 480px) {
+    .patient-tab { padding: 6px 8px; font-size: 11px; }
+}
