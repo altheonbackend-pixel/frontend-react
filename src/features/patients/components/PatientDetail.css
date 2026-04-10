@@ -364,6 +364,30 @@
     .conditions-grid { grid-template-columns: 1fr; }
     .patient-tabs { gap: 0; }
     .patient-tab { padding: 8px 12px; font-size: 13px; }
+
+    /* Tab panel headers stack on mobile */
+    .tab-panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .tab-panel-header .btn-add,
+    .tab-panel-header button { width: 100%; justify-content: center; }
+
+    /* Quick actions wrap tighter */
+    .patient-quick-actions { gap: 6px; }
+    .pqa-btn { padding: 0.35rem 0.65rem; font-size: 11px; }
+
+    /* Vitals sparkline cards full width */
+    .vitals-sparklines { flex-direction: column; }
+    .vital-sparkline-card { min-width: unset; width: 100%; }
+
+    /* Vitals trend table scroll */
+    .vitals-trend-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .vitals-trend-table { min-width: 480px; }
+}
+
+@media (max-width: 480px) {
+    .patient-tab { padding: 7px 9px; font-size: 12px; }
+    .patient-quick-actions { gap: 4px; }
+    .pqa-btn { padding: 0.3rem 0.55rem; font-size: 11px; }
+    .tab-count { display: none; }  /* hide counts on very small screens */
 }
 
 /* ── Patient status select ── */
