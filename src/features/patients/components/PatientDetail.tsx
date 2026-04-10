@@ -370,21 +370,24 @@ const PatientDetails = () => {
                         </select>
                     </div>
                 </div>
-                <div className="patient-actions">
+                <div className="patient-quick-actions">
+                    <button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }} className="pqa-btn pqa-btn--primary">+ Consultation</button>
+                    {(profile?.access_level ?? 1) >= 2 && (
+                        <button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }} className="pqa-btn pqa-btn--secondary">+ Referral</button>
+                    )}
+                    <button onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }} className="pqa-btn pqa-btn--secondary">+ Condition</button>
+                    <button onClick={handleExportPdf} className="pqa-btn pqa-btn--ghost">PDF</button>
+                    {/* Legacy dropdown for remaining actions */}
                     <div className="dropdown" ref={dropdownRef}>
-                        <button onClick={() => setShowDropdown(!showDropdown)} className="action-button dropdown-toggle">
-                            {t('patient_detail.actions')} ▾
+                        <button onClick={() => setShowDropdown(!showDropdown)} className="pqa-btn pqa-btn--ghost">
+                            More ▾
                         </button>
                         {showDropdown && (
                             <ul className="dropdown-menu">
-                                <li><button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setShowDropdown(false); setActiveTab('consultations'); }} className="action-button dropdown-item">+ Add Consultation</button></li>
-                                {(profile?.access_level ?? 1) >= 2 && <>
+                                {(profile?.access_level ?? 1) >= 2 && (
                                     <li><button onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }} className="action-button dropdown-item">+ Add Procedure</button></li>
-                                    <li><button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setShowDropdown(false); setActiveTab('referrals'); }} className="action-button dropdown-item">+ Add Referral</button></li>
-                                </>}
-                                <li><button onClick={() => { setShowConditionForm(true); setShowDropdown(false); setActiveTab('conditions'); }} className="action-button dropdown-item">+ Add Condition</button></li>
+                                )}
                                 <li><button onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }} className="action-button dropdown-item">+ Add Allergy</button></li>
-                                <li><button onClick={() => { handleExportPdf(); setShowDropdown(false); }} className="action-button dropdown-item">Export PDF</button></li>
                             </ul>
                         )}
                     </div>

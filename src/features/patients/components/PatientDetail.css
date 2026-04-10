@@ -456,3 +456,49 @@
     color: var(--text-secondary);
     margin-top: var(--space-2);
 }
+
+/* ── Patient quick action bar ── */
+.patient-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pqa-btn {
+    padding: 0.45rem 1rem;
+    font-size: var(--text-xs, 12px);
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.pqa-btn--primary {
+    background: #2b6cb0;
+    color: white;
+    border-color: #2b6cb0;
+}
+.pqa-btn--primary:hover { background: #2c5282; }
+
+.pqa-btn--secondary {
+    background: transparent;
+    color: #2b6cb0;
+    border-color: #bee3f8;
+}
+.pqa-btn--secondary:hover { background: #ebf8ff; }
+
+.pqa-btn--ghost {
+    background: transparent;
+    color: #718096;
+    border-color: #e2e8f0;
+}
+.pqa-btn--ghost:hover { background: #f7fafc; }
+
+@media (max-width: 600px) {
+    .patient-quick-actions { gap: 6px; }
+    .pqa-btn { padding: 0.35rem 0.7rem; font-size: 11px; }
+}
