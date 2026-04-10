@@ -228,3 +228,23 @@
 .btn:hover:not(:disabled) { opacity: 0.88; }
 .btn-danger { background: #e53e3e; color: white; }
 .btn-secondary { background: #e2e8f0; color: #4a5568; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+    .admin-forum { padding: 12px; }
+    .admin-forum__header { flex-wrap: wrap; gap: 8px; }
+    .admin-forum__header h1 { font-size: 20px; }
+    .admin-forum__info { flex-wrap: wrap; font-size: 12px; }
+    .forum-post-card__header { flex-direction: column; gap: 10px; }
+    .forum-post-card__actions { justify-content: flex-start; }
+    .forum-post-card__info { flex-wrap: wrap; gap: 8px; }
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal-box { border-radius: 16px 16px 0 0; max-width: 100%; max-height: 90vh; overflow-y: auto; }
+}
+
+@media (max-width: 480px) {
+    .admin-forum { padding: 8px; }
+    .forum-post-card__title { font-size: 14px; }
+    .pagination { gap: 10px; padding: 14px; }
+    .pagination-btn { padding: 6px 12px; font-size: 12px; }
+}
