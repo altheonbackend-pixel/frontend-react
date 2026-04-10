@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { type Appointment, type Patient, type Workplace } from '../../../shared/types';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import '../../../shared/styles/DetailStyles.css';
 import '../styles/Appointments.css';
 
@@ -181,7 +181,11 @@ const Appointments = () => {
                                     {appt.status.replace('_', ' ')}
                                 </span>
                             </div>
-                            <p><strong>{t('appointments.patient_label')}:</strong> {appt.patient_details ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}` : t('appointments.patient_unavailable')}</p>
+                            <p><strong>{t('appointments.patient_label')}:</strong>{' '}
+                                {appt.patient_details
+                                    ? <Link to={`/patients/${appt.patient_details.unique_id}`} className="appt-patient-link">{appt.patient_details.first_name} {appt.patient_details.last_name} →</Link>
+                                    : t('appointments.patient_unavailable')}
+                            </p>
                             <p><strong>{t('appointments.workplace_label')}:</strong> {appt.workplace_details ? appt.workplace_details.name : t('appointments.workplace_unavailable')}</p>
                             <p><strong>{t('appointments.time_label')}:</strong> {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                             <p><strong>{t('appointments.reason_label')}:</strong> {appt.reason_for_appointment}</p>

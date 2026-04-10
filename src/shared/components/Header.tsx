@@ -1,20 +1,71 @@
 // Fichier : src/components/Header.tsx
-//import React from 'react';
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import '../styles/Header.css';
 import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
+import api from '../../shared/services/api';
+
+interface SearchResult {
+    unique_id: string;
+    first_name: string;
+    last_name: string;
+    date_of_birth?: string;
+}
 
 const Header = () => {
     const { isAuthenticated, user, profile, logout } = useAuth();
     const { t, i18n } = useTranslation();
     const [menuOpen, setMenuOpen] = useState(false);
+    const navigate = useNavigate();
+
+    // Global search
+    const [searchQ, setSearchQ] = useState('');
+    const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const searchRef = useRef<HTMLDivElement>(null);
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const changeLanguage = (lng: string) => i18n.changeLanguage(lng);
     const closeMenu = () => setMenuOpen(false);
+
+    const runSearch = useCallback(async (q: string) => {
+        if (!q.trim() || q.length < 2) { setSearchResults([]); return; }
+        try {
+            const res = await api.get('/doctors/me/patients/', { params: { search: q, page_size: 6 } });
+            setSearchResults(res.data.results ?? res.data);
+        } catch {
+            setSearchResults([]);
+        }
+    }, []);
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const q = e.target.value;
+        setSearchQ(q);
+        setSearchOpen(true);
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        searchTimer.current = setTimeout(() => runSearch(q), 350);
+    };
+
+    const handleSearchSelect = (patient: SearchResult) => {
+        setSearchQ('');
+        setSearchResults([]);
+        setSearchOpen(false);
+        navigate(`/patients/${patient.unique_id}`);
+    };
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+                setSearchOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     return (
         <header className={`main-header${menuOpen ? ' nav-open' : ''}`}>
@@ -45,6 +96,33 @@ const Header = () => {
                         </>
                     )}
                 </div>
+
+                {/* Global patient search */}
+                {isAuthenticated && (
+                    <div className="header-search-wrap" ref={searchRef}>
+                        <input
+                            type="text"
+                            className="header-search-input"
+                            placeholder="Search patients..."
+                            value={searchQ}
+                            onChange={handleSearchChange}
+                            onFocus={() => searchQ.length >= 2 && setSearchOpen(true)}
+                            autoComplete="off"
+                        />
+                        {searchOpen && searchResults.length > 0 && (
+                            <ul className="header-search-dropdown">
+                                {searchResults.map(p => (
+                                    <li key={p.unique_id}>
+                                        <button type="button" onClick={() => handleSearchSelect(p)}>
+                                            <span className="hsearch-name">{p.first_name} {p.last_name}</span>
+                                            {p.date_of_birth && <span className="hsearch-dob">{new Date(p.date_of_birth).toLocaleDateString()}</span>}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
 
                 {/* Right section — always visible */}
                 <div className="auth-links">

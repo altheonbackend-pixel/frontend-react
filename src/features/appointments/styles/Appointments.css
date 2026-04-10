@@ -251,6 +251,13 @@
   margin-top: var(--space-1);
 }
 
+.appt-patient-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: var(--fw-semibold);
+}
+.appt-patient-link:hover { text-decoration: underline; }
+
 /* ── Deleted appointments page ── */
 .deleted-appointments-page {
   max-width: var(--content-max);

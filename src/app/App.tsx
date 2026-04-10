@@ -48,15 +48,31 @@ import './App.css';
 // Route guard component for admin-only routes
 const PrivateAdminRoutes = () => {
     const { isAuthenticated, userType, adminProfile } = useAuth();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     if (!isAuthenticated || userType !== 'admin' || !adminProfile) {
         return <Navigate to="/login" replace />;
     }
 
     return (
-        <div style={{ display: 'flex' }}>
-            <AdminSidebar />
-            <main style={{ marginLeft: '240px', flex: 1, minHeight: '100vh', background: '#f7fafc' }}>
+        <div className="admin-layout">
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div className="admin-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+            )}
+            <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <main className={`admin-main${sidebarOpen ? ' sidebar-open' : ''}`}>
+                {/* Mobile top bar */}
+                <div className="admin-mobile-topbar">
+                    <button
+                        className="admin-hamburger"
+                        onClick={() => setSidebarOpen(o => !o)}
+                        aria-label="Toggle sidebar"
+                    >
+                        <span /><span /><span />
+                    </button>
+                    <span className="admin-mobile-title">Altheon Admin</span>
+                </div>
                 <Routes>
                     <Route path="/dashboard" element={<AdminDashboard />} />
                     <Route path="/doctors" element={<AdminDoctorList initialTab="active" />} />

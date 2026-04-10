@@ -3,7 +3,12 @@ import { useAdmin } from '../context/AdminContext';
 import { useAuth } from '../../auth/hooks/useAuth';
 import '../styles/AdminSidebar.css';
 
-const AdminSidebar = () => {
+interface AdminSidebarProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+const AdminSidebar = ({ isOpen = true, onClose }: AdminSidebarProps) => {
     const { stats, logout } = useAdmin();
     const { logout: authLogout } = useAuth();
     const navigate = useNavigate();
@@ -14,8 +19,12 @@ const AdminSidebar = () => {
         navigate('/login');
     };
 
+    const handleNavClick = () => {
+        if (onClose) onClose();
+    };
+
     return (
-        <aside className="admin-sidebar">
+        <aside className={`admin-sidebar${isOpen ? ' admin-sidebar--open' : ''}`}>
             <div className="admin-sidebar__brand">
                 <span className="admin-sidebar__brand-icon">⚕</span>
                 <div>
@@ -26,34 +35,34 @@ const AdminSidebar = () => {
 
             <nav className="admin-sidebar__nav">
                 <div className="admin-sidebar__section-label">Overview</div>
-                <NavLink to="/admin/dashboard" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/dashboard" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">📊</span>
                     Dashboard
                 </NavLink>
 
                 <div className="admin-sidebar__section-label">Doctor Management</div>
-                <NavLink to="/admin/doctors" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/doctors" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">👨‍⚕️</span>
                     Active Doctors
                 </NavLink>
-                <NavLink to="/admin/doctors/pending" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/doctors/pending" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">⏳</span>
                     Pending Approval
                     {stats && stats.pending_doctors > 0 && (
                         <span className="admin-sidebar__badge">{stats.pending_doctors}</span>
                     )}
                 </NavLink>
-                <NavLink to="/admin/doctors/rejected" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/doctors/rejected" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">❌</span>
                     Rejected
                 </NavLink>
 
                 <div className="admin-sidebar__section-label">Platform</div>
-                <NavLink to="/admin/clinics" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/clinics" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">🏥</span>
                     Clinics
                 </NavLink>
-                <NavLink to="/admin/forum" className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <NavLink to="/admin/forum" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">💬</span>
                     Forum Moderation
                     {stats && stats.forum_suspended_doctors > 0 && (

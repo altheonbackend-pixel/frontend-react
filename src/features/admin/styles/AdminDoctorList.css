@@ -359,3 +359,35 @@
 }
 
 .no-data { text-align: center; color: #718096; padding: 32px; font-size: 14px; }
+
+/* ── Mobile responsive ── */
+@media (max-width: 900px) {
+    .admin-doctor-list { padding: 16px; }
+    .admin-doctor-list__header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .tabs { flex-wrap: wrap; gap: 4px; }
+    .tab { padding: 8px 12px; font-size: 13px; }
+}
+
+@media (max-width: 768px) {
+    .admin-doctor-list { padding: 12px; }
+
+    /* Make table scrollable horizontally */
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .doctors-table { min-width: 640px; font-size: 13px; }
+    .doctors-table th, .doctors-table td { padding: 10px 10px; }
+
+    /* Filter row stacks */
+    .filters-row { flex-direction: column; gap: 8px; }
+    .search-input, .filter-select { width: 100%; }
+
+    /* Modal full screen on mobile */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal-box { border-radius: 16px 16px 0 0; max-width: 100%; width: 100%; max-height: 90vh; overflow-y: auto; }
+}
+
+@media (max-width: 480px) {
+    .admin-doctor-list { padding: 10px; }
+    .tabs { gap: 2px; }
+    .tab { padding: 7px 8px; font-size: 12px; }
+    .tab-badge { font-size: 10px; }
+}
