@@ -41,6 +41,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const { t } = useTranslation();
     const { token } = useAuth();
     const [formData, setFormData] = useState({
+        consultation_date: new Date().toISOString().slice(0, 10),
         consultation_type: 'in_person',
         reason_for_consultation: '',
         medical_report: '',
@@ -62,6 +63,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     useEffect(() => {
         if (consultationToEdit) {
             setFormData({
+                consultation_date: consultationToEdit.consultation_date || new Date().toISOString().slice(0, 10),
                 consultation_type: consultationToEdit.consultation_type || 'in_person',
                 reason_for_consultation: consultationToEdit.reason_for_consultation,
                 medical_report: consultationToEdit.medical_report || '',
@@ -156,6 +158,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 <h3>{isEditing ? t('consultation.title_edit') : t('consultation.title_add')}</h3>
                 {errorMessage && <div className="error-message">{errorMessage}</div>}
                 <form onSubmit={handleSubmit} className="form">
+                    {/* Consultation date */}
+                    <div className="form-group">
+                        <label htmlFor="consultation_date">{t('consultation.date')} <span className="required">*</span></label>
+                        <input type="date" id="consultation_date" name="consultation_date" value={formData.consultation_date} onChange={handleChange} required />
+                    </div>
+
                     {/* Consultation type */}
                     <div className="form-group">
                         <label htmlFor="consultation_type">Consultation Type</label>

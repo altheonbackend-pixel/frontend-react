@@ -52,8 +52,7 @@ const DeleteAppointmentModal = ({ appointment, onSuccess, onCancel }: DeleteAppo
             });
 
             onSuccess();
-        } catch (err) {
-            console.error("Erreur lors de la suppression du rendez-vous:", err);
+        } catch {
             setError(t('delete_appointment.error.generic'));
         } finally {
             setLoading(false);

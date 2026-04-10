@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import PageLoader from './PageLoader';
 import './AccessLevelRoute.css';
 
 interface AccessLevelRouteProps {
@@ -11,7 +12,7 @@ const AccessLevelRoute: React.FC<AccessLevelRouteProps> = ({ requiredLevel, chil
     const { profile } = useAuth();
 
     if (!profile) {
-        return null; // Should not happen, PrivateRoutes guards this
+        return <PageLoader message="Loading" />;
     }
 
     if (profile.access_level < requiredLevel) {

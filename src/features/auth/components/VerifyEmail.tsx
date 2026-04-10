@@ -68,7 +68,21 @@ const VerifyEmail = () => {
                         <p className="error-message">{message}</p>
                     )}
 
-                    {status === 'idle' && !token && (
+                    {status === 'idle' && !token && profile?.email_verified && (
+                        <>
+                            <p className="success-message">
+                                Your email is already verified.
+                            </p>
+                            <button
+                                className="auth-button"
+                                onClick={() => navigate('/dashboard', { replace: true })}
+                            >
+                                Go to Dashboard
+                            </button>
+                        </>
+                    )}
+
+                    {status === 'idle' && !token && !profile?.email_verified && (
                         <>
                             <p style={{ color: '#4a5568', marginBottom: '16px' }}>
                                 A verification email has been sent to <strong>{profile?.email}</strong>.

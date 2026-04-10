@@ -22,6 +22,7 @@ interface ForumPost {
     content: string;
     created_at: string;
     comments: ForumComment[];
+    is_flagged: boolean;
 }
 
 const Forum = () => {
@@ -32,6 +33,10 @@ const Forum = () => {
     const [error, setError] = useState<string | null>(null);
     const [newPost, setNewPost] = useState({ title: '', content: '' });
     const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
+    const [postSubmitting, setPostSubmitting] = useState(false);
+    const [commentSubmitting, setCommentSubmitting] = useState<number | null>(null);
+    const [flagging, setFlagging] = useState<number | null>(null);
+    const [flagReason, setFlagReason] = useState<{ [key: number]: string }>({});
 
     useEffect(() => {
         fetchPosts();
@@ -47,8 +52,7 @@ const Forum = () => {
         try {
             const response = await api.get('/forum/posts/');
             setPosts(response.data.results ?? response.data);
-        } catch (err) {
-            console.error("Erreur lors du chargement des posts :", err);
+        } catch {
             setError(t('forum.error.load'));
         } finally {
             setLoading(false);
@@ -66,18 +70,23 @@ const Forum = () => {
 
     const handlePostSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setPostSubmitting(true);
+        setError(null);
         try {
             await api.post('/forum/posts/', newPost);
             setNewPost({ title: '', content: '' });
             fetchPosts();
-        } catch (err) {
-            console.error("Erreur lors de la création du post :", err);
+        } catch {
             setError(t('forum.error.post'));
+        } finally {
+            setPostSubmitting(false);
         }
     };
 
     const handleCommentSubmit = async (postId: number) => {
-        if (!newComment[postId]) return;
+        if (!newComment[postId]?.trim()) return;
+        setCommentSubmitting(postId);
+        setError(null);
         try {
             await api.post('/forum/comments/', {
                 post: postId,
@@ -85,9 +94,25 @@ const Forum = () => {
             });
             setNewComment(prev => ({ ...prev, [postId]: '' }));
             fetchPosts();
-        } catch (err) {
-            console.error("Erreur lors de l'ajout du commentaire :", err);
+        } catch {
             setError(t('forum.error.comment'));
+        } finally {
+            setCommentSubmitting(null);
+        }
+    };
+
+    const handleFlagPost = async (postId: number) => {
+        const reason = flagReason[postId]?.trim();
+        if (!reason) return;
+        setFlagging(postId);
+        try {
+            await api.post(`/forum/posts/${postId}/flag/`, { reason });
+            setFlagReason(prev => ({ ...prev, [postId]: '' }));
+            fetchPosts();
+        } catch {
+            setError(t('forum.error.flag'));
+        } finally {
+            setFlagging(null);
         }
     };
 
@@ -95,15 +120,12 @@ const Forum = () => {
         return <PageLoader message={t('forum.loading')} />;
     }
 
-    if (error) {
-        return <div className="text-page-container error-message">{error}</div>;
-    }
-
     return (
         <div className="text-page-container">
             <div className="page-header">
                 <h1>{t('forum.title')}</h1>
             </div>
+            {error && <div className="error-message" style={{ marginBottom: '16px' }}>{error}</div>}
 
             {/* Formulaire pour créer un nouveau post */}
             <div className="new-post-form detail-info-group">
@@ -128,7 +150,9 @@ const Forum = () => {
                             required
                         />
                     </div>
-                    <button type="submit" className="action-button content-button">{t('forum.publish')}</button>
+                    <button type="submit" className="action-button content-button" disabled={postSubmitting}>
+                        {postSubmitting ? t('forum.publishing') : t('forum.publish')}
+                    </button>
                 </form>
             </div>
 
@@ -145,6 +169,32 @@ const Forum = () => {
                                 </div>
                             </div>
                             <p className="post-content">{post.content}</p>
+
+                            {/* Flag section */}
+                            {post.is_flagged ? (
+                                <p className="forum-flagged-notice">{t('forum.flagged_notice')}</p>
+                            ) : (
+                                <details className="forum-flag-details">
+                                    <summary className="forum-flag-summary">{t('forum.report')}</summary>
+                                    <div className="forum-flag-form">
+                                        <input
+                                            type="text"
+                                            placeholder={t('forum.flag_reason_placeholder')}
+                                            value={flagReason[post.id] || ''}
+                                            onChange={e => setFlagReason(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="action-button"
+                                            style={{ background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderColor: 'var(--color-warning)' }}
+                                            onClick={() => handleFlagPost(post.id)}
+                                            disabled={flagging === post.id || !flagReason[post.id]?.trim()}
+                                        >
+                                            {flagging === post.id ? t('forum.flagging') : t('forum.flag_submit')}
+                                        </button>
+                                    </div>
+                                </details>
+                            )}
 
                             {/* Section des commentaires */}
                             <div className="comments-section">
@@ -171,7 +221,9 @@ const Forum = () => {
                                             required
                                         />
                                     </div>
-                                    <button type="submit" className="action-button content-button">{t('forum.comment_submit')}</button>
+                                    <button type="submit" className="action-button content-button" disabled={commentSubmitting === post.id}>
+                                        {commentSubmitting === post.id ? t('forum.commenting') : t('forum.comment_submit')}
+                                    </button>
                                 </form>
                             </div>
                         </div>

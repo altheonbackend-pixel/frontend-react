@@ -67,7 +67,6 @@ const EditProfile = () => {
                     }
                 }
             } catch (err) {
-                console.error("Erreur lors du chargement des données :", err);
                 if (axios.isAxiosError(err) && err.response) {
                     setError(`Erreur de l'API : ${JSON.stringify(err.response.data)}`);
                 } else {
@@ -130,7 +129,6 @@ const EditProfile = () => {
             
             navigate('/profile');
         } catch (err) {
-            console.error("Erreur lors de la mise à jour du profil :", err);
             if (axios.isAxiosError(err) && err.response) {
                 setError(JSON.stringify(err.response.data));
             } else {

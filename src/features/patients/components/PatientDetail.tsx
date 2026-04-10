@@ -114,6 +114,7 @@ const PatientDetails = () => {
 
     // Inline condition form state
     const [conditionForm, setConditionForm] = useState({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
+    const [editingConditionId, setEditingConditionId] = useState<number | null>(null);
     const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
     const [formLoading, setFormLoading] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
@@ -257,12 +258,26 @@ const PatientDetails = () => {
         }
     };
 
+    const handleToggleAllergy = async (allergyId: number, currentActive: boolean) => {
+        try {
+            await api.patch(`/allergies/${allergyId}/`, { is_active: !currentActive });
+            fetchPatientDetails();
+        } catch {
+            setError('Failed to update allergy.');
+        }
+    };
+
     const handleConditionSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
         try {
-            await api.post('/conditions/', { ...conditionForm, patient: id });
-            setShowConditionForm(false);
+            if (editingConditionId) {
+                await api.patch(`/conditions/${editingConditionId}/`, conditionForm);
+                setEditingConditionId(null);
+            } else {
+                await api.post('/conditions/', { ...conditionForm, patient: id });
+                setShowConditionForm(false);
+            }
             setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
             fetchPatientDetails();
         } catch {
@@ -564,20 +579,61 @@ const PatientDetails = () => {
                             <div className="conditions-grid">
                                 {patient.conditions.map(c => (
                                     <div key={c.id} className="condition-card">
-                                        <div className="condition-card-header">
-                                            <div>
-                                                <span className="condition-name">{c.name}</span>
-                                                {c.icd_code && <span className="icd-code">{c.icd_code}</span>}
-                                            </div>
-                                            <span className="condition-status" style={{ background: CONDITION_STATUS_COLORS[c.status] + '22', color: CONDITION_STATUS_COLORS[c.status], border: `1px solid ${CONDITION_STATUS_COLORS[c.status]}` }}>
-                                                {c.status_display || c.status}
-                                            </span>
-                                        </div>
-                                        {c.onset_date && <div className="condition-meta">Since: {new Date(c.onset_date).toLocaleDateString()}</div>}
-                                        {c.notes && <p className="condition-notes">{c.notes}</p>}
-                                        <div className="entry-actions">
-                                            <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">Delete</button>
-                                        </div>
+                                        {editingConditionId === c.id ? (
+                                            <form onSubmit={handleConditionSubmit} className="inline-form">
+                                                <div className="form-row">
+                                                    <div className="form-group">
+                                                        <label>Name *</label>
+                                                        <input required value={conditionForm.name} onChange={e => setConditionForm(p => ({ ...p, name: e.target.value }))} />
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label>ICD Code</label>
+                                                        <input value={conditionForm.icd_code} onChange={e => setConditionForm(p => ({ ...p, icd_code: e.target.value }))} />
+                                                    </div>
+                                                </div>
+                                                <div className="form-row">
+                                                    <div className="form-group">
+                                                        <label>Status</label>
+                                                        <select value={conditionForm.status} onChange={e => setConditionForm(p => ({ ...p, status: e.target.value }))}>
+                                                            <option value="active">Active</option>
+                                                            <option value="chronic">Chronic</option>
+                                                            <option value="resolved">Resolved</option>
+                                                            <option value="in_remission">In Remission</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="form-group">
+                                                        <label>Onset Date</label>
+                                                        <input type="date" value={conditionForm.onset_date} onChange={e => setConditionForm(p => ({ ...p, onset_date: e.target.value }))} />
+                                                    </div>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Notes</label>
+                                                    <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm(p => ({ ...p, notes: e.target.value }))} />
+                                                </div>
+                                                <div className="form-actions">
+                                                    <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</button>
+                                                    <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' }); }} className="cancel-button">Cancel</button>
+                                                </div>
+                                            </form>
+                                        ) : (
+                                            <>
+                                                <div className="condition-card-header">
+                                                    <div>
+                                                        <span className="condition-name">{c.name}</span>
+                                                        {c.icd_code && <span className="icd-code">{c.icd_code}</span>}
+                                                    </div>
+                                                    <span className="condition-status" style={{ background: CONDITION_STATUS_COLORS[c.status] + '22', color: CONDITION_STATUS_COLORS[c.status], border: `1px solid ${CONDITION_STATUS_COLORS[c.status]}` }}>
+                                                        {c.status_display || c.status}
+                                                    </span>
+                                                </div>
+                                                {c.onset_date && <div className="condition-meta">Since: {new Date(c.onset_date).toLocaleDateString()}</div>}
+                                                {c.notes && <p className="condition-notes">{c.notes}</p>}
+                                                <div className="entry-actions">
+                                                    <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '' }); }} className="action-button">Edit</button>
+                                                    <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">Delete</button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -644,6 +700,9 @@ const PatientDetails = () => {
                                         {a.reaction_description && <p className="allergy-desc">{a.reaction_description}</p>}
                                         {!a.is_active && <span className="inactive-label">Inactive</span>}
                                         <div className="entry-actions">
+                                            <button onClick={() => handleToggleAllergy(a.id, a.is_active)} className="action-button">
+                                                {a.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
                                             <button onClick={() => setConfirmDeleteAllergyId(a.id)} className="delete-button action-button">Delete</button>
                                         </div>
                                     </div>
@@ -707,7 +766,7 @@ const PatientDetails = () => {
                     </div>
                 )}
 
-                {/* Referrals Tab */}
+                {/* Vitals Tab */}
                 {activeTab === 'vitals' && (
                     <div className="tab-panel">
                         <h3>Vitals History</h3>

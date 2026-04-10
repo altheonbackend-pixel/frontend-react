@@ -117,7 +117,8 @@
 }
 
 /* ── Submit / login button ── */
-.login-button {
+.login-button,
+.auth-button {
   width: 100%;
   padding: 0.75rem 1.5rem;
   margin-top: var(--space-2);
@@ -135,17 +136,20 @@
   box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
 }
 
-.login-button:hover:not(:disabled) {
+.login-button:hover:not(:disabled),
+.auth-button:hover:not(:disabled) {
   background: var(--accent-hover);
   box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
   transform: translateY(-1px);
 }
 
-.login-button:active:not(:disabled) {
+.login-button:active:not(:disabled),
+.auth-button:active:not(:disabled) {
   transform: scale(0.98);
 }
 
-.login-button:disabled {
+.login-button:disabled,
+.auth-button:disabled {
   background: var(--text-muted);
   box-shadow: none;
   cursor: not-allowed;
@@ -157,6 +161,18 @@
   background: var(--color-success-light);
   border: 1px solid #6EE7B7;
   color: var(--color-success-dark);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
+  text-align: center;
+}
+
+/* ── Info message ── */
+.info-message {
+  background: var(--color-info-light);
+  border: 1px solid #BFDBFE;
+  color: var(--color-info-dark);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);

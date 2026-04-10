@@ -73,7 +73,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 address: profileData.address,
             });
         } catch (err) {
-            console.error('Erreur lors de la récupération du profil:', err);
             // Only logout on 401 (token expired). 403 is handled by access level gating, not auth.
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 logout();
@@ -114,7 +113,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const decodedToken: any = jwtDecode(localToken);
             const currentTime = Date.now() / 1000;
             if (decodedToken.exp < currentTime) {
-                console.log('Token expired');
                 logout();
             } else {
                 setToken(localToken);
@@ -131,7 +129,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
         } catch (error) {
-            console.error('Token decoding or profile fetch error:', error);
             if (axios.isAxiosError(error)) {
                 const status = error.response?.status;
                 if (status === 401) {
@@ -158,7 +155,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             (error) => {
                 // Only logout on 401 (token expired/invalid)
                 if (error.response?.status === 401) {
-                    console.log('Requête non autorisée détectée. Déconnexion...');
                     logout();
                 }
                 // 403 and all other errors: let the component handle it
@@ -219,7 +215,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 navigate('/dashboard');
             }
         } catch (error) {
-            console.error('Login error:', error);
             throw error;
         }
     };

@@ -24,8 +24,7 @@ const DeletedAppointments = () => {
         try {
             const response = await api.get('/appointments/deleted/');
             setDeletedAppointments(response.data.results ?? response.data);
-        } catch (err) {
-            console.error("Erreur lors de la récupération des rendez-vous supprimés :", err);
+        } catch {
             setError(t('deleted_appointments.error.fetch'));
         } finally {
             setIsLoading(false);

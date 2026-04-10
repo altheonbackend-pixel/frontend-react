@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { type Prescription } from '../../../shared/types';
 import '../styles/Prescriptions.css';
+import ConfirmModal from '../../../shared/components/ConfirmModal';
 
 const FREQUENCY_LABELS: Record<string, string> = {
     once_daily: 'Once daily',
@@ -27,6 +28,12 @@ interface PrescriptionFormData {
     is_active: boolean;
 }
 
+interface PatientOption {
+    unique_id: string;
+    first_name: string;
+    last_name: string;
+}
+
 const EMPTY_FORM: PrescriptionFormData = {
     patient: '',
     consultation: '',
@@ -48,9 +55,21 @@ function Prescriptions() {
     const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [editId, setEditId] = useState<number | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+    // Patient search for form
+    const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
+    const [patientSearch, setPatientSearch] = useState('');
+    const [patientSearchResults, setPatientSearchResults] = useState<PatientOption[]>([]);
 
     useEffect(() => {
         fetchPrescriptions();
+    }, []);
+
+    useEffect(() => {
+        api.get('/doctors/me/patients/?page_size=200')
+            .then(res => setPatientOptions(res.data.results ?? res.data))
+            .catch(() => {});
     }, []);
 
     const fetchPrescriptions = async () => {
@@ -73,6 +92,17 @@ function Prescriptions() {
         fetchPrescriptions();
     }, [filterActive]);
 
+    const handlePatientSearch = (q: string) => {
+        setPatientSearch(q);
+        if (!q) { setPatientSearchResults([]); return; }
+        const lower = q.toLowerCase();
+        setPatientSearchResults(
+            patientOptions.filter(p =>
+                `${p.first_name} ${p.last_name}`.toLowerCase().includes(lower)
+            ).slice(0, 6)
+        );
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         setFormData(prev => ({
@@ -84,6 +114,8 @@ function Prescriptions() {
     const openCreateForm = () => {
         setFormData(EMPTY_FORM);
         setEditId(null);
+        setPatientSearch('');
+        setPatientSearchResults([]);
         setShowForm(true);
     };
 
@@ -99,6 +131,8 @@ function Prescriptions() {
             is_active: p.is_active,
         });
         setEditId(p.id);
+        setPatientSearch(p.patient_name || '');
+        setPatientSearchResults([]);
         setShowForm(true);
     };
 
@@ -135,12 +169,13 @@ function Prescriptions() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Delete this prescription?')) return;
         try {
             await api.delete(`/prescriptions/${id}/`);
+            setConfirmDeleteId(null);
             fetchPrescriptions();
         } catch {
             setError('Failed to delete prescription.');
+            setConfirmDeleteId(null);
         }
     };
 
@@ -219,7 +254,7 @@ function Prescriptions() {
                                 <button onClick={() => handleToggleActive(p)} className="rx-btn rx-btn--toggle">
                                     {p.is_active ? 'Deactivate' : 'Activate'}
                                 </button>
-                                <button onClick={() => handleDelete(p.id)} className="rx-btn rx-btn--delete">Delete</button>
+                                <button onClick={() => setConfirmDeleteId(p.id)} className="rx-btn rx-btn--delete">Delete</button>
                             </div>
                         </div>
                     ))}
@@ -232,16 +267,52 @@ function Prescriptions() {
                     <div className="rx-modal">
                         <h3>{editId ? 'Edit Prescription' : 'New Prescription'}</h3>
                         <form onSubmit={handleSubmit} className="rx-form">
-                            <div className="rx-form-row">
-                                <div className="rx-form-group">
-                                    <label>Patient ID *</label>
-                                    <input name="patient" value={formData.patient} onChange={handleChange} required placeholder="Patient unique ID" />
+                            {/* Patient selector */}
+                            <div className="rx-form-group">
+                                <label>Patient *</label>
+                                <div className="patient-selector-wrapper">
+                                    <input
+                                        type="text"
+                                        placeholder="Search patient by name..."
+                                        value={patientSearch}
+                                        onChange={e => handlePatientSearch(e.target.value)}
+                                        onFocus={() => handlePatientSearch(patientSearch)}
+                                    />
+                                    {formData.patient && (
+                                        <span className="selected-patient-chip">
+                                            {patientOptions.find(p => p.unique_id === formData.patient)
+                                                ? `${patientOptions.find(p => p.unique_id === formData.patient)!.first_name} ${patientOptions.find(p => p.unique_id === formData.patient)!.last_name}`
+                                                : patientSearch || formData.patient}
+                                            <button type="button" onClick={() => { setFormData(f => ({ ...f, patient: '' })); setPatientSearch(''); }}>×</button>
+                                        </span>
+                                    )}
+                                    {patientSearchResults.length > 0 && !formData.patient && (
+                                        <ul className="patient-selector-dropdown">
+                                            {patientSearchResults.map(p => (
+                                                <li key={p.unique_id}>
+                                                    <button type="button" onClick={() => {
+                                                        setFormData(f => ({ ...f, patient: p.unique_id }));
+                                                        setPatientSearch(`${p.first_name} ${p.last_name}`);
+                                                        setPatientSearchResults([]);
+                                                    }}>
+                                                        {p.first_name} {p.last_name}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
-                                <div className="rx-form-group">
-                                    <label>Consultation ID</label>
-                                    <input name="consultation" value={formData.consultation} onChange={handleChange} placeholder="Optional" />
-                                </div>
+                                {/* Hidden required input to enforce validation */}
+                                <input
+                                    type="text"
+                                    name="patient"
+                                    value={formData.patient}
+                                    required
+                                    readOnly
+                                    style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
+                                />
                             </div>
+
                             <div className="rx-form-row">
                                 <div className="rx-form-group">
                                     <label>Medication Name *</label>
@@ -285,6 +356,14 @@ function Prescriptions() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {confirmDeleteId !== null && (
+                <ConfirmModal
+                    message="Delete this prescription? This action cannot be undone."
+                    onConfirm={() => handleDelete(confirmDeleteId)}
+                    onCancel={() => setConfirmDeleteId(null)}
+                />
             )}
         </div>
     );

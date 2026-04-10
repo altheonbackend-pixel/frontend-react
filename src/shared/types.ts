@@ -367,6 +367,14 @@ export interface AdminClinic {
     member_count: number;
 }
 
+export interface AdminForumComment {
+    id: number;
+    content: string;
+    created_at: string;
+    author_name: string;
+    author_email: string;
+}
+
 export interface AdminForumPost {
     id: number;
     title: string;
@@ -376,4 +384,5 @@ export interface AdminForumPost {
     author_name: string;
     author_email: string;
     comment_count: number;
+    comments: AdminForumComment[];
 }

@@ -36,15 +36,14 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
             if (specialty) params.specialty = specialty;
             const response = await api.get('/doctors/', { params });
             setDoctors(response.data.results ?? response.data);
-        } catch (err) {
-            console.error('Erreur lors de la récupération des docteurs:', err);
+        } catch {
             setError(t('referrals.form.error.load_doctors'));
         }
     };
 
     useEffect(() => {
         fetchDoctors();
-    }, [token]);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
@@ -117,7 +116,6 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
             }
             onSuccess();
         } catch (err: any) {
-            console.error('Erreur lors de la soumission du référencement:', err.response?.data || err.message);
             if (axios.isAxiosError(err) && err.response && err.response.data) {
                 const errorMessages = Object.values(err.response.data).flat().join(' ');
                 setError(`${t('referrals.form.error.prefix')}${errorMessages}`);

@@ -46,8 +46,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                 setWorkplaces(workplacesResponse.data.results ?? workplacesResponse.data);
 
                 setLoading(false);
-            } catch (err) {
-                console.error("Erreur lors de la récupération des données initiales :", err);
+            } catch {
                 setError(t('appointments.form.error_load'));
                 setLoading(false);
             }
@@ -91,8 +90,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                 await api.post('/appointments/', payload);
             }
             onSuccess();
-        } catch (err) {
-            console.error("Erreur lors de la soumission du rendez-vous :", err);
+        } catch {
             setError(t('appointments.form.error_save'));
         }
     };

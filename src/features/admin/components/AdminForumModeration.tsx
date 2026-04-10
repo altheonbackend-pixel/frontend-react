@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
-import type { AdminForumPost } from '../../../shared/types';
+import type { AdminForumPost, AdminForumComment } from '../../../shared/types';
 import PageLoader from '../../../shared/components/PageLoader';
 import '../styles/AdminForumModeration.css';
 
 const AdminForumModeration = () => {
     const {
         forumPosts, totalForumPosts, currentForumPage, isLoading, error,
-        fetchForumPosts, removeForumPost,
+        fetchForumPosts, removeForumPost, removeForumComment,
         doctors, fetchDoctors,
         suspendForum, unsuspendForum,
     } = useAdmin();
 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<AdminForumPost | null>(null);
+    const [deleteCommentTarget, setDeleteCommentTarget] = useState<{ comment: AdminForumComment; postId: number } | null>(null);
     const [expandedPost, setExpandedPost] = useState<number | null>(null);
     const pageSize = 50;
     const totalPages = Math.ceil(totalForumPosts / pageSize);
@@ -33,6 +34,14 @@ const AdminForumModeration = () => {
         await removeForumPost(deleteTarget.id);
         showSuccess(`Post "${deleteTarget.title}" removed.`);
         setDeleteTarget(null);
+    };
+
+    const handleDeleteComment = async () => {
+        if (!deleteCommentTarget) return;
+        await removeForumComment(deleteCommentTarget.comment.id);
+        showSuccess('Comment removed.');
+        setDeleteCommentTarget(null);
+        fetchForumPosts(currentForumPage);
     };
 
     const getDoctorForPost = (authorId: number) => doctors.find(d => d.id === authorId);
@@ -122,7 +131,30 @@ const AdminForumModeration = () => {
                             </div>
                             {isExpanded && (
                                 <div className="forum-post-card__content">
-                                    {post.content}
+                                    <p className="forum-post-card__body">{post.content}</p>
+                                    {post.comments && post.comments.length > 0 && (
+                                        <div className="forum-post-card__comments">
+                                            <h4 className="forum-comments-heading">Comments ({post.comments.length})</h4>
+                                            {post.comments.map(comment => (
+                                                <div key={comment.id} className="forum-comment-item">
+                                                    <div className="forum-comment-item__meta">
+                                                        <span className="forum-comment-item__author">{comment.author_name}</span>
+                                                        <span className="forum-comment-item__date">{new Date(comment.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <p className="forum-comment-item__content">{comment.content}</p>
+                                                    <button
+                                                        className="btn-sm btn-danger"
+                                                        onClick={() => setDeleteCommentTarget({ comment, postId: post.id })}
+                                                    >
+                                                        Remove Comment
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {post.comments && post.comments.length === 0 && (
+                                        <p className="forum-no-comments">No comments yet.</p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -150,6 +182,19 @@ const AdminForumModeration = () => {
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>Cancel</button>
                             <button className="btn btn-danger" onClick={handleDelete}>Remove Post</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {deleteCommentTarget && (
+                <div className="modal-overlay" onClick={() => setDeleteCommentTarget(null)}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()}>
+                        <h3>Remove Comment</h3>
+                        <p>Remove this comment by <strong>{deleteCommentTarget.comment.author_name}</strong>? This cannot be undone.</p>
+                        <div className="modal-actions">
+                            <button className="btn btn-secondary" onClick={() => setDeleteCommentTarget(null)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={handleDeleteComment}>Remove Comment</button>
                         </div>
                     </div>
                 </div>

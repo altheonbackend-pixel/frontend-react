@@ -1,5 +1,3 @@
-// Fichier : src/components/Patients.tsx
-
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
@@ -52,13 +50,12 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
             });
             setPatients(sortedPatients);
             setError(null);
-        } catch (err) {
-            console.error('Erreur lors de la récupération des patients:', err);
+        } catch {
             setError(t('patients.error.load'));
         } finally {
             setLoading(false);
         }
-    }, [token, debouncedSearch, t]);
+    }, [token, debouncedSearch, statusFilter, t]);
 
     useEffect(() => {
         fetchPatients();
@@ -82,10 +79,9 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
             await api.delete(`/patients/${patientId}/`);
             setPatients(patients.filter(patient => patient.unique_id !== patientId));
             setConfirmDeleteId(null);
-            console.log(`Patient ${patientId} supprimé avec succès.`);
-        } catch (err) {
-            console.error('Erreur lors de la suppression du patient:', err);
+        } catch {
             setError(t('patients.error.delete_error'));
+            setConfirmDeleteId(null);
         }
     };
 
@@ -104,8 +100,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
                 pdf.save("liste-des-patients.pdf");
 
-            } catch (err) {
-                console.error("Erreur lors de la création du PDF:", err);
+            } catch {
                 setError(t('patients.error.pdf'));
             }
         }
@@ -115,13 +110,10 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         return <PageLoader message={t('patients.loading')} />;
     }
 
-    if (error) {
-        return <div className="error-message">{error}</div>; // Error is already translated from state setter
-    }
-
     return (
         <>
         <div className="patients-container">
+            {error && <div className="error-message" style={{ marginBottom: '12px' }}>{error}</div>}
             <div className="patients-header">
                 <h2 className="page-title">{t('patients.title')}</h2>
                 <div className="header-buttons">

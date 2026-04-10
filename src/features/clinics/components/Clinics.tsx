@@ -28,8 +28,7 @@ const ClinicList = () => {
                   return (b.id || 0) - (a.id || 0);
                 });
                 setClinics(sortedClinics);
-            } catch (err) {
-                console.error("Erreur lors de la récupération des cliniques", err);
+            } catch {
                 setError(t('clinics.error.load'));
             } finally {
                 setIsLoading(false);
@@ -46,9 +45,9 @@ const ClinicList = () => {
             await api.delete(`/workplaces/${clinicId}/`);
             setClinics(clinics.filter(clinic => clinic.id !== clinicId));
             setConfirmDeleteClinicId(null);
-        } catch (err) {
-            console.error("Erreur lors de la suppression de la clinique", err);
-            alert(t('clinics.error.delete_forbidden'));
+        } catch {
+            setError(t('clinics.error.delete_forbidden'));
+            setConfirmDeleteClinicId(null);
         }
     };
 
@@ -56,12 +55,9 @@ const ClinicList = () => {
         return <PageLoader message={t('clinics.loading')} />;
     }
 
-    if (error) {
-        return <div className="error-text">{error}</div>;
-    }
-
     return (
         <div className="clinic-list-container">
+            {error && <div className="error-text" style={{ marginBottom: '16px' }}>{error}</div>}
             <div className="clinic-header">
                 <h1 className="clinic-title">{t('clinics.list_title')}</h1>
                 <Link to="/clinics/add" className="action-button add-clinic-button">

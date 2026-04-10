@@ -367,7 +367,7 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const removeForumComment = async (commentId: number) => {
         try {
             setError(null);
-            await api.delete(`/admin/forum/${commentId}/remove-comment/`);
+            await api.delete(`/admin/forum/remove-comment/?comment_id=${commentId}`);
         } catch (_err) {
             setError('Failed to remove forum comment.');
         }

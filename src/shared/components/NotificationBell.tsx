@@ -25,8 +25,9 @@ const NotificationBell = () => {
         setLoading(true);
         try {
             const res = await api.get('/notifications/');
-            setNotifications(res.data);
-            setUnread(res.data.filter((n: Notification) => !n.is_read).length);
+            const items: Notification[] = res.data.results ?? res.data;
+            setNotifications(items);
+            setUnread(items.filter((n: Notification) => !n.is_read).length);
         } catch { /* silently fail */ }
         finally { setLoading(false); }
     }, []);

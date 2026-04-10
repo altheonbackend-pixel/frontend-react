@@ -229,6 +229,68 @@
 .btn-danger { background: #e53e3e; color: white; }
 .btn-secondary { background: #e2e8f0; color: #4a5568; }
 
+/* ── Expanded post content ── */
+.forum-post-card__body {
+    font-size: 14px;
+    color: #2d3748;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f7fafc;
+    border-radius: 6px;
+}
+
+.forum-post-card__comments {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}
+
+.forum-comments-heading {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4a5568;
+    margin: 0 0 10px;
+}
+
+.forum-comment-item {
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+}
+
+.forum-comment-item__meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.forum-comment-item__author {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+.forum-comment-item__date {
+    font-size: 11px;
+    color: #718096;
+}
+
+.forum-comment-item__content {
+    font-size: 13px;
+    color: #4a5568;
+    margin: 4px 0 8px;
+    line-height: 1.5;
+}
+
+.forum-no-comments {
+    font-size: 13px;
+    color: #a0aec0;
+    font-style: italic;
+}
+
 /* ── Mobile responsive ── */
 @media (max-width: 768px) {
     .admin-forum { padding: 12px; }

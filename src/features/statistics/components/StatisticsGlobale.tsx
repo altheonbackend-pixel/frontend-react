@@ -13,7 +13,7 @@ interface SortConfig {
 
 function Statistics_Globale() {
     const { t } = useTranslation();
-    const { isAuthenticated, logout, authIsLoading } = useAuth();
+    const { isAuthenticated, authIsLoading } = useAuth();
 
     const [stats, setStats] = useState<GlobalStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -27,21 +27,17 @@ function Statistics_Globale() {
             return;
         }
         setLoading(true);
+
         try {
             const response = await api.get('/stats/global/');
             setStats(response.data);
             setError(null);
-        } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : '';
-            if (errorMessage.includes("Jeton d'accès manquant") || errorMessage.includes("Accès non autorisé")) {
-                logout();
-                return;
-            }
+        } catch {
             setError(t('statistics_global.error.generic'));
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated, authIsLoading, logout, t]);
+    }, [isAuthenticated, authIsLoading, t]);
 
     useEffect(() => {
         if (isAuthenticated && !authIsLoading) loadStats();
@@ -76,7 +72,7 @@ function Statistics_Globale() {
 
     if (authIsLoading || loading) return <PageLoader message={t('statistics_global.loading')} />;
     if (!isAuthenticated) return <div className="stats-container">{t('statistics_global.unauthorized')}</div>;
-    if (error) return <div className="stats-container stats-error">Erreur : {error}</div>;
+    if (error) return <div className="stats-container stats-error">{error}</div>;
     if (!stats) return <div className="stats-container">{t('statistics_global.no_data')}</div>;
 
     return (

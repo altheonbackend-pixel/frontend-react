@@ -29,8 +29,7 @@ const EditPatientPage = () => {
                 const response = await api.get(`/patients/${id}/`);
                 setPatient(response.data);
                 setLoading(false);
-            } catch (err) {
-                console.error('Erreur lors de la récupération du patient:', err);
+            } catch {
                 setError(t('edit_patient.error.load'));
                 setLoading(false);
             }

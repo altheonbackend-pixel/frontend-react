@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import './Notes.css';
@@ -49,6 +49,9 @@ const NOTE_TYPE_COLORS: Record<string, string> = {
 
 const Notes = () => {
     const { t } = useTranslation();
+    const [searchParams] = useSearchParams();
+    const prefilledPatientId = searchParams.get('patient') || '';
+
     const [notes, setNotes] = useState<Note[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -66,12 +69,28 @@ const Notes = () => {
         title: '',
         content: '',
         note_type: 'general',
-        patient: '',
+        patient: prefilledPatientId,
     });
     const [formLoading, setFormLoading] = useState(false);
     const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
     const [patientSearch, setPatientSearch] = useState('');
     const [patientSearchResults, setPatientSearchResults] = useState<PatientOption[]>([]);
+
+    // Auto-open form when patient is pre-filled via URL
+    useEffect(() => {
+        if (prefilledPatientId) {
+            setShowForm(true);
+            setFormData(prev => ({ ...prev, patient: prefilledPatientId }));
+        }
+    }, [prefilledPatientId]);
+
+    // Once patients load, set patientSearch display name for pre-filled patient
+    useEffect(() => {
+        if (prefilledPatientId && patientOptions.length > 0 && !patientSearch) {
+            const found = patientOptions.find(p => p.unique_id === prefilledPatientId);
+            if (found) setPatientSearch(`${found.first_name} ${found.last_name}`);
+        }
+    }, [prefilledPatientId, patientOptions, patientSearch]);
 
     // Debounce search
     useEffect(() => {

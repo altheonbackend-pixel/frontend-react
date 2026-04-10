@@ -60,8 +60,7 @@ const Appointments = () => {
             
             const dates = list.map((appt: AppointmentWithDetails) => new Date(appt.appointment_date).toDateString());
             setAppointmentDates([...new Set(dates)]);
-        } catch (err) {
-            console.error("Erreur lors de la récupération des rendez-vous :", err);
+        } catch {
             setError(t('appointments.error.load'));
         } finally {
             setIsLoading(false);
@@ -123,8 +122,8 @@ const Appointments = () => {
         try {
             await api.post(`/appointments/${apptId}/${action}/`);
             fetchAppointments();
-        } catch (err) {
-            console.error(`Failed to ${action} appointment`, err);
+        } catch {
+            setError(t('appointments.error.action'));
         }
     };
 
@@ -194,7 +193,7 @@ const Appointments = () => {
                                 {(appt.status === 'scheduled' || appt.status === 'pending') && (
                                     <button onClick={() => handleLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
                                 )}
-                                {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                {(appt.status === 'confirmed' || appt.status === 'in_progress') && (
                                     <button onClick={() => handleLifecycleAction(appt.id, 'complete')} className="action-button complete-button">Complete</button>
                                 )}
                                 {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (

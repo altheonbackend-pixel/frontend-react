@@ -34,7 +34,7 @@ interface RecentPatient {
 }
 
 const QUICK_LINKS = [
-    { to: '/patients/new', label: '+ New Patient', accent: true },
+    { to: '/patients/add', label: '+ New Patient', accent: true },
     { to: '/appointments', label: 'Appointments' },
     { to: '/prescriptions', label: 'Prescriptions' },
     { to: '/referrals', label: 'Referrals' },

@@ -121,7 +121,6 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
                 onSuccess();
             }
         } catch (err) {
-            console.error('Erreur lors de l\'enregistrement de l\'acte médical:', err);
             if (axios.isAxiosError(err) && err.response) {
                 const errorData = err.response.data;
                 const errorMessages = Object.values(errorData).flat().join(' ');

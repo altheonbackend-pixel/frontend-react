@@ -29,10 +29,9 @@ const ClinicForm = () => {
                     return;
                 }
                 try {
-                    const response = await api.get('/workplaces/${id}/');
+                    const response = await api.get(`/workplaces/${id}/`);
                     setFormData(response.data);
-                } catch (err) {
-                    console.error("Erreur lors du chargement des données de la clinique :", err);
+                } catch {
                     setError(t('clinics.error.not_found'));
                 }
             };
@@ -70,7 +69,6 @@ const ClinicForm = () => {
                 navigate(`/clinics/${response.data.id}`); // Rediriger vers les détails
             }
         } catch (err) {
-            console.error("Erreur lors de l'enregistrement de la clinique :", err);
             if (axios.isAxiosError(err) && err.response) {
                 // Afficher le message d'erreur du backend (ex: "Vous n'êtes pas le créateur")
                 setError(JSON.stringify(err.response.data));

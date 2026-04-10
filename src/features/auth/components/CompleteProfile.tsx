@@ -18,7 +18,9 @@ const CompleteProfile = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        api.get('/auth/specialties/').then(r => setSpecialties(r.data)).catch(() => {});
+        api.get('/auth/specialties/')
+            .then(r => setSpecialties(r.data))
+            .catch(() => setSpecialties([{ value: 'general_practice', label: 'General Practice' }]));
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {

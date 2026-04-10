@@ -143,7 +143,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 }, 1500); 
             }
         } catch (err) {
-            console.error('Erreur lors de l\'enregistrement du patient:', err);
             if (axios.isAxiosError(err) && err.response) {
                 const errorData = err.response.data;
                 const errorMessages = Object.values(errorData).flat().join(' ');
