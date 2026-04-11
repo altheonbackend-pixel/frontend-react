@@ -1,21 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════
-   PATIENT DETAIL — COMPLETE DESIGN SYSTEM
-   Mobile-first. Desktop overrides at very bottom (min-width).
+   PATIENT DETAIL — SIMPLE, MOBILE-FIRST DESIGN
+   Philosophy: block layout everywhere. No grid. No horizontal flex
+   on the BODY of the page. Only overflow-x:auto containers for
+   intentionally wide content (action strip, tabs, vitals table).
    ═══════════════════════════════════════════════════════════════ */
 
-/* ══ PAGE WRAPPER ════════════════════════════════════════════════ */
+/* ── Page wrapper ── */
 .patient-details-container {
-    /* Ensure this container never bleeds past the viewport */
+    width: 100%;
     max-width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;            /* catch any stray overflow */
     box-sizing: border-box;
 }
 
 /* ══ HEADER ══════════════════════════════════════════════════════ */
 
 .patient-header-card {
-    margin-bottom: 20px;
     padding-bottom: 16px;
+    margin-bottom: 16px;
     border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -23,40 +25,36 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 14px;
-    min-width: 0;
+    margin-bottom: 12px;
 }
 
 .patient-avatar-lg {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
     color: #fff;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
     letter-spacing: -0.5px;
 }
 
 .patient-header-info {
     flex: 1;
-    min-width: 0; /* allow text to truncate */
+    min-width: 0;
 }
 
 .patient-header-info .patient-name {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 6px;
+    margin: 0 0 5px;
     letter-spacing: -0.3px;
     line-height: 1.2;
-    /* Allow long names to wrap instead of overflowing */
-    white-space: normal;
     word-break: break-word;
 }
 
@@ -78,45 +76,41 @@
     font-size: 12px;
     font-weight: 600;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .meta-chip--blood {
     background: #ede9fe;
     color: #5b21b6;
     border-color: #c4b5fd;
-    font-weight: 700;
 }
 
-/* ══ ACTION STRIP — horizontal scroll, NEVER overflows the page ══ */
-
+/* ══ ACTION STRIP ════════════════════════════════════════════════
+   Single horizontal scrollable row of pill buttons.
+   overflow-x: auto creates a SCROLL CONTAINER — the strip
+   can contain wider content WITHOUT widening the page.
+   ═══════════════════════════════════════════════════════════════ */
 .patient-action-strip {
     display: flex;
     flex-direction: row;
-    align-items: center;
     gap: 7px;
-    /*
-     * overflow-x: auto means: buttons scroll LEFT/RIGHT inside this
-     * strip. The strip itself stays bounded to the container width.
-     * The PAGE never gets wider than the viewport.
-     */
     overflow-x: auto;
     overflow-y: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 3px; /* space for box-shadows on buttons */
+    padding-bottom: 2px;
 }
 
 .patient-action-strip::-webkit-scrollbar {
     display: none;
 }
 
-/* ── Base button in the strip ── */
 .strip-btn {
-    flex-shrink: 0;           /* never compress — just scroll */
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 0.48rem 1rem;
+    gap: 3px;
+    padding: 0.45rem 0.95rem;
     font-size: 13px;
     font-weight: 600;
     border-radius: 20px;
@@ -125,7 +119,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    transition: background 0.13s, color 0.13s, border-color 0.13s;
     font-family: var(--font-body);
     text-decoration: none;
     line-height: 1.3;
@@ -134,57 +128,39 @@
 .strip-btn:hover {
     background: var(--bg-muted);
     color: var(--text-primary);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
 .strip-btn:active {
     transform: scale(0.97);
 }
 
-/* Primary — blue filled */
 .strip-btn--primary {
-    background: var(--accent);
+    background: #6366f1;
     color: #fff;
-    border-color: var(--accent);
-    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+    border-color: #6366f1;
 }
 
 .strip-btn--primary:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
+    background: #4f46e5;
+    border-color: #4f46e5;
     color: #fff;
-    box-shadow: 0 3px 8px rgba(99, 102, 241, 0.35);
 }
 
-/* Outlined accent */
-.strip-btn--accent {
-    background: transparent;
-    color: var(--accent);
-    border-color: var(--accent);
-}
-
-.strip-btn--accent:hover {
-    background: var(--accent-lighter);
-    color: var(--accent);
-}
-
-/* ── Dropdown wrapper inside the strip ── */
 .strip-dropdown {
     position: relative;
     flex-shrink: 0;
 }
 
-/* ══ PATIENT STATUS SELECT ══════════════════════════════════════ */
+/* ══ STATUS SELECT ═══════════════════════════════════════════════ */
 
 .patient-status-select {
-    padding: 3px 22px 3px 10px;
+    padding: 3px 22px 3px 9px;
     border-radius: 20px;
     border: 1.5px solid var(--border-default);
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     outline: none;
-    transition: all var(--transition-fast);
     -webkit-appearance: none;
     appearance: none;
     background-repeat: no-repeat;
@@ -192,6 +168,7 @@
     background-size: 9px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23718096'/%3E%3C/svg%3E");
     font-family: var(--font-body);
+    flex-shrink: 0;
 }
 
 .patient-status-select.status-active    { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
@@ -200,59 +177,60 @@
 .patient-status-select.status-deceased  { background-color: var(--bg-muted); color: var(--text-secondary); border-color: var(--border-default); }
 .patient-status-select:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* Status badge (read-only display) */
+/* status badge */
 .status-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .status-active    { background: #d1fae5; color: #065f46; }
 .status-inactive  { background: #fee2e2; color: #991b1b; }
 .status-transferred { background: #dbeafe; color: #1e40af; }
 .status-deceased  { background: var(--bg-muted); color: var(--text-secondary); }
 
-/* ══ ALLERGY ALERT BAR ══════════════════════════════════════════ */
+/* ══ ALLERGY ALERT ═══════════════════════════════════════════════ */
 
 .allergy-alert-bar {
     background: #fff5f5;
     border: 1.5px solid #fc8181;
     border-radius: 10px;
     padding: 10px 14px;
-    margin: 0 0 16px;
+    margin: 0 0 14px;
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    flex-wrap: wrap;       /* chips wrap on narrow screens */
+    flex-wrap: wrap;
     font-size: 13px;
     color: #742a2a;
     line-height: 1.5;
-    /* contains its children — never overflows */
-    min-width: 0;
-    box-sizing: border-box;
     width: 100%;
+    box-sizing: border-box;
 }
 
-.allergy-alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.allergy-alert-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
 
 .allergy-chip {
     display: inline-flex;
     align-items: center;
-    padding: 2px 10px;
+    padding: 2px 9px;
     border-radius: 10px;
     font-size: 12px;
     font-weight: 700;
-    margin: 1px 2px;
-    white-space: normal;
+    margin: 1px 1px;
     word-break: break-word;
+    white-space: normal;
 }
 
 .allergy-chip.life-threatening { background: #742a2a; color: #fff; }
 .allergy-chip.severe { background: #fed7d7; color: #9b2c2c; }
 
-/* ══ TABS ════════════════════════════════════════════════════════ */
+/* ══ TABS ════════════════════════════════════════════════════════
+   overflow-x: auto creates a scroll container — tabs scroll
+   within the bar without making the page wider.
+   ═══════════════════════════════════════════════════════════════ */
 
 .patient-tabs {
     display: flex;
     gap: 0;
-    margin: 20px 0 0;
+    margin: 16px 0 0;
     border-bottom: 1.5px solid var(--border-subtle);
-    overflow-x: auto;        /* tabs scroll horizontally — never overflow page */
+    overflow-x: auto;
     overflow-y: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -261,59 +239,62 @@
 .patient-tabs::-webkit-scrollbar { display: none; }
 
 .patient-tab {
-    padding: 8px 13px;
+    padding: 8px 12px;
     border: none;
     background: none;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
     color: var(--text-muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     margin-bottom: -1.5px;
-    white-space: nowrap;    /* tabs must not wrap */
-    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.13s, border-color 0.13s;
     display: flex;
     align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
+    gap: 4px;
+    font-family: var(--font-body);
 }
 
 .patient-tab:hover { color: var(--text-secondary); }
 
 .patient-tab.active {
-    color: var(--accent);
+    color: #6366f1;
     font-weight: 600;
-    border-bottom-color: var(--accent);
+    border-bottom-color: #6366f1;
 }
 
 .tab-count {
     background: var(--bg-muted);
     color: var(--text-muted);
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 700;
     border-radius: 8px;
     padding: 0 5px;
     min-width: 16px;
     text-align: center;
     line-height: 16px;
-    transition: background 0.15s, color 0.15s;
 }
 
 .patient-tab.active .tab-count {
-    background: var(--accent-lighter);
-    color: var(--accent);
+    background: #e0e7ff;
+    color: #4f46e5;
 }
 
 /* ══ TAB CONTENT ═════════════════════════════════════════════════ */
 
 .patient-tab-content {
-    padding: 20px 0 48px;
-    /* contain children — no horizontal overflow */
-    overflow-x: hidden;
-    min-width: 0;
+    padding: 18px 0 48px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.tab-panel { min-width: 0; }
+.tab-panel {
+    width: 100%;
+    box-sizing: border-box;
+}
 
 .tab-panel-header {
     display: flex;
@@ -331,12 +312,13 @@
     color: var(--text-primary);
 }
 
-/* ══ OVERVIEW GRID ═══════════════════════════════════════════════ */
+/* ══ OVERVIEW — STACKED CARDS ════════════════════════════════════
+   NO grid. Just stacked block elements. Zero overflow risk.
+   ═══════════════════════════════════════════════════════════════ */
 
 .overview-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    display: block;   /* NOT grid or flex — just stacked blocks */
+    width: 100%;
 }
 
 /* ══ PATIENT DETAIL CARD ════════════════════════════════════════ */
@@ -345,15 +327,16 @@
     background: var(--bg-base);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 18px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    min-width: 0;
-    box-sizing: border-box;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 12px;
     width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;   /* contain any child overflow */
 }
 
 .patient-details-card h3 {
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -366,44 +349,42 @@
 /* ══ CONDITIONS ══════════════════════════════════════════════════ */
 
 .conditions-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: block;   /* stacked */
+    width: 100%;
 }
 
 .condition-card {
     background: var(--bg-base);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 14px 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: box-shadow 0.15s;
-    min-width: 0;
+    padding: 14px;
+    margin-bottom: 10px;
+    width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
-.condition-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.09); }
+.condition-card:last-child { margin-bottom: 0; }
 
 .condition-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
     gap: 8px;
     flex-wrap: wrap;
 }
 
-.condition-name { font-weight: 700; font-size: 14.5px; color: var(--text-primary); }
+.condition-name { font-weight: 700; font-size: 14px; color: var(--text-primary); }
 
 .icd-code {
     font-size: 10.5px;
     background: var(--bg-muted);
     color: var(--text-secondary);
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 4px;
-    margin-left: 6px;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.03em;
+    margin-left: 5px;
+    font-family: monospace;
 }
 
 .condition-status {
@@ -415,55 +396,57 @@
     flex-shrink: 0;
 }
 
-.condition-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
-.condition-notes { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+.condition-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+.condition-notes { font-size: 13px; color: var(--text-secondary); margin: 0; line-height: 1.5; word-break: break-word; }
 
 .mini-condition {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 7px 0;
+    padding: 6px 0;
     border-bottom: 1px solid var(--border-subtle);
-    font-size: 13.5px;
-    min-width: 0;
+    font-size: 13px;
 }
 
 .mini-condition:last-child { border-bottom: none; }
-.condition-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.condition-status-label { margin-left: auto; font-size: 11px; color: var(--text-muted); text-transform: capitalize; white-space: nowrap; }
+.condition-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.condition-status-label { margin-left: auto; font-size: 11px; color: var(--text-muted); text-transform: capitalize; white-space: nowrap; flex-shrink: 0; }
 
 /* ══ ALLERGIES ═══════════════════════════════════════════════════ */
 
-.allergies-list { display: flex; flex-direction: column; gap: 10px; }
+.allergies-list {
+    display: block;
+    width: 100%;
+}
 
 .allergy-card {
     background: var(--bg-base);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 14px 16px;
-    transition: box-shadow 0.15s;
-    min-width: 0;
-    box-sizing: border-box;
+    padding: 14px;
+    margin-bottom: 10px;
     width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.allergy-card:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+.allergy-card:last-child { margin-bottom: 0; }
 .allergy-card.inactive { opacity: 0.55; }
 
 .allergy-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
     gap: 8px;
     flex-wrap: wrap;
 }
 
-.allergen-name { font-weight: 700; font-size: 14.5px; color: var(--text-primary); }
-.allergy-type { font-size: 12px; color: var(--text-muted); margin-left: 6px; }
+.allergen-name { font-weight: 700; font-size: 14px; color: var(--text-primary); }
+.allergy-type { font-size: 12px; color: var(--text-muted); margin-left: 5px; }
 
 .severity-badge {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     padding: 2px 9px;
     border-radius: 20px;
@@ -472,17 +455,24 @@
     white-space: nowrap;
 }
 
-.allergy-desc { font-size: 13px; color: var(--text-secondary); margin: 4px 0 0; line-height: 1.5; }
+.allergy-desc { font-size: 13px; color: var(--text-secondary); margin: 4px 0 0; line-height: 1.5; word-break: break-word; }
 .inactive-label { font-size: 11px; color: var(--text-muted); font-style: italic; }
 
-/* ══ CONSULTATION / ENTRY CARDS ══════════════════════════════════ */
+/* ══ CONSULTATION CARDS ══════════════════════════════════════════ */
 
-.consult-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.consult-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
 .consult-header h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 
 .consult-type-badge {
-    background: var(--accent-lighter);
-    color: var(--accent);
+    background: #e0e7ff;
+    color: #4f46e5;
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -490,7 +480,7 @@
     white-space: nowrap;
 }
 
-.symptoms-display { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.symptoms-display { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
 
 .symptom-tag {
     background: #ede9fe;
@@ -501,14 +491,14 @@
     font-weight: 600;
 }
 
-.vitals-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.vitals-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 
 .vital-chip {
     background: var(--bg-subtle);
     border: 1px solid var(--border-subtle);
     font-size: 12px;
     color: var(--text-secondary);
-    padding: 2px 9px;
+    padding: 2px 8px;
     border-radius: 10px;
     font-weight: 500;
     white-space: nowrap;
@@ -527,20 +517,24 @@
     margin-top: 6px;
 }
 
-/* Mini consultation in overview */
 .mini-consultation {
     padding: 8px 0;
     border-bottom: 1px solid var(--border-subtle);
-    min-width: 0;
 }
 
 .mini-consultation:last-child { border-bottom: none; }
-.mini-consult-date { font-size: 11.5px; color: var(--text-muted); margin-bottom: 2px; }
-.mini-consult-reason { font-size: 13.5px; color: var(--text-primary); word-break: break-word; }
+.mini-consult-date { font-size: 11px; color: var(--text-muted); margin-bottom: 2px; }
+.mini-consult-reason { font-size: 13px; color: var(--text-primary); word-break: break-word; }
 
 /* ══ NOTES ══════════════════════════════════════════════════════ */
 
-.note-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.note-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+    flex-wrap: wrap;
+}
 
 .note-type-badge {
     background: #ede9fe;
@@ -553,53 +547,50 @@
     white-space: nowrap;
 }
 
-.note-date { font-size: 11.5px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
-.note-content { font-size: 13.5px; color: var(--text-secondary); margin: 0 0 4px; white-space: pre-wrap; line-height: 1.6; word-break: break-word; }
-.note-author { font-size: 12px; color: var(--text-muted); }
+.note-date { font-size: 11px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+.note-content { font-size: 13px; color: var(--text-secondary); margin: 0 0 4px; white-space: pre-wrap; line-height: 1.6; word-break: break-word; }
+.note-author { font-size: 11.5px; color: var(--text-muted); }
 
-/* ══ BUTTONS (add, view-all, muted) ═════════════════════════════ */
+/* ══ BUTTONS ════════════════════════════════════════════════════ */
 
 .btn-add-primary {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: var(--accent);
+    background: #6366f1;
     color: #fff;
     border: none;
-    border-radius: var(--radius-pill);
-    padding: 0.42rem 1rem;
+    border-radius: 20px;
+    padding: 0.4rem 0.95rem;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    transition: background var(--transition-fast);
+    transition: background 0.13s;
     font-family: var(--font-body);
     white-space: nowrap;
     flex-shrink: 0;
 }
 
-.btn-add-primary:hover { background: var(--accent-hover); }
+.btn-add-primary:hover { background: #4f46e5; }
 
 .btn-view-all {
     background: none;
     border: none;
-    color: var(--accent);
+    color: #6366f1;
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
-    padding: 10px 0 0;
+    padding: 8px 0 0;
     display: block;
     font-family: var(--font-body);
 }
 
 .btn-view-all:hover { text-decoration: underline; }
-.muted { color: var(--text-muted); font-size: 13.5px; }
+.muted { color: var(--text-muted); font-size: 13px; }
 
-/* ══ ENTRY ACTIONS (edit / delete within cards) ══════════════════ */
-/*
- * These override DetailStyles.css .entry-actions so they never overflow.
- * flex-wrap: wrap ensures buttons drop to next line on narrow cards.
- */
+/* ══ ENTRY ACTIONS (edit / delete in cards) ═════════════════════ */
+
 .entry-actions {
     display: flex;
     gap: 8px;
@@ -607,16 +598,15 @@
     flex-wrap: wrap;
 }
 
-/* Override DetailStyles action-button for patient detail cards */
+/* Override DetailStyles action-button in the patient detail */
 .patient-details-container .action-button,
 .patient-details-container .edit-button,
 .patient-details-container .delete-button {
     flex: 1;
     min-width: 70px;
-    max-width: 160px;
     justify-content: center;
     font-size: 12.5px;
-    padding: 0.4rem 0.7rem;
+    padding: 0.38rem 0.7rem;
 }
 
 /* ══ INLINE FORM ════════════════════════════════════════════════ */
@@ -627,15 +617,15 @@
     border-radius: 12px;
     padding: 16px;
     margin-bottom: 14px;
-    min-width: 0;
-    box-sizing: border-box;
     width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
-.symptoms-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.symptoms-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
 
 .symptom-chip {
-    padding: 4px 12px;
+    padding: 4px 11px;
     border: 1.5px solid var(--border-default);
     border-radius: 20px;
     background: var(--bg-base);
@@ -643,7 +633,7 @@
     font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all 0.13s;
     font-family: var(--font-body);
 }
 
@@ -662,12 +652,13 @@
     background: var(--bg-base);
     outline: none;
     min-width: 0;
+    box-sizing: border-box;
 }
 
-.custom-symptom-row input:focus { border-color: var(--accent); }
+.custom-symptom-row input:focus { border-color: #6366f1; }
 
 .add-chip-btn {
-    padding: 6px 14px;
+    padding: 6px 12px;
     background: var(--text-secondary);
     color: var(--text-inverse);
     border: none;
@@ -681,36 +672,42 @@
 }
 
 .add-chip-btn:hover { background: var(--text-primary); }
-
 .custom-chip { position: relative; padding-right: 24px; }
 
 .chip-remove {
     position: absolute; right: 4px; top: 50%;
     transform: translateY(-50%);
-    background: none; border: none; font-size: 14px;
+    background: none; border: none; font-size: 13px;
     cursor: pointer; color: #9f7aea; padding: 0; line-height: 1;
 }
 
-.form-checkbox { flex-direction: row; align-items: center; gap: 8px; }
-.form-checkbox label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
-.form-hint { display: block; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.form-hint { display: block; font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 
 /* ══ VITALS TREND ════════════════════════════════════════════════ */
 
-.vitals-trend-container { display: flex; flex-direction: column; gap: 24px; }
+.vitals-trend-container { width: 100%; }
 
 .vitals-trend-table-wrapper {
-    overflow-x: auto;    /* table scrolls horizontally — never overflows page */
+    /*
+     * overflow-x: auto creates a scroll container for the wide table.
+     * The wrapper is bounded to the page width.
+     * The table scrolls within the wrapper — never makes page wider.
+     */
+    overflow-x: auto;
+    overflow-y: visible;
     border-radius: 10px;
     border: 1px solid var(--border-subtle);
+    margin-bottom: 20px;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .vitals-trend-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 13.5px;
-    min-width: 480px;
+    font-size: 13px;
+    min-width: 460px;   /* force horizontal scroll inside wrapper */
 }
 
 .vitals-trend-table th {
@@ -721,7 +718,7 @@
     font-weight: 600;
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     border-bottom: 1.5px solid var(--border-subtle);
     white-space: nowrap;
 }
@@ -730,59 +727,50 @@
     padding: 10px 14px;
     border-bottom: 1px solid var(--border-subtle);
     color: var(--text-primary);
-    transition: background 0.12s;
     white-space: nowrap;
 }
 
 .vitals-trend-table tr:last-child td { border-bottom: none; }
 .vitals-trend-table tr:hover td { background: var(--bg-subtle); }
-.vitals-trend-table .vitals-warning { color: var(--color-danger); font-weight: 700; }
+.vitals-trend-table .vitals-warning { color: #e53e3e; font-weight: 700; }
 .vitals-trend-table .muted { color: var(--text-muted); }
 
-/* Sparklines */
-.vitals-sparklines { display: flex; flex-wrap: wrap; gap: 14px; }
+.vitals-sparklines {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+}
 
 .vital-sparkline-card {
     background: var(--bg-base);
     border: 1px solid var(--border-subtle);
     border-radius: 12px;
-    padding: 14px 16px;
-    flex: 1 1 240px;
+    padding: 12px 14px;
+    flex: 1 1 220px;
     min-width: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     box-sizing: border-box;
 }
 
-.vital-sparkline-card svg {
-    width: 100%;
-    height: auto;
-    display: block;
-}
+.vital-sparkline-card svg { width: 100%; height: auto; display: block; }
+.vital-sparkline-label { font-size: 11px; font-weight: 700; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.vital-sparkline-range { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.vital-sparkline-last { font-size: 12px; color: var(--text-secondary); margin-top: 5px; }
 
-.vital-sparkline-label { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-.vital-sparkline-range { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; }
-.vital-sparkline-last { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+/* ══ RESPONSIVE ══════════════════════════════════════════════════ */
 
-/* ══ RESPONSIVE — MOBILE CONTENT TWEAKS ════════════════════════ */
-
-@media (max-width: 768px) {
-    .patient-tab { padding: 8px 10px; font-size: 12.5px; }
-    .tab-panel-header { flex-direction: row; align-items: center; }
-    .patient-details-card { padding: 14px; }
+@media (max-width: 480px) {
+    .patient-tab { padding: 7px 9px; font-size: 12px; }
+    .tab-count { display: none; }
+    .patient-avatar-lg { width: 40px; height: 40px; font-size: 14px; }
+    .patient-header-info .patient-name { font-size: 17px; }
     .vitals-sparklines { flex-direction: column; }
     .vital-sparkline-card { flex: none; width: 100%; }
 }
 
-@media (max-width: 480px) {
-    .patient-tab { padding: 7px 8px; font-size: 11.5px; }
-    .tab-count { display: none; }
-    .patient-avatar-lg { width: 42px; height: 42px; font-size: 15px; }
-    .patient-header-info .patient-name { font-size: 18px; }
-}
-
-/* ══ DESKTOP LAYOUT OVERRIDE ════════════════════════════════════
-   Placed LAST — wins cascade over all base styles above.
-   ════════════════════════════════════════════════════════════ */
+/* ══ DESKTOP OVERRIDES ═══════════════════════════════════════════
+   Placed LAST to win the cascade over all base styles.
+   ═══════════════════════════════════════════════════════════════ */
 
 @media (min-width: 769px) {
     .patient-header-card {
@@ -790,43 +778,51 @@
         justify-content: space-between;
         align-items: center;
         gap: 20px;
-        flex-wrap: wrap;
     }
 
-    .patient-header-identity {
-        margin-bottom: 0;
-        flex: 1;
-        min-width: 0;
-    }
+    .patient-header-identity { margin-bottom: 0; flex: 1; min-width: 0; }
+    .patient-avatar-lg { width: 52px; height: 52px; font-size: 18px; }
+    .patient-header-info .patient-name { font-size: 21px; }
 
-    .patient-avatar-lg { width: 54px; height: 54px; font-size: 19px; }
-
-    .patient-header-info .patient-name { font-size: 22px; }
-
-    /* On desktop the strip doesn't need to scroll — it has room */
+    /* Desktop: strip doesn't need to scroll */
     .patient-action-strip {
         overflow-x: visible;
         flex-shrink: 0;
         flex-wrap: wrap;
     }
 
+    /* Desktop: show cards side by side in overview */
     .overview-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         gap: 16px;
     }
 
+    .overview-grid .patient-details-card { margin-bottom: 0; }
+
+    /* Desktop: conditions side by side */
     .conditions-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 12px;
     }
 
+    .conditions-grid .condition-card { margin-bottom: 0; }
+
+    /* Desktop: allergies side by side */
+    .allergies-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 12px;
+    }
+
+    .allergies-list .allergy-card { margin-bottom: 0; }
+
+    /* Desktop: entry action buttons natural size */
     .patient-details-container .action-button,
     .patient-details-container .edit-button,
     .patient-details-container .delete-button {
         flex: 0 0 auto;
         min-width: auto;
-        max-width: none;
     }
 }

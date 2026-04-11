@@ -181,37 +181,35 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* ── Key-value info items — inline grid, no stacking ── */
+/* ── Key-value info items — STACKED label approach (no grid) ── */
+/*
+ * Never use a CSS grid here. Even with minmax(0,1fr) the grid's
+ * min-width can expand the parent and make the whole page wider.
+ * Stacking label above value is the safe, readable mobile pattern.
+ */
 .info-item {
-  display: grid;
-  /* minmax(0,1fr) prevents grid from expanding to content width */
-  grid-template-columns: 120px minmax(0, 1fr);
-  align-items: baseline;
-  gap: 4px 10px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-size: 13.5px;
   line-height: 1.5;
-  min-width: 0;
 }
 
 .info-item strong {
+  display: block;
   font-weight: 600;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  padding-top: 2px;
-  min-width: 0;
+  margin-bottom: 1px;
 }
 
 .info-item span,
 .info-item p {
+  display: block;
   color: var(--text-primary);
   font-size: 13.5px;
-  /* allow long emails/numbers to wrap or break */
   word-break: break-word;
   overflow-wrap: anywhere;
-  min-width: 0;
 }
 
 /* ── List items (consultation/procedure cards) ── */
@@ -530,12 +528,8 @@
     width: 100%;
   }
 
-  /* Tighten grid on narrow screens */
-  .info-item {
-    grid-template-columns: 100px 1fr;
-    margin-bottom: 8px;
-  }
-  .info-item strong { min-width: auto; }
+  /* Compact spacing on narrow screens */
+  .info-item { margin-bottom: 10px; }
 
   .detail-info-group { padding: var(--space-4); }
 
