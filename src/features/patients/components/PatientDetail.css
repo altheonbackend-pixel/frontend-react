@@ -375,7 +375,7 @@
     .tab-panel-header button { width: 100%; justify-content: center; }
 
     /* Quick actions wrap tighter */
-    .patient-quick-actions { gap: 6px; }
+    .patient-quick-actions { gap: 6px; width: 100%; flex-wrap: wrap; }
     .pqa-btn { padding: 0.35rem 0.65rem; font-size: 11px; }
 
     /* Vitals sparkline cards full width */
@@ -389,7 +389,7 @@
 
 @media (max-width: 480px) {
     .patient-tab { padding: 7px 9px; font-size: 12px; }
-    .patient-quick-actions { gap: 4px; }
+    .patient-quick-actions { gap: 4px; width: 100%; }
     .pqa-btn { padding: 0.3rem 0.55rem; font-size: 11px; }
     .tab-count { display: none; }  /* hide counts on very small screens */
 }
