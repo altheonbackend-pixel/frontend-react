@@ -156,6 +156,8 @@ body {
   background: transparent;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent any element from making the page horizontally scrollable */
+  overflow-x: hidden;
 }
 
 /* ── App shell ── */

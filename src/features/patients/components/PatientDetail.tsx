@@ -395,29 +395,57 @@ const PatientDetails = () => {
                         </div>
                     </div>
                 </div>
-                <div className="patient-action-bar">
-                    <button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }} className="pqa-btn pqa-btn--primary">
+                {/* Action strip — scrollable horizontal row, never makes page wider */}
+                <div className="patient-action-strip">
+                    <button
+                        onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }}
+                        className="strip-btn strip-btn--primary"
+                    >
                         + Consultation
                     </button>
-                    <div className="pqa-grid">
-                        {(profile?.access_level ?? 1) >= 2 && (
-                            <button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }} className="pqa-btn pqa-btn--secondary">+ Referral</button>
+                    {(profile?.access_level ?? 1) >= 2 && (
+                        <button
+                            onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }}
+                            className="strip-btn"
+                        >
+                            + Referral
+                        </button>
+                    )}
+                    <button
+                        onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }}
+                        className="strip-btn"
+                    >
+                        + Condition
+                    </button>
+                    <button onClick={handleExportPdf} className="strip-btn">
+                        PDF
+                    </button>
+                    <div className="strip-dropdown" ref={dropdownRef}>
+                        <button onClick={() => setShowDropdown(!showDropdown)} className="strip-btn">
+                            More ▾
+                        </button>
+                        {showDropdown && (
+                            <ul className="dropdown-menu">
+                                {(profile?.access_level ?? 1) >= 2 && (
+                                    <li>
+                                        <button
+                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }}
+                                            className="action-button dropdown-item"
+                                        >
+                                            + Add Procedure
+                                        </button>
+                                    </li>
+                                )}
+                                <li>
+                                    <button
+                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }}
+                                        className="action-button dropdown-item"
+                                    >
+                                        + Add Allergy
+                                    </button>
+                                </li>
+                            </ul>
                         )}
-                        <button onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }} className="pqa-btn pqa-btn--secondary">+ Condition</button>
-                        <button onClick={handleExportPdf} className="pqa-btn pqa-btn--ghost">PDF</button>
-                        <div className="dropdown" ref={dropdownRef}>
-                            <button onClick={() => setShowDropdown(!showDropdown)} className="pqa-btn pqa-btn--ghost">
-                                More ▾
-                            </button>
-                            {showDropdown && (
-                                <ul className="dropdown-menu">
-                                    {(profile?.access_level ?? 1) >= 2 && (
-                                        <li><button onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }} className="action-button dropdown-item">+ Add Procedure</button></li>
-                                    )}
-                                    <li><button onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }} className="action-button dropdown-item">+ Add Allergy</button></li>
-                                </ul>
-                            )}
-                        </div>
                     </div>
                 </div>
             </div>
