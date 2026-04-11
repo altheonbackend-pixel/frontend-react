@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/FormStyles.css';
+import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
+import '../styles/ConsultationForm.css';
 
 const COMMON_SYMPTOMS = [
     'Fever', 'Cough', 'Shortness of breath', 'Fatigue', 'Headache',
@@ -58,7 +58,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [symptoms, setSymptoms] = useState<string[]>([]);
     const [customSymptom, setCustomSymptom] = useState('');
     const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [dirty, setDirty] = useState(false);
 
     useEffect(() => {
         if (consultationToEdit) {
@@ -83,6 +83,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+        setDirty(true);
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -90,6 +91,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     };
 
     const toggleSymptom = (symptom: string) => {
+        setDirty(true);
         setSymptoms(prev =>
             prev.includes(symptom) ? prev.filter(s => s !== symptom) : [...prev, symptom]
         );
@@ -98,6 +100,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const addCustomSymptom = () => {
         const trimmed = customSymptom.trim();
         if (trimmed && !symptoms.includes(trimmed)) {
+            setDirty(true);
             setSymptoms(prev => [...prev, trimmed]);
             setCustomSymptom('');
         }
@@ -106,10 +109,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setErrorMessage(null);
 
         if (!token) {
-            setErrorMessage(t('consultation.error.auth'));
+            toast.error(t('consultation.error.auth'));
             setLoading(false);
             return;
         }
@@ -135,16 +137,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
+                toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
+                setDirty(false);
                 onSuccess();
             }
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response) {
-                const errorData = err.response.data;
-                const errorMessages = Object.values(errorData).flat().join(' ');
-                setErrorMessage(`${t('consultation.error.prefix')}${errorMessages}`);
-            } else {
-                setErrorMessage(t('consultation.error.generic'));
-            }
+            toast.error(parseApiError(err, t('consultation.error.generic')));
         } finally {
             setLoading(false);
         }
@@ -153,15 +151,24 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const isEditing = !!consultationToEdit;
 
     return (
-        <div className="form-overlay">
-            <div className="form-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>{isEditing ? t('consultation.title_edit') : t('consultation.title_add')}</h3>
-                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
-                </div>
-                <div className="modal-body">
-                {errorMessage && <div className="error-message">{errorMessage}</div>}
-                <form onSubmit={handleSubmit} className="form">
+        <Drawer
+            open
+            onClose={onCancel}
+            title={isEditing ? t('consultation.title_edit') : t('consultation.title_add')}
+            size="lg"
+            dirty={dirty}
+            footer={
+                <>
+                    <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
+                        {t('consultation.cancel')}
+                    </button>
+                    <button type="submit" form="consultation-form" disabled={loading}>
+                        {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
+                    </button>
+                </>
+            }
+        >
+                <form id="consultation-form" onSubmit={handleSubmit} className="form">
                     {/* Consultation date */}
                     <div className="form-group">
                         <label htmlFor="consultation_date">{t('consultation.date')} <span className="required">*</span></label>
@@ -277,18 +284,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         </label>
                     </div>
 
-                    <div className="form-actions">
-                        <button type="submit" disabled={loading}>
-                            {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
-                        </button>
-                        <button type="button" onClick={onCancel} className="cancel-button">
-                            {t('consultation.cancel')}
-                        </button>
-                    </div>
                 </form>
-                </div>
-            </div>
-        </div>
+        </Drawer>
     );
 };
 
