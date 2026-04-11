@@ -93,27 +93,14 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
         try {
             let response;
             if (procedureToEdit && procedureToEdit.id) {
-                // Modification (PUT)
-                // Notez que pour les FormData, la méthode PUT/PATCH peut nécessiter une configuration spécifique
-                // du backend pour accepter ce type de requête.
-                // Ici, on utilise PATCH pour ne mettre à jour que les champs modifiés
                 response = await api.patch(
                     `/medical-procedures/${procedureToEdit.id}/`,
                     dataToSend,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'multipart/form-data',
-                        },
-                    }
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
                 );
             } else {
-                // Création (POST)
                 response = await api.post('/medical-procedures/', dataToSend, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data',
-                    },
+                    headers: { 'Content-Type': 'multipart/form-data' },
                 });
             }
 
@@ -136,7 +123,7 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
     const isEditing = !!procedureToEdit;
 
     return (
-        <div className="form-overlay" onClick={onCancel}>
+        <div className="form-overlay">
             <div className="form-container" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>{isEditing ? t('medical_procedure.title_edit') : t('medical_procedure.title_add')}</h3>

@@ -1,6 +1,12 @@
 export const resources = {
   fr: {
     translation: {
+      "common.confirm": "Confirmer",
+      "common.cancel": "Annuler",
+      "common.close": "Fermer",
+      "common.loading": "Chargement…",
+      "common.save": "Enregistrer",
+      "common.discard_changes": "Des modifications ne sont pas enregistrées. Voulez-vous vraiment fermer ?",
       "login.title": "Connexion Médecin",
       "login.email_label": "Email professionnel",
       "login.email_placeholder": "Email professionnel",
@@ -461,6 +467,12 @@ export const resources = {
   },
   en: {
     translation: {
+      "common.confirm": "Confirm",
+      "common.cancel": "Cancel",
+      "common.close": "Close",
+      "common.loading": "Loading…",
+      "common.save": "Save",
+      "common.discard_changes": "You have unsaved changes. Are you sure you want to close?",
       "login.title": "Doctor Login",
       "login.email_label": "Professional Email",
       "login.email_placeholder": "Professional Email",

@@ -35,6 +35,14 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [duplicates, setDuplicates] = useState<{ unique_id: string; first_name: string; last_name: string; date_of_birth: string | null }[]>([]);
     const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (dupTimerRef.current) clearTimeout(dupTimerRef.current);
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+        };
+    }, []);
 
     // Pré-remplir le formulaire si un patient à modifier est passé en prop
     useEffect(() => {
@@ -136,11 +144,9 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 });
                 onSuccess(response.data);
 
-                // --- NOUVELLE LOGIQUE AJOUTÉE ---
-                // Fermer le formulaire après 1.5 secondes pour laisser le temps au message de succès d'apparaître
-                setTimeout(() => {
-                    onCancel(); 
-                }, 1500); 
+                closeTimerRef.current = setTimeout(() => {
+                    onCancel();
+                }, 1500);
             }
         } catch (err) {
             if (axios.isAxiosError(err) && err.response) {
@@ -158,7 +164,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const buttonText = patientToEdit ? t('patient_form.submit.edit') : t('patient_form.submit.add');
 
     return (
-        <div className="form-overlay" onClick={onCancel}>
+        <div className="form-overlay">
             <div className="form-container" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>{patientToEdit ? t('patient_form.title_edit') : t('patient_form.title_add')}</h3>

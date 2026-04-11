@@ -95,22 +95,17 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
         }
     };
 
-    if (loading) {
-        return <div className="loading-message">{t('appointments.form.loading')}</div>;
-    }
-
-    if (error) {
-        return <div className="error-message">{error}</div>;
-    }
-
     return (
-        <div className="form-modal-overlay" onClick={onCancel}>
+        <div className="form-modal-overlay">
             <div className="appointment-form-container" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>{appointment ? t('appointments.form.title_edit') : t('appointments.form.title_add')}</h3>
                     <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
                 </div>
                 <div className="modal-body">
+                {loading && <div className="loading-message">{t('appointments.form.loading')}</div>}
+                {!loading && error && <div className="error-message">{error}</div>}
+                {!loading && !error && (
                 <form onSubmit={handleSubmit} className="appointment-form">
                     <div className="form-group">
                         <label htmlFor="patient">{t('appointments.patient_label')}</label>
@@ -182,6 +177,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         </button>
                     </div>
                 </form>
+                )}
                 </div>
             </div>
         </div>

@@ -130,7 +130,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const isEditing = !!referralToEdit;
 
     return (
-        <div className="form-overlay" onClick={onClose}>
+        <div className="form-overlay">
             <div className="form-container" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>{isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}</h3>

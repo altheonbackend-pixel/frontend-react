@@ -336,7 +336,7 @@ const PatientDetails = () => {
         if (!attachmentUrl) return;
         const fileNameToUse = attachmentName || 'attachment';
         try {
-            const response = await axios({ method: 'get', url: attachmentUrl, responseType: 'blob', headers: { Authorization: `Bearer ${token}` } });
+            const response = await api.get(attachmentUrl, { responseType: 'blob' });
             const blob = new Blob([response.data]);
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');

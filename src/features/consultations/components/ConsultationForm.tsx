@@ -153,7 +153,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const isEditing = !!consultationToEdit;
 
     return (
-        <div className="form-overlay" onClick={onCancel}>
+        <div className="form-overlay">
             <div className="form-container" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>{isEditing ? t('consultation.title_edit') : t('consultation.title_add')}</h3>

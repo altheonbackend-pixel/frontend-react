@@ -3,42 +3,8 @@
    Extends shared FormStyles with vitals-specific layout.
    ============================================================ */
 
-/* ── Overlay ── */
-.form-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(26, 26, 26, 0.40);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: var(--z-modal);
-  padding: var(--space-4);
-}
-
-/* ── Modal card ── */
-.form-container {
-  background: var(--bg-base);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  padding: var(--space-8);
-  width: 100%;
-  max-width: 600px;
-  max-height: 92vh;
-  overflow-y: auto;
-  animation: scaleIn 0.25s ease both;
-}
-
-.form h3 {
-  font-size: var(--text-xl);
-  font-weight: var(--fw-bold);
-  color: var(--text-primary);
-  text-align: center;
-  margin-bottom: var(--space-6);
-  letter-spacing: -0.3px;
-}
+/* Overlay + container + header come from shared/styles/FormStyles.css.
+   Only consultation-specific extensions live below. */
 
 /* ── Vitals section header ── */
 .vitals-heading {
@@ -182,15 +148,12 @@
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .form-overlay { align-items: flex-start; padding: var(--space-4) var(--space-3); }
-  .form-container { padding: var(--space-6); margin-top: var(--space-4); border-radius: var(--radius-lg); }
   .vitals-grid { grid-template-columns: 1fr; }
   .form-actions { gap: var(--space-2); }
   .form-actions button[type="submit"], .cancel-button { flex: 1; }
 }
 
 @media (max-width: 480px) {
-  .form-container { padding: var(--space-5); border-radius: var(--radius-md); max-height: 100vh; }
   .form-actions { flex-direction: column-reverse; border-top: none; }
   .form-actions button[type="submit"], .cancel-button { width: 100%; }
 }
