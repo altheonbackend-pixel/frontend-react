@@ -95,8 +95,9 @@
 /* Secondary: 2×2 grid on mobile */
 .pqa-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 8px;
+    min-width: 0;
 }
 .pqa-grid > * {
     /* every direct child — button or dropdown wrapper — behaves as a grid item */

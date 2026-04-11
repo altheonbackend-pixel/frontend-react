@@ -184,12 +184,14 @@
 /* ── Key-value info items — inline grid, no stacking ── */
 .info-item {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  /* minmax(0,1fr) prevents grid from expanding to content width */
+  grid-template-columns: 120px minmax(0, 1fr);
   align-items: baseline;
   gap: 4px 10px;
   margin-bottom: 10px;
   font-size: 13.5px;
   line-height: 1.5;
+  min-width: 0;
 }
 
 .info-item strong {
@@ -199,13 +201,17 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding-top: 2px;
+  min-width: 0;
 }
 
 .info-item span,
 .info-item p {
   color: var(--text-primary);
   font-size: 13.5px;
+  /* allow long emails/numbers to wrap or break */
   word-break: break-word;
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 /* ── List items (consultation/procedure cards) ── */
@@ -503,6 +509,7 @@
   .detail-container {
     padding: var(--space-4);
     margin: var(--space-4) auto;
+    overflow-x: clip; /* clip horizontal overflow without creating BFC (dropdowns still work) */
   }
 
   .detail-header {
