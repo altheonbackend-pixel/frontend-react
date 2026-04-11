@@ -374,9 +374,35 @@
     .tab-panel-header .btn-add,
     .tab-panel-header button { width: 100%; justify-content: center; }
 
-    /* Quick actions wrap tighter */
-    .patient-quick-actions { gap: 6px; width: 100%; flex-wrap: wrap; }
-    .pqa-btn { padding: 0.35rem 0.65rem; font-size: 11px; }
+    /* Quick actions: primary button full width, rest share second row */
+    .patient-quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+    }
+    /* Primary "+ Consultation" spans full width */
+    .pqa-btn--primary {
+        grid-column: 1 / -1;
+        justify-content: center;
+        display: flex;
+    }
+    /* Secondary and ghost buttons each take one column */
+    .pqa-btn--secondary,
+    .pqa-btn--ghost {
+        width: 100%;
+        justify-content: center;
+        display: flex;
+        text-align: center;
+    }
+    /* Dropdown wrapper also fits in grid */
+    .patient-quick-actions > .dropdown {
+        display: flex;
+    }
+    .patient-quick-actions > .dropdown .pqa-btn--ghost {
+        width: 100%;
+    }
+    .pqa-btn { padding: 0.5rem 0.4rem; font-size: 12px; }
 
     /* Vitals sparkline cards full width */
     .vitals-sparklines { flex-direction: column; }
@@ -389,9 +415,8 @@
 
 @media (max-width: 480px) {
     .patient-tab { padding: 7px 9px; font-size: 12px; }
-    .patient-quick-actions { gap: 4px; width: 100%; }
-    .pqa-btn { padding: 0.3rem 0.55rem; font-size: 11px; }
-    .tab-count { display: none; }  /* hide counts on very small screens */
+    .pqa-btn { padding: 0.45rem 0.3rem; font-size: 11px; }
+    .tab-count { display: none; }
 }
 
 /* ── Patient status select ── */
