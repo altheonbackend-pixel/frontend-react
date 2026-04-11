@@ -158,10 +158,14 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const buttonText = patientToEdit ? t('patient_form.submit.edit') : t('patient_form.submit.add');
 
     return (
-        <div className="form-overlay">
-            <div className="form-container">
-                <form onSubmit={handleSubmit} className="form">
+        <div className="form-overlay" onClick={onCancel}>
+            <div className="form-container" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
                     <h3>{patientToEdit ? t('patient_form.title_edit') : t('patient_form.title_add')}</h3>
+                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
+                </div>
+                <div className="modal-body">
+                <form onSubmit={handleSubmit} className="form">
                     {successMessage && <div className="success-message">{successMessage}</div>}
                     {errorMessage && <div className="error-message">{errorMessage}</div>}
 
@@ -240,6 +244,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     );

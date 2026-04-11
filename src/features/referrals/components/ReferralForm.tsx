@@ -130,9 +130,13 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const isEditing = !!referralToEdit;
 
     return (
-        <div className="form-overlay">
-            <div className="form-container">
-                <h3>{isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}</h3>
+        <div className="form-overlay" onClick={onClose}>
+            <div className="form-container" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>{isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}</h3>
+                    <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">✕</button>
+                </div>
+                <div className="modal-body">
                 {error && <div className="error-message">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     {/* Specialty filter to narrow doctor list */}
@@ -204,6 +208,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                         <button type="button" onClick={onClose} className="cancel-button">{t('referrals.form.cancel')}</button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     );

@@ -136,9 +136,13 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
     const isEditing = !!procedureToEdit;
 
     return (
-        <div className="form-overlay">
-            <div className="form-container">
-                <h3>{isEditing ? t('medical_procedure.title_edit') : t('medical_procedure.title_add')}</h3>
+        <div className="form-overlay" onClick={onCancel}>
+            <div className="form-container" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>{isEditing ? t('medical_procedure.title_edit') : t('medical_procedure.title_add')}</h3>
+                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
+                </div>
+                <div className="modal-body">
                 {errorMessage && <div className="error-message">{errorMessage}</div>}
                 <form onSubmit={handleSubmit} className="form">
                     <div className="form-group">
@@ -167,6 +171,7 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     );

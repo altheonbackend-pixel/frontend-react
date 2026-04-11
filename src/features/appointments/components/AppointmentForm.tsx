@@ -104,9 +104,13 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
     }
 
     return (
-        <div className="form-modal-overlay">
-            <div className="appointment-form-container">
-                <h3>{appointment ? t('appointments.form.title_edit') : t('appointments.form.title_add')}</h3>
+        <div className="form-modal-overlay" onClick={onCancel}>
+            <div className="appointment-form-container" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <h3>{appointment ? t('appointments.form.title_edit') : t('appointments.form.title_add')}</h3>
+                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
+                </div>
+                <div className="modal-body">
                 <form onSubmit={handleSubmit} className="appointment-form">
                     <div className="form-group">
                         <label htmlFor="patient">{t('appointments.patient_label')}</label>
@@ -178,6 +182,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     );

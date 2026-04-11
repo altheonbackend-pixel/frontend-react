@@ -9,50 +9,124 @@
 .form-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(26, 26, 26, 0.40);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  /* Darker backdrop so the modal is clearly distinct from the page */
+  background: rgba(0, 0, 0, 0.60);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: var(--z-modal);
-  padding: var(--space-4);
+  padding: 16px;
+  /* cursor: default so clicking the backdrop feels intentional */
+  cursor: default;
 }
 
-/* ── Modal container (inside .form-overlay or .form-modal-overlay) ── */
+/* ── Modal container ── */
 .form-container,
 .appointment-form-container {
-  background: var(--bg-glass);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  background: var(--bg-base);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
-  padding: var(--space-8) var(--space-8);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.12);
   width: 100%;
-  max-width: 580px;
-  animation: scaleIn 0.25s ease both;
-}
-
-/* When inside an overlay, restrict height and allow scroll */
-.form-overlay .form-container,
-.form-modal-overlay .form-container,
-.form-overlay .appointment-form-container,
-.form-modal-overlay .appointment-form-container {
-  max-height: 92vh;
+  max-width: 560px;
+  max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  animation: scaleIn 0.2s ease both;
+  position: relative;
+  /* Stop propagation so clicking inside doesn't close the modal */
+  cursor: auto;
 }
 
-/* ── Modal title ── */
-.form h3,
-.form-container h3,
-.appointment-form-container h3 {
-  font-size: var(--text-xl);
-  font-weight: var(--fw-bold);
+/* ── Modal header (title + close button) ── */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg-base);
+  z-index: 1;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+  border: none !important;
+}
+
+.modal-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--bg-subtle);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-muted);
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.13s, color 0.13s;
+  font-family: var(--font-body);
+  padding: 0;
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-muted);
   color: var(--text-primary);
-  text-align: center;
-  margin-bottom: var(--space-6);
-  letter-spacing: -0.3px;
+}
+
+/* ── Form body padding ── */
+.modal-body {
+  padding: 0 20px 20px;
+}
+
+/* Legacy: title directly in .form-container without .modal-header */
+.form-container > h3,
+.appointment-form-container > h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: left;
+  margin: 0;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-base);
+  z-index: 1;
+  letter-spacing: -0.2px;
+}
+
+/* Remove old text-align center on all h3 inside forms */
+.form h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: left;
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.2px;
+}
+
+/* ── Form padding when no modal-body wrapper ── */
+.form-container > .form,
+.form-container > .error-message,
+.form-container > form {
+  padding: 0 20px 20px;
 }
 
 /* ── Form layout ── */
