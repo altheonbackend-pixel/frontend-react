@@ -1,12 +1,10 @@
-// Fichier : src/components/EditProfile.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import Select from 'react-select';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type DoctorProfile, type Workplace } from '../../../shared/types';
-import '../../../shared/styles/FormStyles.css';
+import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 
 const EditProfile = () => {
@@ -26,28 +24,26 @@ const EditProfile = () => {
     const [selectedWorkplaces, setSelectedWorkplaces] = useState<Workplace[]>([]);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [dirty, setDirty] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             if (!token) {
-                setError(t('edit_profile.error.auth'));
+                toast.error(t('edit_profile.error.auth'));
                 setInitialLoading(false);
                 return;
             }
-            
+
             try {
-                // Récupérer la liste de toutes les cliniques
                 const workplacesResponse = await api.get('/workplaces/');
                 const allWorkplaces: Workplace[] = workplacesResponse.data.results ?? workplacesResponse.data;
                 setWorkplaces(allWorkplaces);
 
-                // Charger les données du profil du médecin
                 if (profile) {
                     const nameParts = profile.full_name.split(' ');
                     const firstName = nameParts.shift() || '';
                     const lastName = nameParts.join(' ');
-                    
+
                     setFormData({
                         first_name: firstName,
                         last_name: lastName,
@@ -57,62 +53,52 @@ const EditProfile = () => {
                         phone_number: profile.phone_number || '',
                         address: profile.address || '',
                     });
-                    
-                    // Pré-sélectionner les cliniques du médecin
+
                     if (profile.workplaces) {
-                        const preselected = allWorkplaces.filter(w => 
+                        const preselected = allWorkplaces.filter(w =>
                             profile.workplaces?.some(pw => pw.id === w.id)
                         );
                         setSelectedWorkplaces(preselected);
                     }
                 }
             } catch (err) {
-                if (axios.isAxiosError(err) && err.response) {
-                    setError(`Erreur de l'API : ${JSON.stringify(err.response.data)}`);
-                } else {
-                    setError(t('edit_profile.error.load'));
-                }
+                toast.error(parseApiError(err, t('edit_profile.error.load')));
             } finally {
                 setInitialLoading(false);
             }
         };
 
         fetchData();
-    }, [profile, token]);
+    }, [profile, token, t]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        setDirty(true);
         setFormData(prevData => ({
             ...prevData,
             [name]: value,
         }));
     };
 
-    const handleSelectChange = (newValue: any) => {
-        setSelectedWorkplaces(newValue);
+    const handleSelectChange = (newValue: readonly (Workplace & { value: number; label: string })[]) => {
+        setDirty(true);
+        setSelectedWorkplaces(newValue.map(({ value: _v, label: _l, ...rest }) => rest as Workplace));
     };
+
+    const handleClose = () => navigate('/profile');
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
 
         try {
-            // Créer le payload en incluant le tableau d'IDs de lieux de travail
             const payload = {
                 ...formData,
                 workplaces: selectedWorkplaces.map(w => w.id),
             };
 
             const response = await api.put('/profile/update/', payload);
-            
-            // Reconstruire l'objet DoctorProfile complet à partir de la réponse de l'API
-            // IMPORTANT: Assurez-vous que l'API renvoie les objets Workplace complets,
-            // ou bien récupérez-les à nouveau ici pour mettre à jour le contexte.
-            // La solution la plus simple est d'attendre que le backend renvoie la bonne structure.
-            // Sinon, il faudrait faire une nouvelle requête ici.
-            
-            // Pour l'instant, nous faisons confiance au backend pour renvoyer la bonne structure.
+
             const updatedProfile: DoctorProfile = {
                 id: response.data.id,
                 full_name: `${response.data.first_name} ${response.data.last_name}`,
@@ -124,28 +110,17 @@ const EditProfile = () => {
                 workplaces: response.data.workplaces,
                 access_level: response.data.access_level || 1,
             };
-            
+
             updateProfileData(updatedProfile);
-            
+            toast.success(t('edit_profile.success', { defaultValue: 'Profile updated.' }));
+            setDirty(false);
             navigate('/profile');
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response) {
-                setError(JSON.stringify(err.response.data));
-            } else {
-                setError(t('edit_profile.error.save'));
-            }
+            toast.error(parseApiError(err, t('edit_profile.error.save')));
         } finally {
             setLoading(false);
         }
     };
-    
-    if (initialLoading) {
-        return <div>{t('edit_profile.loading')}</div>;
-    }
-
-    if (!profile) {
-        return <div>{t('edit_profile.error.load')}</div>;
-    }
 
     const options = workplaces.map(w => ({
         value: w.id,
@@ -160,12 +135,29 @@ const EditProfile = () => {
     }));
 
     return (
-        <div className="form-overlay">
-            <div className="form-container">
-                <form onSubmit={handleSubmit} className="form">
-                    <h3>{t('edit_profile.title')}</h3>
-                    {error && <p className="error-message">{error}</p>}
-                    
+        <Modal
+            open
+            onClose={handleClose}
+            title={t('edit_profile.title')}
+            size="lg"
+            dirty={dirty}
+            footer={
+                <>
+                    <button type="button" onClick={handleClose} className="cancel-button" disabled={loading}>
+                        {t('edit_profile.cancel')}
+                    </button>
+                    <button type="submit" form="edit-profile-form" disabled={loading || initialLoading}>
+                        {loading ? t('edit_profile.saving') : t('edit_profile.save')}
+                    </button>
+                </>
+            }
+        >
+            {initialLoading ? (
+                <div>{t('edit_profile.loading')}</div>
+            ) : !profile ? (
+                <div>{t('edit_profile.error.load')}</div>
+            ) : (
+                <form id="edit-profile-form" onSubmit={handleSubmit} className="form">
                     <div className="form-group">
                         <label htmlFor="first_name">{t('edit_profile.labels.first_name')}</label>
                         <input type="text" id="first_name" name="first_name" value={formData.first_name} onChange={handleChange} required />
@@ -205,18 +197,9 @@ const EditProfile = () => {
                             placeholder={t('edit_profile.placeholders.workplaces')}
                         />
                     </div>
-
-                    <div className="form-actions">
-                        <button type="submit" disabled={loading}>
-                            {loading ? t('edit_profile.saving') : t('edit_profile.save')}
-                        </button>
-                        <button type="button" onClick={() => navigate('/profile')} className="cancel-button">
-                            {t('edit_profile.cancel')}
-                        </button>
-                    </div>
                 </form>
-            </div>
-        </div>
+            )}
+        </Modal>
     );
 };
 
