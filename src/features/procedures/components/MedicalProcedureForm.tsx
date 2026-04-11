@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/FormStyles.css';
+import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 
 // Ajout de l'interface pour l'acte médical
@@ -41,7 +40,7 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
         attachments: null,
     });
     const [loading, setLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [dirty, setDirty] = useState(false);
 
     // Pré-remplir le formulaire si on est en mode modification
     useEffect(() => {
@@ -57,6 +56,7 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, files } = e.target as HTMLInputElement;
+        setDirty(true);
         if (name === "attachments" && files && files.length > 0) {
             setFormData(prevData => ({
                 ...prevData,
@@ -73,10 +73,9 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setErrorMessage(null);
 
         if (!token) {
-            setErrorMessage(t('medical_procedure.error.auth'));
+            toast.error(t('medical_procedure.error.auth'));
             setLoading(false);
             return;
         }
@@ -105,16 +104,12 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
             }
 
             if (response.status === 201 || response.status === 200) {
+                toast.success(isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'));
+                setDirty(false);
                 onSuccess();
             }
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response) {
-                const errorData = err.response.data;
-                const errorMessages = Object.values(errorData).flat().join(' ');
-                setErrorMessage(`${t('medical_procedure.error.prefix')}${errorMessages}`);
-            } else {
-                setErrorMessage(t('medical_procedure.error.generic'));
-            }
+            toast.error(parseApiError(err, t('medical_procedure.error.generic')));
         } finally {
             setLoading(false);
         }
@@ -123,15 +118,24 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
     const isEditing = !!procedureToEdit;
 
     return (
-        <div className="form-overlay">
-            <div className="form-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>{isEditing ? t('medical_procedure.title_edit') : t('medical_procedure.title_add')}</h3>
-                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
-                </div>
-                <div className="modal-body">
-                {errorMessage && <div className="error-message">{errorMessage}</div>}
-                <form onSubmit={handleSubmit} className="form">
+        <Drawer
+            open
+            onClose={onCancel}
+            title={isEditing ? t('medical_procedure.title_edit') : t('medical_procedure.title_add')}
+            size="md"
+            dirty={dirty}
+            footer={
+                <>
+                    <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
+                        {t('medical_procedure.cancel')}
+                    </button>
+                    <button type="submit" form="procedure-form" disabled={loading}>
+                        {loading ? t('medical_procedure.loading') : (isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'))}
+                    </button>
+                </>
+            }
+        >
+                <form id="procedure-form" onSubmit={handleSubmit} className="form">
                     <div className="form-group">
                         <label htmlFor="procedure_type">{t('medical_procedure.type')} <span className="required">*</span></label>
                         <input type="text" id="procedure_type" name="procedure_type" value={formData.procedure_type} onChange={handleChange} required />
@@ -149,18 +153,8 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
                         <input type="file" id="attachments" name="attachments" onChange={handleChange} />
                     </div>
                     
-                    <div className="form-actions">
-                        <button type="submit" disabled={loading}>
-                            {loading ? t('medical_procedure.loading') : (isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'))}
-                        </button>
-                        <button type="button" onClick={onCancel} className="cancel-button">
-                            {t('medical_procedure.cancel')}
-                        </button>
-                    </div>
                 </form>
-                </div>
-            </div>
-        </div>
+        </Drawer>
     );
 };
 

@@ -60,14 +60,11 @@ const EditPatientPage = () => {
     }
 
     return (
-        <div className="edit-patient-container">
-            <h3>{t('edit_patient.title')}</h3>
-            <PatientForm 
-                patientToEdit={patient}
-                onSuccess={handleSuccess}
-                onCancel={handleCancel}
-            />
-        </div>
+        <PatientForm
+            patientToEdit={patient}
+            onSuccess={handleSuccess}
+            onCancel={handleCancel}
+        />
     );
 };
 

@@ -1,18 +1,23 @@
-// Fichier : votre_app/components/ReferralForm.tsx
-
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type DoctorProfile } from '../../../shared/types';
-import '../../../shared/styles/FormStyles.css';
+import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
+
+interface ReferralRecord {
+    id?: number;
+    referred_to?: number | { id: number };
+    specialty_requested?: string;
+    reason_for_referral?: string;
+    comments?: string;
+}
 
 interface ReferralFormProps {
     patientId: string;
     onSuccess: () => void;
     onClose: () => void;
-    referralToEdit?: any | null;
+    referralToEdit?: ReferralRecord | null;
 }
 
 const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClose, referralToEdit }) => {
@@ -27,7 +32,8 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
         comments: '',
     });
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [dirty, setDirty] = useState(false);
+    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchDoctors = async (specialty?: string) => {
         if (!token) return;
@@ -37,25 +43,33 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
             const response = await api.get('/doctors/', { params });
             setDoctors(response.data.results ?? response.data);
         } catch {
-            setError(t('referrals.form.error.load_doctors'));
+            toast.error(t('referrals.form.error.load_doctors'));
         }
     };
 
     useEffect(() => {
         fetchDoctors();
+        return () => {
+            if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
+        };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setSpecialtyFilter(val);
         setFormData(prev => ({ ...prev, referred_to: '' }));
-        fetchDoctors(val || undefined);
+        if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
+        filterTimerRef.current = setTimeout(() => fetchDoctors(val || undefined), 300);
     };
 
     useEffect(() => {
         if (referralToEdit) {
+            const ref = referralToEdit.referred_to;
+            const refStr = typeof ref === 'object' && ref !== null
+                ? String(ref.id)
+                : ref != null ? String(ref) : '';
             setFormData({
-                referred_to: referralToEdit.referred_to?.id ? referralToEdit.referred_to.id.toString() : (referralToEdit.referred_to?.toString() || ''),
+                referred_to: refStr,
                 specialty_requested: referralToEdit.specialty_requested || '',
                 reason_for_referral: referralToEdit.reason_for_referral || '',
                 comments: referralToEdit.comments || '',
@@ -72,56 +86,51 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        setDirty(true);
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
 
         if (!token) {
-            setError(t('referrals.form.error.auth'));
+            toast.error(t('referrals.form.error.auth'));
             setLoading(false);
             return;
         }
 
         if (!formData.referred_to) {
-            setError(t('referrals.form.error.select_doctor'));
+            toast.error(t('referrals.form.error.select_doctor'));
             setLoading(false);
             return;
         }
 
         const referredToId = parseInt(formData.referred_to, 10);
         if (isNaN(referredToId)) {
-            setError(t('referrals.form.error.invalid_id'));
+            toast.error(t('referrals.form.error.invalid_id'));
             setLoading(false);
             return;
         }
-        
+
         const payload = {
             ...formData,
-            patient: patientId, // INCLUSION de l'ID du patient dans le payload
+            patient: patientId,
             referred_to: referredToId,
         };
 
         try {
             if (referralToEdit && referralToEdit.id) {
-                // Modification (PUT)
                 await api.put(`/referrals/${referralToEdit.id}/`, payload);
+                toast.success(t('referrals.form.submit_edit'));
             } else {
-                // Création (POST)
-                // CORRECTION DE L'URL
                 await api.post(`/referrals/`, payload);
+                toast.success(t('referrals.form.submit_add'));
             }
+            setDirty(false);
             onSuccess();
-        } catch (err: any) {
-            if (axios.isAxiosError(err) && err.response && err.response.data) {
-                const errorMessages = Object.values(err.response.data).flat().join(' ');
-                setError(`${t('referrals.form.error.prefix')}${errorMessages}`);
-            } else {
-                setError(t('referrals.form.error.save'));
-            }
+        } catch (err) {
+            toast.error(parseApiError(err, t('referrals.form.error.save')));
         } finally {
             setLoading(false);
         }
@@ -130,15 +139,22 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const isEditing = !!referralToEdit;
 
     return (
-        <div className="form-overlay">
-            <div className="form-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>{isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}</h3>
-                    <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close">✕</button>
-                </div>
-                <div className="modal-body">
-                {error && <div className="error-message">{error}</div>}
-                <form onSubmit={handleSubmit}>
+        <Drawer
+            open
+            onClose={onClose}
+            title={isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}
+            size="md"
+            dirty={dirty}
+            footer={
+                <>
+                    <button type="button" onClick={onClose} className="cancel-button" disabled={loading}>{t('referrals.form.cancel')}</button>
+                    <button type="submit" form="referral-form" className="submit-button" disabled={loading}>
+                        {loading ? t('referrals.form.loading') : (isEditing ? t('referrals.form.submit_edit') : t('referrals.form.submit_add'))}
+                    </button>
+                </>
+            }
+        >
+                <form id="referral-form" onSubmit={handleSubmit}>
                     {/* Specialty filter to narrow doctor list */}
                     <div className="form-group">
                         <label htmlFor="specialty_filter">Filter by Specialty</label>
@@ -201,16 +217,8 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                             rows={4}
                         ></textarea>
                     </div>
-                    <div className="form-actions">
-                        <button type="submit" className="submit-button" disabled={loading}>
-                            {loading ? t('referrals.form.loading') : (isEditing ? t('referrals.form.submit_edit') : t('referrals.form.submit_add'))}
-                        </button>
-                        <button type="button" onClick={onClose} className="cancel-button">{t('referrals.form.cancel')}</button>
-                    </div>
                 </form>
-                </div>
-            </div>
-        </div>
+        </Drawer>
     );
 };
 
