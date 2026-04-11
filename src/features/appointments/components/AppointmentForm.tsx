@@ -1,12 +1,10 @@
-// Fichier : src/components/AppointmentForm.tsx
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-//import { useNavigate } from 'react-router-dom';
 import { type Patient, type Workplace, type Appointment } from '../../../shared/types';
-import '../styles/AppointmentForm.css';
+import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
+import '../styles/AppointmentForm.css';
 
 interface AppointmentFormProps {
     initialDate: Date;
@@ -18,7 +16,6 @@ interface AppointmentFormProps {
 const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: AppointmentFormProps) => {
     const { t } = useTranslation();
     const { token, profile } = useAuth();
-    //const navigate = useNavigate();
     const [formData, setFormData] = useState({
         appointment_date: '',
         patient: '',
@@ -28,12 +25,14 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
     const [patients, setPatients] = useState<Patient[]>([]);
     const [workplaces, setWorkplaces] = useState<Workplace[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [dirty, setDirty] = useState(false);
+    const [loadError, setLoadError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             if (!token) {
-                setError(t('appointments.error.auth'));
+                setLoadError(t('appointments.error.auth'));
                 setLoading(false);
                 return;
             }
@@ -47,7 +46,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
 
                 setLoading(false);
             } catch {
-                setError(t('appointments.form.error_load'));
+                setLoadError(t('appointments.form.error_load'));
                 setLoading(false);
             }
         };
@@ -71,12 +70,13 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        setDirty(true);
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError(null);
+        setSubmitting(true);
 
         const payload = {
             ...formData,
@@ -86,27 +86,44 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
         try {
             if (appointment) {
                 await api.put(`/appointments/${appointment.id}/`, payload);
+                toast.success(t('appointments.form.submit_edit'));
             } else {
                 await api.post('/appointments/', payload);
+                toast.success(t('appointments.form.submit_create'));
             }
+            setDirty(false);
             onSuccess();
-        } catch {
-            setError(t('appointments.form.error_save'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('appointments.form.error_save')));
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <div className="form-modal-overlay">
-            <div className="appointment-form-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>{appointment ? t('appointments.form.title_edit') : t('appointments.form.title_add')}</h3>
-                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
-                </div>
-                <div className="modal-body">
+        <Modal
+            open
+            onClose={onCancel}
+            title={appointment ? t('appointments.form.title_edit') : t('appointments.form.title_add')}
+            size="md"
+            dirty={dirty}
+            footer={
+                !loading && !loadError ? (
+                    <>
+                        <button type="button" onClick={onCancel} className="cancel-button" disabled={submitting}>
+                            {t('appointments.form.cancel')}
+                        </button>
+                        <button type="submit" form="appointment-form" className="submit-button" disabled={submitting}>
+                            {appointment ? t('appointments.form.submit_edit') : t('appointments.form.submit_create')}
+                        </button>
+                    </>
+                ) : null
+            }
+        >
                 {loading && <div className="loading-message">{t('appointments.form.loading')}</div>}
-                {!loading && error && <div className="error-message">{error}</div>}
-                {!loading && !error && (
-                <form onSubmit={handleSubmit} className="appointment-form">
+                {!loading && loadError && <div className="error-message">{loadError}</div>}
+                {!loading && !loadError && (
+                <form id="appointment-form" onSubmit={handleSubmit} className="appointment-form">
                     <div className="form-group">
                         <label htmlFor="patient">{t('appointments.patient_label')}</label>
                         <select
@@ -168,19 +185,9 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         ></textarea>
                     </div>
 
-                    <div className="form-actions">
-                        <button type="submit" className="submit-button">
-                            {appointment ? t('appointments.form.submit_edit') : t('appointments.form.submit_create')}
-                        </button>
-                        <button type="button" onClick={onCancel} className="cancel-button">
-                            {t('appointments.form.cancel')}
-                        </button>
-                    </div>
                 </form>
                 )}
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 };
 
