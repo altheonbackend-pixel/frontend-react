@@ -51,7 +51,7 @@ export interface Appointment {
     doctor: number;
     appointment_date: string;
     reason_for_appointment: string;
-    status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'pending';
+    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'pending';
     notes?: string | null;
     cancellation_reason?: string | null;
     confirmed_at?: string | null;
