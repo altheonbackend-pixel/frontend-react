@@ -81,7 +81,7 @@ const TransferModal = ({ doctor, onConfirm, onClose, searchDoctors }: {
                                 onClick={() => setSelected(d)}
                             >
                                 <strong>{d.full_name}</strong>
-                                <span className="doctor-search-meta">{d.specialty} · {d.email}</span>
+                                <span className="doctor-search-meta">{d.specialty_display || d.specialty} · {d.email}</span>
                             </div>
                         ))}
                     </div>
@@ -271,7 +271,7 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                             )}
                                         </div>
                                     </td>
-                                    <td>{doctor.specialty || '—'}</td>
+                                    <td>{doctor.specialty_display || doctor.specialty || '—'}</td>
                                     <td>
                                         <select
                                             className={`access-level-select level-${doctor.access_level}`}
@@ -350,7 +350,7 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                 <div className="pending-card__name">{doctor.full_name}</div>
                                 <div className="pending-card__email">{doctor.email}</div>
                                 <div className="pending-card__meta">
-                                    <span className="meta-tag">Specialty: {doctor.specialty || 'N/A'}</span>
+                                    <span className="meta-tag">Specialty: {doctor.specialty_display || doctor.specialty || 'N/A'}</span>
                                     <span className="meta-tag">License: {doctor.license_number || 'N/A'}</span>
                                     {doctor.date_joined && (
                                         <span className="meta-tag">Registered: {doctor.date_joined}</span>
@@ -395,7 +395,7 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                     </td>
                                     <td>
                                         <div>
-                                            <div>{doctor.specialty || '—'}</div>
+                                            <div>{doctor.specialty_display || doctor.specialty || '—'}</div>
                                             <small className="doctor-email">{doctor.license_number || '—'}</small>
                                         </div>
                                     </td>

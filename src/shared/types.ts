@@ -348,10 +348,13 @@ export interface AdminDoctor {
     full_name: string;
     email: string;
     specialty: string | null;
+    specialty_display?: string | null;
     license_number: string | null;
     access_level: 1 | 2;
+    access_level_display?: string | null;
     is_active: boolean;
     verification_status: 'pending_admin' | 'active' | 'rejected';
+    verification_status_display?: string | null;
     max_clinics_owned: number;
     max_clinics_joined: number;
     forum_suspended: boolean;
