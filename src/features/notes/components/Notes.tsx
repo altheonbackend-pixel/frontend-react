@@ -7,6 +7,7 @@ import './Notes.css';
 import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import PageLoader from '../../../shared/components/PageLoader';
+import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 
 interface Note {
     id: number;
@@ -72,6 +73,7 @@ const Notes = () => {
         patient: prefilledPatientId,
     });
     const [formLoading, setFormLoading] = useState(false);
+    const [dirty, setDirty] = useState(false);
     const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
     const [patientSearch, setPatientSearch] = useState('');
     const [patientSearchResults, setPatientSearchResults] = useState<PatientOption[]>([]);
@@ -135,14 +137,14 @@ const Notes = () => {
     };
 
     const handleNewNote = () => {
-        setShowForm(true);
         setEditingNote(null);
         setFormData({ title: '', content: '', note_type: 'general', patient: '' });
         setPatientSearch('');
+        setDirty(false);
+        setShowForm(true);
     };
 
     const handleEdit = (note: Note) => {
-        setShowForm(true);
         setEditingNote(note);
         setFormData({
             title: note.title,
@@ -150,7 +152,15 @@ const Notes = () => {
             note_type: note.note_type,
             patient: note.patient || '',
         });
-        setPatientSearch('');
+        setPatientSearch(note.patient_name || '');
+        setDirty(false);
+        setShowForm(true);
+    };
+
+    const closeForm = () => {
+        setShowForm(false);
+        setEditingNote(null);
+        setDirty(false);
     };
 
     const handleDelete = async (noteId: number) => {
@@ -158,13 +168,16 @@ const Notes = () => {
             await api.delete(`/notes/${noteId}/`);
             setNotes(prev => prev.filter(n => n.id !== noteId));
             setConfirmDeleteNoteId(null);
-        } catch {
-            setError(t('notes.error.delete'));
+            toast.success(t('notes.delete_success', { defaultValue: 'Note deleted.' }));
+        } catch (err) {
+            toast.error(parseApiError(err, t('notes.error.delete')));
+            setConfirmDeleteNoteId(null);
         }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        setDirty(true);
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -178,14 +191,17 @@ const Notes = () => {
             };
             if (editingNote) {
                 await api.put(`/notes/${editingNote.id}/`, payload);
+                toast.success(t('notes.update_success', { defaultValue: 'Note updated.' }));
             } else {
                 await api.post('/notes/', payload);
+                toast.success(t('notes.create_success', { defaultValue: 'Note created.' }));
             }
+            setDirty(false);
             setShowForm(false);
             setEditingNote(null);
             fetchNotes();
-        } catch {
-            setError(t('notes.error.save'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('notes.error.save')));
         } finally {
             setFormLoading(false);
         }
@@ -227,84 +243,9 @@ const Notes = () => {
                 </select>
             </div>
 
-            {/* Note Form */}
-            {showForm && (
-                <div className="note-form-card">
-                    <h3>{editingNote ? t('notes.edit_title') : t('notes.add_title')}</h3>
-                    <form onSubmit={handleSubmit} className="note-form">
-                        <div className="note-form-row">
-                            <div className="form-group">
-                                <label>Title *</label>
-                                <input name="title" value={formData.title} onChange={handleChange} required />
-                            </div>
-                            <div className="form-group">
-                                <label>Note Type</label>
-                                <select name="note_type" value={formData.note_type} onChange={handleChange}>
-                                    {NOTE_TYPE_OPTIONS.map(o => (
-                                        <option key={o.value} value={o.value}>{o.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-
-                        {/* Patient selector */}
-                        <div className="form-group">
-                            <label>Link to Patient (optional)</label>
-                            <div className="patient-selector-wrapper">
-                                <input
-                                    type="text"
-                                    placeholder="Search patient by name..."
-                                    value={patientSearch}
-                                    onChange={e => handlePatientSearch(e.target.value)}
-                                    onFocus={() => handlePatientSearch(patientSearch)}
-                                />
-                                {formData.patient && (
-                                    <span className="selected-patient-chip">
-                                        {patientOptions.find(p => p.unique_id === formData.patient)
-                                            ? `${patientOptions.find(p => p.unique_id === formData.patient)!.first_name} ${patientOptions.find(p => p.unique_id === formData.patient)!.last_name}`
-                                            : formData.patient}
-                                        <button type="button" onClick={() => { setFormData(f => ({ ...f, patient: '' })); setPatientSearch(''); }}>×</button>
-                                    </span>
-                                )}
-                                {patientSearchResults.length > 0 && !formData.patient && (
-                                    <ul className="patient-selector-dropdown">
-                                        {patientSearchResults.map(p => (
-                                            <li key={p.unique_id}>
-                                                <button type="button" onClick={() => {
-                                                    setFormData(f => ({ ...f, patient: p.unique_id }));
-                                                    setPatientSearch(`${p.first_name} ${p.last_name}`);
-                                                    setPatientSearchResults([]);
-                                                }}>
-                                                    {p.first_name} {p.last_name}
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Content *</label>
-                            <textarea name="content" value={formData.content} onChange={handleChange} required rows={6} />
-                        </div>
-
-                        <div className="note-form-actions">
-                            <button type="submit" disabled={formLoading} className="btn-save-note">
-                                {formLoading ? 'Saving...' : (editingNote ? 'Update Note' : 'Create Note')}
-                            </button>
-                            <button type="button" onClick={() => { setShowForm(false); setEditingNote(null); }} className="btn-cancel-note">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-
             {/* Notes grid */}
-            {!showForm && (
-                <>
-                    {notes.length === 0 ? (
+            <>
+                {notes.length === 0 ? (
                         <div className="notes-empty">
                             <p>No notes yet. Create your first note.</p>
                         </div>
@@ -339,8 +280,84 @@ const Notes = () => {
                             ))}
                         </div>
                     )}
-                </>
-            )}
+            </>
+
+            <Drawer
+                open={showForm}
+                onClose={closeForm}
+                title={editingNote ? t('notes.edit_title') : t('notes.add_title')}
+                size="md"
+                dirty={dirty}
+                footer={
+                    <>
+                        <button type="button" onClick={closeForm} className="btn-cancel-note" disabled={formLoading}>
+                            {t('common.cancel')}
+                        </button>
+                        <button type="submit" form="note-form" disabled={formLoading} className="btn-save-note">
+                            {formLoading ? t('common.loading') : (editingNote ? t('common.save') : t('common.save'))}
+                        </button>
+                    </>
+                }
+            >
+                <form id="note-form" onSubmit={handleSubmit} className="note-form">
+                    <div className="note-form-row">
+                        <div className="form-group">
+                            <label>Title *</label>
+                            <input name="title" value={formData.title} onChange={handleChange} required />
+                        </div>
+                        <div className="form-group">
+                            <label>Note Type</label>
+                            <select name="note_type" value={formData.note_type} onChange={handleChange}>
+                                {NOTE_TYPE_OPTIONS.map(o => (
+                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Link to Patient (optional)</label>
+                        <div className="patient-selector-wrapper">
+                            <input
+                                type="text"
+                                placeholder="Search patient by name..."
+                                value={patientSearch}
+                                onChange={e => handlePatientSearch(e.target.value)}
+                                onFocus={() => handlePatientSearch(patientSearch)}
+                            />
+                            {formData.patient && (
+                                <span className="selected-patient-chip">
+                                    {patientOptions.find(p => p.unique_id === formData.patient)
+                                        ? `${patientOptions.find(p => p.unique_id === formData.patient)!.first_name} ${patientOptions.find(p => p.unique_id === formData.patient)!.last_name}`
+                                        : patientSearch || formData.patient}
+                                    <button type="button" onClick={() => { setFormData(f => ({ ...f, patient: '' })); setPatientSearch(''); }}>×</button>
+                                </span>
+                            )}
+                            {patientSearchResults.length > 0 && !formData.patient && (
+                                <ul className="patient-selector-dropdown">
+                                    {patientSearchResults.map(p => (
+                                        <li key={p.unique_id}>
+                                            <button type="button" onClick={() => {
+                                                setFormData(f => ({ ...f, patient: p.unique_id }));
+                                                setDirty(true);
+                                                setPatientSearch(`${p.first_name} ${p.last_name}`);
+                                                setPatientSearchResults([]);
+                                            }}>
+                                                {p.first_name} {p.last_name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Content *</label>
+                        <textarea name="content" value={formData.content} onChange={handleChange} required rows={6} />
+                    </div>
+                </form>
+            </Drawer>
 
             {confirmDeleteNoteId !== null && (
                 <ConfirmModal
