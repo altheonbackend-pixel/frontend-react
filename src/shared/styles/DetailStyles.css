@@ -181,31 +181,31 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* ── Key-value info items ── */
+/* ── Key-value info items — inline grid, no stacking ── */
 .info-item {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 130px 1fr;
   align-items: baseline;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
-  font-size: var(--text-sm);
-  line-height: var(--leading-normal);
+  gap: 4px 10px;
+  margin-bottom: 10px;
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
 .info-item strong {
-  min-width: 140px;
-  font-weight: var(--fw-semibold);
-  color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
+  letter-spacing: 0.06em;
+  padding-top: 2px;
 }
 
 .info-item span,
 .info-item p {
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: 13.5px;
+  word-break: break-word;
 }
 
 /* ── List items (consultation/procedure cards) ── */
@@ -523,15 +523,11 @@
     width: 100%;
   }
 
-  /* Compact 2-col inline layout on mobile: LABEL  value */
+  /* Tighten grid on narrow screens */
   .info-item {
-    display: grid;
-    grid-template-columns: 110px 1fr;
-    align-items: baseline;
-    gap: 4px 8px;
-    margin-bottom: var(--space-2);
+    grid-template-columns: 100px 1fr;
+    margin-bottom: 8px;
   }
-
   .info-item strong { min-width: auto; }
 
   .detail-info-group { padding: var(--space-4); }
