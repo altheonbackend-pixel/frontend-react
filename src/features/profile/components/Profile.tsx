@@ -33,7 +33,7 @@ const Profile = () => {
             <div className="profile-details detail-info-group">
                 <p className="info-item"><strong>{t('profile.full_name')}</strong> {profile.full_name}</p>
                 <p className="info-item"><strong>{t('profile.email')}</strong> {profile.email}</p>
-                <p className="info-item"><strong>{t('profile.specialty')}</strong> {profile.specialty || t('profile.unspecified')}</p>
+                <p className="info-item"><strong>{t('profile.specialty')}</strong> {profile.specialty_display || profile.specialty || t('profile.unspecified')}</p>
                 <p className="info-item"><strong>{t('profile.license')}</strong> {profile.license_number || t('profile.unspecified')}</p>
                 <p className="info-item"><strong>{t('profile.address')}</strong> {profile.address || t('profile.unspecified')}</p>
                 

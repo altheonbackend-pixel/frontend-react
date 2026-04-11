@@ -165,8 +165,8 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                             <div className="patient-info">
                                 <div className="patient-name-row">
                                     <h3 className="patient-name">{patient.first_name} {patient.last_name}</h3>
-                                    {(patient as any).status && (
-                                        <span className={`patient-list-status status-${(patient as any).status}`}>{(patient as any).status}</span>
+                                    {patient.status && (
+                                        <span className={`patient-list-status status-${patient.status}`}>{patient.status_display || patient.status}</span>
                                     )}
                                 </div>
                                 <p className="patient-dob"><strong>{t('patients.dob_label')}</strong> {patient.date_of_birth || t('patients.dob_not_specified')}</p>

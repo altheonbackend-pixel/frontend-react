@@ -185,7 +185,7 @@ const Appointments = () => {
                                         : t('appointments.patient_unavailable')}
                                 </span>
                                 <span className="appt-status-badge" style={{ background: STATUS_BADGE_COLORS[appt.status] || '#718096' }}>
-                                    {appt.status.replace('_', ' ')}
+                                    {appt.status_display || appt.status}
                                 </span>
                             </div>
 

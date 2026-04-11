@@ -24,6 +24,7 @@ interface UpcomingAppt {
     patient_details?: { first_name: string; last_name: string; unique_id: string };
     reason_for_appointment: string;
     status: string;
+    status_display?: string;
 }
 
 interface RecentPatient {
@@ -31,6 +32,7 @@ interface RecentPatient {
     first_name: string;
     last_name: string;
     status: string;
+    status_display?: string;
 }
 
 const QUICK_LINKS = [
@@ -185,7 +187,7 @@ function Dashboard() {
                             {searchResults.map(p => (
                                 <button key={p.unique_id} className="search-result-item" onMouseDown={() => goToPatient(p.unique_id)}>
                                     <span className="search-result-name">{p.first_name} {p.last_name}</span>
-                                    <span className={`search-status status-${p.status}`}>{p.status}</span>
+                                    <span className={`search-status status-${p.status}`}>{p.status_display || p.status}</span>
                                 </button>
                             ))}
                         </div>
@@ -253,7 +255,7 @@ function Dashboard() {
                                             </div>
                                             <div className="appt-reason">{a.reason_for_appointment}</div>
                                         </div>
-                                        <span className="appt-status" style={{ color: STATUS_COLORS[a.status] || '#718096' }}>{a.status}</span>
+                                        <span className="appt-status" style={{ color: STATUS_COLORS[a.status] || '#718096' }}>{a.status_display || a.status}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -276,7 +278,7 @@ function Dashboard() {
                                         <div className="appt-info">
                                             <Link to={`/patients/${p.unique_id}`} className="patient-link">{p.first_name} {p.last_name}</Link>
                                         </div>
-                                        <span className={`status-badge status-${p.status}`}>{p.status}</span>
+                                        <span className={`status-badge status-${p.status}`}>{p.status_display || p.status}</span>
                                     </li>
                                 ))}
                             </ul>

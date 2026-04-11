@@ -137,8 +137,8 @@ const Header = () => {
                             <NavLink to="/profile" className="nav-item nav-profile-desktop">{t('nav.profile')}</NavLink>
                             <div className="user-info-container">
                                 <span className="user-name">Dr. {user?.full_name}</span>
-                                {profile?.specialty && (
-                                    <span className="user-specialty">{profile.specialty}</span>
+                                {(profile?.specialty_display || profile?.specialty) && (
+                                    <span className="user-specialty">{profile.specialty_display || profile.specialty}</span>
                                 )}
                             </div>
                             <button onClick={() => { logout(); closeMenu(); }} className="logout-button">

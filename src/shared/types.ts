@@ -35,6 +35,8 @@ export interface Patient {
     last_name: string;
     date_of_birth: string | null;
     age: number | null;
+    status?: string;
+    status_display?: string;
     medical_history: string | null;
     blood_group: string | null;
     address: string | null;
@@ -52,6 +54,7 @@ export interface Appointment {
     appointment_date: string;
     reason_for_appointment: string;
     status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'pending';
+    status_display?: string;
     notes?: string | null;
     cancellation_reason?: string | null;
     confirmed_at?: string | null;
@@ -61,6 +64,8 @@ export interface Appointment {
         unique_id: string;
         first_name: string;
         last_name: string;
+        status?: string;
+        status_display?: string;
     };
     workplace_details?: {
         id: number;
