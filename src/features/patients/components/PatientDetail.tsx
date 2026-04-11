@@ -370,46 +370,54 @@ const PatientDetails = () => {
         <>
         <div className="patient-details-container detail-container">
             {/* Header */}
-            <div className="patient-info-header detail-header">
-                <div>
-                    <h2 className="patient-name">{patient.first_name} {patient.last_name}</h2>
-                    <div className="patient-meta">
-                        {patient.date_of_birth && <span>{patient.age} yrs</span>}
-                        {patient.blood_group && <span className="meta-badge">{patient.blood_group}</span>}
-                        <select
-                            className={`patient-status-select status-${patient.status}`}
-                            value={patient.status || 'active'}
-                            onChange={e => handleStatusChange(e.target.value)}
-                            disabled={statusUpdating}
-                            title="Change patient status"
-                        >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="transferred">Transferred</option>
-                            <option value="deceased">Deceased</option>
-                        </select>
+            <div className="patient-header-card">
+                <div className="patient-header-identity">
+                    <div className="patient-avatar-lg" aria-hidden="true">
+                        {patient.first_name.charAt(0)}{patient.last_name.charAt(0)}
+                    </div>
+                    <div className="patient-header-info">
+                        <h2 className="patient-name">{patient.first_name} {patient.last_name}</h2>
+                        <div className="patient-meta">
+                            {patient.date_of_birth && <span className="meta-chip">{patient.age} yrs</span>}
+                            {patient.blood_group && <span className="meta-chip meta-chip--blood">{patient.blood_group}</span>}
+                            <select
+                                className={`patient-status-select status-${patient.status}`}
+                                value={patient.status || 'active'}
+                                onChange={e => handleStatusChange(e.target.value)}
+                                disabled={statusUpdating}
+                                title="Change patient status"
+                            >
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="transferred">Transferred</option>
+                                <option value="deceased">Deceased</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-                <div className="patient-quick-actions">
-                    <button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }} className="pqa-btn pqa-btn--primary">+ Consultation</button>
-                    {(profile?.access_level ?? 1) >= 2 && (
-                        <button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }} className="pqa-btn pqa-btn--secondary">+ Referral</button>
-                    )}
-                    <button onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }} className="pqa-btn pqa-btn--secondary">+ Condition</button>
-                    <button onClick={handleExportPdf} className="pqa-btn pqa-btn--ghost">PDF</button>
-                    {/* Legacy dropdown for remaining actions */}
-                    <div className="dropdown" ref={dropdownRef}>
-                        <button onClick={() => setShowDropdown(!showDropdown)} className="pqa-btn pqa-btn--ghost">
-                            More ▾
-                        </button>
-                        {showDropdown && (
-                            <ul className="dropdown-menu">
-                                {(profile?.access_level ?? 1) >= 2 && (
-                                    <li><button onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }} className="action-button dropdown-item">+ Add Procedure</button></li>
-                                )}
-                                <li><button onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }} className="action-button dropdown-item">+ Add Allergy</button></li>
-                            </ul>
+                <div className="patient-action-bar">
+                    <button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }} className="pqa-btn pqa-btn--primary">
+                        + Consultation
+                    </button>
+                    <div className="pqa-secondary">
+                        {(profile?.access_level ?? 1) >= 2 && (
+                            <button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }} className="pqa-btn pqa-btn--secondary">+ Referral</button>
                         )}
+                        <button onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }} className="pqa-btn pqa-btn--secondary">+ Condition</button>
+                        <button onClick={handleExportPdf} className="pqa-btn pqa-btn--ghost">PDF</button>
+                        <div className="dropdown" ref={dropdownRef}>
+                            <button onClick={() => setShowDropdown(!showDropdown)} className="pqa-btn pqa-btn--ghost">
+                                More ▾
+                            </button>
+                            {showDropdown && (
+                                <ul className="dropdown-menu">
+                                    {(profile?.access_level ?? 1) >= 2 && (
+                                        <li><button onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }} className="action-button dropdown-item">+ Add Procedure</button></li>
+                                    )}
+                                    <li><button onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }} className="action-button dropdown-item">+ Add Allergy</button></li>
+                                </ul>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
