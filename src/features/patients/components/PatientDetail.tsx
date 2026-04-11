@@ -399,7 +399,7 @@ const PatientDetails = () => {
                     <button onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }} className="pqa-btn pqa-btn--primary">
                         + Consultation
                     </button>
-                    <div className="pqa-secondary">
+                    <div className="pqa-grid">
                         {(profile?.access_level ?? 1) >= 2 && (
                             <button onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }} className="pqa-btn pqa-btn--secondary">+ Referral</button>
                         )}

@@ -51,40 +51,40 @@
 }
 .tab-panel-header h3 { margin: 0; font-size: var(--text-xl); color: var(--text-primary); }
 
-/* ── Patient header card ── */
+/* ══════════════════════════════════════════════════════
+   PATIENT HEADER — MOBILE FIRST (default = mobile)
+   Desktop overrides via min-width at bottom of file.
+   ══════════════════════════════════════════════════════ */
+
 .patient-header-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
+    display: block;
     margin-bottom: var(--space-6);
     padding-bottom: var(--space-5);
     border-bottom: 1px solid var(--border-subtle);
 }
 
+/* ── Identity row: avatar + name + meta ── */
 .patient-header-identity {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 14px;
-    flex: 1;
-    min-width: 0;
+    margin-bottom: 16px;
 }
 
-/* ── Patient avatar (initials circle) ── */
 .patient-avatar-lg {
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
     color: #fff;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
 }
 
 .patient-header-info {
@@ -92,12 +92,12 @@
     min-width: 0;
 }
 
-/* ── Patient meta in header ── */
+/* ── Patient meta chips ── */
 .patient-meta {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 6px;
+    margin-top: 5px;
     flex-wrap: wrap;
 }
 .meta-chip {
@@ -117,7 +117,6 @@
     border-color: var(--border-default);
     font-weight: 700;
 }
-/* keep old meta-badge for any remaining usages */
 .meta-badge {
     background: var(--accent-lighter);
     color: var(--accent);
@@ -128,20 +127,46 @@
     font-weight: 700;
 }
 
-/* ── Action bar ── */
+/* ── Action bar: MOBILE default — vertical stack ── */
 .patient-action-bar {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
     gap: 8px;
-    flex-shrink: 0;
 }
-.pqa-secondary {
+
+/* Primary button: full width on mobile */
+.patient-action-bar > .pqa-btn--primary {
+    width: 100%;
+    justify-content: center;
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    padding: 0.65rem 1rem;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+}
+
+/* Secondary buttons: 2×2 grid on mobile */
+.pqa-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.pqa-grid .pqa-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.5rem;
+    font-size: 12.5px;
+}
+.pqa-grid .dropdown {
+    display: contents; /* dropdown participates in parent grid directly */
+}
+.pqa-grid .dropdown .pqa-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .status-badge {
     display: inline-block;
@@ -436,72 +461,17 @@
 .form-checkbox { flex-direction: row; align-items: center; gap: 8px; }
 .form-checkbox label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 
-/* ── Responsive ── */
+/* ── Responsive — content layout (no button/header overrides here) ── */
 @media (max-width: 768px) {
-    /* Header: stack identity + actions vertically */
-    .patient-header-card {
-        flex-direction: column;
-        gap: 14px;
-    }
-    .patient-header-identity {
-        width: 100%;
-    }
-    .patient-avatar-lg {
-        width: 48px;
-        height: 48px;
-        font-size: 17px;
-    }
-
-    /* Action bar: full width, primary first then secondary row */
-    .patient-action-bar {
-        width: 100%;
-        align-items: stretch;
-        gap: 8px;
-    }
-    .pqa-btn--primary {
-        width: 100%;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-        padding: 0.6rem 1rem;
-        font-size: 13px;
-    }
-    .pqa-secondary {
-        justify-content: flex-start;
-        flex-wrap: nowrap;
-        gap: 6px;
-    }
-    .pqa-secondary .pqa-btn {
-        flex: 1;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-        padding: 0.4rem 0.5rem;
-        font-size: 11.5px;
-    }
-    .pqa-secondary .dropdown {
-        flex: 1;
-        display: flex;
-    }
-    .pqa-secondary .dropdown .pqa-btn {
-        width: 100%;
-    }
-
     .overview-grid { grid-template-columns: 1fr; }
     .conditions-grid { grid-template-columns: 1fr; }
     .patient-tabs { gap: 0; }
     .patient-tab { padding: 8px 12px; font-size: 13px; }
-
-    /* Tab panel headers stack on mobile */
     .tab-panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     .tab-panel-header .btn-add,
     .tab-panel-header button { width: 100%; justify-content: center; }
-
-    /* Vitals sparkline cards full width */
     .vitals-sparklines { flex-direction: column; }
     .vital-sparkline-card { min-width: unset; width: 100%; }
-
-    /* Vitals trend table scroll */
     .vitals-trend-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .vitals-trend-table { min-width: 480px; }
 }
@@ -509,8 +479,8 @@
 @media (max-width: 480px) {
     .patient-tab { padding: 7px 9px; font-size: 12px; }
     .tab-count { display: none; }
-    .patient-avatar-lg { width: 42px; height: 42px; font-size: 15px; }
-    .pqa-secondary .pqa-btn { font-size: 11px; padding: 0.38rem 0.35rem; }
+    .patient-avatar-lg { width: 44px; height: 44px; font-size: 16px; }
+    .pqa-grid .pqa-btn { font-size: 11.5px; padding: 0.45rem 0.4rem; }
 }
 
 /* ── Patient status select ── */
@@ -640,3 +610,59 @@
     border-color: var(--border-subtle);
 }
 .pqa-btn--ghost:hover { background: var(--bg-muted); }
+
+/* ══════════════════════════════════════════════════════
+   DESKTOP LAYOUT OVERRIDE (min-width: 769px)
+   Placed LAST so it wins the cascade over base styles.
+   ══════════════════════════════════════════════════════ */
+@media (min-width: 769px) {
+    /* Header: side-by-side on desktop */
+    .patient-header-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+    }
+    .patient-header-identity {
+        margin-bottom: 0;
+        flex: 1;
+        min-width: 0;
+    }
+    .patient-avatar-lg {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+    }
+
+    /* Action bar: horizontal flex row on desktop */
+    .patient-action-bar {
+        flex-direction: row;
+        align-items: center;
+        flex-shrink: 0;
+        gap: 6px;
+    }
+
+    /* Primary button: auto width on desktop */
+    .patient-action-bar > .pqa-btn--primary {
+        width: auto;
+        padding: 0.5rem 1.2rem;
+        font-size: 13px;
+    }
+
+    /* Secondary buttons: single flex row on desktop */
+    .pqa-grid {
+        display: flex;
+        gap: 6px;
+    }
+    .pqa-grid .pqa-btn {
+        width: auto;
+        padding: 0.45rem 0.9rem;
+        font-size: 12.5px;
+    }
+    .pqa-grid .dropdown {
+        display: block; /* restore normal block on desktop */
+    }
+    .pqa-grid .dropdown .pqa-btn {
+        width: auto;
+    }
+}
