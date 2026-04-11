@@ -198,38 +198,7 @@
 .rx-error { background: var(--color-danger-light); color: var(--color-danger-dark); border: 1px solid #FCA5A5; border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: var(--text-sm); }
 .rx-loading, .rx-empty { color: var(--text-muted); font-size: var(--text-sm); padding: var(--space-6) 0; }
 
-/* ── Modal ── */
-.rx-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(26, 26, 26, 0.40);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-  padding: var(--space-4);
-}
-
-.rx-modal {
-  background: var(--bg-base);
-  border-radius: var(--radius-xl);
-  padding: var(--space-8);
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-}
-
-.rx-modal h3 {
-  font-size: var(--text-xl);
-  font-weight: var(--fw-bold);
-  margin: 0 0 var(--space-5);
-  color: var(--text-primary);
-}
-
+/* ── Form layout (rendered inside Drawer) ── */
 .rx-form { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .rx-form-row {
@@ -369,9 +338,6 @@
   .rx-filters { flex-direction: column; align-items: stretch; }
   .rx-search { max-width: 100%; }
   .rx-filter-tabs { flex-wrap: wrap; gap: 6px; }
-  /* Bottom-sheet modal */
-  .rx-modal-overlay { padding: 0; align-items: flex-end; }
-  .rx-modal { border-radius: var(--radius-xl) var(--radius-xl) 0 0; max-width: 100%; max-height: 90vh; padding: var(--space-6) var(--space-4); }
 }
 
 @media (max-width: 480px) {

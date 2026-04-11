@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { type Prescription } from '../../../shared/types';
+import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import '../styles/Prescriptions.css';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
@@ -56,6 +57,7 @@ function Prescriptions() {
     const [searchQuery, setSearchQuery] = useState('');
     const [editId, setEditId] = useState<number | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+    const [dirty, setDirty] = useState(false);
 
     // Patient search for form
     const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
@@ -105,6 +107,7 @@ function Prescriptions() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
+        setDirty(true);
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
@@ -116,6 +119,7 @@ function Prescriptions() {
         setEditId(null);
         setPatientSearch('');
         setPatientSearchResults([]);
+        setDirty(false);
         setShowForm(true);
     };
 
@@ -133,11 +137,21 @@ function Prescriptions() {
         setEditId(p.id);
         setPatientSearch(p.patient_name || '');
         setPatientSearchResults([]);
+        setDirty(false);
         setShowForm(true);
+    };
+
+    const closeForm = () => {
+        setShowForm(false);
+        setDirty(false);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.patient) {
+            toast.error('Please select a patient.');
+            return;
+        }
         setSaving(true);
         try {
             const payload = {
@@ -147,13 +161,16 @@ function Prescriptions() {
             };
             if (editId) {
                 await api.put(`/prescriptions/${editId}/`, payload);
+                toast.success('Prescription updated.');
             } else {
                 await api.post('/prescriptions/', payload);
+                toast.success('Prescription created.');
             }
+            setDirty(false);
             setShowForm(false);
             fetchPrescriptions();
-        } catch {
-            setError('Failed to save prescription.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save prescription.'));
         } finally {
             setSaving(false);
         }
@@ -162,19 +179,21 @@ function Prescriptions() {
     const handleToggleActive = async (p: Prescription) => {
         try {
             await api.patch(`/prescriptions/${p.id}/`, { is_active: !p.is_active });
+            toast.success(p.is_active ? 'Prescription deactivated.' : 'Prescription activated.');
             fetchPrescriptions();
-        } catch {
-            setError('Failed to update prescription.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update prescription.'));
         }
     };
 
     const handleDelete = async (id: number) => {
         try {
             await api.delete(`/prescriptions/${id}/`);
+            toast.success('Prescription deleted.');
             setConfirmDeleteId(null);
             fetchPrescriptions();
-        } catch {
-            setError('Failed to delete prescription.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to delete prescription.'));
             setConfirmDeleteId(null);
         }
     };
@@ -261,102 +280,95 @@ function Prescriptions() {
                 </div>
             )}
 
-            {/* Create/Edit Modal */}
-            {showForm && (
-                <div className="rx-modal-overlay">
-                    <div className="rx-modal">
-                        <h3>{editId ? 'Edit Prescription' : 'New Prescription'}</h3>
-                        <form onSubmit={handleSubmit} className="rx-form">
-                            {/* Patient selector */}
-                            <div className="rx-form-group">
-                                <label>Patient *</label>
-                                <div className="patient-selector-wrapper">
-                                    <input
-                                        type="text"
-                                        placeholder="Search patient by name..."
-                                        value={patientSearch}
-                                        onChange={e => handlePatientSearch(e.target.value)}
-                                        onFocus={() => handlePatientSearch(patientSearch)}
-                                    />
-                                    {formData.patient && (
-                                        <span className="selected-patient-chip">
-                                            {patientOptions.find(p => p.unique_id === formData.patient)
-                                                ? `${patientOptions.find(p => p.unique_id === formData.patient)!.first_name} ${patientOptions.find(p => p.unique_id === formData.patient)!.last_name}`
-                                                : patientSearch || formData.patient}
-                                            <button type="button" onClick={() => { setFormData(f => ({ ...f, patient: '' })); setPatientSearch(''); }}>×</button>
-                                        </span>
-                                    )}
-                                    {patientSearchResults.length > 0 && !formData.patient && (
-                                        <ul className="patient-selector-dropdown">
-                                            {patientSearchResults.map(p => (
-                                                <li key={p.unique_id}>
-                                                    <button type="button" onClick={() => {
-                                                        setFormData(f => ({ ...f, patient: p.unique_id }));
-                                                        setPatientSearch(`${p.first_name} ${p.last_name}`);
-                                                        setPatientSearchResults([]);
-                                                    }}>
-                                                        {p.first_name} {p.last_name}
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                                {/* Hidden required input to enforce validation */}
-                                <input
-                                    type="text"
-                                    name="patient"
-                                    value={formData.patient}
-                                    required
-                                    readOnly
-                                    style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-                                />
-                            </div>
-
-                            <div className="rx-form-row">
-                                <div className="rx-form-group">
-                                    <label>Medication Name *</label>
-                                    <input name="medication_name" value={formData.medication_name} onChange={handleChange} required />
-                                </div>
-                                <div className="rx-form-group">
-                                    <label>Dosage *</label>
-                                    <input name="dosage" value={formData.dosage} onChange={handleChange} required placeholder="e.g. 500mg" />
-                                </div>
-                            </div>
-                            <div className="rx-form-row">
-                                <div className="rx-form-group">
-                                    <label>Frequency *</label>
-                                    <select name="frequency" value={formData.frequency} onChange={handleChange}>
-                                        {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
-                                            <option key={val} value={val}>{label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="rx-form-group">
-                                    <label>Duration (days)</label>
-                                    <input name="duration_days" type="number" value={formData.duration_days} onChange={handleChange} min={1} />
-                                </div>
-                            </div>
-                            <div className="rx-form-group">
-                                <label>Instructions</label>
-                                <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows={3} />
-                            </div>
-                            <div className="rx-form-group rx-form-checkbox">
-                                <label>
-                                    <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleChange} />
-                                    {' '}Active prescription
-                                </label>
-                            </div>
-                            <div className="rx-form-actions">
-                                <button type="submit" disabled={saving} className="rx-btn-submit">
-                                    {saving ? 'Saving...' : (editId ? 'Update' : 'Create')}
-                                </button>
-                                <button type="button" onClick={() => setShowForm(false)} className="rx-btn-cancel">Cancel</button>
-                            </div>
-                        </form>
+            <Drawer
+                open={showForm}
+                onClose={closeForm}
+                title={editId ? 'Edit Prescription' : 'New Prescription'}
+                size="md"
+                dirty={dirty}
+                footer={
+                    <>
+                        <button type="button" onClick={closeForm} className="rx-btn-cancel" disabled={saving}>Cancel</button>
+                        <button type="submit" form="prescription-form" disabled={saving} className="rx-btn-submit">
+                            {saving ? 'Saving...' : (editId ? 'Update' : 'Create')}
+                        </button>
+                    </>
+                }
+            >
+                <form id="prescription-form" onSubmit={handleSubmit} className="rx-form">
+                    <div className="rx-form-group">
+                        <label>Patient *</label>
+                        <div className="patient-selector-wrapper">
+                            <input
+                                type="text"
+                                placeholder="Search patient by name..."
+                                value={patientSearch}
+                                onChange={e => handlePatientSearch(e.target.value)}
+                                onFocus={() => handlePatientSearch(patientSearch)}
+                            />
+                            {formData.patient && (
+                                <span className="selected-patient-chip">
+                                    {patientOptions.find(p => p.unique_id === formData.patient)
+                                        ? `${patientOptions.find(p => p.unique_id === formData.patient)!.first_name} ${patientOptions.find(p => p.unique_id === formData.patient)!.last_name}`
+                                        : patientSearch || formData.patient}
+                                    <button type="button" onClick={() => { setFormData(f => ({ ...f, patient: '' })); setPatientSearch(''); }}>×</button>
+                                </span>
+                            )}
+                            {patientSearchResults.length > 0 && !formData.patient && (
+                                <ul className="patient-selector-dropdown">
+                                    {patientSearchResults.map(p => (
+                                        <li key={p.unique_id}>
+                                            <button type="button" onClick={() => {
+                                                setFormData(f => ({ ...f, patient: p.unique_id }));
+                                                setDirty(true);
+                                                setPatientSearch(`${p.first_name} ${p.last_name}`);
+                                                setPatientSearchResults([]);
+                                            }}>
+                                                {p.first_name} {p.last_name}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+
+                    <div className="rx-form-row">
+                        <div className="rx-form-group">
+                            <label>Medication Name *</label>
+                            <input name="medication_name" value={formData.medication_name} onChange={handleChange} required />
+                        </div>
+                        <div className="rx-form-group">
+                            <label>Dosage *</label>
+                            <input name="dosage" value={formData.dosage} onChange={handleChange} required placeholder="e.g. 500mg" />
+                        </div>
+                    </div>
+                    <div className="rx-form-row">
+                        <div className="rx-form-group">
+                            <label>Frequency *</label>
+                            <select name="frequency" value={formData.frequency} onChange={handleChange}>
+                                {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
+                                    <option key={val} value={val}>{label}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="rx-form-group">
+                            <label>Duration (days)</label>
+                            <input name="duration_days" type="number" value={formData.duration_days} onChange={handleChange} min={1} />
+                        </div>
+                    </div>
+                    <div className="rx-form-group">
+                        <label>Instructions</label>
+                        <textarea name="instructions" value={formData.instructions} onChange={handleChange} rows={3} />
+                    </div>
+                    <div className="rx-form-group rx-form-checkbox">
+                        <label>
+                            <input type="checkbox" name="is_active" checked={formData.is_active} onChange={handleChange} />
+                            {' '}Active prescription
+                        </label>
+                    </div>
+                </form>
+            </Drawer>
 
             {confirmDeleteId !== null && (
                 <ConfirmModal
