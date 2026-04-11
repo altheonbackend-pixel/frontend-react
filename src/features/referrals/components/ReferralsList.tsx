@@ -112,8 +112,7 @@ const ReferralsList = () => {
             if (tab !== 'all') params.direction = tab;
             if (statusFilter) params.status = statusFilter;
             if (urgencyFilter) params.urgency = urgencyFilter;
-            const query = new URLSearchParams(params).toString();
-            const res = await api.get(`/referrals/${query ? '?' + query : ''}`);
+            const res = await api.get('/referrals/', { params });
             setReferrals(res.data.results ?? res.data);
             setError(null);
         } catch {

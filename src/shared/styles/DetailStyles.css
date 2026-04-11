@@ -551,21 +551,11 @@
   .detail-header h2,
   .patient-name { font-size: var(--text-xl); }
 
-  .action-button,
-  .edit-button,
-  .delete-button,
-  .add-consultation-button,
-  .add-procedure-button,
-  .export-pdf-button,
-  .create-appt-button,
-  .view-deleted-button,
-  .edit-profile-button {
+  /* patient-actions in headers can stack/expand — but appointment card actions stay inline */
+  .patient-actions {
     flex: 1;
-    justify-content: center;
+    width: 100%;
   }
-
-  .patient-actions,
-  .appointment-actions { width: 100%; }
 
   .detail-list-item { padding: var(--space-4); }
 }

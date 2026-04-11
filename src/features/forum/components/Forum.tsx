@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/DetailStyles.css';
-import '../../../shared/styles/TextStyles.css';
+import '../styles/Forum.css';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 
@@ -37,6 +36,8 @@ const Forum = () => {
     const [commentSubmitting, setCommentSubmitting] = useState<number | null>(null);
     const [flagging, setFlagging] = useState<number | null>(null);
     const [flagReason, setFlagReason] = useState<{ [key: number]: string }>({});
+    const [showFlagForm, setShowFlagForm] = useState<{ [key: number]: boolean }>({});
+    const [expandedComments, setExpandedComments] = useState<{ [key: number]: boolean }>({});
 
     useEffect(() => {
         fetchPosts();
@@ -48,7 +49,6 @@ const Forum = () => {
             setLoading(false);
             return;
         }
-
         try {
             const response = await api.get('/forum/posts/');
             setPosts(response.data.results ?? response.data);
@@ -59,17 +59,9 @@ const Forum = () => {
         }
     };
 
-    const handlePostChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setNewPost(prevData => ({ ...prevData, [name]: value }));
-    };
-
-    const handleCommentChange = (postId: number, content: string) => {
-        setNewComment(prev => ({ ...prev, [postId]: content }));
-    };
-
     const handlePostSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!newPost.title.trim() || !newPost.content.trim()) return;
         setPostSubmitting(true);
         setError(null);
         try {
@@ -88,10 +80,7 @@ const Forum = () => {
         setCommentSubmitting(postId);
         setError(null);
         try {
-            await api.post('/forum/comments/', {
-                post: postId,
-                content: newComment[postId],
-            });
+            await api.post('/forum/comments/', { post: postId, content: newComment[postId] });
             setNewComment(prev => ({ ...prev, [postId]: '' }));
             fetchPosts();
         } catch {
@@ -108,6 +97,7 @@ const Forum = () => {
         try {
             await api.post(`/forum/posts/${postId}/flag/`, { reason });
             setFlagReason(prev => ({ ...prev, [postId]: '' }));
+            setShowFlagForm(prev => ({ ...prev, [postId]: false }));
             fetchPosts();
         } catch {
             setError(t('forum.error.flag'));
@@ -116,120 +106,186 @@ const Forum = () => {
         }
     };
 
-    if (loading) {
-        return <PageLoader message={t('forum.loading')} />;
-    }
+    const toggleComments = (postId: number) => {
+        setExpandedComments(prev => ({ ...prev, [postId]: !prev[postId] }));
+    };
+
+    const toggleFlagForm = (postId: number) => {
+        setShowFlagForm(prev => ({ ...prev, [postId]: !prev[postId] }));
+    };
+
+    if (loading) return <PageLoader message={t('forum.loading')} />;
 
     return (
-        <div className="text-page-container">
-            <div className="page-header">
+        <div className="forum-page">
+            <div className="forum-header">
                 <h1>{t('forum.title')}</h1>
+                <p className="forum-header-sub">Share cases, ask questions, and collaborate with colleagues</p>
             </div>
+
             {error && <div className="error-message" style={{ marginBottom: '16px' }}>{error}</div>}
 
-            {/* Formulaire pour créer un nouveau post */}
-            <div className="new-post-form detail-info-group">
+            {/* Create topic */}
+            <div className="forum-compose">
                 <h3>{t('forum.create_topic')}</h3>
                 <form onSubmit={handlePostSubmit}>
-                    <div className="form-group">
+                    <div className="forum-compose-field">
                         <input
                             type="text"
-                            name="title"
                             placeholder={t('forum.post_title_placeholder')}
                             value={newPost.title}
-                            onChange={handlePostChange}
+                            onChange={e => setNewPost(p => ({ ...p, title: e.target.value }))}
                             required
                         />
                     </div>
-                    <div className="form-group">
+                    <div className="forum-compose-field">
                         <textarea
-                            name="content"
+                            rows={3}
                             placeholder={t('forum.post_content_placeholder')}
                             value={newPost.content}
-                            onChange={handlePostChange}
+                            onChange={e => setNewPost(p => ({ ...p, content: e.target.value }))}
                             required
                         />
                     </div>
-                    <button type="submit" className="action-button content-button" disabled={postSubmitting}>
-                        {postSubmitting ? t('forum.publishing') : t('forum.publish')}
-                    </button>
+                    <div className="forum-compose-actions">
+                        <button type="submit" className="btn-publish" disabled={postSubmitting}>
+                            {postSubmitting ? t('forum.publishing') : t('forum.publish')}
+                        </button>
+                    </div>
                 </form>
             </div>
 
-            {/* Liste des posts du forum */}
-            <div className="posts-list">
-                {posts.length > 0 ? (
-                    posts.map(post => (
-                        <div key={post.id} className="forum-post content-section">
-                            <div className="post-header">
-                                <h2>{post.title}</h2>
-                                <div className="section-footer">
-                                    <span className="author">Dr. {post.author_name} ({post.author_specialty})</span>
-                                    <span className="date">{t('forum.date_prefix')} {new Date(post.created_at).toLocaleDateString()}</span>
+            {/* Posts list */}
+            <div className="forum-posts-list">
+                {posts.length === 0 ? (
+                    <div className="forum-empty"><p>{t('forum.no_posts')}</p></div>
+                ) : (
+                    posts.map(post => {
+                        const commentsOpen = expandedComments[post.id] ?? false;
+                        const flagFormOpen = showFlagForm[post.id] ?? false;
+                        return (
+                            <div key={post.id} className="forum-post-card">
+                                {/* Post body */}
+                                <div className="forum-post-body">
+                                    <h2 className="forum-post-title">{post.title}</h2>
+                                    <p className="forum-post-content">{post.content}</p>
+                                    <div className="forum-post-meta">
+                                        <div className="forum-author-avatar">
+                                            {post.author_name.charAt(0).toUpperCase()}
+                                        </div>
+                                        <span className="forum-author-name">Dr. {post.author_name}</span>
+                                        {post.author_specialty && (
+                                            <span>{post.author_specialty}</span>
+                                        )}
+                                        <span className="forum-post-date">
+                                            {new Date(post.created_at).toLocaleDateString()}
+                                        </span>
+                                        {post.is_flagged && (
+                                            <span className="forum-flagged-badge">Flagged</span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <p className="post-content">{post.content}</p>
 
-                            {/* Flag section */}
-                            {post.is_flagged ? (
-                                <p className="forum-flagged-notice">{t('forum.flagged_notice')}</p>
-                            ) : (
-                                <details className="forum-flag-details">
-                                    <summary className="forum-flag-summary">{t('forum.report')}</summary>
-                                    <div className="forum-flag-form">
-                                        <input
-                                            type="text"
-                                            placeholder={t('forum.flag_reason_placeholder')}
-                                            value={flagReason[post.id] || ''}
-                                            onChange={e => setFlagReason(prev => ({ ...prev, [post.id]: e.target.value }))}
-                                        />
+                                {/* Flag section */}
+                                {!post.is_flagged && (
+                                    <div className="forum-flag-section">
                                         <button
                                             type="button"
-                                            className="action-button"
-                                            style={{ background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderColor: 'var(--color-warning)' }}
-                                            onClick={() => handleFlagPost(post.id)}
-                                            disabled={flagging === post.id || !flagReason[post.id]?.trim()}
+                                            className="forum-flag-toggle"
+                                            onClick={() => toggleFlagForm(post.id)}
                                         >
-                                            {flagging === post.id ? t('forum.flagging') : t('forum.flag_submit')}
+                                            {flagFormOpen ? 'Cancel Report' : `⚑ ${t('forum.report')}`}
                                         </button>
-                                    </div>
-                                </details>
-                            )}
-
-                            {/* Section des commentaires */}
-                            <div className="comments-section">
-                                <div className="separator"></div>
-                                <h4>{t('forum.comments_title')} ({post.comments.length})</h4>
-                                <div className="comments-list detail-list">
-                                    {post.comments.map(comment => (
-                                        <div key={comment.id} className="comment-item detail-list-item">
-                                            <p>{comment.content}</p>
-                                            <div className="section-footer">
-                                                <span className="author">Dr. {comment.author_name}</span>
-                                                <span className="date">{t('forum.date_prefix')} {new Date(comment.created_at).toLocaleDateString()}</span>
+                                        {flagFormOpen && (
+                                            <div className="forum-flag-form">
+                                                <input
+                                                    type="text"
+                                                    placeholder={t('forum.flag_reason_placeholder')}
+                                                    value={flagReason[post.id] || ''}
+                                                    onChange={e => setFlagReason(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn-flag"
+                                                    onClick={() => handleFlagPost(post.id)}
+                                                    disabled={flagging === post.id || !flagReason[post.id]?.trim()}
+                                                >
+                                                    {flagging === post.id ? t('forum.flagging') : t('forum.flag_submit')}
+                                                </button>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Formulaire pour ajouter un commentaire */}
-                                <form onSubmit={(e) => { e.preventDefault(); handleCommentSubmit(post.id); }} className="comment-form">
-                                    <div className="form-group">
-                                        <textarea
-                                            placeholder={t('forum.comment_placeholder')}
-                                            value={newComment[post.id] || ''}
-                                            onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                                            required
-                                        />
+                                        )}
                                     </div>
-                                    <button type="submit" className="action-button content-button" disabled={commentSubmitting === post.id}>
-                                        {commentSubmitting === post.id ? t('forum.commenting') : t('forum.comment_submit')}
+                                )}
+
+                                {/* Comments section */}
+                                <div className="forum-comments-section">
+                                    <button
+                                        type="button"
+                                        className="forum-comments-toggle"
+                                        onClick={() => toggleComments(post.id)}
+                                    >
+                                        <span>
+                                            {t('forum.comments_title')}
+                                            <span className="forum-comments-toggle-count" style={{ marginLeft: '8px' }}>
+                                                {post.comments.length}
+                                            </span>
+                                        </span>
+                                        <span className={`forum-comments-toggle-chevron${commentsOpen ? ' open' : ''}`}>▼</span>
                                     </button>
-                                </form>
+
+                                    {commentsOpen && (
+                                        <>
+                                            {post.comments.length > 0 && (
+                                                <div className="forum-comments-list">
+                                                    {post.comments.map(comment => (
+                                                        <div key={comment.id} className="forum-comment-item">
+                                                            <div className="forum-comment-avatar">
+                                                                {comment.author_name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <div className="forum-comment-body">
+                                                                <div className="forum-comment-author">
+                                                                    Dr. {comment.author_name}
+                                                                    {comment.author_specialty && ` · ${comment.author_specialty}`}
+                                                                </div>
+                                                                <p className="forum-comment-text">{comment.content}</p>
+                                                                <div className="forum-comment-date">
+                                                                    {new Date(comment.created_at).toLocaleDateString()}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="forum-comment-input-row">
+                                                <textarea
+                                                    className="forum-comment-input"
+                                                    rows={1}
+                                                    placeholder={t('forum.comment_placeholder')}
+                                                    value={newComment[post.id] || ''}
+                                                    onChange={e => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            handleCommentSubmit(post.id);
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className="btn-comment-submit"
+                                                    onClick={() => handleCommentSubmit(post.id)}
+                                                    disabled={commentSubmitting === post.id || !newComment[post.id]?.trim()}
+                                                >
+                                                    {commentSubmitting === post.id ? t('forum.commenting') : t('forum.comment_submit')}
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))
-                ) : (
-                    <p className="no-data-message">{t('forum.no_posts')}</p>
+                        );
+                    })
                 )}
             </div>
         </div>

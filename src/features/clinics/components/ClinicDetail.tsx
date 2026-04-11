@@ -182,8 +182,8 @@ const ClinicDetail = () => {
                         <button onClick={handleLeave} disabled={actionLoading} className="delete-button action-button">Leave Clinic</button>
                     )}
                     {!clinic.is_member && (
-                        <button onClick={handleJoin} disabled={actionLoading} className="action-button" style={{ background: '#2b6cb0', color: 'white', borderRadius: '8px', padding: '8px 16px' }}>
-                            {clinic.join_policy === 'open' ? 'Join' : 'Request to Join'}
+                        <button onClick={handleJoin} disabled={actionLoading} className="btn-join">
+                            {actionLoading ? 'Sending…' : clinic.join_policy === 'open' ? 'Join Clinic' : 'Request to Join'}
                         </button>
                     )}
                 </div>
@@ -277,7 +277,7 @@ const ClinicDetail = () => {
                                             <div className="request-date">{new Date(jr.created_at).toLocaleDateString()}</div>
                                         </div>
                                         <div className="request-actions">
-                                            <button onClick={() => handleApproveRequest(jr.id)} className="action-button" style={{ background: '#38a169', color: 'white', borderRadius: '6px', padding: '6px 14px' }}>Approve</button>
+                                            <button onClick={() => handleApproveRequest(jr.id)} className="btn-approve">Approve</button>
                                             <button onClick={() => handleRejectRequest(jr.id)} className="delete-button action-button">Reject</button>
                                         </div>
                                     </li>

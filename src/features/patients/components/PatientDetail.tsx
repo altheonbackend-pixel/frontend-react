@@ -182,8 +182,13 @@ const PatientDetails = () => {
         setReferralToEdit(null);
     };
 
+    // Reset vitals when navigating to a different patient
+    useEffect(() => {
+        setVitalsTrend([]);
+    }, [id]);
+
     const fetchVitalsTrend = async () => {
-        if (!id || vitalsTrend.length > 0) return;
+        if (!id) return;
         setVitalsLoading(true);
         try {
             const res = await api.get(`/patients/${id}/vitals-trend/`);

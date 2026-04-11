@@ -3,7 +3,7 @@
     display: flex;
     gap: 4px;
     margin: 20px 0 0;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 2px solid var(--border-subtle);
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -13,24 +13,24 @@
     padding: 10px 18px;
     border: none;
     background: none;
-    font-size: 14px;
-    font-weight: 600;
-    color: #718096;
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--text-muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     margin-bottom: -2px;
     white-space: nowrap;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
     display: flex;
     align-items: center;
     gap: 6px;
 }
-.patient-tab:hover { color: #2b6cb0; }
-.patient-tab.active { color: #2b6cb0; border-bottom-color: #2b6cb0; }
+.patient-tab:hover { color: var(--accent); }
+.patient-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .tab-count {
-    background: #e2e8f0;
-    color: #4a5568;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 700;
     border-radius: 10px;
@@ -38,7 +38,7 @@
     min-width: 20px;
     text-align: center;
 }
-.patient-tab.active .tab-count { background: #bee3f8; color: #2b6cb0; }
+.patient-tab.active .tab-count { background: var(--accent-lighter); color: var(--accent); }
 
 /* ── Tab Content ── */
 .patient-tab-content { padding: 20px 0; }
@@ -49,7 +49,7 @@
     justify-content: space-between;
     margin-bottom: 16px;
 }
-.tab-panel-header h3 { margin: 0; font-size: 18px; color: #1a202c; }
+.tab-panel-header h3 { margin: 0; font-size: var(--text-xl); color: var(--text-primary); }
 
 /* ── Patient meta in header ── */
 .patient-meta {
@@ -57,13 +57,13 @@
     align-items: center;
     gap: 8px;
     margin-top: 4px;
-    font-size: 14px;
-    color: #718096;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
 }
 .meta-badge {
-    background: #ebf8ff;
-    color: #2b6cb0;
-    border: 1px solid #bee3f8;
+    background: var(--accent-lighter);
+    color: var(--accent);
+    border: 1px solid var(--border-default);
     border-radius: 12px;
     padding: 2px 10px;
     font-size: 12px;
@@ -76,24 +76,24 @@
     font-size: 12px;
     font-weight: 600;
 }
-.status-active { background: #c6f6d5; color: #276749; }
-.status-inactive { background: #fed7d7; color: #742a2a; }
-.status-transferred { background: #fefcbf; color: #744210; }
-.status-deceased { background: #e2e8f0; color: #4a5568; }
+.status-active { background: var(--color-success-light); color: var(--color-success-dark); }
+.status-inactive { background: var(--color-danger-light); color: var(--color-danger-dark); }
+.status-transferred { background: var(--color-info-light); color: var(--color-info-dark); }
+.status-deceased { background: var(--bg-muted); color: var(--text-secondary); }
 
 /* ── Allergy Alert Bar ── */
 .allergy-alert-bar {
-    background: #fff5f5;
+    background: var(--color-danger-light);
     border: 1.5px solid #fc8181;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     padding: 12px 16px;
     margin: 12px 0;
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    font-size: 14px;
-    color: #742a2a;
+    font-size: var(--text-sm);
+    color: var(--color-danger-dark);
 }
 .allergy-alert-icon { font-size: 18px; }
 .allergy-chip {
@@ -104,8 +104,8 @@
     font-weight: 700;
     margin-left: 4px;
 }
-.allergy-chip.life-threatening { background: #742a2a; color: white; }
-.allergy-chip.severe { background: #fc8181; color: #742a2a; }
+.allergy-chip.life-threatening { background: var(--color-danger-dark); color: #fff; }
+.allergy-chip.severe { background: #fc8181; color: var(--color-danger-dark); }
 
 /* ── Overview Grid ── */
 .overview-grid {
@@ -121,11 +121,11 @@
     gap: 14px;
 }
 .condition-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
     padding: 14px 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
 }
 .condition-card-header {
     display: flex;
@@ -134,11 +134,11 @@
     margin-bottom: 8px;
     gap: 8px;
 }
-.condition-name { font-weight: 700; font-size: 15px; color: #1a202c; }
+.condition-name { font-weight: 700; font-size: 15px; color: var(--text-primary); }
 .icd-code {
     font-size: 11px;
-    background: #edf2f7;
-    color: #4a5568;
+    background: var(--bg-muted);
+    color: var(--text-secondary);
     padding: 1px 6px;
     border-radius: 4px;
     margin-left: 6px;
@@ -151,16 +151,16 @@
     border-radius: 10px;
     white-space: nowrap;
 }
-.condition-meta { font-size: 12px; color: #a0aec0; margin-bottom: 6px; }
-.condition-notes { font-size: 13px; color: #718096; margin: 0; }
+.condition-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+.condition-notes { font-size: 13px; color: var(--text-muted); margin: 0; }
 
 .mini-condition {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 6px 0;
-    border-bottom: 1px solid #f7fafc;
-    font-size: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: var(--text-sm);
 }
 .condition-dot {
     width: 10px;
@@ -171,16 +171,16 @@
 .condition-status-label {
     margin-left: auto;
     font-size: 11px;
-    color: #a0aec0;
+    color: var(--text-muted);
     text-transform: capitalize;
 }
 
 /* ── Allergy cards ── */
 .allergies-list { display: flex; flex-direction: column; gap: 12px; }
 .allergy-card {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
     padding: 14px 16px;
 }
 .allergy-card.inactive { opacity: 0.6; }
@@ -190,10 +190,10 @@
     align-items: center;
     margin-bottom: 8px;
 }
-.allergen-name { font-weight: 700; font-size: 15px; color: #1a202c; }
+.allergen-name { font-weight: 700; font-size: 15px; color: var(--text-primary); }
 .allergy-type {
     font-size: 12px;
-    color: #718096;
+    color: var(--text-muted);
     margin-left: 8px;
 }
 .severity-badge {
@@ -203,15 +203,15 @@
     border-radius: 10px;
     text-transform: capitalize;
 }
-.allergy-desc { font-size: 13px; color: #718096; margin: 4px 0 0; }
-.inactive-label { font-size: 11px; color: #a0aec0; font-style: italic; }
+.allergy-desc { font-size: 13px; color: var(--text-muted); margin: 4px 0 0; }
+.inactive-label { font-size: 11px; color: var(--text-muted); font-style: italic; }
 
 /* ── Consultation display ── */
 .consult-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .consult-header h4 { margin: 0; }
 .consult-type-badge {
-    background: #ebf8ff;
-    color: #2b6cb0;
+    background: var(--accent-lighter);
+    color: var(--accent);
     font-size: 11px;
     font-weight: 600;
     padding: 2px 8px;
@@ -228,18 +228,18 @@
 }
 .vitals-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .vital-chip {
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
     font-size: 12px;
-    color: #4a5568;
+    color: var(--text-secondary);
     padding: 3px 10px;
     border-radius: 10px;
 }
 .follow-up-chip {
     display: inline-block;
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fde68a;
+    background: var(--color-warning-light);
+    color: var(--color-warning-dark);
+    border: 1px solid var(--color-warning);
     font-size: 12px;
     font-weight: 600;
     padding: 3px 10px;
@@ -250,10 +250,10 @@
 /* ── Mini consultation in overview ── */
 .mini-consultation {
     padding: 8px 0;
-    border-bottom: 1px solid #f7fafc;
+    border-bottom: 1px solid var(--border-subtle);
 }
-.mini-consult-date { font-size: 12px; color: #a0aec0; }
-.mini-consult-reason { font-size: 14px; color: #2d3748; }
+.mini-consult-date { font-size: 12px; color: var(--text-muted); }
+.mini-consult-reason { font-size: var(--text-sm); color: var(--text-primary); }
 
 /* ── Notes ── */
 .note-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
@@ -266,42 +266,43 @@
     font-weight: 600;
     text-transform: capitalize;
 }
-.note-date { font-size: 12px; color: #a0aec0; margin-left: auto; }
-.note-content { font-size: 14px; color: #4a5568; margin: 0 0 4px; white-space: pre-wrap; }
-.note-author { font-size: 12px; color: #a0aec0; }
+.note-date { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.note-content { font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 4px; white-space: pre-wrap; }
+.note-author { font-size: 12px; color: var(--text-muted); }
 
 /* ── Buttons ── */
 .btn-add-primary {
-    background: #2b6cb0;
-    color: white;
+    background: var(--accent);
+    color: var(--text-inverse);
     border: none;
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
+    border-radius: var(--radius-pill);
+    padding: 0.5rem 1.1rem;
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
-    transition: background 0.15s;
+    transition: background var(--transition-fast);
+    font-family: var(--font-body);
 }
-.btn-add-primary:hover { background: #2c5282; }
+.btn-add-primary:hover { background: var(--accent-hover); }
 .btn-view-all {
     background: none;
     border: none;
-    color: #2b6cb0;
+    color: var(--accent);
     font-size: 13px;
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
     cursor: pointer;
     padding: 8px 0 0;
 }
 .btn-view-all:hover { text-decoration: underline; }
-.muted { color: #a0aec0; font-size: 14px; }
+.muted { color: var(--text-muted); font-size: var(--text-sm); }
 
 /* ── Inline form ── */
 .inline-form {
-    background: #f7fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
     padding: 16px;
     margin-bottom: 16px;
 }
@@ -315,14 +316,14 @@
 }
 .symptom-chip {
     padding: 4px 12px;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid var(--border-default);
     border-radius: 16px;
-    background: white;
+    background: var(--bg-base);
     font-size: 12px;
     font-weight: 600;
-    color: #4a5568;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.12s;
+    transition: all var(--transition-fast);
 }
 .symptom-chip.active {
     background: #e9d8fd;
@@ -330,17 +331,20 @@
     color: #553c9a;
 }
 .custom-symptom-row { display: flex; gap: 8px; margin-top: 6px; }
-.custom-symptom-row input { flex: 1; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; }
+.custom-symptom-row input { flex: 1; padding: 6px 10px; border: 1px solid var(--border-default); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-body); color: var(--text-primary); background: var(--bg-base); outline: none; }
+.custom-symptom-row input:focus { border-color: var(--accent); }
 .add-chip-btn {
     padding: 6px 14px;
-    background: #4a5568;
-    color: white;
+    background: var(--text-secondary);
+    color: var(--text-inverse);
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    font-family: var(--font-body);
 }
+.add-chip-btn:hover { background: var(--text-primary); }
 .custom-chip { position: relative; padding-right: 24px; }
 .chip-remove {
     position: absolute;
@@ -399,7 +403,7 @@
     font-weight: 600;
     cursor: pointer;
     outline: none;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
     -webkit-appearance: none;
     appearance: none;
     background-repeat: no-repeat;
@@ -411,7 +415,7 @@
 .patient-status-select.status-active { background-color: #c6f6d5; color: #276749; border-color: #9ae6b4; }
 .patient-status-select.status-inactive { background-color: #fed7d7; color: #742a2a; border-color: #feb2b2; }
 .patient-status-select.status-transferred { background-color: #bee3f8; color: #1a365d; border-color: #90cdf4; }
-.patient-status-select.status-deceased { background-color: #e2e8f0; color: #2d3748; border-color: #cbd5e0; }
+.patient-status-select.status-deceased { background-color: var(--bg-muted); color: var(--text-secondary); border-color: var(--border-default); }
 .patient-status-select:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── Form hint ── */
@@ -441,7 +445,7 @@
     color: var(--text-primary);
 }
 .vitals-trend-table tr:last-child td { border-bottom: none; }
-.vitals-trend-table .vitals-warning { color: #e53e3e; font-weight: var(--fw-semibold); }
+.vitals-trend-table .vitals-warning { color: var(--color-danger); font-weight: var(--fw-semibold); }
 .vitals-trend-table .muted { color: var(--text-muted); }
 
 /* ── Sparklines ── */
@@ -492,35 +496,35 @@
 .pqa-btn {
     padding: 0.45rem 1rem;
     font-size: var(--text-xs, 12px);
-    font-weight: 600;
-    border-radius: 20px;
+    font-weight: var(--fw-semibold);
+    border-radius: var(--radius-pill);
     border: 1.5px solid transparent;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
-    font-family: inherit;
+    transition: all var(--transition-fast);
+    font-family: var(--font-body);
 }
 
 .pqa-btn--primary {
-    background: #2b6cb0;
-    color: white;
-    border-color: #2b6cb0;
+    background: var(--accent);
+    color: var(--text-inverse);
+    border-color: var(--accent);
 }
-.pqa-btn--primary:hover { background: #2c5282; }
+.pqa-btn--primary:hover { background: var(--accent-hover); }
 
 .pqa-btn--secondary {
     background: transparent;
-    color: #2b6cb0;
-    border-color: #bee3f8;
+    color: var(--accent);
+    border-color: var(--border-default);
 }
-.pqa-btn--secondary:hover { background: #ebf8ff; }
+.pqa-btn--secondary:hover { background: var(--accent-lighter); }
 
 .pqa-btn--ghost {
     background: transparent;
-    color: #718096;
-    border-color: #e2e8f0;
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
 }
-.pqa-btn--ghost:hover { background: #f7fafc; }
+.pqa-btn--ghost:hover { background: var(--bg-muted); }
 
 @media (max-width: 600px) {
     .patient-quick-actions { gap: 6px; }

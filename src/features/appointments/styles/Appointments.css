@@ -143,11 +143,14 @@
   background: var(--bg-base);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-4) var(--space-5);
   box-shadow: var(--shadow-sm);
   transition:
     box-shadow var(--transition-base),
     border-color var(--transition-base);
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: var(--space-2);
 }
 
 .appointment-item:hover {
@@ -155,34 +158,94 @@
   border-color: var(--border-strong);
 }
 
-.appointment-item p {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin: var(--space-1) 0;
-  line-height: var(--leading-normal);
+/* Top row: patient name + status badge */
+.appt-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
+
+.appt-patient-name {
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.appt-status-badge {
+  display: inline-block;
+  padding: 0.18rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  color: #fff;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Middle: compact meta info row */
+.appt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.appt-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.appt-meta-label {
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+
+.appt-notes {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+.appt-patient-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: var(--fw-semibold);
+}
+.appt-patient-link:hover { text-decoration: underline; }
 
 /* ── Card action buttons ── */
 .appointment-actions {
   display: flex;
   gap: var(--space-2);
-  margin-top: var(--space-4);
+  margin-top: var(--space-1);
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .action-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 1.1rem;
+  padding: 0.3rem 0.85rem;
   font-family: var(--font-body);
-  font-size: var(--text-sm);
+  font-size: 12px;
   font-weight: var(--fw-semibold);
   border-radius: var(--radius-pill);
   border: 1.5px solid transparent;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
+  line-height: 1.4;
 }
 
 .edit-button {
@@ -204,14 +267,14 @@
   border-color: var(--color-success);
   color: var(--text-inverse);
 }
-.confirm-button:hover { background: var(--color-success-dark); border-color: var(--color-success-dark); }
+.confirm-button:hover { opacity: 0.88; }
 
 .complete-button {
   background: var(--text-secondary);
   border-color: var(--text-secondary);
   color: var(--text-inverse);
 }
-.complete-button:hover { background: var(--text-primary); border-color: var(--text-primary); }
+.complete-button:hover { opacity: 0.88; }
 
 .cancel-appt-button {
   background: transparent;
@@ -226,37 +289,6 @@
   color: var(--color-warning-dark);
 }
 .noshow-button:hover { background: var(--color-warning-light); }
-
-/* ── Status badge on appointment card ── */
-.appt-item-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--space-2);
-}
-
-.appt-status-badge {
-  display: inline-block;
-  padding: 0.2rem 0.75rem;
-  border-radius: var(--radius-pill);
-  font-size: var(--text-xs);
-  font-weight: var(--fw-semibold);
-  color: #fff;
-  text-transform: capitalize;
-}
-
-.appt-notes {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-style: italic;
-  margin-top: var(--space-1);
-}
-
-.appt-patient-link {
-  color: var(--accent);
-  text-decoration: none;
-  font-weight: var(--fw-semibold);
-}
-.appt-patient-link:hover { text-decoration: underline; }
 
 /* ── Deleted appointments page ── */
 .deleted-appointments-page {
@@ -332,16 +364,12 @@
     justify-content: center;
   }
 
-  .appointment-item { padding: var(--space-4); }
-
-  .action-button {
-    flex: 1;
-    min-width: 80px;
-  }
+  .appointment-item { padding: var(--space-3) var(--space-4); }
 }
 
 @media (max-width: 640px) {
   .appointments-list h3 { font-size: var(--text-base); }
+  .appt-meta { gap: var(--space-2); }
 }
 
 @media (max-width: 480px) {
@@ -349,7 +377,7 @@
     padding: 6px !important;
     font-size: var(--text-xs) !important;
   }
-
-  .appointment-actions { flex-direction: column; }
-  .action-button { width: 100%; }
+  /* Keep buttons in a row — never stack on mobile */
+  .appointment-actions { gap: var(--space-1); }
+  .action-button { padding: 0.25rem 0.7rem; font-size: 11px; }
 }

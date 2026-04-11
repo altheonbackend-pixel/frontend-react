@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
 import html2canvas from 'html2canvas';
@@ -32,34 +32,37 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    const fetchPatients = useCallback(async () => {
+    useEffect(() => {
         if (!token) {
             setError(t('patients.error.auth'));
             setLoading(false);
             return;
         }
 
-        try {
-            const params: Record<string, string> = {};
-            if (debouncedSearch) params.search = debouncedSearch;
-            if (statusFilter) params.status = statusFilter;
-            const response = await api.get('/doctors/me/patients/', { params });
-            const patientsList = response.data.results ?? response.data;
-            const sortedPatients = patientsList.sort((a: Patient, b: Patient) => {
-              return (b.unique_id || "").localeCompare(a.unique_id || "");
-            });
-            setPatients(sortedPatients);
-            setError(null);
-        } catch {
-            setError(t('patients.error.load'));
-        } finally {
-            setLoading(false);
-        }
-    }, [token, debouncedSearch, statusFilter, t]);
+        const controller = new AbortController();
+        setLoading(true);
 
-    useEffect(() => {
-        fetchPatients();
-    }, [fetchPatients, refreshPatients, statusFilter]);
+        const params: Record<string, string> = {};
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (statusFilter) params.status = statusFilter;
+
+        api.get('/doctors/me/patients/', { params, signal: controller.signal })
+            .then(response => {
+                const patientsList = response.data.results ?? response.data;
+                setPatients(patientsList.sort((a: Patient, b: Patient) =>
+                    (b.unique_id || '').localeCompare(a.unique_id || '')
+                ));
+                setError(null);
+            })
+            .catch(err => {
+                if (err.name !== 'CanceledError' && err.code !== 'ERR_CANCELED') {
+                    setError(t('patients.error.load'));
+                }
+            })
+            .finally(() => setLoading(false));
+
+        return () => controller.abort();
+    }, [token, debouncedSearch, statusFilter, refreshPatients, t]);
 
     const handleAddPatientClick = () => {
         navigate('/patients/add');

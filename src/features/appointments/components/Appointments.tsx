@@ -175,20 +175,40 @@ const Appointments = () => {
                 ) : (
                     appointmentsForSelectedDate.map(appt => (
                         <div key={appt.id} className="appointment-item">
+                            {/* Header: patient + status */}
                             <div className="appt-item-header">
+                                <span className="appt-patient-name">
+                                    {appt.patient_details
+                                        ? <Link to={`/patients/${appt.patient_details.unique_id}`} className="appt-patient-link">
+                                            {appt.patient_details.first_name} {appt.patient_details.last_name}
+                                          </Link>
+                                        : t('appointments.patient_unavailable')}
+                                </span>
                                 <span className="appt-status-badge" style={{ background: STATUS_BADGE_COLORS[appt.status] || '#718096' }}>
                                     {appt.status.replace('_', ' ')}
                                 </span>
                             </div>
-                            <p><strong>{t('appointments.patient_label')}:</strong>{' '}
-                                {appt.patient_details
-                                    ? <Link to={`/patients/${appt.patient_details.unique_id}`} className="appt-patient-link">{appt.patient_details.first_name} {appt.patient_details.last_name} →</Link>
-                                    : t('appointments.patient_unavailable')}
-                            </p>
-                            <p><strong>{t('appointments.workplace_label')}:</strong> {appt.workplace_details ? appt.workplace_details.name : t('appointments.workplace_unavailable')}</p>
-                            <p><strong>{t('appointments.time_label')}:</strong> {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                            <p><strong>{t('appointments.reason_label')}:</strong> {appt.reason_for_appointment}</p>
-                            {appt.notes && <p className="appt-notes"><em>{appt.notes}</em></p>}
+
+                            {/* Compact meta row */}
+                            <div className="appt-meta">
+                                <span className="appt-meta-item">
+                                    <span className="appt-meta-label">Time</span>
+                                    {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                {appt.workplace_details && (
+                                    <span className="appt-meta-item">
+                                        <span className="appt-meta-label">Clinic</span>
+                                        {appt.workplace_details.name}
+                                    </span>
+                                )}
+                                <span className="appt-meta-item">
+                                    <span className="appt-meta-label">Reason</span>
+                                    {appt.reason_for_appointment}
+                                </span>
+                            </div>
+                            {appt.notes && <p className="appt-notes">{appt.notes}</p>}
+
+                            {/* Action buttons */}
                             <div className="appointment-actions">
                                 {(appt.status === 'scheduled' || appt.status === 'pending') && (
                                     <button onClick={() => handleLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
