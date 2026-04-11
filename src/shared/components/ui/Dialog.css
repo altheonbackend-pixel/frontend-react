@@ -1,0 +1,101 @@
+/* ============================================================
+   Dialog primitive — destructive / confirmation alert.
+   ============================================================ */
+
+.ui-dialog__message {
+    margin: 0;
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    line-height: var(--leading-relaxed);
+}
+
+.ui-dialog__field {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.ui-dialog__label {
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    color: var(--text-primary);
+}
+
+.ui-dialog__required {
+    color: var(--color-danger);
+}
+
+.ui-dialog__textarea {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-family: var(--font-body);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    background: var(--bg-base);
+    border: 1.5px solid var(--border-default);
+    border-radius: var(--radius-md);
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+
+.ui-dialog__textarea:focus {
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+.ui-dialog__btn {
+    padding: 0.6rem 1.4rem;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: var(--fw-semibold);
+    border-radius: var(--radius-pill);
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ui-dialog__btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ui-dialog__btn--cancel {
+    background: transparent;
+    border-color: var(--border-default);
+    color: var(--text-secondary);
+}
+
+.ui-dialog__btn--cancel:hover:not(:disabled) {
+    background: var(--bg-subtle);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.ui-dialog__btn--confirm {
+    color: var(--text-inverse);
+}
+
+.ui-dialog__btn--info {
+    background: var(--accent);
+}
+.ui-dialog__btn--info:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.ui-dialog__btn--warning {
+    background: var(--color-warning);
+}
+.ui-dialog__btn--warning:hover:not(:disabled) {
+    background: #D97706;
+}
+
+.ui-dialog__btn--danger {
+    background: var(--color-danger);
+}
+.ui-dialog__btn--danger:hover:not(:disabled) {
+    background: var(--color-danger-hover);
+}

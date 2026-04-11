@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import App from './app/App';
 import { AuthProvider } from './features/auth/context/AuthContext';
 import { AdminContextProvider } from './features/admin/context/AdminContext';
@@ -16,6 +17,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         <AuthProvider>
           <AdminContextProvider>
             <App />
+            <Toaster position="top-right" richColors closeButton />
           </AdminContextProvider>
         </AuthProvider>
       </Router>
