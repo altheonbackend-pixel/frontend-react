@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { useAuth } from '../../auth/hooks/useAuth';
-import '../../../shared/styles/FormStyles.css';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
+import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 
 interface PatientFormProps {
@@ -31,16 +30,13 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     });
 
     const [loading, setLoading] = useState(false);
-    const [successMessage, setSuccessMessage] = useState<string | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [dirty, setDirty] = useState(false);
     const [duplicates, setDuplicates] = useState<{ unique_id: string; first_name: string; last_name: string; date_of_birth: string | null }[]>([]);
     const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         return () => {
             if (dupTimerRef.current) clearTimeout(dupTimerRef.current);
-            if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
         };
     }, []);
 
@@ -68,6 +64,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         const { name, value } = e.target;
         const updated = { ...formData, [name]: value };
         setFormData(updated);
+        setDirty(true);
 
         // Duplicate detection: check when name fields change (only for new patients)
         if (!patientToEdit && (name === 'first_name' || name === 'last_name' || name === 'date_of_birth')) {
@@ -95,11 +92,9 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setSuccessMessage(null);
-        setErrorMessage(null);
 
         if (!token) {
-            setErrorMessage(t('patient_form.error.auth'));
+            toast.error(t('patient_form.error.auth'));
             setLoading(false);
             return;
         }
@@ -136,26 +131,13 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
             }
             
             if (response.status === 201 || response.status === 200) {
-                setSuccessMessage(patientToEdit ? t('patient_form.success.edit') : t('patient_form.success.add'));
-                setFormData({
-                    first_name: '', last_name: '', age: '', date_of_birth: '', medical_history: '',
-                    blood_group: '', address: '', email: '', phone_number: '',
-                    emergency_contact_name: '', emergency_contact_number: '', allergies: '',
-                });
+                toast.success(patientToEdit ? t('patient_form.success.edit') : t('patient_form.success.add'));
+                setDirty(false);
                 onSuccess(response.data);
-
-                closeTimerRef.current = setTimeout(() => {
-                    onCancel();
-                }, 1500);
+                onCancel();
             }
         } catch (err) {
-            if (axios.isAxiosError(err) && err.response) {
-                const errorData = err.response.data;
-                const errorMessages = Object.values(errorData).flat().join(' ');
-                setErrorMessage(`Erreur: ${errorMessages}`);
-            } else {
-                setErrorMessage(t('patient_form.error.general'));
-            }
+            toast.error(parseApiError(err, t('patient_form.error.general')));
         } finally {
             setLoading(false);
         }
@@ -164,17 +146,24 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const buttonText = patientToEdit ? t('patient_form.submit.edit') : t('patient_form.submit.add');
 
     return (
-        <div className="form-overlay">
-            <div className="form-container" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <h3>{patientToEdit ? t('patient_form.title_edit') : t('patient_form.title_add')}</h3>
-                    <button type="button" className="modal-close-btn" onClick={onCancel} aria-label="Close">✕</button>
-                </div>
-                <div className="modal-body">
-                <form onSubmit={handleSubmit} className="form">
-                    {successMessage && <div className="success-message">{successMessage}</div>}
-                    {errorMessage && <div className="error-message">{errorMessage}</div>}
-
+        <Modal
+            open
+            onClose={onCancel}
+            title={patientToEdit ? t('patient_form.title_edit') : t('patient_form.title_add')}
+            size="lg"
+            dirty={dirty}
+            footer={
+                <>
+                    <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
+                        {t('patient_form.cancel')}
+                    </button>
+                    <button type="submit" form="patient-form" disabled={loading}>
+                        {loading ? t('patient_form.submit.loading') : buttonText}
+                    </button>
+                </>
+            }
+        >
+                <form id="patient-form" onSubmit={handleSubmit} className="form">
                     {duplicates.length > 0 && (
                         <div className="duplicate-warning">
                             <strong>⚠ Possible duplicate patient detected:</strong>
@@ -241,18 +230,8 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                         <input type="tel" id="emergency_contact_number" name="emergency_contact_number" value={formData.emergency_contact_number} onChange={handleChange} />
                     </div>
                     
-                    <div className="form-actions">
-                        <button type="submit" disabled={loading}>
-                            {loading ? t('patient_form.submit.loading') : buttonText}
-                        </button>
-                        <button type="button" onClick={onCancel} className="cancel-button">
-                            {t('patient_form.cancel')}
-                        </button>
-                    </div>
                 </form>
-                </div>
-            </div>
-        </div>
+        </Modal>
     );
 };
 
