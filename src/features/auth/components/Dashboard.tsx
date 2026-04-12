@@ -51,12 +51,25 @@ const STATUS_COLORS: Record<string, string> = {
     pending: '#d69e2e',
 };
 
+// Per-section loading state — each section renders independently as its API responds
+interface SectionLoading {
+    patients: boolean;
+    appointments: boolean;
+    referrals: boolean;
+    consultations: boolean;
+}
+
 function Dashboard() {
     const { t } = useTranslation();
     const { user, profile } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<Partial<DashboardStats>>({});
+    const [sectionLoading, setSectionLoading] = useState<SectionLoading>({
+        patients: true,
+        appointments: true,
+        referrals: true,
+        consultations: true,
+    });
     const [followUps, setFollowUps] = useState<FollowUpConsultation[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<RecentPatient[]>([]);
@@ -64,65 +77,60 @@ function Dashboard() {
     const [showSearch, setShowSearch] = useState(false);
 
     useEffect(() => {
-        fetchDashboardStats();
+        // Each section fetches and renders independently — a slow or failing API
+        // only affects its own widget, not the rest of the dashboard.
+        api.get('/doctors/me/patients/?ordering=-id&page_size=5')
+            .then(res => {
+                const data = res.data;
+                setStats(prev => ({
+                    ...prev,
+                    recent_patients: (Array.isArray(data) ? data : data.results || []).slice(0, 5),
+                    total_patients: Array.isArray(data) ? data.length : (data.count || 0),
+                }));
+            })
+            .catch(() => { /* patients section shows — */ })
+            .finally(() => setSectionLoading(prev => ({ ...prev, patients: false })));
+
+        api.get('/appointments/?ordering=appointment_date&status=scheduled&page_size=5')
+            .then(res => {
+                const data = res.data;
+                const appts = Array.isArray(data) ? data : data.results || [];
+                setStats(prev => ({
+                    ...prev,
+                    upcoming_appointments: appts.slice(0, 5),
+                    total_appointments: Array.isArray(data) ? data.length : (data.count || 0),
+                }));
+            })
+            .catch(() => { /* appointments section shows — */ })
+            .finally(() => setSectionLoading(prev => ({ ...prev, appointments: false })));
+
+        api.get('/referrals/?status=pending&page_size=100')
+            .then(res => {
+                const data = res.data;
+                const refs = Array.isArray(data) ? data : data.results || [];
+                setStats(prev => ({
+                    ...prev,
+                    pending_referrals: refs.length,
+                    total_referrals: refs.length,
+                }));
+            })
+            .catch(() => { /* referrals section shows — */ })
+            .finally(() => setSectionLoading(prev => ({ ...prev, referrals: false })));
+
+        api.get('/doctor/stats/')
+            .then(res => {
+                const data = res.data;
+                setStats(prev => ({
+                    ...prev,
+                    total_consultations: data.total_consultations || 0,
+                    total_procedures: data.total_medical_procedures || data.total_procedures || 0,
+                }));
+            })
+            .catch(() => { /* stats section shows — */ })
+            .finally(() => setSectionLoading(prev => ({ ...prev, consultations: false })));
+
         fetchFollowUps();
     }, []);
-
-    const fetchDashboardStats = async () => {
-        try {
-            // Fetch stats from multiple endpoints in parallel
-            const [patientsRes, appointmentsRes, referralsRes, consultationsRes] = await Promise.allSettled([
-                api.get('/doctors/me/patients/?ordering=-id&page_size=5'),
-                api.get('/appointments/?ordering=appointment_date&status=scheduled&page_size=5'),
-                api.get('/referrals/?status=pending&page_size=100'),
-                api.get('/doctor/stats/'),
-            ]);
-
-            const statsData: DashboardStats = {
-                total_patients: 0,
-                total_consultations: 0,
-                total_referrals: 0,
-                total_appointments: 0,
-                total_procedures: 0,
-                upcoming_appointments: [],
-                recent_patients: [],
-                pending_referrals: 0,
-                follow_up_today: 0,
-            };
-
-            if (patientsRes.status === 'fulfilled') {
-                const data = patientsRes.value.data;
-                statsData.recent_patients = (Array.isArray(data) ? data : data.results || []).slice(0, 5);
-                statsData.total_patients = Array.isArray(data) ? data.length : (data.count || 0);
-            }
-
-            if (appointmentsRes.status === 'fulfilled') {
-                const data = appointmentsRes.value.data;
-                const appts = Array.isArray(data) ? data : data.results || [];
-                statsData.upcoming_appointments = appts.slice(0, 5);
-                statsData.total_appointments = Array.isArray(data) ? data.length : (data.count || 0);
-            }
-
-            if (referralsRes.status === 'fulfilled') {
-                const data = referralsRes.value.data;
-                const refs = Array.isArray(data) ? data : data.results || [];
-                statsData.pending_referrals = refs.length;
-                statsData.total_referrals = refs.length;
-            }
-
-            if (consultationsRes.status === 'fulfilled') {
-                const data = consultationsRes.value.data;
-                statsData.total_consultations = data.total_consultations || 0;
-                statsData.total_procedures = data.total_medical_procedures || data.total_procedures || 0;
-            }
-
-            setStats(statsData);
-        } catch {
-            /* use empty stats */
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const fetchFollowUps = async () => {
         try {
@@ -205,14 +213,14 @@ function Dashboard() {
                 {/* Stats Grid */}
                 <div className="stats-summary">
                     {[
-                        { label: 'Patients', val: stats?.total_patients ?? '—' },
-                        { label: 'Consultations', val: stats?.total_consultations ?? '—' },
-                        { label: 'Appointments', val: stats?.total_appointments ?? '—' },
-                        { label: 'Pending Referrals', val: stats?.pending_referrals ?? '—' },
-                        { label: 'Procedures', val: stats?.total_procedures ?? '—' },
+                        { label: 'Patients', val: stats?.total_patients ?? '—', loading: sectionLoading.patients },
+                        { label: 'Consultations', val: stats?.total_consultations ?? '—', loading: sectionLoading.consultations },
+                        { label: 'Appointments', val: stats?.total_appointments ?? '—', loading: sectionLoading.appointments },
+                        { label: 'Pending Referrals', val: stats?.pending_referrals ?? '—', loading: sectionLoading.referrals },
+                        { label: 'Procedures', val: stats?.total_procedures ?? '—', loading: sectionLoading.consultations },
                     ].map(s => (
                         <div key={s.label} className="stat-card">
-                            <div className="stat-value">{loading ? '…' : s.val}</div>
+                            <div className="stat-value">{s.loading ? '…' : s.val}</div>
                             <div className="stat-label">{s.label}</div>
                         </div>
                     ))}
@@ -236,7 +244,7 @@ function Dashboard() {
                         <h3>Upcoming Appointments</h3>
                         <Link to="/appointments" className="panel-link">View all →</Link>
                     </div>
-                    {loading ? <p className="muted">Loading...</p> :
+                    {sectionLoading.appointments ? <p className="muted">Loading...</p> :
                         stats?.upcoming_appointments?.length ? (
                             <ul className="panel-list">
                                 {stats.upcoming_appointments.map(a => (
@@ -267,7 +275,7 @@ function Dashboard() {
                         <h3>Recent Patients</h3>
                         <Link to="/patients" className="panel-link">View all →</Link>
                     </div>
-                    {loading ? <p className="muted">Loading...</p> :
+                    {sectionLoading.patients ? <p className="muted">Loading...</p> :
                         stats?.recent_patients?.length ? (
                             <ul className="panel-list">
                                 {stats.recent_patients.map(p => (
