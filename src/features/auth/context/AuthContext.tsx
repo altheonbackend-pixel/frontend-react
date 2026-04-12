@@ -11,7 +11,7 @@ interface AuthContextType {
     adminProfile: AdminProfile | null;
     token: string | null;
     userType: 'doctor' | 'admin' | null;
-    login: (credentials: any) => Promise<void>;
+    login: (credentials: { email: string; password: string }) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
     authIsLoading: boolean;
@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         try {
-            const decodedToken: any = jwtDecode(localToken);
+            const decodedToken = jwtDecode<{ user_id: number; exp: number }>(localToken);
             const currentTime = Date.now() / 1000;
             if (decodedToken.exp < currentTime) {
                 logout();
@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         checkTokenValidity();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const login = async (credentials: any) => {
+    const login = async (credentials: { email: string; password: string }) => {
         try {
             const response = await api.post('/login/', credentials);
             const accessToken = response.data.access;
