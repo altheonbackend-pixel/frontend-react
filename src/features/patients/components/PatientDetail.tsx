@@ -535,14 +535,12 @@ const PatientDetails = () => {
                     >
                         + Consultation
                     </button>
-                    {(profile?.access_level ?? 1) >= 2 && (
-                        <button
-                            onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }}
-                            className="strip-btn"
-                        >
-                            + Referral
-                        </button>
-                    )}
+                    <button
+                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }}
+                        className="strip-btn"
+                    >
+                        + Referral
+                    </button>
                     <button
                         onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }}
                         className="strip-btn"
@@ -1063,9 +1061,7 @@ const PatientDetails = () => {
                     <div className="tab-panel">
                         <div className="tab-panel-header">
                             <h3>Referral History</h3>
-                            {(profile?.access_level ?? 1) >= 2 && (
-                                <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
-                            )}
+                            <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
                         </div>
                         {patient.referrals?.length ? (
                             <ul className="detail-list">
