@@ -145,15 +145,6 @@ li {
   box-shadow: var(--shadow-xs);
 }
 
-/* ── Inline form in text pages (Notes) — not in a modal ── */
-/* Prevents modal-only rules (max-height: 92vh) from applying inline */
-.text-page-container .form-container {
-  max-height: none;
-  overflow-y: visible;
-  max-width: 100%;
-  animation: none;
-}
-
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .text-page-container { padding: var(--space-6) var(--space-5); }

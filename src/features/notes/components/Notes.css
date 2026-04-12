@@ -83,23 +83,6 @@
 }
 .notes-type-filter:focus { border-color: var(--accent); }
 
-/* ── Form card ── */
-.note-form-card {
-    background: var(--bg-base);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-xl);
-    padding: var(--space-6);
-    margin-bottom: var(--space-6);
-    box-shadow: var(--shadow-md);
-}
-
-.note-form-card h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--fw-bold);
-    margin: 0 0 var(--space-4);
-    color: var(--text-primary);
-}
-
 .note-form { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .note-form-row {
@@ -177,9 +160,6 @@
     transition: background var(--transition-fast);
 }
 .patient-selector-dropdown li button:hover { background: var(--bg-subtle); }
-
-/* ── Form actions ── */
-.note-form-actions { display: flex; gap: var(--space-3); padding-top: var(--space-2); }
 
 .btn-save-note {
     flex: 1;
@@ -325,6 +305,5 @@
 }
 
 @media (max-width: 480px) {
-    .note-form-actions { flex-direction: column; }
     .btn-save-note, .btn-cancel-note { width: 100%; text-align: center; }
 }

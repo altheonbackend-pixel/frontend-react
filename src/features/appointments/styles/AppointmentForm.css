@@ -1,10 +1,7 @@
 /* ============================================================
-   APPOINTMENT FORM MODAL
-   Inherits shared form patterns; adds appointment-specific rules.
+   APPOINTMENT FORM
+   Form field styling. Form body rendered inside Modal primitive.
    ============================================================ */
-
-/* Overlay + container layout come from shared/styles/FormStyles.css.
-   Only appointment-specific form-field styling lives below. */
 
 /* ── Form fields ── */
 .appointment-form .form-group {

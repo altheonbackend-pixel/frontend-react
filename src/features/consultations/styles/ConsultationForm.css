@@ -1,10 +1,8 @@
 /* ============================================================
-   CONSULTATION FORM MODAL
-   Extends shared FormStyles with vitals-specific layout.
+   CONSULTATION FORM
+   Vitals-specific layout + form field styling.
+   Form body rendered inside Drawer primitive.
    ============================================================ */
-
-/* Overlay + container + header come from shared/styles/FormStyles.css.
-   Only consultation-specific extensions live below. */
 
 /* ── Vitals section header ── */
 .vitals-heading {
