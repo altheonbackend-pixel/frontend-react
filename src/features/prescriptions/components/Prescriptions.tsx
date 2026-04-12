@@ -6,6 +6,21 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import '../styles/Prescriptions.css';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
+const COMMON_DRUGS = [
+    'Amoxicillin', 'Amoxicillin-Clavulanate', 'Azithromycin', 'Ciprofloxacin', 'Doxycycline',
+    'Metronidazole', 'Trimethoprim-Sulfamethoxazole', 'Cephalexin', 'Clindamycin', 'Erythromycin',
+    'Metformin', 'Insulin Glargine', 'Insulin Regular', 'Glipizide', 'Gliclazide', 'Sitagliptin',
+    'Lisinopril', 'Enalapril', 'Amlodipine', 'Losartan', 'Valsartan', 'Metoprolol',
+    'Atenolol', 'Bisoprolol', 'Carvedilol', 'Furosemide', 'Hydrochlorothiazide', 'Spironolactone',
+    'Atorvastatin', 'Simvastatin', 'Rosuvastatin', 'Omeprazole', 'Pantoprazole', 'Esomeprazole',
+    'Ranitidine', 'Paracetamol', 'Ibuprofen', 'Aspirin', 'Naproxen', 'Diclofenac',
+    'Tramadol', 'Codeine', 'Morphine', 'Prednisolone', 'Dexamethasone', 'Hydrocortisone',
+    'Salbutamol', 'Budesonide', 'Fluticasone', 'Montelukast', 'Cetirizine', 'Loratadine',
+    'Fexofenadine', 'Levothyroxine', 'Fluoxetine', 'Sertraline', 'Escitalopram', 'Amitriptyline',
+    'Diazepam', 'Alprazolam', 'Lorazepam', 'Zolpidem', 'Melatonin', 'Warfarin',
+    'Rivaroxaban', 'Apixaban', 'Clopidogrel', 'Allopurinol', 'Colchicine',
+];
+
 const FREQUENCY_LABELS: Record<string, string> = {
     once_daily: 'Once daily',
     twice_daily: 'Twice daily',
@@ -64,6 +79,10 @@ function Prescriptions() {
     const [patientSearch, setPatientSearch] = useState('');
     const [patientSearchResults, setPatientSearchResults] = useState<PatientOption[]>([]);
 
+    // Drug name autocomplete
+    const [drugSuggestions, setDrugSuggestions] = useState<string[]>([]);
+    const [showDrugSuggestions, setShowDrugSuggestions] = useState(false);
+
     useEffect(() => {
         fetchPrescriptions();
     }, []);
@@ -112,6 +131,16 @@ function Prescriptions() {
             ...prev,
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
         }));
+        if (name === 'medication_name') {
+            const q = value.toLowerCase();
+            if (q.length >= 2) {
+                setDrugSuggestions(COMMON_DRUGS.filter(d => d.toLowerCase().includes(q)).slice(0, 8));
+                setShowDrugSuggestions(true);
+            } else {
+                setDrugSuggestions([]);
+                setShowDrugSuggestions(false);
+            }
+        }
     };
 
     const openCreateForm = () => {
@@ -334,9 +363,36 @@ function Prescriptions() {
                     </div>
 
                     <div className="rx-form-row">
-                        <div className="rx-form-group">
+                        <div className="rx-form-group" style={{ position: 'relative' }}>
                             <label>Medication Name *</label>
-                            <input name="medication_name" value={formData.medication_name} onChange={handleChange} required />
+                            <input
+                                name="medication_name"
+                                value={formData.medication_name}
+                                onChange={handleChange}
+                                onBlur={() => setTimeout(() => setShowDrugSuggestions(false), 150)}
+                                onFocus={() => {
+                                    if (formData.medication_name.length >= 2) setShowDrugSuggestions(true);
+                                }}
+                                autoComplete="off"
+                                required
+                                placeholder="Type to search or enter name..."
+                            />
+                            {showDrugSuggestions && drugSuggestions.length > 0 && (
+                                <ul className="drug-suggestions-dropdown">
+                                    {drugSuggestions.map(d => (
+                                        <li key={d}>
+                                            <button type="button" onMouseDown={() => {
+                                                setFormData(f => ({ ...f, medication_name: d }));
+                                                setDirty(true);
+                                                setShowDrugSuggestions(false);
+                                                setDrugSuggestions([]);
+                                            }}>
+                                                {d}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                         <div className="rx-form-group">
                             <label>Dosage *</label>

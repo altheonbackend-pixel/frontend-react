@@ -26,7 +26,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         phone_number: '',
         emergency_contact_name: '',
         emergency_contact_number: '',
-        allergies: '',
     });
 
     const [loading, setLoading] = useState(false);
@@ -55,7 +54,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 phone_number: patientToEdit.phone_number || '',
                 emergency_contact_name: patientToEdit.emergency_contact_name || '',
                 emergency_contact_number: patientToEdit.emergency_contact_number || '',
-                allergies: patientToEdit.allergies || '',
             });
         }
     }, [patientToEdit]);
@@ -111,7 +109,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 phone_number: formData.phone_number || null,
                 emergency_contact_name: formData.emergency_contact_name || null,
                 emergency_contact_number: formData.emergency_contact_number || null,
-                allergies: formData.allergies || null,
                 age: formData.age ? parseInt(formData.age, 10) : null,
             };
 
@@ -212,10 +209,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                     <div className="form-group">
                         <label htmlFor="medical_history">{t('patient_form.label.medical_history')}</label>
                         <textarea id="medical_history" name="medical_history" value={formData.medical_history} onChange={handleChange} rows={5}></textarea>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="allergies">{t('patient_form.label.allergies')}</label>
-                        <textarea id="allergies" name="allergies" value={formData.allergies} onChange={handleChange} rows={3}></textarea>
                     </div>
                     <div className="form-group">
                         <label htmlFor="blood_group">{t('patient_form.label.blood_group')}</label>

@@ -18,8 +18,18 @@ import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
+import { type LabResult } from '../../../shared/types';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs';
+
+const COMMON_ALLERGENS = [
+    'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
+    'Sulfonamides', 'Trimethoprim-Sulfamethoxazole', 'Aspirin', 'Ibuprofen', 'Naproxen',
+    'Diclofenac', 'Codeine', 'Morphine', 'Tramadol', 'Latex',
+    'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy', 'Fish', 'Shellfish',
+    'Sesame', 'Bee Venom', 'Wasp Venom', 'Pollen', 'Dust Mites', 'Mold',
+    'Cat Dander', 'Dog Dander', 'Nickel', 'Contrast Dye', 'Tetanus Toxoid',
+];
 
 interface VitalsPoint {
     id: number;
@@ -117,14 +127,31 @@ const PatientDetails = () => {
     const [editingConditionId, setEditingConditionId] = useState<number | null>(null);
     const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
     const [formLoading, setFormLoading] = useState(false);
+    const [allergenSuggestions, setAllergenSuggestions] = useState<string[]>([]);
+    const [showAllergenSuggestions, setShowAllergenSuggestions] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [vitalsTrend, setVitalsTrend] = useState<VitalsPoint[]>([]);
     const [vitalsLoading, setVitalsLoading] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
+    // Lab Results
+    const [labResults, setLabResults] = useState<LabResult[]>([]);
+    const [labsLoading, setLabsLoading] = useState(false);
+    const [showLabForm, setShowLabForm] = useState(false);
+    const [editingLabId, setEditingLabId] = useState<number | null>(null);
+    const [labForm, setLabForm] = useState({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+    const [labFormLoading, setLabFormLoading] = useState(false);
+    const [confirmDeleteLabId, setConfirmDeleteLabId] = useState<number | null>(null);
+
+    // Quick Note
+    const [quickNote, setQuickNote] = useState('');
+    const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+    const [quickNoteLoaded, setQuickNoteLoaded] = useState(false);
+
     useEffect(() => {
         if (id && token) {
             fetchPatientDetails();
+            fetchQuickNote();
         } else if (!token) {
             navigate('/login');
         }
@@ -184,9 +211,12 @@ const PatientDetails = () => {
         setReferralToEdit(null);
     };
 
-    // Reset vitals when navigating to a different patient
+    // Reset vitals/labs when navigating to a different patient
     useEffect(() => {
         setVitalsTrend([]);
+        setLabResults([]);
+        setQuickNote('');
+        setQuickNoteLoaded(false);
     }, [id]);
 
     const fetchVitalsTrend = async () => {
@@ -199,6 +229,77 @@ const PatientDetails = () => {
             /* silently fail */
         } finally {
             setVitalsLoading(false);
+        }
+    };
+
+    const fetchLabResults = async () => {
+        if (!id) return;
+        setLabsLoading(true);
+        try {
+            const res = await api.get('/lab-results/', { params: { patient: id } });
+            setLabResults(res.data.results ?? res.data);
+        } catch {
+            /* silently fail */
+        } finally {
+            setLabsLoading(false);
+        }
+    };
+
+    const fetchQuickNote = async () => {
+        if (!id) return;
+        try {
+            const res = await api.get(`/patients/${id}/quick-note/`);
+            setQuickNote(res.data.content || '');
+            setQuickNoteLoaded(true);
+        } catch {
+            setQuickNoteLoaded(true);
+        }
+    };
+
+    const saveQuickNote = async () => {
+        if (!id) return;
+        setQuickNoteSaving(true);
+        try {
+            await api.put(`/patients/${id}/quick-note/`, { content: quickNote });
+            toast.success('Quick note saved.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save note.'));
+        } finally {
+            setQuickNoteSaving(false);
+        }
+    };
+
+    const handleLabSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLabFormLoading(true);
+        try {
+            if (editingLabId) {
+                await api.put(`/lab-results/${editingLabId}/`, { ...labForm, patient: id });
+                toast.success('Lab result updated.');
+            } else {
+                await api.post('/lab-results/', { ...labForm, patient: id });
+                toast.success('Lab result added.');
+            }
+            setShowLabForm(false);
+            setEditingLabId(null);
+            setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+            fetchLabResults();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save lab result.'));
+        } finally {
+            setLabFormLoading(false);
+        }
+    };
+
+    const handleDeleteLab = async (labId: number) => {
+        try {
+            await api.delete(`/lab-results/${labId}/`);
+            toast.success('Lab result deleted.');
+            setConfirmDeleteLabId(null);
+            setLabResults(prev => prev.filter(l => l.id !== labId));
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to delete lab result.'));
+            setConfirmDeleteLabId(null);
         }
     };
 
@@ -378,6 +479,13 @@ const PatientDetails = () => {
     const severeAllergies = activeAllergies.filter(a => a.severity === 'severe');
     const hasAllergyAlert = lifeThreateningAllergies.length > 0 || severeAllergies.length > 0;
 
+    const LAB_STATUS_COLORS: Record<string, string> = {
+        normal: '#38a169',
+        abnormal: '#d69e2e',
+        critical: '#e53e3e',
+        pending: '#718096',
+    };
+
     const TABS: { key: Tab; label: string; count?: number }[] = [
         { key: 'overview', label: 'Overview' },
         { key: 'consultations', label: 'Consultations', count: patient.consultations?.length },
@@ -387,6 +495,7 @@ const PatientDetails = () => {
         { key: 'notes', label: 'Notes', count: patient.patient_notes?.length },
         { key: 'procedures', label: 'Procedures', count: patient.medical_procedures?.length },
         { key: 'referrals', label: 'Referrals', count: patient.referrals?.length },
+        { key: 'labs', label: 'Lab Results', count: labResults.length || patient.lab_results?.length },
     ];
 
     return (
@@ -473,6 +582,21 @@ const PatientDetails = () => {
                 </div>
             </div>
 
+            {/* Quick Note — pinned, visible only to this doctor */}
+            <div className="quick-note-bar">
+                <span className="quick-note-label">📌 My Note:</span>
+                <input
+                    type="text"
+                    className="quick-note-input"
+                    placeholder="Pinned note about this patient (only you can see this)..."
+                    value={quickNoteLoaded ? quickNote : ''}
+                    onChange={e => setQuickNote(e.target.value)}
+                    onBlur={saveQuickNote}
+                    disabled={!quickNoteLoaded || quickNoteSaving}
+                    maxLength={300}
+                />
+            </div>
+
             {/* Allergy Alert Bar */}
             {hasAllergyAlert && (
                 <div className="allergy-alert-bar">
@@ -494,7 +618,11 @@ const PatientDetails = () => {
                     <button
                         key={tab.key}
                         className={`patient-tab${activeTab === tab.key ? ' active' : ''}`}
-                        onClick={() => { setActiveTab(tab.key); if (tab.key === 'vitals') fetchVitalsTrend(); }}
+                        onClick={() => {
+                            setActiveTab(tab.key);
+                            if (tab.key === 'vitals') fetchVitalsTrend();
+                            if (tab.key === 'labs') fetchLabResults();
+                        }}
                     >
                         {tab.label}
                         {tab.count !== undefined && tab.count > 0 && <span className="tab-count">{tab.count}</span>}
@@ -715,9 +843,43 @@ const PatientDetails = () => {
                         {showAllergyForm && (
                             <form onSubmit={handleAllergySubmit} className="inline-form">
                                 <div className="form-row">
-                                    <div className="form-group">
+                                    <div className="form-group" style={{ position: 'relative' }}>
                                         <label>Allergen *</label>
-                                        <input required value={allergyForm.allergen} onChange={e => setAllergyForm(p => ({ ...p, allergen: e.target.value }))} placeholder="e.g. Penicillin" />
+                                        <input
+                                            required
+                                            value={allergyForm.allergen}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setAllergyForm(p => ({ ...p, allergen: val }));
+                                                if (val.length >= 2) {
+                                                    setAllergenSuggestions(
+                                                        COMMON_ALLERGENS.filter(a => a.toLowerCase().includes(val.toLowerCase())).slice(0, 8)
+                                                    );
+                                                    setShowAllergenSuggestions(true);
+                                                } else {
+                                                    setAllergenSuggestions([]);
+                                                    setShowAllergenSuggestions(false);
+                                                }
+                                            }}
+                                            onBlur={() => setTimeout(() => setShowAllergenSuggestions(false), 150)}
+                                            autoComplete="off"
+                                            placeholder="e.g. Penicillin"
+                                        />
+                                        {showAllergenSuggestions && allergenSuggestions.length > 0 && (
+                                            <ul className="allergen-suggestions-dropdown">
+                                                {allergenSuggestions.map(a => (
+                                                    <li key={a}>
+                                                        <button type="button" onMouseDown={() => {
+                                                            setAllergyForm(p => ({ ...p, allergen: a }));
+                                                            setShowAllergenSuggestions(false);
+                                                            setAllergenSuggestions([]);
+                                                        }}>
+                                                            {a}
+                                                        </button>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                     <div className="form-group">
                                         <label>Type</label>
@@ -923,6 +1085,109 @@ const PatientDetails = () => {
                                 ))}
                             </ul>
                         ) : <p className="muted">No referrals recorded.</p>}
+                    </div>
+                )}
+                {/* Lab Results Tab */}
+                {activeTab === 'labs' && (
+                    <div className="tab-panel">
+                        <div className="tab-panel-header">
+                            <h3>Lab Results</h3>
+                            <button className="btn-add-primary" onClick={() => {
+                                setEditingLabId(null);
+                                setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+                                setShowLabForm(true);
+                            }}>+ Add Lab Result</button>
+                        </div>
+                        {showLabForm && (
+                            <form onSubmit={handleLabSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Test Name *</label>
+                                        <input required value={labForm.test_name} onChange={e => setLabForm(p => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c, TSH" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Date *</label>
+                                        <input type="date" required value={labForm.test_date} onChange={e => setLabForm(p => ({ ...p, test_date: e.target.value }))} />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Result Value</label>
+                                        <input value={labForm.result_value} onChange={e => setLabForm(p => ({ ...p, result_value: e.target.value }))} placeholder="e.g. 5.4" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Unit</label>
+                                        <input value={labForm.unit} onChange={e => setLabForm(p => ({ ...p, unit: e.target.value }))} placeholder="e.g. mmol/L, g/dL" />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Reference Range</label>
+                                        <input value={labForm.reference_range} onChange={e => setLabForm(p => ({ ...p, reference_range: e.target.value }))} placeholder="e.g. 3.5–5.5" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Status</label>
+                                        <select value={labForm.status} onChange={e => setLabForm(p => ({ ...p, status: e.target.value }))}>
+                                            <option value="pending">Pending</option>
+                                            <option value="normal">Normal</option>
+                                            <option value="abnormal">Abnormal</option>
+                                            <option value="critical">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Notes</label>
+                                    <textarea rows={2} value={labForm.notes} onChange={e => setLabForm(p => ({ ...p, notes: e.target.value }))} />
+                                </div>
+                                <div className="form-actions">
+                                    <button type="submit" disabled={labFormLoading}>{labFormLoading ? 'Saving...' : (editingLabId ? 'Update' : 'Save')}</button>
+                                    <button type="button" onClick={() => setShowLabForm(false)} className="cancel-button">Cancel</button>
+                                </div>
+                            </form>
+                        )}
+                        {labsLoading ? (
+                            <p className="muted">Loading lab results...</p>
+                        ) : labResults.length === 0 ? (
+                            <p className="muted">No lab results recorded.</p>
+                        ) : (
+                            <ul className="detail-list">
+                                {labResults.map(lab => (
+                                    <li key={lab.id} className="detail-list-item">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <div>
+                                                <strong>{lab.test_name}</strong>
+                                                <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                                                    {new Date(lab.test_date).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <span style={{
+                                                fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
+                                                background: LAB_STATUS_COLORS[lab.status] + '22',
+                                                color: LAB_STATUS_COLORS[lab.status],
+                                                border: `1px solid ${LAB_STATUS_COLORS[lab.status]}`,
+                                            }}>
+                                                {lab.status_display || lab.status}
+                                            </span>
+                                        </div>
+                                        {(lab.result_value || lab.unit) && (
+                                            <div className="info-item">
+                                                <strong>Result:</strong> {lab.result_value} {lab.unit}
+                                                {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
+                                            </div>
+                                        )}
+                                        {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
+                                        <div className="entry-actions">
+                                            <button onClick={() => {
+                                                setEditingLabId(lab.id);
+                                                setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
+                                                setShowLabForm(true);
+                                            }} className="edit-button action-button">Edit</button>
+                                            <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
                 )}
             </div>

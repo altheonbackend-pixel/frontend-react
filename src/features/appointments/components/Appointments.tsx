@@ -41,6 +41,8 @@ const Appointments = () => {
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [appointmentDates, setAppointmentDates] = useState<string[]>([]);
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
+    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; currentDate: string } | null>(null);
+    const [rescheduleDate, setRescheduleDate] = useState('');
 
     const fetchAppointments = async () => {
         setIsLoading(true);
@@ -122,6 +124,28 @@ const Appointments = () => {
 
     const requestLifecycleAction = (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
         setLifecycleConfirm({ id: apptId, action });
+    };
+
+    const handleRescheduleClick = (appt: AppointmentWithDetails) => {
+        const dt = new Date(appt.appointment_date);
+        const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setRescheduleDate(local);
+        setRescheduleTarget({ id: appt.id, currentDate: appt.appointment_date });
+    };
+
+    const executeReschedule = async () => {
+        if (!rescheduleTarget || !rescheduleDate) return;
+        try {
+            await api.post(`/appointments/${rescheduleTarget.id}/reschedule/`, {
+                appointment_date: new Date(rescheduleDate).toISOString(),
+            });
+            toast.success('Appointment rescheduled. A new scheduled appointment has been created.');
+            setRescheduleTarget(null);
+            setRescheduleDate('');
+            fetchAppointments();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
+        }
     };
 
     const executeLifecycleAction = async () => {
@@ -232,6 +256,9 @@ const Appointments = () => {
                                 {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
                                     <button onClick={() => requestLifecycleAction(appt.id, 'no_show')} className="action-button noshow-button">No Show</button>
                                 )}
+                                {!['cancelled', 'completed', 'no_show', 'rescheduled'].includes(appt.status) && (
+                                    <button onClick={() => handleRescheduleClick(appt)} className="action-button reschedule-button">Reschedule</button>
+                                )}
                                 <button onClick={() => handleEditAppointment(appt)} className="action-button edit-button">{t('appointments.edit')}</button>
                                 <button onClick={() => handleDeleteClick(appt)} className="action-button delete-button">{t('appointments.delete')}</button>
                             </div>
@@ -266,6 +293,29 @@ const Appointments = () => {
                 tone={lifecycleConfirm?.action === 'cancel' || lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
                 confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
             />
+
+            {rescheduleTarget && (
+                <div className="modal-overlay" onClick={() => setRescheduleTarget(null)}>
+                    <div className="modal-box reschedule-modal" onClick={e => e.stopPropagation()}>
+                        <h3 className="modal-title">Reschedule Appointment</h3>
+                        <p className="modal-desc">Select a new date and time. The current appointment will be marked as rescheduled and a new one will be created.</p>
+                        <div className="form-group">
+                            <label htmlFor="reschedule-date">New Date &amp; Time <span className="required">*</span></label>
+                            <input
+                                id="reschedule-date"
+                                type="datetime-local"
+                                value={rescheduleDate}
+                                onChange={e => setRescheduleDate(e.target.value)}
+                                className="reschedule-input"
+                            />
+                        </div>
+                        <div className="modal-actions">
+                            <button type="button" onClick={() => setRescheduleTarget(null)} className="cancel-button">Cancel</button>
+                            <button type="button" onClick={executeReschedule} className="action-button confirm-button" disabled={!rescheduleDate}>Reschedule</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

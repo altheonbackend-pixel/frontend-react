@@ -1,39 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../auth/hooks/useAuth';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 
-// Ajout de l'interface pour l'acte médical
-interface MedicalProcedure {
+const PROCEDURE_CATEGORIES = [
+    { value: 'surgical', label: 'Surgical' },
+    { value: 'diagnostic', label: 'Diagnostic' },
+    { value: 'therapeutic', label: 'Therapeutic' },
+    { value: 'screening', label: 'Screening' },
+    { value: 'vaccination', label: 'Vaccination' },
+    { value: 'other', label: 'Other' },
+];
+
+interface MedicalProcedureRecord {
     id?: number;
+    procedure_category?: string;
     procedure_type: string;
     procedure_date: string;
     result: string | null;
     attachments: string | null;
 }
 
-// Ajout de la prop optionnelle `procedureToEdit`
 interface MedicalProcedureFormProps {
     patientId: string;
     onSuccess: () => void;
     onCancel: () => void;
-    procedureToEdit?: MedicalProcedure | null;
+    procedureToEdit?: MedicalProcedureRecord | null;
 }
 
+type FormData = {
+    procedure_category: string;
+    procedure_type: string;
+    procedure_date: string;
+    result: string;
+    attachments: File | null;
+};
+
 const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit }: MedicalProcedureFormProps) => {
-    // Déclaration explicite du type pour éviter l'erreur
-    type FormData = {
-        procedure_type: string;
-        procedure_date: string;
-        result: string;
-        attachments: File | null;
-    };
-    
     const { t } = useTranslation();
-    const { token } = useAuth();
 
     const [formData, setFormData] = useState<FormData>({
+        procedure_category: 'diagnostic',
         procedure_type: '',
         procedure_date: '',
         result: '',
@@ -42,31 +49,26 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
     const [loading, setLoading] = useState(false);
     const [dirty, setDirty] = useState(false);
 
-    // Pré-remplir le formulaire si on est en mode modification
     useEffect(() => {
         if (procedureToEdit) {
             setFormData({
+                procedure_category: procedureToEdit.procedure_category || 'diagnostic',
                 procedure_type: procedureToEdit.procedure_type,
                 procedure_date: procedureToEdit.procedure_date,
                 result: procedureToEdit.result || '',
-                attachments: null, // Les pièces jointes ne peuvent pas être pré-remplies de cette manière
+                attachments: null,
             });
         }
     }, [procedureToEdit]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value, files } = e.target as HTMLInputElement;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
         setDirty(true);
-        if (name === "attachments" && files && files.length > 0) {
-            setFormData(prevData => ({
-                ...prevData,
-                attachments: files[0],
-            }));
+        const fileInput = e.target as HTMLInputElement;
+        if (name === 'attachments' && fileInput.files && fileInput.files.length > 0) {
+            setFormData(prev => ({ ...prev, attachments: fileInput.files![0] }));
         } else {
-            setFormData(prevData => ({
-                ...prevData,
-                [name]: value,
-            }));
+            setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
@@ -74,14 +76,9 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
         e.preventDefault();
         setLoading(true);
 
-        if (!token) {
-            toast.error(t('medical_procedure.error.auth'));
-            setLoading(false);
-            return;
-        }
-
         const dataToSend = new FormData();
         dataToSend.append('patient', patientId);
+        dataToSend.append('procedure_category', formData.procedure_category);
         dataToSend.append('procedure_type', formData.procedure_type);
         dataToSend.append('procedure_date', formData.procedure_date);
         dataToSend.append('result', formData.result);
@@ -90,24 +87,18 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
         }
 
         try {
-            let response;
             if (procedureToEdit && procedureToEdit.id) {
-                response = await api.patch(
-                    `/medical-procedures/${procedureToEdit.id}/`,
-                    dataToSend,
-                    { headers: { 'Content-Type': 'multipart/form-data' } }
-                );
+                await api.patch(`/medical-procedures/${procedureToEdit.id}/`, dataToSend, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                });
             } else {
-                response = await api.post('/medical-procedures/', dataToSend, {
+                await api.post('/medical-procedures/', dataToSend, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
             }
-
-            if (response.status === 201 || response.status === 200) {
-                toast.success(isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'));
-                setDirty(false);
-                onSuccess();
-            }
+            toast.success(isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'));
+            setDirty(false);
+            onSuccess();
         } catch (err) {
             toast.error(parseApiError(err, t('medical_procedure.error.generic')));
         } finally {
@@ -135,25 +126,33 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
                 </>
             }
         >
-                <form id="procedure-form" onSubmit={handleSubmit} className="form">
-                    <div className="form-group">
-                        <label htmlFor="procedure_type">{t('medical_procedure.type')} <span className="required">*</span></label>
-                        <input type="text" id="procedure_type" name="procedure_type" value={formData.procedure_type} onChange={handleChange} required />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="procedure_date">{t('medical_procedure.date')} <span className="required">*</span></label>
-                        <input type="date" id="procedure_date" name="procedure_date" value={formData.procedure_date} onChange={handleChange} required />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="result">{t('medical_procedure.result')}</label>
-                        <textarea id="result" name="result" value={formData.result} onChange={handleChange} rows={5} />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="attachments">{t('medical_procedure.attachments')}</label>
-                        <input type="file" id="attachments" name="attachments" onChange={handleChange} />
-                    </div>
-                    
-                </form>
+            <form id="procedure-form" onSubmit={handleSubmit} className="form">
+                <div className="form-group">
+                    <label htmlFor="procedure_category">Category <span className="required">*</span></label>
+                    <select id="procedure_category" name="procedure_category" value={formData.procedure_category} onChange={handleChange}>
+                        {PROCEDURE_CATEGORIES.map(c => (
+                            <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="procedure_type">{t('medical_procedure.type')} <span className="required">*</span></label>
+                    <input type="text" id="procedure_type" name="procedure_type" value={formData.procedure_type} onChange={handleChange} required
+                        placeholder={formData.procedure_category === 'other' ? 'Describe the procedure...' : 'e.g. Appendectomy, CBC, Chest X-ray'} />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="procedure_date">{t('medical_procedure.date')} <span className="required">*</span></label>
+                    <input type="date" id="procedure_date" name="procedure_date" value={formData.procedure_date} onChange={handleChange} required />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="result">{t('medical_procedure.result')}</label>
+                    <textarea id="result" name="result" value={formData.result} onChange={handleChange} rows={5} />
+                </div>
+                <div className="form-group">
+                    <label htmlFor="attachments">{t('medical_procedure.attachments')}</label>
+                    <input type="file" id="attachments" name="attachments" onChange={handleChange} />
+                </div>
+            </form>
         </Drawer>
     );
 };

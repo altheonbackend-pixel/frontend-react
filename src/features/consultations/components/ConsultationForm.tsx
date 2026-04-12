@@ -5,6 +5,39 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 import '../styles/ConsultationForm.css';
 
+const COMMON_ICD10 = [
+    { code: 'J00', label: 'Common cold' },
+    { code: 'J06.9', label: 'Acute upper respiratory infection' },
+    { code: 'J11.1', label: 'Influenza with other respiratory manifestations' },
+    { code: 'J18.9', label: 'Pneumonia, unspecified' },
+    { code: 'J45.9', label: 'Asthma, unspecified' },
+    { code: 'K21.0', label: 'Gastro-oesophageal reflux with oesophagitis' },
+    { code: 'K57.30', label: 'Diverticulosis of large intestine' },
+    { code: 'E11.9', label: 'Type 2 diabetes mellitus without complications' },
+    { code: 'E10.9', label: 'Type 1 diabetes mellitus without complications' },
+    { code: 'E78.5', label: 'Hyperlipidaemia, unspecified' },
+    { code: 'I10', label: 'Essential (primary) hypertension' },
+    { code: 'I25.1', label: 'Atherosclerotic heart disease' },
+    { code: 'I50.9', label: 'Heart failure, unspecified' },
+    { code: 'I63.9', label: 'Cerebral infarction, unspecified' },
+    { code: 'M54.5', label: 'Low back pain' },
+    { code: 'M79.3', label: 'Panniculitis' },
+    { code: 'M25.51', label: 'Pain in shoulder' },
+    { code: 'R05', label: 'Cough' },
+    { code: 'R50.9', label: 'Fever, unspecified' },
+    { code: 'R51', label: 'Headache' },
+    { code: 'R10.4', label: 'Other and unspecified abdominal pain' },
+    { code: 'R42', label: 'Dizziness and giddiness' },
+    { code: 'R06.0', label: 'Dyspnoea' },
+    { code: 'F32.9', label: 'Depressive episode, unspecified' },
+    { code: 'F41.1', label: 'Generalized anxiety disorder' },
+    { code: 'N39.0', label: 'Urinary tract infection' },
+    { code: 'N18.9', label: 'Chronic kidney disease, unspecified' },
+    { code: 'L20.9', label: 'Atopic dermatitis, unspecified' },
+    { code: 'Z00.0', label: 'General examination' },
+    { code: 'Z30.0', label: 'Contraception counselling and advice' },
+];
+
 const COMMON_SYMPTOMS = [
     'Fever', 'Cough', 'Shortness of breath', 'Fatigue', 'Headache',
     'Sore throat', 'Runny nose', 'Chest pain', 'Nausea', 'Vomiting',
@@ -20,6 +53,7 @@ interface Consultation {
     symptoms?: string[];
     medical_report: string | null;
     diagnosis: string | null;
+    icd_code?: string | null;
     medications: string | null;
     follow_up_date?: string | null;
     weight: number | null;
@@ -46,7 +80,6 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         reason_for_consultation: '',
         medical_report: '',
         diagnosis: '',
-        medications: '',
         follow_up_date: '',
         weight: '',
         height: '',
@@ -59,6 +92,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [customSymptom, setCustomSymptom] = useState('');
     const [loading, setLoading] = useState(false);
     const [dirty, setDirty] = useState(false);
+    const [icdSuggestions, setIcdSuggestions] = useState<{ code: string; label: string }[]>([]);
+    const [showIcdSuggestions, setShowIcdSuggestions] = useState(false);
+    const [icdCode, setIcdCode] = useState('');
+    const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
+    const [creatingFollowUp, setCreatingFollowUp] = useState(false);
 
     useEffect(() => {
         if (consultationToEdit) {
@@ -68,7 +106,6 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 reason_for_consultation: consultationToEdit.reason_for_consultation,
                 medical_report: consultationToEdit.medical_report || '',
                 diagnosis: consultationToEdit.diagnosis || '',
-                medications: consultationToEdit.medications || '',
                 follow_up_date: consultationToEdit.follow_up_date || '',
                 weight: consultationToEdit.weight !== null ? String(consultationToEdit.weight) : '',
                 height: consultationToEdit.height !== null ? String(consultationToEdit.height) : '',
@@ -78,6 +115,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 visible_to_patient: consultationToEdit.visible_to_patient || false,
             });
             setSymptoms(consultationToEdit.symptoms || []);
+            setIcdCode(consultationToEdit.icd_code || '');
         }
     }, [consultationToEdit]);
 
@@ -121,6 +159,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 ...formData,
                 patient: patientId,
                 symptoms,
+                icd_code: icdCode || null,
                 weight: formData.weight ? parseFloat(formData.weight) : null,
                 height: formData.height ? parseFloat(formData.height) : null,
                 sp2: formData.sp2 ? parseFloat(formData.sp2) : null,
@@ -139,7 +178,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             if (response.status === 201 || response.status === 200) {
                 toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
                 setDirty(false);
-                onSuccess();
+                // If new consultation with follow-up date, prompt to create follow-up appointment
+                if (!isEditing && formData.follow_up_date) {
+                    setPendingFollowUp({
+                        date: formData.follow_up_date,
+                        reason: `Follow-up: ${formData.reason_for_consultation}`,
+                    });
+                } else {
+                    onSuccess();
+                }
             }
         } catch (err) {
             toast.error(parseApiError(err, t('consultation.error.generic')));
@@ -149,6 +196,49 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     };
 
     const isEditing = !!consultationToEdit;
+
+    const handleCreateFollowUpAppointment = async () => {
+        if (!pendingFollowUp) return;
+        setCreatingFollowUp(true);
+        try {
+            await api.post('/appointments/', {
+                patient: patientId,
+                appointment_date: `${pendingFollowUp.date}T09:00:00`,
+                reason_for_appointment: pendingFollowUp.reason,
+                status: 'scheduled',
+            });
+            toast.success('Follow-up appointment created and scheduled.');
+        } catch {
+            toast.error('Could not create follow-up appointment. You can create it manually from the Appointments page.');
+        } finally {
+            setCreatingFollowUp(false);
+            setPendingFollowUp(null);
+            onSuccess();
+        }
+    };
+
+    // Follow-up prompt dialog shown after consultation saved
+    if (pendingFollowUp) {
+        return (
+            <div className="modal-overlay">
+                <div className="modal-box followup-prompt-modal">
+                    <h3 className="modal-title">Create Follow-up Appointment?</h3>
+                    <p className="modal-desc">
+                        You set a follow-up date of <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString()}</strong>.
+                        Would you like to create a scheduled appointment for that date?
+                    </p>
+                    <div className="modal-actions">
+                        <button type="button" className="cancel-button" onClick={() => { setPendingFollowUp(null); onSuccess(); }}>
+                            No, skip
+                        </button>
+                        <button type="button" className="action-button confirm-button" onClick={handleCreateFollowUpAppointment} disabled={creatingFollowUp}>
+                            {creatingFollowUp ? 'Creating...' : 'Yes, create appointment'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <Drawer
@@ -256,15 +346,61 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         <label htmlFor="diagnosis">{t('consultation.diagnosis')}</label>
                         <textarea id="diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} rows={3} />
                     </div>
+
+                    {/* ICD-10 code lookup */}
+                    <div className="form-group" style={{ position: 'relative' }}>
+                        <label htmlFor="icd_code">ICD-10 Code <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85em' }}>(structured anchor for diagnosis)</span></label>
+                        <input
+                            id="icd_code"
+                            type="text"
+                            value={icdCode}
+                            onChange={e => {
+                                const val = e.target.value;
+                                setIcdCode(val);
+                                setDirty(true);
+                                if (val.length >= 1) {
+                                    const q = val.toLowerCase();
+                                    setIcdSuggestions(
+                                        COMMON_ICD10.filter(
+                                            item => item.code.toLowerCase().includes(q) || item.label.toLowerCase().includes(q)
+                                        ).slice(0, 8)
+                                    );
+                                    setShowIcdSuggestions(true);
+                                } else {
+                                    setIcdSuggestions([]);
+                                    setShowIcdSuggestions(false);
+                                }
+                            }}
+                            onBlur={() => setTimeout(() => setShowIcdSuggestions(false), 150)}
+                            autoComplete="off"
+                            placeholder="e.g. J06.9 — or type condition name to search"
+                        />
+                        {showIcdSuggestions && icdSuggestions.length > 0 && (
+                            <ul className="icd-suggestions-dropdown">
+                                {icdSuggestions.map(item => (
+                                    <li key={item.code}>
+                                        <button type="button" onMouseDown={() => {
+                                            setIcdCode(item.code);
+                                            setDirty(true);
+                                            // Also pre-fill diagnosis label if empty
+                                            if (!formData.diagnosis) {
+                                                setFormData(f => ({ ...f, diagnosis: item.label }));
+                                            }
+                                            setShowIcdSuggestions(false);
+                                            setIcdSuggestions([]);
+                                        }}>
+                                            <span className="icd-code">{item.code}</span>
+                                            <span className="icd-label">{item.label}</span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
                     <div className="form-group">
                         <label htmlFor="medical_report">{t('consultation.report')}</label>
                         <textarea id="medical_report" name="medical_report" value={formData.medical_report} onChange={handleChange} rows={5} />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="medications">{t('consultation.medications')}</label>
-                        <textarea id="medications" name="medications" value={formData.medications} onChange={handleChange} rows={3} />
-                    </div>
-
                     {/* Follow-up date */}
                     <div className="form-group">
                         <label htmlFor="follow_up_date">Follow-up Date</label>
@@ -280,7 +416,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                 checked={formData.visible_to_patient}
                                 onChange={handleChange}
                             />
-                            {' '}Visible to patient
+                            {' '}Will be visible to patient once the patient portal is live
                         </label>
                     </div>
 

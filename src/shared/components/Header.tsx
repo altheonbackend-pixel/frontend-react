@@ -83,15 +83,12 @@ const Header = () => {
                             <NavLink to="/dashboard" className="nav-item">{t('nav.dashboard')}</NavLink>
                             <NavLink to="/patients" className="nav-item">{t('nav.patients')}</NavLink>
                             <NavLink to="/appointments" className="nav-item">{t('nav.appointments')}</NavLink>
-                            <NavLink to="/notes" className="nav-item">{t('nav.notes')}</NavLink>
-                            <NavLink to="/clinics" className="nav-item">{t('nav.clinics')}</NavLink>
-                            <NavLink to="/forum" className="nav-item">{t('nav.forum')}</NavLink>
+                            <NavLink to="/prescriptions" className="nav-item">Prescriptions</NavLink>
+                            <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
+                            <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
                             <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
                             {(profile?.access_level ?? 1) >= 2 && (
-                                <>
-                                    <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
-                                    <NavLink to="/global-stats" className="nav-item">Global Stats</NavLink>
-                                </>
+                                <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
                             )}
                         </>
                     )}

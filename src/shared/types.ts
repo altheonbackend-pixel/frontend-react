@@ -44,7 +44,6 @@ export interface Patient {
     phone_number: string | null;
     emergency_contact_name: string | null;
     emergency_contact_number: string | null;
-    allergies: string | null;
 }
 
 export interface Appointment {
@@ -59,6 +58,7 @@ export interface Appointment {
     cancellation_reason?: string | null;
     confirmed_at?: string | null;
     completed_at?: string | null;
+    rescheduled_from?: number | null;
     workplace: number;
     patient_details?: {
         unique_id: string;
@@ -148,6 +148,7 @@ export interface Consultation {
     patient: string;
     doctor: number;
     workplace?: number | null;
+    appointment?: number | null;
     consultation_date: string;
     consultation_type: 'in_person' | 'telemedicine' | 'home_visit';
     consultation_type_display?: string;
@@ -155,7 +156,7 @@ export interface Consultation {
     symptoms: string[];
     medical_report: string | null;
     diagnosis: string | null;
-    medications: string | null;
+    icd_code: string | null;
     follow_up_date: string | null;
     weight: number | null;
     height: number | null;
@@ -163,6 +164,40 @@ export interface Consultation {
     temperature: number | null;
     blood_pressure: string | null;
     visible_to_patient: boolean;
+}
+
+export interface LabResult {
+    id: number;
+    patient: string;
+    ordered_by?: number | null;
+    ordered_by_name?: string;
+    consultation?: number | null;
+    test_name: string;
+    test_date: string;
+    result_value: string;
+    unit: string;
+    reference_range: string;
+    status: 'normal' | 'abnormal' | 'critical' | 'pending';
+    status_display?: string;
+    notes: string;
+    attachment?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface NotebookEntry {
+    id: number;
+    title: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PatientQuickNote {
+    id?: number;
+    patient: string;
+    content: string;
+    updated_at?: string | null;
 }
 
 export interface PatientCondition {
@@ -212,6 +247,8 @@ export interface MedicalProcedure {
     id: number;
     patient: string;
     operator: number;
+    procedure_category: 'surgical' | 'diagnostic' | 'therapeutic' | 'screening' | 'vaccination' | 'other';
+    procedure_category_display?: string;
     procedure_type: string;
     procedure_date: string;
     result: string | null;
@@ -281,6 +318,7 @@ export interface PatientWithHistory extends Patient {
     conditions: PatientCondition[];
     allergy_records: PatientAllergy[];
     patient_notes: PatientNote[];
+    lab_results: LabResult[];
     status: string;
 }
 

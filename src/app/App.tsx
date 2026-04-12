@@ -30,7 +30,7 @@ const AddPatient = lazy(() => import('../features/patients/components/AddPatient
 const EditPatient = lazy(() => import('../features/patients/components/EditPatientPage'));
 const Appointments = lazy(() => import('../features/appointments/components/Appointments'));
 const DeletedAppointments = lazy(() => import('../features/appointments/components/DeletedAppointments'));
-const Notes = lazy(() => import('../features/notes/components/Notes'));
+// Notes feature removed — replaced by Private Notebook + Quick Note per v1 spec
 const ClinicList = lazy(() => import('../features/clinics/components/Clinics'));
 const ClinicDetail = lazy(() => import('../features/clinics/components/ClinicDetail'));
 const ClinicForm = lazy(() => import('../features/clinics/components/ClinicForm'));
@@ -39,8 +39,8 @@ const Profile = lazy(() => import('../features/profile/components/Profile'));
 const EditProfile = lazy(() => import('../features/profile/components/EditProfile'));
 const ReferralsList = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics = lazy(() => import('../features/statistics/components/Statistics'));
-const StatisticsGlobale = lazy(() => import('../features/statistics/components/StatisticsGlobale'));
 const Prescriptions = lazy(() => import('../features/prescriptions/components/Prescriptions'));
+const PrivateNotebook = lazy(() => import('../features/notebook/components/PrivateNotebook'));
 
 import PageLoader from '../shared/components/PageLoader';
 import NotFound from '../shared/components/NotFound';
@@ -144,7 +144,7 @@ function App() {
                         <Route path="/patients/edit/:id" element={<EditPatient />} />
                         <Route path="/appointments" element={<Appointments />} />
                         <Route path="/deleted-appointments" element={<DeletedAppointments />} />
-                        <Route path="/notes" element={<Notes />} />
+                        {/* /notes route removed — replaced by /notebook per v1 spec */}
 
                         <Route path="/referrals" element={<ReferralsList />} />
 
@@ -155,6 +155,7 @@ function App() {
 
                         <Route path="/forum" element={<Forum />} />
                         <Route path="/prescriptions" element={<Prescriptions />} />
+                        <Route path="/notebook" element={<PrivateNotebook />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/edit-profile" element={<EditProfile />} />
 
@@ -163,14 +164,6 @@ function App() {
                             element={
                                 <AccessLevelRoute requiredLevel={2}>
                                     <Statistics />
-                                </AccessLevelRoute>
-                            }
-                        />
-                        <Route
-                            path="/global-stats"
-                            element={
-                                <AccessLevelRoute requiredLevel={2}>
-                                    <StatisticsGlobale />
                                 </AccessLevelRoute>
                             }
                         />

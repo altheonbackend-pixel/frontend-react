@@ -40,9 +40,7 @@ const QUICK_LINKS = [
     { to: '/appointments', label: 'Appointments' },
     { to: '/prescriptions', label: 'Prescriptions' },
     { to: '/referrals', label: 'Referrals' },
-    { to: '/clinics', label: 'Clinics' },
-    { to: '/forum', label: 'Forum' },
-    { to: '/notes', label: 'Notes' },
+    { to: '/notebook', label: 'Notebook' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
