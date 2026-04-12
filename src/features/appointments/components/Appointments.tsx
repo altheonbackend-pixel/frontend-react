@@ -73,7 +73,7 @@ const Appointments = () => {
         fetchAppointments();
     }, [token]);
 
-    const handleDateChange = (newDate: any) => {
+    const handleDateChange = (newDate: Date | Date[] | null) => {
         if (newDate instanceof Date) {
             setDate(newDate);
         }

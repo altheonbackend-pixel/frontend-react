@@ -40,9 +40,10 @@ const CompleteProfile = () => {
             const response = await api.patch('/profile/update/', formData);
             updateProfileData(response.data);
             navigate('/dashboard', { replace: true });
-        } catch (err: any) {
-            const data = err?.response?.data;
-            const msg = typeof data === 'object'
+        } catch (err) {
+            const axiosErr = err as { response?: { data?: Record<string, unknown> } };
+            const data = axiosErr?.response?.data;
+            const msg = data && typeof data === 'object'
                 ? Object.values(data).flat().join(' ')
                 : 'Failed to save profile. Please try again.';
             setError(msg);

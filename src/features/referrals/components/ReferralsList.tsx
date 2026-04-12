@@ -46,8 +46,9 @@ const RespondModal = ({
                 response_notes: notes,
             });
             onDone(res.data);
-        } catch (err: any) {
-            setError(err?.response?.data?.error || 'Failed to respond. Try again.');
+        } catch (err) {
+            const axiosErr = err as { response?: { data?: { error?: string } } };
+            setError(axiosErr?.response?.data?.error || 'Failed to respond. Try again.');
         } finally {
             setLoading(false);
         }

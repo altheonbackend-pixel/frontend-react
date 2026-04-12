@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import './ClinicDetail.css';
 import api from '../../../shared/services/api';
+import { toast, parseApiError } from '../../../shared/components/ui';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import PageLoader from '../../../shared/components/PageLoader';
 
@@ -90,8 +91,8 @@ const ClinicDetail = () => {
             const res = await api.post(`/workplaces/${id}/join/`, { message: joinMessage });
             setActionMsg(res.data.detail);
             fetchClinic();
-        } catch (err: any) {
-            setActionMsg(err.response?.data?.detail || 'Failed to join.');
+        } catch (err) {
+            setActionMsg(parseApiError(err, 'Failed to join.'));
         } finally {
             setActionLoading(false);
         }
@@ -102,8 +103,8 @@ const ClinicDetail = () => {
         try {
             await api.post(`/workplaces/${id}/leave/`);
             fetchClinic();
-        } catch (err: any) {
-            setActionMsg(err.response?.data?.detail || 'Failed to leave.');
+        } catch (err) {
+            setActionMsg(parseApiError(err, 'Failed to leave.'));
         } finally {
             setActionLoading(false);
         }
@@ -114,8 +115,8 @@ const ClinicDetail = () => {
             await api.post(`/workplaces/${id}/remove_member/`, { doctor_id: member.id });
             setConfirmRemoveMember(null);
             fetchMembers();
-        } catch (err: any) {
-            setActionMsg(err.response?.data?.detail || 'Failed to remove member.');
+        } catch (err) {
+            setActionMsg(parseApiError(err, 'Failed to remove member.'));
         }
     };
 
@@ -123,8 +124,8 @@ const ClinicDetail = () => {
         try {
             await api.post(`/workplaces/${id}/join_requests/${reqId}/approve/`);
             fetchJoinRequests(); fetchMembers();
-        } catch (err: any) {
-            setActionMsg(err.response?.data?.detail || 'Failed.');
+        } catch (err) {
+            setActionMsg(parseApiError(err, 'Failed.'));
         }
     };
 
@@ -132,8 +133,8 @@ const ClinicDetail = () => {
         try {
             await api.post(`/workplaces/${id}/join_requests/${reqId}/reject/`);
             fetchJoinRequests();
-        } catch (err: any) {
-            setActionMsg(err.response?.data?.detail || 'Failed.');
+        } catch (err) {
+            setActionMsg(parseApiError(err, 'Failed.'));
         }
     };
 
