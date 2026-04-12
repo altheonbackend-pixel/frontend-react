@@ -6,20 +6,8 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import '../styles/Prescriptions.css';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 
-const COMMON_DRUGS = [
-    'Amoxicillin', 'Amoxicillin-Clavulanate', 'Azithromycin', 'Ciprofloxacin', 'Doxycycline',
-    'Metronidazole', 'Trimethoprim-Sulfamethoxazole', 'Cephalexin', 'Clindamycin', 'Erythromycin',
-    'Metformin', 'Insulin Glargine', 'Insulin Regular', 'Glipizide', 'Gliclazide', 'Sitagliptin',
-    'Lisinopril', 'Enalapril', 'Amlodipine', 'Losartan', 'Valsartan', 'Metoprolol',
-    'Atenolol', 'Bisoprolol', 'Carvedilol', 'Furosemide', 'Hydrochlorothiazide', 'Spironolactone',
-    'Atorvastatin', 'Simvastatin', 'Rosuvastatin', 'Omeprazole', 'Pantoprazole', 'Esomeprazole',
-    'Ranitidine', 'Paracetamol', 'Ibuprofen', 'Aspirin', 'Naproxen', 'Diclofenac',
-    'Tramadol', 'Codeine', 'Morphine', 'Prednisolone', 'Dexamethasone', 'Hydrocortisone',
-    'Salbutamol', 'Budesonide', 'Fluticasone', 'Montelukast', 'Cetirizine', 'Loratadine',
-    'Fexofenadine', 'Levothyroxine', 'Fluoxetine', 'Sertraline', 'Escitalopram', 'Amitriptyline',
-    'Diazepam', 'Alprazolam', 'Lorazepam', 'Zolpidem', 'Melatonin', 'Warfarin',
-    'Rivaroxaban', 'Apixaban', 'Clopidogrel', 'Allopurinol', 'Colchicine',
-];
+// Drug suggestions come from the backend API (/api/drugs/search/?q=...) — 413+ drugs
+let drugSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const FREQUENCY_LABELS: Record<string, string> = {
     once_daily: 'Once daily',
@@ -132,10 +120,18 @@ function Prescriptions() {
             [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
         }));
         if (name === 'medication_name') {
-            const q = value.toLowerCase();
-            if (q.length >= 2) {
-                setDrugSuggestions(COMMON_DRUGS.filter(d => d.toLowerCase().includes(q)).slice(0, 8));
+            if (value.length >= 2) {
                 setShowDrugSuggestions(true);
+                if (drugSearchTimer) clearTimeout(drugSearchTimer);
+                drugSearchTimer = setTimeout(async () => {
+                    try {
+                        const res = await api.get('/drugs/search/', { params: { q: value } });
+                        setDrugSuggestions(res.data);
+                        setShowDrugSuggestions(true);
+                    } catch {
+                        setDrugSuggestions([]);
+                    }
+                }, 250);
             } else {
                 setDrugSuggestions([]);
                 setShowDrugSuggestions(false);

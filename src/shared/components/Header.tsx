@@ -87,9 +87,7 @@ const Header = () => {
                             <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
                             <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
                             <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
-                            {(profile?.access_level ?? 1) >= 2 && (
-                                <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
-                            )}
+                            <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
                         </>
                     )}
                 </div>

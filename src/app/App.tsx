@@ -159,14 +159,8 @@ function App() {
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/edit-profile" element={<EditProfile />} />
 
-                        <Route
-                            path="/my-stats"
-                            element={
-                                <AccessLevelRoute requiredLevel={2}>
-                                    <Statistics />
-                                </AccessLevelRoute>
-                            }
-                        />
+                        {/* Personal stats: open to all doctors — every doctor should see their own caseload */}
+                        <Route path="/my-stats" element={<Statistics />} />
 
                     </Route>
 

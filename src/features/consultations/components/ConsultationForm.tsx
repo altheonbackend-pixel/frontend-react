@@ -5,38 +5,8 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 import '../styles/ConsultationForm.css';
 
-const COMMON_ICD10 = [
-    { code: 'J00', label: 'Common cold' },
-    { code: 'J06.9', label: 'Acute upper respiratory infection' },
-    { code: 'J11.1', label: 'Influenza with other respiratory manifestations' },
-    { code: 'J18.9', label: 'Pneumonia, unspecified' },
-    { code: 'J45.9', label: 'Asthma, unspecified' },
-    { code: 'K21.0', label: 'Gastro-oesophageal reflux with oesophagitis' },
-    { code: 'K57.30', label: 'Diverticulosis of large intestine' },
-    { code: 'E11.9', label: 'Type 2 diabetes mellitus without complications' },
-    { code: 'E10.9', label: 'Type 1 diabetes mellitus without complications' },
-    { code: 'E78.5', label: 'Hyperlipidaemia, unspecified' },
-    { code: 'I10', label: 'Essential (primary) hypertension' },
-    { code: 'I25.1', label: 'Atherosclerotic heart disease' },
-    { code: 'I50.9', label: 'Heart failure, unspecified' },
-    { code: 'I63.9', label: 'Cerebral infarction, unspecified' },
-    { code: 'M54.5', label: 'Low back pain' },
-    { code: 'M79.3', label: 'Panniculitis' },
-    { code: 'M25.51', label: 'Pain in shoulder' },
-    { code: 'R05', label: 'Cough' },
-    { code: 'R50.9', label: 'Fever, unspecified' },
-    { code: 'R51', label: 'Headache' },
-    { code: 'R10.4', label: 'Other and unspecified abdominal pain' },
-    { code: 'R42', label: 'Dizziness and giddiness' },
-    { code: 'R06.0', label: 'Dyspnoea' },
-    { code: 'F32.9', label: 'Depressive episode, unspecified' },
-    { code: 'F41.1', label: 'Generalized anxiety disorder' },
-    { code: 'N39.0', label: 'Urinary tract infection' },
-    { code: 'N18.9', label: 'Chronic kidney disease, unspecified' },
-    { code: 'L20.9', label: 'Atopic dermatitis, unspecified' },
-    { code: 'Z00.0', label: 'General examination' },
-    { code: 'Z30.0', label: 'Contraception counselling and advice' },
-];
+// ICD-10 suggestions come from the backend API (/api/icd10/search/?q=...) — 179+ codes
+let icd10SearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const COMMON_SYMPTOMS = [
     'Fever', 'Cough', 'Shortness of breath', 'Fatigue', 'Headache',
@@ -359,13 +329,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                 setIcdCode(val);
                                 setDirty(true);
                                 if (val.length >= 1) {
-                                    const q = val.toLowerCase();
-                                    setIcdSuggestions(
-                                        COMMON_ICD10.filter(
-                                            item => item.code.toLowerCase().includes(q) || item.label.toLowerCase().includes(q)
-                                        ).slice(0, 8)
-                                    );
                                     setShowIcdSuggestions(true);
+                                    if (icd10SearchTimer) clearTimeout(icd10SearchTimer);
+                                    icd10SearchTimer = setTimeout(async () => {
+                                        try {
+                                            const res = await api.get('/icd10/search/', { params: { q: val } });
+                                            setIcdSuggestions(
+                                                res.data.map((item: { code: string; description: string }) => ({
+                                                    code: item.code,
+                                                    label: item.description,
+                                                }))
+                                            );
+                                            setShowIcdSuggestions(true);
+                                        } catch {
+                                            setIcdSuggestions([]);
+                                        }
+                                    }, 250);
                                 } else {
                                     setIcdSuggestions([]);
                                     setShowIcdSuggestions(false);
