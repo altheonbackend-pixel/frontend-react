@@ -43,6 +43,7 @@ const StatisticsGlobale = lazy(() => import('../features/statistics/components/S
 const Prescriptions = lazy(() => import('../features/prescriptions/components/Prescriptions'));
 
 import PageLoader from '../shared/components/PageLoader';
+import NotFound from '../shared/components/NotFound';
 import './App.css';
 
 // Route guard component for admin-only routes
@@ -178,7 +179,7 @@ function App() {
 
                     {/* Default redirection */}
                     <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>
         </div>

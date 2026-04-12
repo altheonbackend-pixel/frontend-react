@@ -11,6 +11,7 @@ import '../../../shared/styles/DetailStyles.css';
 import '../styles/Appointments.css';
 
 import api from '../../../shared/services/api';
+import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
     scheduled: '#3182ce',
@@ -39,6 +40,7 @@ const Appointments = () => {
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [appointmentDates, setAppointmentDates] = useState<string[]>([]);
+    const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
 
     const fetchAppointments = async () => {
         setIsLoading(true);
@@ -118,12 +120,20 @@ const Appointments = () => {
         navigate('/deleted-appointments');
     };
 
-    const handleLifecycleAction = async (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
+    const requestLifecycleAction = (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
+        setLifecycleConfirm({ id: apptId, action });
+    };
+
+    const executeLifecycleAction = async () => {
+        if (!lifecycleConfirm) return;
         try {
-            await api.post(`/appointments/${apptId}/${action}/`);
+            await api.post(`/appointments/${lifecycleConfirm.id}/${lifecycleConfirm.action}/`);
+            toast.success(t(`appointments.lifecycle.${lifecycleConfirm.action}_success`, { defaultValue: 'Appointment updated.' }));
+            setLifecycleConfirm(null);
             fetchAppointments();
-        } catch {
-            setError(t('appointments.error.action'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('appointments.error.action')));
+            setLifecycleConfirm(null);
         }
     };
 
@@ -211,16 +221,16 @@ const Appointments = () => {
                             {/* Action buttons */}
                             <div className="appointment-actions">
                                 {(appt.status === 'scheduled' || appt.status === 'pending') && (
-                                    <button onClick={() => handleLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
+                                    <button onClick={() => requestLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
                                 )}
                                 {(appt.status === 'confirmed' || appt.status === 'in_progress') && (
-                                    <button onClick={() => handleLifecycleAction(appt.id, 'complete')} className="action-button complete-button">Complete</button>
+                                    <button onClick={() => requestLifecycleAction(appt.id, 'complete')} className="action-button complete-button">Complete</button>
                                 )}
                                 {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (
-                                    <button onClick={() => handleLifecycleAction(appt.id, 'cancel')} className="action-button cancel-appt-button">Cancel</button>
+                                    <button onClick={() => requestLifecycleAction(appt.id, 'cancel')} className="action-button cancel-appt-button">Cancel</button>
                                 )}
                                 {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
-                                    <button onClick={() => handleLifecycleAction(appt.id, 'no_show')} className="action-button noshow-button">No Show</button>
+                                    <button onClick={() => requestLifecycleAction(appt.id, 'no_show')} className="action-button noshow-button">No Show</button>
                                 )}
                                 <button onClick={() => handleEditAppointment(appt)} className="action-button edit-button">{t('appointments.edit')}</button>
                                 <button onClick={() => handleDeleteClick(appt)} className="action-button delete-button">{t('appointments.delete')}</button>
@@ -246,6 +256,16 @@ const Appointments = () => {
                     onCancel={handleDeleteCancel}
                 />
             )}
+
+            <Dialog
+                open={lifecycleConfirm !== null}
+                onClose={() => setLifecycleConfirm(null)}
+                onConfirm={executeLifecycleAction}
+                title={lifecycleConfirm ? t(`appointments.lifecycle.${lifecycleConfirm.action}_title`, { defaultValue: `${lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ')} appointment?` }) : ''}
+                message={lifecycleConfirm ? t(`appointments.lifecycle.${lifecycleConfirm.action}_message`, { defaultValue: 'This action will update the appointment status. Are you sure?' }) : ''}
+                tone={lifecycleConfirm?.action === 'cancel' || lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
+                confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
+            />
         </div>
     );
 };

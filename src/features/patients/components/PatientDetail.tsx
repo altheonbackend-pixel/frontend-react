@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
 import { useAuth } from '../../auth/hooks/useAuth';
 import {
     type PatientWithHistory,
@@ -18,6 +17,7 @@ import ConfirmModal from '../../../shared/components/ConfirmModal';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
+import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 
 type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals';
 
@@ -120,6 +120,7 @@ const PatientDetails = () => {
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [vitalsTrend, setVitalsTrend] = useState<VitalsPoint[]>([]);
     const [vitalsLoading, setVitalsLoading] = useState(false);
+    const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (id && token) {
@@ -145,11 +146,12 @@ const PatientDetails = () => {
         try {
             const response = await api.get(`/patients/${id}/`);
             setPatient(response.data);
-        } catch (err: any) {
-            if (axios.isAxiosError(err) && err.response?.status === 401) {
+        } catch (err: unknown) {
+            const axiosErr = err as { response?: { status?: number } };
+            if (axiosErr.response?.status === 401) {
                 logout();
                 navigate('/login');
-            } else if (axios.isAxiosError(err) && err.response?.status === 404) {
+            } else if (axiosErr.response?.status === 404) {
                 navigate('/patients');
             } else {
                 setError(t('patient_detail.error.load'));
@@ -200,14 +202,26 @@ const PatientDetails = () => {
         }
     };
 
-    const handleStatusChange = async (newStatus: string) => {
-        if (!patient) return;
+    const handleStatusSelect = (newStatus: string) => {
+        if (!patient || newStatus === patient.status) return;
+        if (newStatus === 'deceased' || newStatus === 'transferred') {
+            setPendingStatus(newStatus);
+        } else {
+            executeStatusChange(newStatus);
+        }
+    };
+
+    const executeStatusChange = async (status?: string) => {
+        const newStatus = status || pendingStatus;
+        if (!patient || !newStatus) return;
+        setPendingStatus(null);
         setStatusUpdating(true);
         try {
             await api.patch(`/patients/${patient.unique_id}/set-status/`, { status: newStatus });
             setPatient(prev => prev ? { ...prev, status: newStatus as PatientWithHistory['status'] } : null);
-        } catch {
-            /* silently fail */
+            toast.success(`Patient status updated to ${newStatus}.`);
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update patient status.'));
         } finally {
             setStatusUpdating(false);
         }
@@ -217,9 +231,10 @@ const PatientDetails = () => {
         try {
             await api.delete(`/consultations/${consultationId}/`);
             setConfirmDeleteConsultationId(null);
+            toast.success('Consultation deleted.');
             fetchPatientDetails();
-        } catch (err: any) {
-            setError(t('patient_detail.error.delete_general'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
     };
 
@@ -227,9 +242,10 @@ const PatientDetails = () => {
         try {
             await api.delete(`/medical-procedures/${procedureId}/`);
             setConfirmDeleteProcedureId(null);
+            toast.success('Procedure deleted.');
             fetchPatientDetails();
-        } catch {
-            setError(t('patient_detail.error.delete_general'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
     };
 
@@ -237,9 +253,10 @@ const PatientDetails = () => {
         try {
             await api.delete(`/referrals/${referralId}/`);
             setConfirmDeleteReferralId(null);
+            toast.success('Referral deleted.');
             fetchPatientDetails();
-        } catch {
-            setError(t('patient_detail.error.delete_general'));
+        } catch (err) {
+            toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
     };
 
@@ -247,9 +264,10 @@ const PatientDetails = () => {
         try {
             await api.delete(`/conditions/${conditionId}/`);
             setConfirmDeleteConditionId(null);
+            toast.success('Condition deleted.');
             fetchPatientDetails();
-        } catch {
-            setError('Failed to delete condition.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to delete condition.'));
         }
     };
 
@@ -257,18 +275,20 @@ const PatientDetails = () => {
         try {
             await api.delete(`/allergies/${allergyId}/`);
             setConfirmDeleteAllergyId(null);
+            toast.success('Allergy deleted.');
             fetchPatientDetails();
-        } catch {
-            setError('Failed to delete allergy.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to delete allergy.'));
         }
     };
 
     const handleToggleAllergy = async (allergyId: number, currentActive: boolean) => {
         try {
             await api.patch(`/allergies/${allergyId}/`, { is_active: !currentActive });
+            toast.success(currentActive ? 'Allergy deactivated.' : 'Allergy activated.');
             fetchPatientDetails();
-        } catch {
-            setError('Failed to update allergy.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update allergy.'));
         }
     };
 
@@ -279,14 +299,16 @@ const PatientDetails = () => {
             if (editingConditionId) {
                 await api.patch(`/conditions/${editingConditionId}/`, conditionForm);
                 setEditingConditionId(null);
+                toast.success('Condition updated.');
             } else {
                 await api.post('/conditions/', { ...conditionForm, patient: id });
                 setShowConditionForm(false);
+                toast.success('Condition added.');
             }
             setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
             fetchPatientDetails();
-        } catch {
-            setError('Failed to save condition.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save condition.'));
         } finally {
             setFormLoading(false);
         }
@@ -299,9 +321,10 @@ const PatientDetails = () => {
             await api.post('/allergies/', { ...allergyForm, patient: id });
             setShowAllergyForm(false);
             setAllergyForm({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
+            toast.success('Allergy added.');
             fetchPatientDetails();
-        } catch {
-            setError('Failed to save allergy.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save allergy.'));
         } finally {
             setFormLoading(false);
         }
@@ -383,7 +406,7 @@ const PatientDetails = () => {
                             <select
                                 className={`patient-status-select status-${patient.status}`}
                                 value={patient.status || 'active'}
-                                onChange={e => handleStatusChange(e.target.value)}
+                                onChange={e => handleStatusSelect(e.target.value)}
                                 disabled={statusUpdating}
                                 title="Change patient status"
                             >
@@ -920,6 +943,18 @@ const PatientDetails = () => {
         {confirmDeleteAllergyId !== null && (
             <ConfirmModal message="Delete this allergy?" onConfirm={() => handleDeleteAllergy(confirmDeleteAllergyId)} onCancel={() => setConfirmDeleteAllergyId(null)} />
         )}
+
+        <Dialog
+            open={pendingStatus !== null}
+            onClose={() => setPendingStatus(null)}
+            onConfirm={() => executeStatusChange()}
+            title={`Mark patient as ${pendingStatus}?`}
+            message={pendingStatus === 'deceased'
+                ? 'This will mark the patient as deceased. This action is significant and should be confirmed.'
+                : 'This will mark the patient as transferred. The patient record will remain accessible.'}
+            tone="danger"
+            confirmLabel={pendingStatus === 'deceased' ? 'Mark Deceased' : 'Mark Transferred'}
+        />
         </>
     );
 };

@@ -8,7 +8,16 @@ import api from '../../../shared/services/api';
 const DeletedAppointments = () => {
     const { t, i18n } = useTranslation();
     const { token } = useAuth();
-    const [deletedAppointments, setDeletedAppointments] = useState([]);
+    const [deletedAppointments, setDeletedAppointments] = useState<Array<{
+        id: number;
+        patient_details: { first_name: string; last_name: string };
+        doctor_details: { full_name: string };
+        workplace_details: { name: string };
+        appointment_date: string;
+        deletion_date: string;
+        deletion_reason: string;
+        deletion_comment?: string;
+    }>>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +53,7 @@ const DeletedAppointments = () => {
                 <p>{t('deleted_appointments.no_data')}</p>
             ) : (
                 <div className="appointments-list">
-                    {deletedAppointments.map((appt: any) => (
+                    {deletedAppointments.map(appt => (
                         <div key={appt.id} className="appointment-item deleted">
                             <p><strong>{t('deleted_appointments.labels.patient')}:</strong> {appt.patient_details.first_name} {appt.patient_details.last_name}</p>
                             <p><strong>{t('deleted_appointments.labels.doctor')}:</strong> {appt.doctor_details.full_name}</p>
