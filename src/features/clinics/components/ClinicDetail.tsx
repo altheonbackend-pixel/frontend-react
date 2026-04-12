@@ -6,7 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/DetailStyles.css';
 import './ClinicDetail.css';
 import api from '../../../shared/services/api';
-import { toast, parseApiError } from '../../../shared/components/ui';
+import { parseApiError } from '../../../shared/components/ui';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import PageLoader from '../../../shared/components/PageLoader';
 
