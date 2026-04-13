@@ -6,7 +6,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Shared components (small — loaded eagerly)
 import Header from '../shared/components/Header';
 import PrivateRoutes from '../shared/components/PrivateRoutes';
-import AccessLevelRoute from '../shared/components/AccessLevelRoute';
 
 // Auth feature (tiny routes — no lazy penalty)
 import { useAuth } from '../features/auth/hooks/useAuth';

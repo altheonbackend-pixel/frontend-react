@@ -700,7 +700,6 @@ const PatientDetails = () => {
                                             </div>
                                         )}
                                         {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
-                                        {c.medications && <div className="info-item"><strong>Medications:</strong> {c.medications}</div>}
                                         {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
                                         {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
                                         <div className="vitals-row">
@@ -1203,6 +1202,9 @@ const PatientDetails = () => {
         )}
         {confirmDeleteAllergyId !== null && (
             <ConfirmModal message="Delete this allergy?" onConfirm={() => handleDeleteAllergy(confirmDeleteAllergyId)} onCancel={() => setConfirmDeleteAllergyId(null)} />
+        )}
+        {confirmDeleteLabId !== null && (
+            <ConfirmModal message="Delete this lab result?" onConfirm={() => handleDeleteLab(confirmDeleteLabId)} onCancel={() => setConfirmDeleteLabId(null)} />
         )}
 
         <Dialog

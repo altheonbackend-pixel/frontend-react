@@ -24,7 +24,6 @@ interface Consultation {
     medical_report: string | null;
     diagnosis: string | null;
     icd_code?: string | null;
-    medications: string | null;
     follow_up_date?: string | null;
     weight: number | null;
     height: number | null;
