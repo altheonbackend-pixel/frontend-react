@@ -5,34 +5,26 @@ import { API_BASE_URL } from '../../config';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 15000, // 15-second timeout prevents requests hanging indefinitely
+    timeout: 15000,
+    withCredentials: true,  // Send httpOnly auth cookies on every request (cross-origin safe)
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Request interceptor: auto-inject auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
+// No request interceptor for Authorization header — the httpOnly 'access_token' cookie
+// is attached automatically by the browser on every request. Tokens never touch JS memory.
 
 // --- Concurrent 401 refresh queue ---
-// Prevents race condition where multiple simultaneous requests all try to refresh
-// the token independently. Only one refresh is in-flight at a time; subsequent
-// 401s queue up and are resolved/rejected in bulk once the refresh completes.
+// Prevents race condition where multiple simultaneous 401 responses all try to refresh
+// independently. Only one refresh is in-flight at a time; subsequent 401s queue up and
+// are resolved/rejected in bulk once the refresh completes.
 let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshSubscribers: Array<() => void> = [];
 let refreshRejecters: Array<(err: unknown) => void> = [];
 
-function onRefreshed(newToken: string) {
-    refreshSubscribers.forEach((cb) => cb(newToken));
+function onRefreshed() {
+    refreshSubscribers.forEach((cb) => cb());
     refreshSubscribers = [];
     refreshRejecters = [];
 }
@@ -43,18 +35,15 @@ function onRefreshFailed(err: unknown) {
     refreshRejecters = [];
 }
 
-function addRefreshSubscriber(resolve: (token: string) => void, reject: (err: unknown) => void) {
+function addRefreshSubscriber(resolve: () => void, reject: (err: unknown) => void) {
     refreshSubscribers.push(resolve);
     refreshRejecters.push(reject);
 }
 
 // Response interceptor: silent token refresh on 401.
-// On first 401, attempt a refresh using the stored refresh token.
-// If the refresh succeeds, the original request is retried transparently.
-// If the refresh also fails (or no refresh token is stored), clear all tokens
-// and redirect to /login (full page reload, which also clears React state).
-// AuthContext may register an additional interceptor on top of this to clear
-// in-memory auth state (user, profile, isAuthenticated).
+// On first 401, POST to /token/refresh/ — the refresh_token httpOnly cookie is sent
+// automatically. If refresh succeeds (new access_token cookie is set by the server),
+// the original request is retried. If refresh fails, redirect to /login.
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -64,43 +53,25 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
-            localStorage.removeItem('token');
-            return Promise.reject(error);
-        }
-
-        // If a refresh is already in-flight, queue this request
+        // If a refresh is already in-flight, queue this request until it resolves
         if (isRefreshing) {
-            return new Promise<string>((resolve, reject) => {
+            return new Promise<void>((resolve, reject) => {
                 addRefreshSubscriber(resolve, reject);
-            }).then((newToken) => {
-                original.headers.Authorization = `Bearer ${newToken}`;
-                return api(original);
-            });
+            }).then(() => api(original));
         }
 
         original._retried = true;
         isRefreshing = true;
 
         try {
-            // Use plain axios (not `api`) to avoid triggering this interceptor again
-            const res = await axios.post(`${API_BASE_URL}/token/refresh/`, {
-                refresh: refreshToken,
-            });
-            const newAccess: string = res.data.access;
-            localStorage.setItem('token', newAccess);
-            // SimpleJWT ROTATE_REFRESH_TOKENS: store the rotated refresh token if provided
-            if (res.data.refresh) {
-                localStorage.setItem('refresh_token', res.data.refresh);
-            }
-            original.headers.Authorization = `Bearer ${newAccess}`;
-            onRefreshed(newAccess);
+            // POST to refresh endpoint — refresh_token cookie is sent automatically.
+            // Server sets a new access_token cookie in the response.
+            // No body needed; no token to read from the response.
+            await axios.post(`${API_BASE_URL}/token/refresh/`, {}, { withCredentials: true });
+            onRefreshed();
             return api(original);
         } catch (refreshError) {
             onRefreshFailed(refreshError);
-            localStorage.removeItem('token');
-            localStorage.removeItem('refresh_token');
             window.location.href = '/login';
             return Promise.reject(refreshError);
         } finally {

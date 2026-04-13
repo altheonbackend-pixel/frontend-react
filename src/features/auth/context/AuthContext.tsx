@@ -1,6 +1,4 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { type DoctorProfile, type User, type AdminProfile } from '../../../shared/types';
 import api from '../../../shared/services/api';
@@ -9,6 +7,11 @@ interface AuthContextType {
     user: User | null;
     profile: DoctorProfile | null;
     adminProfile: AdminProfile | null;
+    /**
+     * Sentinel for backward-compat with components that guard API calls with `if (!token)`.
+     * Value is 'session' when authenticated, null when not. Never an actual JWT — tokens
+     * live in httpOnly cookies and are never accessible from JavaScript.
+     */
     token: string | null;
     userType: 'doctor' | 'admin' | null;
     login: (credentials: { email: string; password: string }) => Promise<void>;
@@ -27,28 +30,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<DoctorProfile | null>(null);
     const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('access_token') || localStorage.getItem('token'));
     const [userType, setUserType] = useState<'doctor' | 'admin' | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [authIsLoading, setAuthIsLoading] = useState<boolean>(true);
     const navigate = useNavigate();
 
-    // Wrapped in useCallback so the stable reference can be used in the api response interceptor
     const logout = useCallback(() => {
-        // Blacklist the refresh token server-side (fire-and-forget — don't block local logout)
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (refreshToken) {
-            import('../../../shared/services/api').then(({ default: api }) => {
-                api.post('/auth/logout/', { refresh: refreshToken }).catch(() => {
-                    // Ignore errors — local logout proceeds regardless
-                });
-            });
-        }
-        localStorage.removeItem('token');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        // Tell the server to blacklist the refresh token cookie and clear both cookies
+        api.post('/logout/').catch(() => {
+            // Ignore errors — local logout proceeds regardless
+        });
+
+        // Clear any non-sensitive metadata we kept in localStorage
+        localStorage.removeItem('user_type');
         localStorage.removeItem('admin_profile');
-        setToken(null);
+
         setUser(null);
         setProfile(null);
         setAdminProfile(null);
@@ -57,30 +53,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate('/login', { replace: true });
     }, [navigate]);
 
-    const getDoctorProfile = async () => {
-        try {
-            // No manual Authorization header needed — api.ts request interceptor injects it
-            const response = await api.get('/profile/');
-            const profileData = response.data;
-            setProfile(profileData);
-            setUser({
-                id: profileData.id,
-                email: profileData.email,
-                full_name: profileData.full_name,
-                access_level: profileData.access_level || 1,
-                specialty: profileData.specialty,
-                phone_number: profileData.phone_number,
-                address: profileData.address,
-            });
-        } catch (err) {
-            // Only logout on 401 (token expired). 403 is handled by access level gating, not auth.
-            if (axios.isAxiosError(err) && err.response?.status === 401) {
-                logout();
-            }
-            throw err;
-        }
-    };
-    
     const updateProfileData = (newProfile: DoctorProfile) => {
         setProfile(newProfile);
         setUser({
@@ -99,134 +71,127 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return profile.access_level >= requiredLevel;
     };
 
-    const checkTokenValidity = async () => {
-        const localToken = localStorage.getItem('access_token') || localStorage.getItem('token');
-        const storedAdminProfile = localStorage.getItem('admin_profile');
-
-        if (!localToken) {
-            setIsAuthenticated(false);
-            setAuthIsLoading(false);
-            return;
-        }
-
+    /**
+     * Validate the current session by calling /api/me/.
+     *
+     * The httpOnly access_token cookie is sent automatically by the browser.
+     * If it returns 200 → session is valid, hydrate React state.
+     * If it returns 401 → session expired/invalid, clear state.
+     * The response interceptor in api.ts will attempt a token refresh on 401
+     * before this catch block runs, so a single expiry is handled silently.
+     */
+    const initSession = useCallback(async () => {
         try {
-            const decodedToken = jwtDecode<{ user_id: number; exp: number }>(localToken);
-            const currentTime = Date.now() / 1000;
-            if (decodedToken.exp < currentTime) {
-                logout();
-            } else {
-                setToken(localToken);
-                setIsAuthenticated(true);
+            const res = await api.get('/me/');
+            const { user_type, user: userData, profile: profileData } = res.data;
 
-                // If admin profile stored, use it
-                if (storedAdminProfile) {
-                    setAdminProfile(JSON.parse(storedAdminProfile));
-                    setUserType('admin');
-                } else {
-                    // Otherwise treat as doctor and fetch profile
-                    setUserType('doctor');
-                    await getDoctorProfile();
-                }
-            }
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const status = error.response?.status;
-                if (status === 401) {
-                    logout();
-                } else if (status === 403) {
-                    setIsAuthenticated(true);
-                } else {
-                    setIsAuthenticated(true);
-                }
+            setUserType(user_type);
+            setIsAuthenticated(true);
+
+            if (user_type === 'admin') {
+                const adminData: AdminProfile = {
+                    user_type: 'admin',
+                    email: userData.email,
+                    full_name: userData.full_name,
+                };
+                setAdminProfile(adminData);
+                // Store non-sensitive admin metadata for fast re-hydration hint
+                localStorage.setItem('user_type', 'admin');
+                localStorage.setItem('admin_profile', JSON.stringify(adminData));
             } else {
-                logout();
+                setUser({
+                    id: userData.id,
+                    email: userData.email,
+                    full_name: userData.full_name,
+                    access_level: userData.access_level || 1,
+                    specialty: userData.specialty,
+                    phone_number: profileData?.phone_number,
+                    address: profileData?.address,
+                });
+                setProfile(profileData);
+                localStorage.setItem('user_type', 'doctor');
             }
+        } catch {
+            // 401 after refresh attempt failed, or network error — treat as logged out
+            setIsAuthenticated(false);
         } finally {
             setAuthIsLoading(false);
         }
-    };
+    }, []);
 
-    // Register the 401 response interceptor on the central api instance so that
-    // any mid-session expired token triggers logout and navigation automatically.
-    // Note: 403 (access denied) is NOT a logout condition — it's handled by access level gating.
+    // Register the 401 response interceptor so any mid-session expiry triggers logout.
+    // 403 (access level denied) is NOT a logout condition.
     useEffect(() => {
         const responseInterceptor = api.interceptors.response.use(
             (response) => response,
             (error) => {
-                // Only logout on 401 (token expired/invalid)
                 if (error.response?.status === 401) {
                     logout();
                 }
-                // 403 and all other errors: let the component handle it
                 return Promise.reject(error);
             }
         );
-
         return () => {
             api.interceptors.response.eject(responseInterceptor);
         };
     }, [logout]);
 
-    // Run token validity check once on mount
+    // Validate session on mount — single /api/me/ call, cookie sent automatically
     useEffect(() => {
-        checkTokenValidity();
+        initSession();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = async (credentials: { email: string; password: string }) => {
-        try {
-            const response = await api.post('/login/', credentials);
-            const accessToken = response.data.access;
-            const refreshToken = response.data.refresh;
-            const loginUserData = response.data.user;
-            const userTypeFromResponse = loginUserData.user_type || 'doctor';
+        const response = await api.post('/login/', credentials);
+        const { user: loginUserData } = response.data;
+        const userTypeFromResponse: 'doctor' | 'admin' = loginUserData.user_type || 'doctor';
 
-            localStorage.setItem('access_token', accessToken);
-            localStorage.setItem('token', accessToken);
-            localStorage.setItem('user_type', userTypeFromResponse);
-            if (refreshToken) {
-                localStorage.setItem('refresh_token', refreshToken);
-            }
-            setToken(accessToken);
-            setUserType(userTypeFromResponse);
+        // Tokens are in httpOnly cookies — never stored in JS memory or localStorage
+        setUserType(userTypeFromResponse);
+        localStorage.setItem('user_type', userTypeFromResponse);
 
-            // Handle admin login
-            if (userTypeFromResponse === 'admin') {
-                const adminData: AdminProfile = {
-                    user_type: 'admin',
-                    email: loginUserData.email,
-                    full_name: loginUserData.full_name,
-                };
-                setAdminProfile(adminData);
-                localStorage.setItem('admin_profile', JSON.stringify(adminData));
-                setIsAuthenticated(true);
-                navigate('/admin/dashboard');
-            }
-            // Handle doctor login
-            else if (userTypeFromResponse === 'doctor') {
-                setUser({
-                    id: loginUserData.id,
-                    email: loginUserData.email,
-                    full_name: loginUserData.full_name,
-                    access_level: loginUserData.access_level || 1,
-                    specialty: loginUserData.specialty,
-                });
-                setIsAuthenticated(true);
-                await getDoctorProfile();
-                navigate('/dashboard');
-            }
-        } catch (error) {
-            throw error;
+        if (userTypeFromResponse === 'admin') {
+            const adminData: AdminProfile = {
+                user_type: 'admin',
+                email: loginUserData.email,
+                full_name: loginUserData.full_name,
+            };
+            setAdminProfile(adminData);
+            localStorage.setItem('admin_profile', JSON.stringify(adminData));
+            setIsAuthenticated(true);
+            navigate('/admin/dashboard');
+        } else {
+            setUser({
+                id: loginUserData.id,
+                email: loginUserData.email,
+                full_name: loginUserData.full_name,
+                access_level: loginUserData.access_level || 1,
+                specialty: loginUserData.specialty,
+            });
+            setIsAuthenticated(true);
+            // Fetch full doctor profile now that cookies are set
+            const profileRes = await api.get('/profile/');
+            setProfile(profileRes.data);
+            navigate('/dashboard');
         }
     };
 
-    // Derived state — computed from profile each render
+    // Derived state
     const emailVerified = userType === 'admin' || (profile?.email_verified ?? true);
     const profileComplete = userType === 'admin' || !!(
         profile?.phone_number && profile.phone_number.trim() &&
         profile?.address && profile.address.trim()
     );
 
-    const value = { user, profile, adminProfile, token, userType, login, logout, isAuthenticated, authIsLoading, updateProfileData, hasAccessLevel, emailVerified, profileComplete };
+    // 'token' sentinel: non-null when authenticated, null when not.
+    // Keeps backward-compat with components that guard with `if (!token)`.
+    const token = isAuthenticated ? 'session' : null;
+
+    const value = {
+        user, profile, adminProfile, token, userType, login, logout,
+        isAuthenticated, authIsLoading, updateProfileData,
+        hasAccessLevel, emailVerified, profileComplete,
+    };
 
     return (
         <AuthContext.Provider value={value}>
