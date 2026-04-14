@@ -16,7 +16,8 @@ export const queryKeys = {
     },
 
     appointments: {
-        list: (filters?: object) => ['appointments', 'list', filters] as const,
+        dots: (month: string) => ['appointments', 'dots', month] as const,
+        list: (date: string) => ['appointments', 'list', date] as const,
     },
 
     prescriptions: {

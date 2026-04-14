@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
-import { useAuth } from '../../auth/hooks/useAuth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Appointment, type Patient, type Workplace } from '../../../shared/types';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
@@ -12,6 +12,7 @@ import '../styles/Appointments.css';
 
 import api from '../../../shared/services/api';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
+import { queryKeys } from '../../../shared/queryKeys';
 
 const CONSULTATION_STARTABLE = ['scheduled', 'confirmed', 'in_progress'];
 
@@ -30,57 +31,71 @@ interface AppointmentWithDetails extends Appointment {
     workplace_details: Workplace;
 }
 
+function toYYYYMM(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+}
+
+function toYYYYMMDD(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 const Appointments = () => {
     const { t } = useTranslation();
-    const { token } = useAuth();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
     const [date, setDate] = useState<Date>(new Date());
-    const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
+    const [currentMonth, setCurrentMonth] = useState<string>(toYYYYMM(new Date()));
+
     const [isFormVisible, setIsFormVisible] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-    const [appointmentDates, setAppointmentDates] = useState<string[]>([]);
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; currentDate: string } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
 
-    const fetchAppointments = async () => {
-        setIsLoading(true);
-        setError(null);
-        if (!token) {
-            setError(t('appointments.error.auth'));
-            setIsLoading(false);
-            return;
-        }
+    const selectedDate = toYYYYMMDD(date);
 
-        try {
-            const response = await api.get('/appointments/');
-            const list: AppointmentWithDetails[] = response.data.results ?? response.data;
-            // Sort by newest first (reverse chronological order)
-            const sortedList = list.sort((a, b) => {
-                return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
-            });
-            setAppointments(sortedList);
-            
-            const dates = list.map((appt: AppointmentWithDetails) => new Date(appt.appointment_date).toDateString());
-            setAppointmentDates([...new Set(dates)]);
-        } catch {
-            setError(t('appointments.error.load'));
-        } finally {
-            setIsLoading(false);
-        }
+    // Query 1: dots for calendar tile highlighting (staleTime: 5 min)
+    const { data: dotDates = [] } = useQuery({
+        queryKey: queryKeys.appointments.dots(currentMonth),
+        queryFn: async () => {
+            const res = await api.get('/appointments/dots/', { params: { month: currentMonth } });
+            return res.data as string[];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Query 2: appointment list for selected date (staleTime: 60s)
+    const { data: appointments = [], isLoading, isError } = useQuery({
+        queryKey: queryKeys.appointments.list(selectedDate),
+        queryFn: async () => {
+            const res = await api.get('/appointments/', { params: { date: selectedDate } });
+            const list: AppointmentWithDetails[] = res.data.results ?? res.data;
+            return list.sort((a, b) =>
+                new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
+            );
+        },
+        staleTime: 60 * 1000,
+    });
+
+    const invalidateAll = () => {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
     };
-
-    useEffect(() => {
-        fetchAppointments();
-    }, [token]);
 
     const handleDateChange = (newDate: unknown) => {
         if (newDate instanceof Date) {
             setDate(newDate);
         }
+    };
+
+    const handleActiveStartDateChange = ({ activeStartDate }: { activeStartDate: Date | null }) => {
+        if (activeStartDate) setCurrentMonth(toYYYYMM(activeStartDate));
     };
 
     const handleCreateAppointmentClick = () => {
@@ -101,27 +116,23 @@ const Appointments = () => {
     const handleFormSuccess = () => {
         setIsFormVisible(false);
         setSelectedAppointment(null);
-        fetchAppointments();
+        invalidateAll();
     };
 
     const handleFormCancel = () => {
         setIsFormVisible(false);
         setSelectedAppointment(null);
     };
-    
+
     const handleDeleteSuccess = () => {
         setIsDeleteModalVisible(false);
         setSelectedAppointment(null);
-        fetchAppointments();
+        invalidateAll();
     };
 
     const handleDeleteCancel = () => {
         setIsDeleteModalVisible(false);
         setSelectedAppointment(null);
-    };
-
-    const handleViewDeletedAppointments = () => {
-        navigate('/deleted-appointments');
     };
 
     const requestLifecycleAction = (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
@@ -144,7 +155,7 @@ const Appointments = () => {
             toast.success('Appointment rescheduled. A new scheduled appointment has been created.');
             setRescheduleTarget(null);
             setRescheduleDate('');
-            fetchAppointments();
+            invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
         }
@@ -168,31 +179,17 @@ const Appointments = () => {
             await api.post(`/appointments/${lifecycleConfirm.id}/${lifecycleConfirm.action}/`);
             toast.success(t(`appointments.lifecycle.${lifecycleConfirm.action}_success`, { defaultValue: 'Appointment updated.' }));
             setLifecycleConfirm(null);
-            fetchAppointments();
+            invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, t('appointments.error.action')));
             setLifecycleConfirm(null);
         }
     };
 
-    const appointmentsForSelectedDate = appointments
-        .filter(appt => {
-            const apptDate = new Date(appt.appointment_date);
-            return apptDate.getFullYear() === date.getFullYear() &&
-                   apptDate.getMonth() === date.getMonth() &&
-                   apptDate.getDate() === date.getDate();
-        })
-        // Sort by newest first within selected date
-        .sort((a, b) => {
-            return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
-        });
-
-    const tileClassName = ({ date, view }: { date: Date, view: string }) => {
+    const tileClassName = ({ date: tileDate, view }: { date: Date; view: string }) => {
         if (view === 'month') {
-            const dateString = date.toDateString();
-            if (appointmentDates.includes(dateString)) {
-                return 'has-appointment';
-            }
+            const iso = toYYYYMMDD(tileDate);
+            if (dotDates.includes(iso)) return 'has-appointment';
         }
         return null;
     };
@@ -205,11 +202,12 @@ const Appointments = () => {
                     onChange={handleDateChange}
                     value={date}
                     tileClassName={tileClassName}
+                    onActiveStartDateChange={handleActiveStartDateChange}
                 />
                 <button onClick={handleCreateAppointmentClick} className="create-appt-button">
                     {t('appointments.create_button')} {date.toLocaleDateString()}
                 </button>
-                <button onClick={handleViewDeletedAppointments} className="view-deleted-button">
+                <button onClick={() => navigate('/deleted-appointments')} className="view-deleted-button">
                     {t('appointments.view_deleted')}
                 </button>
             </div>
@@ -217,13 +215,12 @@ const Appointments = () => {
             <div className="appointments-list">
                 <h3>{t('appointments.list_title')} {date.toLocaleDateString()}</h3>
                 {isLoading && <p>{t('appointments.loading')}</p>}
-                {error && <p className="error-message">{error}</p>}
-                {!isLoading && appointmentsForSelectedDate.length === 0 ? (
+                {isError && <p className="error-message">{t('appointments.error.load')}</p>}
+                {!isLoading && appointments.length === 0 ? (
                     <p>{t('appointments.no_appointments')}</p>
                 ) : (
-                    appointmentsForSelectedDate.map(appt => (
+                    appointments.map(appt => (
                         <div key={appt.id} className="appointment-item">
-                            {/* Header: patient + status */}
                             <div className="appt-item-header">
                                 <span className="appt-patient-name">
                                     {appt.patient_details
@@ -237,7 +234,6 @@ const Appointments = () => {
                                 </span>
                             </div>
 
-                            {/* Compact meta row */}
                             <div className="appt-meta">
                                 <span className="appt-meta-item">
                                     <span className="appt-meta-label">Time</span>
@@ -256,14 +252,9 @@ const Appointments = () => {
                             </div>
                             {appt.notes && <p className="appt-notes">{appt.notes}</p>}
 
-                            {/* Action buttons */}
                             <div className="appointment-actions">
-                                {/* Start consultation — only for actionable statuses without an existing consultation */}
                                 {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
-                                    <button
-                                        onClick={() => handleStartConsultation(appt)}
-                                        className="appt-start-consult-btn"
-                                    >
+                                    <button onClick={() => handleStartConsultation(appt)} className="appt-start-consult-btn">
                                         + Document Consultation
                                     </button>
                                 )}
@@ -291,14 +282,14 @@ const Appointments = () => {
             </div>
 
             {isFormVisible && (
-                <AppointmentForm 
+                <AppointmentForm
                     initialDate={date}
                     appointment={selectedAppointment}
                     onSuccess={handleFormSuccess}
                     onCancel={handleFormCancel}
                 />
             )}
-            
+
             {isDeleteModalVisible && selectedAppointment && (
                 <DeleteAppointmentModal
                     appointment={selectedAppointment}

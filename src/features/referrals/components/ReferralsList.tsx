@@ -4,7 +4,10 @@ import { type Referral } from '../../../shared/types';
 import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
+import { Pagination } from '../../../shared/components/Pagination';
 import '../styles/ReferralsList.css';
+
+const PAGE_SIZE = 20;
 
 type Tab = 'all' | 'received' | 'sent';
 
@@ -105,29 +108,37 @@ const ReferralsList = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [urgencyFilter, setUrgencyFilter] = useState('');
     const [respondTarget, setRespondTarget] = useState<Referral | null>(null);
+    const [page, setPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
     const fetchReferrals = useCallback(async () => {
         setLoading(true);
         try {
-            const params: Record<string, string> = {};
+            const params: Record<string, string | number> = { page, page_size: PAGE_SIZE };
             if (tab !== 'all') params.direction = tab;
             if (statusFilter) params.status = statusFilter;
             if (urgencyFilter) params.urgency = urgencyFilter;
             const res = await api.get('/referrals/', { params });
             setReferrals(res.data.results ?? res.data);
+            setTotalCount(res.data.count ?? (res.data.results ?? res.data).length);
             setError(null);
         } catch {
             setError('Failed to load referrals.');
         } finally {
             setLoading(false);
         }
-    }, [tab, statusFilter, urgencyFilter]);
+    }, [tab, statusFilter, urgencyFilter, page]);
 
     useEffect(() => { fetchReferrals(); }, [fetchReferrals]);
+
+    // Reset page on filter/tab change
+    useEffect(() => { setPage(1); }, [tab, statusFilter, urgencyFilter]);
 
     const handleRespond = (updated: Referral) => {
         setReferrals(prev => prev.map(r => r.id === updated.id ? updated : r));
         setRespondTarget(null);
+        fetchReferrals();
     };
 
     const myId = profile?.id;
@@ -259,6 +270,14 @@ const ReferralsList = () => {
                     })}
                 </ul>
             )}
+
+            <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                onPageChange={setPage}
+                isLoading={loading}
+            />
 
             {respondTarget && (
                 <RespondModal

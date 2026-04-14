@@ -2,6 +2,7 @@
 
 import { useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useKeyboardShortcut } from '../shared/hooks/useKeyboardShortcut';
 
 // Shared components (small — loaded eagerly)
 import Header from '../shared/components/Header';
@@ -40,7 +41,6 @@ const Profile = lazy(() => import('../features/profile/components/Profile'));
 const EditProfile = lazy(() => import('../features/profile/components/EditProfile'));
 const ReferralsList = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics = lazy(() => import('../features/statistics/components/Statistics'));
-const Prescriptions = lazy(() => import('../features/prescriptions/components/Prescriptions'));
 const PrivateNotebook = lazy(() => import('../features/notebook/components/PrivateNotebook'));
 
 import PageLoader from '../shared/components/PageLoader';
@@ -93,6 +93,18 @@ function App() {
     const { isAuthenticated, authIsLoading, userType } = useAuth();
     // Use a counter instead of boolean so rapid successive adds each trigger a refresh
     const [refreshPatients, setRefreshPatients] = useState(0);
+
+    // Global keyboard shortcut: Cmd/Ctrl+K → focus patient search
+    useKeyboardShortcut({
+        key: 'k',
+        modifiers: ['ctrl'],
+        enabled: isAuthenticated,
+        onKeyDown: () => {
+            const el = document.getElementById('global-patient-search') as HTMLInputElement | null;
+            el?.focus();
+            el?.select();
+        },
+    });
 
     const handlePatientAdded = () => {
         setRefreshPatients(prev => prev + 1);
@@ -163,7 +175,6 @@ function App() {
                             <Route path="/forum" element={<ErrorBoundary><Forum /></ErrorBoundary>} />
                         )}
 
-                        <Route path="/prescriptions" element={<ErrorBoundary><Prescriptions /></ErrorBoundary>} />
                         <Route path="/notebook" element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
                         <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
                         <Route path="/edit-profile" element={<ErrorBoundary><EditProfile /></ErrorBoundary>} />

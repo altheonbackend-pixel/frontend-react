@@ -72,6 +72,31 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
 
+    // Prescriptions for this visit
+    const [rxList, setRxList] = useState<{ medication_name: string; dosage: string; frequency: string; duration_days: string; instructions: string }[]>([]);
+    const [showRxForm, setShowRxForm] = useState(false);
+    const [rxForm, setRxForm] = useState({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
+    const addRx = async (consultationId: number) => {
+        if (!rxForm.medication_name.trim() || !rxForm.dosage.trim()) return;
+        try {
+            await api.post('/prescriptions/', {
+                patient: patientId,
+                consultation: consultationId,
+                medication_name: rxForm.medication_name,
+                dosage: rxForm.dosage,
+                frequency: rxForm.frequency,
+                duration_days: rxForm.duration_days ? parseInt(rxForm.duration_days) : null,
+                instructions: rxForm.instructions,
+            });
+            setRxList(prev => [...prev, { ...rxForm }]);
+            setRxForm({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
+            setShowRxForm(false);
+            toast.success('Prescription added.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to add prescription.'));
+        }
+    };
+
     useEffect(() => {
         if (consultationToEdit) {
             setFormData({
@@ -153,6 +178,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
+                // Save any queued prescriptions against this consultation
+                if (!isEditing && rxForm.medication_name.trim() && rxForm.dosage.trim()) {
+                    await addRx(response.data.id);
+                }
                 toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
                 setDirty(false);
                 // If new consultation with follow-up date, prompt to create follow-up appointment
@@ -404,6 +433,85 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         <label htmlFor="follow_up_date">Follow-up Date</label>
                         <input type="date" id="follow_up_date" name="follow_up_date" value={formData.follow_up_date} onChange={handleChange} />
                     </div>
+
+                    {/* Prescriptions this visit */}
+                    {!consultationToEdit && (
+                        <div className="form-group">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ marginBottom: 0 }}>Prescriptions this visit</label>
+                                <button type="button" className="btn btn--sm btn--secondary" onClick={() => setShowRxForm(v => !v)}>
+                                    {showRxForm ? 'Cancel' : '+ Add Prescription'}
+                                </button>
+                            </div>
+                            {rxList.length > 0 && (
+                                <ul style={{ margin: '0 0 8px 0', padding: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    {rxList.map((rx, i) => (
+                                        <li key={i} style={{ fontSize: 'var(--text-sm)', padding: '6px 10px', background: 'var(--color-background-secondary)', borderRadius: '6px' }}>
+                                            <strong>{rx.medication_name}</strong> — {rx.dosage} ({rx.frequency})
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {showRxForm && (
+                                <div style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Medication <span className="required">*</span></label>
+                                            <input
+                                                value={rxForm.medication_name}
+                                                onChange={e => setRxForm(p => ({ ...p, medication_name: e.target.value }))}
+                                                placeholder="e.g. Amoxicillin 500mg"
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Dosage <span className="required">*</span></label>
+                                            <input
+                                                value={rxForm.dosage}
+                                                onChange={e => setRxForm(p => ({ ...p, dosage: e.target.value }))}
+                                                placeholder="e.g. 1 tablet"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-row">
+                                        <div className="form-group">
+                                            <label>Frequency</label>
+                                            <select value={rxForm.frequency} onChange={e => setRxForm(p => ({ ...p, frequency: e.target.value }))}>
+                                                <option value="once">Once</option>
+                                                <option value="once_daily">Once Daily</option>
+                                                <option value="twice_daily">Twice Daily</option>
+                                                <option value="three_times_daily">Three Times Daily</option>
+                                                <option value="four_times_daily">Four Times Daily</option>
+                                                <option value="as_needed">As Needed</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Duration (days)</label>
+                                            <input
+                                                type="number"
+                                                value={rxForm.duration_days}
+                                                onChange={e => setRxForm(p => ({ ...p, duration_days: e.target.value }))}
+                                                placeholder="e.g. 7"
+                                                min="1"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Instructions</label>
+                                        <input
+                                            value={rxForm.instructions}
+                                            onChange={e => setRxForm(p => ({ ...p, instructions: e.target.value }))}
+                                            placeholder="e.g. Take with food"
+                                        />
+                                    </div>
+                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
+                                        Prescription will be saved when you submit the consultation.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Visible to patient toggle */}
                     <div className="form-group form-checkbox">

@@ -17,9 +17,9 @@ import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
-import { type LabResult } from '../../../shared/types';
+import { type LabResult, type Prescription } from '../../../shared/types';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -145,6 +145,10 @@ const PatientDetails = () => {
     const [labFormLoading, setLabFormLoading] = useState(false);
     const [confirmDeleteLabId, setConfirmDeleteLabId] = useState<number | null>(null);
 
+    // Medications (active prescriptions)
+    const [medications, setMedications] = useState<Prescription[]>([]);
+    const [medicationsLoading, setMedicationsLoading] = useState(false);
+
     // Quick Note
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
@@ -244,6 +248,19 @@ const PatientDetails = () => {
             /* silently fail */
         } finally {
             setLabsLoading(false);
+        }
+    };
+
+    const fetchMedications = async () => {
+        if (!id) return;
+        setMedicationsLoading(true);
+        try {
+            const res = await api.get('/prescriptions/', { params: { patient_id: id, is_active: true } });
+            setMedications(res.data.results ?? res.data);
+        } catch {
+            /* silently fail */
+        } finally {
+            setMedicationsLoading(false);
         }
     };
 
@@ -488,6 +505,7 @@ const PatientDetails = () => {
         { key: 'procedures', label: 'Procedures', count: patient.medical_procedures?.length },
         { key: 'referrals', label: 'Referrals', count: patient.referrals?.length },
         { key: 'labs', label: 'Lab Results', count: labResults.length || patient.lab_results?.length },
+        { key: 'medications', label: 'Medications', count: medications.length },
     ];
 
     return (
@@ -612,6 +630,7 @@ const PatientDetails = () => {
                             setActiveTab(tab.key);
                             if (tab.key === 'vitals') fetchVitalsTrend();
                             if (tab.key === 'labs') fetchLabResults();
+                            if (tab.key === 'medications') fetchMedications();
                         }}
                     >
                         {tab.label}
@@ -1170,6 +1189,38 @@ const PatientDetails = () => {
                                                 setShowLabForm(true);
                                             }} className="edit-button action-button">Edit</button>
                                             <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
+
+                {/* Medications Tab */}
+                {activeTab === 'medications' && (
+                    <div className="tab-panel">
+                        <h3>Active Medications</h3>
+                        {medicationsLoading ? (
+                            <p className="muted">Loading medications...</p>
+                        ) : medications.length === 0 ? (
+                            <p className="muted">No active medications on record.</p>
+                        ) : (
+                            <ul className="detail-list">
+                                {medications.map(rx => (
+                                    <li key={rx.id} className="detail-list-item">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                            <strong>{rx.medication_name}</strong>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: '#e6fffa', color: '#234e52', border: '1px solid #81e6d9' }}>
+                                                Active
+                                            </span>
+                                        </div>
+                                        <div className="info-item"><strong>Dosage:</strong> {rx.dosage}</div>
+                                        <div className="info-item"><strong>Frequency:</strong> {rx.frequency_display || rx.frequency}</div>
+                                        {rx.duration_days && <div className="info-item"><strong>Duration:</strong> {rx.duration_days} days</div>}
+                                        {rx.instructions && <div className="info-item"><strong>Instructions:</strong> {rx.instructions}</div>}
+                                        <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                                            Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
                                         </div>
                                     </li>
                                 ))}

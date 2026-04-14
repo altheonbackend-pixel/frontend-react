@@ -84,7 +84,6 @@ const Header = () => {
                             <NavLink to="/dashboard" className="nav-item">{t('nav.dashboard')}</NavLink>
                             <NavLink to="/patients" className="nav-item">{t('nav.patients')}</NavLink>
                             <NavLink to="/appointments" className="nav-item">{t('nav.appointments')}</NavLink>
-                            <NavLink to="/prescriptions" className="nav-item">Prescriptions</NavLink>
                             <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
                             <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
                             {features.clinics && <NavLink to="/clinics" className="nav-item">Clinics</NavLink>}
@@ -99,9 +98,10 @@ const Header = () => {
                 {isAuthenticated && (
                     <div className="header-search-wrap" ref={searchRef}>
                         <input
+                            id="global-patient-search"
                             type="text"
                             className="header-search-input"
-                            placeholder="Search patients..."
+                            placeholder="Search patients... (⌘K)"
                             value={searchQ}
                             onChange={handleSearchChange}
                             onFocus={() => searchQ.length >= 2 && setSearchOpen(true)}

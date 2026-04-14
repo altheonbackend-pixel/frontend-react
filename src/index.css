@@ -1042,3 +1042,46 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Empty state ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10, 3rem) var(--space-6, 1.5rem);
+  text-align: center;
+  gap: var(--space-3, 0.75rem);
+}
+
+.empty-state__icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.empty-state__title {
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.empty-state__description {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 360px;
+}
+
+/* ── Skeleton loading ── */
+.skeleton {
+  background: var(--color-background-secondary, #f0f0f0);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
