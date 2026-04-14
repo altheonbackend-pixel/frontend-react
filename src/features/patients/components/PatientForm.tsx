@@ -154,7 +154,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                     <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
                         {t('patient_form.cancel')}
                     </button>
-                    <button type="submit" form="patient-form" disabled={loading}>
+                    <button type="submit" form="patient-form" className="btn btn-primary" disabled={loading}>
                         {loading ? t('patient_form.submit.loading') : buttonText}
                     </button>
                 </>
@@ -178,49 +178,49 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
 
                     <div className="form-group">
                         <label htmlFor="first_name">{t('patient_form.label.first_name')} <span className="required">*</span></label>
-                        <input type="text" id="first_name" name="first_name" value={formData.first_name} onChange={handleChange} required />
+                        <input type="text" id="first_name" name="first_name" className="input" value={formData.first_name} onChange={handleChange} required />
                     </div>
                     <div className="form-group">
                         <label htmlFor="last_name">{t('patient_form.label.last_name')} <span className="required">*</span></label>
-                        <input type="text" id="last_name" name="last_name" value={formData.last_name} onChange={handleChange} required />
+                        <input type="text" id="last_name" name="last_name" className="input" value={formData.last_name} onChange={handleChange} required />
                     </div>
                     
                     <div className="form-group">
                         <label htmlFor="date_of_birth">{t('patient_form.label.dob')}</label>
-                        <input type="date" id="date_of_birth" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} />
+                        <input type="date" id="date_of_birth" name="date_of_birth" className="input" value={formData.date_of_birth} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label htmlFor="age">{t('patient_form.label.age')}</label>
-                        <input type="number" id="age" name="age" value={formData.age} onChange={handleChange} />
+                        <input type="number" id="age" name="age" className="input" value={formData.age} onChange={handleChange} />
                     </div>
-                    
+
                     <div className="form-group">
                         <label htmlFor="email">{t('patient_form.label.email')}</label>
-                        <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} />
+                        <input type="email" id="email" name="email" className="input" value={formData.email} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label htmlFor="phone_number">{t('patient_form.label.phone')}</label>
-                        <input type="tel" id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} />
+                        <input type="tel" id="phone_number" name="phone_number" className="input" value={formData.phone_number} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label htmlFor="address">{t('patient_form.label.address')}</label>
-                        <textarea id="address" name="address" value={formData.address} onChange={handleChange} rows={3}></textarea>
+                        <textarea id="address" name="address" className="textarea" value={formData.address} onChange={handleChange} rows={3}></textarea>
                     </div>
                     <div className="form-group">
                         <label htmlFor="medical_history">{t('patient_form.label.medical_history')}</label>
-                        <textarea id="medical_history" name="medical_history" value={formData.medical_history} onChange={handleChange} rows={5}></textarea>
+                        <textarea id="medical_history" name="medical_history" className="textarea" value={formData.medical_history} onChange={handleChange} rows={5}></textarea>
                     </div>
                     <div className="form-group">
                         <label htmlFor="blood_group">{t('patient_form.label.blood_group')}</label>
-                        <input type="text" id="blood_group" name="blood_group" value={formData.blood_group} onChange={handleChange} />
+                        <input type="text" id="blood_group" name="blood_group" className="input" value={formData.blood_group} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label htmlFor="emergency_contact_name">{t('patient_form.label.emergency_name')}</label>
-                        <input type="text" id="emergency_contact_name" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} />
+                        <input type="text" id="emergency_contact_name" name="emergency_contact_name" className="input" value={formData.emergency_contact_name} onChange={handleChange} />
                     </div>
                     <div className="form-group">
                         <label htmlFor="emergency_contact_number">{t('patient_form.label.emergency_phone')}</label>
-                        <input type="tel" id="emergency_contact_number" name="emergency_contact_number" value={formData.emergency_contact_number} onChange={handleChange} />
+                        <input type="tel" id="emergency_contact_number" name="emergency_contact_number" className="input" value={formData.emergency_contact_number} onChange={handleChange} />
                     </div>
                     
                 </form>

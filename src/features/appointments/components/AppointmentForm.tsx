@@ -113,7 +113,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         <button type="button" onClick={onCancel} className="cancel-button" disabled={submitting}>
                             {t('appointments.form.cancel')}
                         </button>
-                        <button type="submit" form="appointment-form" className="submit-button" disabled={submitting}>
+                        <button type="submit" form="appointment-form" className="btn btn-primary" disabled={submitting}>
                             {appointment ? t('appointments.form.submit_edit') : t('appointments.form.submit_create')}
                         </button>
                     </>
@@ -129,6 +129,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         <select
                             id="patient"
                             name="patient"
+                            className="select-input"
                             value={formData.patient}
                             onChange={handleChange}
                             required
@@ -147,6 +148,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         <select
                             id="workplace"
                             name="workplace"
+                            className="select-input"
                             value={formData.workplace}
                             onChange={handleChange}
                             required
@@ -166,6 +168,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                             type="datetime-local"
                             id="appointment_date"
                             name="appointment_date"
+                            className="input"
                             value={formData.appointment_date}
                             onChange={handleChange}
                             min={new Date().toISOString().slice(0, 16)}
@@ -178,6 +181,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                         <textarea
                             id="reason_for_appointment"
                             name="reason_for_appointment"
+                            className="textarea"
                             value={formData.reason_for_appointment}
                             onChange={handleChange}
                             rows={4}

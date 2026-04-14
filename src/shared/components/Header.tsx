@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
 import api from '../../shared/services/api';
+import { features } from '../config/features';
 
 interface SearchResult {
     unique_id: string;
@@ -86,6 +87,8 @@ const Header = () => {
                             <NavLink to="/prescriptions" className="nav-item">Prescriptions</NavLink>
                             <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
                             <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
+                            {features.clinics && <NavLink to="/clinics" className="nav-item">Clinics</NavLink>}
+                            {features.forum && <NavLink to="/forum" className="nav-item">Forum</NavLink>}
                             <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
                             <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
                         </>

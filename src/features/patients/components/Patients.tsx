@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import '../styles/PatientsList.css';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
@@ -88,24 +86,29 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
         }
     };
 
+    const [exporting, setExporting] = useState(false);
+
     const handleExportPdf = async () => {
-        const input = document.getElementById('patients-list-to-export');
-        if (input) {
-            try {
-                const canvas = await html2canvas(input, { scale: 2 });
-                const imgData = canvas.toDataURL('image/png');
-                
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgProps= pdf.getImageProperties(imgData);
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                pdf.save("liste-des-patients.pdf");
-
-            } catch {
-                setError(t('patients.error.pdf'));
-            }
+        setExporting(true);
+        try {
+            // Stream PDF from backend — avoids heavy jsPDF/html2canvas client-side bundle
+            const response = await api.get('/patients/export-pdf/', {
+                responseType: 'blob',
+                params: {
+                    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+                    ...(statusFilter ? { status: statusFilter } : {}),
+                },
+            });
+            const url = URL.createObjectURL(response.data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'patients-list.pdf';
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            setError(t('patients.error.pdf'));
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -123,8 +126,8 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                     <button onClick={handleAddPatientClick} className="action-button add-button">
                         {t('patients.add_button')}
                     </button>
-                    <button onClick={handleExportPdf} className="action-button export-button">
-                        {t('patients.export_button')}
+                    <button onClick={handleExportPdf} className="export-button" disabled={exporting}>
+                        {exporting ? 'Exporting…' : t('patients.export_button')}
                     </button>
                 </div>
             </div>
@@ -133,7 +136,7 @@ const Patients = ({ refreshPatients }: PatientsProps) => {
                 <input
                     type="text"
                     placeholder={t('patients.search_placeholder')}
-                    className="search-input"
+                    className="input search-input"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />

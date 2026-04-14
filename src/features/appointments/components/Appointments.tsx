@@ -13,6 +13,8 @@ import '../styles/Appointments.css';
 import api from '../../../shared/services/api';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 
+const CONSULTATION_STARTABLE = ['scheduled', 'confirmed', 'in_progress'];
+
 const STATUS_BADGE_COLORS: Record<string, string> = {
     scheduled: '#3182ce',
     confirmed: '#38a169',
@@ -148,6 +150,18 @@ const Appointments = () => {
         }
     };
 
+    const handleStartConsultation = async (appt: AppointmentWithDetails) => {
+        try {
+            const res = await api.post(`/appointments/${appt.id}/start-consultation/`);
+            const { consultation_id } = res.data;
+            const patientId = appt.patient_details?.unique_id ?? appt.patient;
+            toast.success('Consultation started.');
+            navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}`);
+        } catch (err) {
+            toast.error(parseApiError(err, 'Could not start consultation.'));
+        }
+    };
+
     const executeLifecycleAction = async () => {
         if (!lifecycleConfirm) return;
         try {
@@ -244,6 +258,15 @@ const Appointments = () => {
 
                             {/* Action buttons */}
                             <div className="appointment-actions">
+                                {/* Start consultation — only for actionable statuses without an existing consultation */}
+                                {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
+                                    <button
+                                        onClick={() => handleStartConsultation(appt)}
+                                        className="appt-start-consult-btn"
+                                    >
+                                        + Document Consultation
+                                    </button>
+                                )}
                                 {(appt.status === 'scheduled' || appt.status === 'pending') && (
                                     <button onClick={() => requestLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
                                 )}

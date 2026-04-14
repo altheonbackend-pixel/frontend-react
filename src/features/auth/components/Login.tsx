@@ -52,28 +52,30 @@ function Login() {
                     <input
                         type="email"
                         id="email"
+                        className="input"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
                         aria-label={t('login.email_placeholder')}
-                        disabled={loading} // 💡 Ajout pour l'UX
+                        disabled={loading}
                     />
                 </div>
-                
+
                 <div className="form-group">
                     <label htmlFor="password">{t('login.password_label')}</label>
                     <input
                         type="password"
                         id="password"
+                        className="input"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         aria-label={t('login.password_placeholder')}
-                        disabled={loading} // 💡 Ajout pour l'UX
+                        disabled={loading}
                     />
                 </div>
-                
-                <button type="submit" className="login-button" disabled={loading}>
+
+                <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
                     {loading ? t('login.loading') : t('login.submit')}
                 </button>
             </form>

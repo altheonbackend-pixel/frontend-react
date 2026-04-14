@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import '../../../shared/styles/Dashboard.css';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
-import { type FollowUpConsultation } from '../../../shared/types';
+import { queryKeys } from '../../../shared/queryKeys';
+import type { FollowUpConsultation } from '../../../shared/types';
 
 interface DashboardStats {
     total_patients: number;
@@ -12,8 +14,6 @@ interface DashboardStats {
     total_referrals: number;
     total_appointments: number;
     total_procedures: number;
-    upcoming_appointments: UpcomingAppt[];
-    recent_patients: RecentPatient[];
     pending_referrals: number;
     follow_up_today: number;
 }
@@ -35,6 +35,13 @@ interface RecentPatient {
     status_display?: string;
 }
 
+interface DashboardData {
+    stats: DashboardStats;
+    upcoming_appointments: UpcomingAppt[];
+    recent_patients: RecentPatient[];
+    due_followups: FollowUpConsultation[];
+}
+
 const QUICK_LINKS = [
     { to: '/patients/add', label: '+ New Patient', accent: true },
     { to: '/appointments', label: 'Appointments' },
@@ -51,96 +58,24 @@ const STATUS_COLORS: Record<string, string> = {
     pending: '#d69e2e',
 };
 
-// Per-section loading state — each section renders independently as its API responds
-interface SectionLoading {
-    patients: boolean;
-    appointments: boolean;
-    referrals: boolean;
-    consultations: boolean;
-}
-
 function Dashboard() {
     const { t } = useTranslation();
     const { user, profile } = useAuth();
     const navigate = useNavigate();
-    const [stats, setStats] = useState<Partial<DashboardStats>>({});
-    const [sectionLoading, setSectionLoading] = useState<SectionLoading>({
-        patients: true,
-        appointments: true,
-        referrals: true,
-        consultations: true,
-    });
-    const [followUps, setFollowUps] = useState<FollowUpConsultation[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<RecentPatient[]>([]);
     const [searching, setSearching] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
 
-    useEffect(() => {
-        // Each section fetches and renders independently — a slow or failing API
-        // only affects its own widget, not the rest of the dashboard.
-        api.get('/doctors/me/patients/?ordering=-id&page_size=5')
-            .then(res => {
-                const data = res.data;
-                setStats(prev => ({
-                    ...prev,
-                    recent_patients: (Array.isArray(data) ? data : data.results || []).slice(0, 5),
-                    total_patients: Array.isArray(data) ? data.length : (data.count || 0),
-                }));
-            })
-            .catch(() => { /* patients section shows — */ })
-            .finally(() => setSectionLoading(prev => ({ ...prev, patients: false })));
-
-        api.get('/appointments/?ordering=appointment_date&status=scheduled&page_size=5')
-            .then(res => {
-                const data = res.data;
-                const appts = Array.isArray(data) ? data : data.results || [];
-                setStats(prev => ({
-                    ...prev,
-                    upcoming_appointments: appts.slice(0, 5),
-                    total_appointments: Array.isArray(data) ? data.length : (data.count || 0),
-                }));
-            })
-            .catch(() => { /* appointments section shows — */ })
-            .finally(() => setSectionLoading(prev => ({ ...prev, appointments: false })));
-
-        api.get('/referrals/?status=pending&page_size=100')
-            .then(res => {
-                const data = res.data;
-                const refs = Array.isArray(data) ? data : data.results || [];
-                setStats(prev => ({
-                    ...prev,
-                    pending_referrals: refs.length,
-                    total_referrals: refs.length,
-                }));
-            })
-            .catch(() => { /* referrals section shows — */ })
-            .finally(() => setSectionLoading(prev => ({ ...prev, referrals: false })));
-
-        api.get('/doctor/stats/')
-            .then(res => {
-                const data = res.data;
-                setStats(prev => ({
-                    ...prev,
-                    total_consultations: data.total_consultations || 0,
-                    total_procedures: data.total_medical_procedures || data.total_procedures || 0,
-                }));
-            })
-            .catch(() => { /* stats section shows — */ })
-            .finally(() => setSectionLoading(prev => ({ ...prev, consultations: false })));
-
-        fetchFollowUps();
-    }, []);
-
-    const fetchFollowUps = async () => {
-        try {
-            const res = await api.get('/consultations/follow-ups/');
-            const data = res.data;
-            setFollowUps(Array.isArray(data) ? data : data.results || []);
-        } catch {
-            /* silently ignore */
-        }
-    };
+    // Single API call replaces 4 separate endpoints
+    const { data, isLoading, isError } = useQuery({
+        queryKey: queryKeys.dashboard(),
+        queryFn: async (): Promise<DashboardData> => {
+            const res = await api.get('/dashboard/');
+            return res.data;
+        },
+        staleTime: 60 * 1000,
+    });
 
     const handleSearch = async (query: string) => {
         setSearchQuery(query);
@@ -148,8 +83,8 @@ function Dashboard() {
         setSearching(true);
         try {
             const res = await api.get(`/doctors/me/patients/?search=${encodeURIComponent(query)}`);
-            const data = res.data;
-            setSearchResults((Array.isArray(data) ? data : data.results || []).slice(0, 8));
+            const d = res.data;
+            setSearchResults((Array.isArray(d) ? d : d.results || []).slice(0, 8));
         } catch {
             setSearchResults([]);
         } finally {
@@ -165,6 +100,11 @@ function Dashboard() {
     };
 
     const todayStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    const stats = data?.stats;
+    const upcomingAppointments = data?.upcoming_appointments ?? [];
+    const recentPatients = data?.recent_patients ?? [];
+    const followUps = data?.due_followups ?? [];
 
     return (
         <div className="dashboard-container">
@@ -213,14 +153,14 @@ function Dashboard() {
                 {/* Stats Grid */}
                 <div className="stats-summary">
                     {[
-                        { label: 'Patients', val: stats?.total_patients ?? '—', loading: sectionLoading.patients },
-                        { label: 'Consultations', val: stats?.total_consultations ?? '—', loading: sectionLoading.consultations },
-                        { label: 'Appointments', val: stats?.total_appointments ?? '—', loading: sectionLoading.appointments },
-                        { label: 'Pending Referrals', val: stats?.pending_referrals ?? '—', loading: sectionLoading.referrals },
-                        { label: 'Procedures', val: stats?.total_procedures ?? '—', loading: sectionLoading.consultations },
+                        { label: 'Patients', val: stats?.total_patients },
+                        { label: 'Consultations', val: stats?.total_consultations },
+                        { label: 'Appointments', val: stats?.total_appointments },
+                        { label: 'Pending Referrals', val: stats?.pending_referrals },
+                        { label: 'Procedures', val: stats?.total_procedures },
                     ].map(s => (
                         <div key={s.label} className="stat-card">
-                            <div className="stat-value">{s.loading ? '…' : s.val}</div>
+                            <div className="stat-value">{isLoading ? '…' : isError ? '—' : (s.val ?? '0')}</div>
                             <div className="stat-label">{s.label}</div>
                         </div>
                     ))}
@@ -244,10 +184,10 @@ function Dashboard() {
                         <h3>Upcoming Appointments</h3>
                         <Link to="/appointments" className="panel-link">View all →</Link>
                     </div>
-                    {sectionLoading.appointments ? <p className="muted">Loading...</p> :
-                        stats?.upcoming_appointments?.length ? (
+                    {isLoading ? <p className="muted">Loading...</p> :
+                        upcomingAppointments.length ? (
                             <ul className="panel-list">
-                                {stats.upcoming_appointments.map(a => (
+                                {upcomingAppointments.map(a => (
                                     <li key={a.id} className="panel-list-item">
                                         <div className="appt-time">
                                             {new Date(a.appointment_date).toLocaleDateString()}<br />
@@ -275,10 +215,10 @@ function Dashboard() {
                         <h3>Recent Patients</h3>
                         <Link to="/patients" className="panel-link">View all →</Link>
                     </div>
-                    {sectionLoading.patients ? <p className="muted">Loading...</p> :
-                        stats?.recent_patients?.length ? (
+                    {isLoading ? <p className="muted">Loading...</p> :
+                        recentPatients.length ? (
                             <ul className="panel-list">
-                                {stats.recent_patients.map(p => (
+                                {recentPatients.map(p => (
                                     <li key={p.unique_id} className="panel-list-item">
                                         <div className="patient-avatar-sm">{p.first_name.charAt(0)}{p.last_name.charAt(0)}</div>
                                         <div className="appt-info">

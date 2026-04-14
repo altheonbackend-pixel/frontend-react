@@ -208,7 +208,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         <button type="button" className="cancel-button" onClick={() => { setPendingFollowUp(null); onSuccess(); }}>
                             No, skip
                         </button>
-                        <button type="button" className="action-button confirm-button" onClick={handleCreateFollowUpAppointment} disabled={creatingFollowUp}>
+                        <button type="button" className="btn btn-success" onClick={handleCreateFollowUpAppointment} disabled={creatingFollowUp}>
                             {creatingFollowUp ? 'Creating...' : 'Yes, create appointment'}
                         </button>
                     </div>
@@ -229,7 +229,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
                         {t('consultation.cancel')}
                     </button>
-                    <button type="submit" form="consultation-form" disabled={loading}>
+                    <button type="submit" form="consultation-form" className="btn btn-primary" disabled={loading}>
                         {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
                     </button>
                 </>
@@ -239,13 +239,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     {/* Consultation date */}
                     <div className="form-group">
                         <label htmlFor="consultation_date">{t('consultation.date')} <span className="required">*</span></label>
-                        <input type="date" id="consultation_date" name="consultation_date" value={formData.consultation_date} onChange={handleChange} required />
+                        <input type="date" id="consultation_date" name="consultation_date" className="input" value={formData.consultation_date} onChange={handleChange} required />
                     </div>
 
                     {/* Consultation type */}
                     <div className="form-group">
                         <label htmlFor="consultation_type">Consultation Type</label>
-                        <select id="consultation_type" name="consultation_type" value={formData.consultation_type} onChange={handleChange}>
+                        <select id="consultation_type" name="consultation_type" className="select-input" value={formData.consultation_type} onChange={handleChange}>
                             <option value="in_person">In Person</option>
                             <option value="telemedicine">Telemedicine</option>
                             <option value="home_visit">Home Visit</option>
@@ -256,7 +256,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="weight">{t('consultation.weight')}</label>
-                            <input type="number" step="0.01" id="weight" name="weight" value={formData.weight} onChange={handleChange} />
+                            <input type="number" step="0.01" id="weight" name="weight" className="input" value={formData.weight} onChange={handleChange} />
                         </div>
                         <div className="form-group">
                             <label htmlFor="height">
@@ -266,27 +266,27 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                     <option value="m">m</option>
                                 </select>
                             </label>
-                            <input type="number" step="0.01" id="height" name="height" value={formData.height} onChange={handleChange} />
+                            <input type="number" step="0.01" id="height" name="height" className="input" value={formData.height} onChange={handleChange} />
                         </div>
                     </div>
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="temperature">{t('consultation.temperature')}</label>
-                            <input type="number" step="0.01" id="temperature" name="temperature" value={formData.temperature} onChange={handleChange} />
+                            <input type="number" step="0.01" id="temperature" name="temperature" className="input" value={formData.temperature} onChange={handleChange} />
                         </div>
                         <div className="form-group">
                             <label htmlFor="sp2">{t('consultation.sp2')}</label>
-                            <input type="number" step="0.01" id="sp2" name="sp2" value={formData.sp2} onChange={handleChange} />
+                            <input type="number" step="0.01" id="sp2" name="sp2" className="input" value={formData.sp2} onChange={handleChange} />
                         </div>
                     </div>
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="bp_systolic">BP Systolic (mmHg)</label>
-                            <input type="number" id="bp_systolic" name="bp_systolic" value={formData.bp_systolic} onChange={handleChange} min="50" max="300" />
+                            <input type="number" id="bp_systolic" name="bp_systolic" className="input" value={formData.bp_systolic} onChange={handleChange} min="50" max="300" />
                         </div>
                         <div className="form-group">
                             <label htmlFor="bp_diastolic">BP Diastolic (mmHg)</label>
-                            <input type="number" id="bp_diastolic" name="bp_diastolic" value={formData.bp_diastolic} onChange={handleChange} min="30" max="200" />
+                            <input type="number" id="bp_diastolic" name="bp_diastolic" className="input" value={formData.bp_diastolic} onChange={handleChange} min="30" max="200" />
                         </div>
                     </div>
 
@@ -295,7 +295,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     {/* Clinical info */}
                     <div className="form-group">
                         <label htmlFor="reason_for_consultation">{t('consultation.reason')} <span className="required">*</span></label>
-                        <textarea id="reason_for_consultation" name="reason_for_consultation" value={formData.reason_for_consultation} onChange={handleChange} required rows={3} />
+                        <textarea id="reason_for_consultation" name="reason_for_consultation" className="textarea" value={formData.reason_for_consultation} onChange={handleChange} required rows={3} />
                     </div>
 
                     {/* Symptoms multi-select */}
@@ -333,7 +333,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
                     <div className="form-group">
                         <label htmlFor="diagnosis">{t('consultation.diagnosis')}</label>
-                        <textarea id="diagnosis" name="diagnosis" value={formData.diagnosis} onChange={handleChange} rows={3} />
+                        <textarea id="diagnosis" name="diagnosis" className="textarea" value={formData.diagnosis} onChange={handleChange} rows={3} />
                     </div>
 
                     {/* ICD-10 code lookup */}

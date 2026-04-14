@@ -6,6 +6,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 // Shared components (small — loaded eagerly)
 import Header from '../shared/components/Header';
 import PrivateRoutes from '../shared/components/PrivateRoutes';
+import ErrorBoundary from '../shared/components/ErrorBoundary';
+import { features } from '../shared/config/features';
 
 // Auth feature (tiny routes — no lazy penalty)
 import { useAuth } from '../features/auth/hooks/useAuth';
@@ -136,30 +138,38 @@ function App() {
 
                     {/* Protected routes for doctors */}
                     <Route element={<PrivateRoutes />}>
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/patients" element={<Patients refreshPatients={refreshPatients} />} />
-                        <Route path="/patients/:id" element={<PatientDetail />} />
-                        <Route path="/patients/add" element={<AddPatient onPatientAdded={handlePatientAdded} />} />
-                        <Route path="/patients/edit/:id" element={<EditPatient />} />
-                        <Route path="/appointments" element={<Appointments />} />
-                        <Route path="/deleted-appointments" element={<DeletedAppointments />} />
+                        <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                        <Route path="/patients" element={<ErrorBoundary><Patients refreshPatients={refreshPatients} /></ErrorBoundary>} />
+                        <Route path="/patients/:id" element={<ErrorBoundary><PatientDetail /></ErrorBoundary>} />
+                        <Route path="/patients/add" element={<ErrorBoundary><AddPatient onPatientAdded={handlePatientAdded} /></ErrorBoundary>} />
+                        <Route path="/patients/edit/:id" element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
+                        <Route path="/appointments" element={<ErrorBoundary><Appointments /></ErrorBoundary>} />
+                        <Route path="/deleted-appointments" element={<ErrorBoundary><DeletedAppointments /></ErrorBoundary>} />
                         {/* /notes route removed — replaced by /notebook per v1 spec */}
 
-                        <Route path="/referrals" element={<ReferralsList />} />
+                        <Route path="/referrals" element={<ErrorBoundary><ReferralsList /></ErrorBoundary>} />
 
-                        <Route path="/clinics" element={<ClinicList />} />
-                        <Route path="/clinics/add" element={<ClinicForm />} />
-                        <Route path="/clinics/edit/:id" element={<ClinicForm />} />
-                        <Route path="/clinics/:id" element={<ClinicDetail />} />
+                        {/* Clinics + Forum: feature-flagged — enable via VITE_FEATURE_CLINICS/VITE_FEATURE_FORUM env vars */}
+                        {features.clinics && (
+                            <>
+                                <Route path="/clinics" element={<ErrorBoundary><ClinicList /></ErrorBoundary>} />
+                                <Route path="/clinics/add" element={<ErrorBoundary><ClinicForm /></ErrorBoundary>} />
+                                <Route path="/clinics/edit/:id" element={<ErrorBoundary><ClinicForm /></ErrorBoundary>} />
+                                <Route path="/clinics/:id" element={<ErrorBoundary><ClinicDetail /></ErrorBoundary>} />
+                            </>
+                        )}
 
-                        <Route path="/forum" element={<Forum />} />
-                        <Route path="/prescriptions" element={<Prescriptions />} />
-                        <Route path="/notebook" element={<PrivateNotebook />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/edit-profile" element={<EditProfile />} />
+                        {features.forum && (
+                            <Route path="/forum" element={<ErrorBoundary><Forum /></ErrorBoundary>} />
+                        )}
+
+                        <Route path="/prescriptions" element={<ErrorBoundary><Prescriptions /></ErrorBoundary>} />
+                        <Route path="/notebook" element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
+                        <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
+                        <Route path="/edit-profile" element={<ErrorBoundary><EditProfile /></ErrorBoundary>} />
 
                         {/* Personal stats: open to all doctors — every doctor should see their own caseload */}
-                        <Route path="/my-stats" element={<Statistics />} />
+                        <Route path="/my-stats" element={<ErrorBoundary><Statistics /></ErrorBoundary>} />
 
                     </Route>
 
