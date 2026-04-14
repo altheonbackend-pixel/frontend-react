@@ -7,7 +7,6 @@ import {
     type MedicalProcedure,
     type Referral,
 } from '../../../shared/types';
-import jsPDF from 'jspdf';
 import '../../../shared/styles/DetailStyles.css';
 import './PatientDetail.css';
 import ConsultationForm from '../../consultations/components/ConsultationForm';
@@ -100,7 +99,7 @@ const PatientDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { token, user, profile, logout } = useAuth();
+    const { token, profile, logout } = useAuth();
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -435,28 +434,18 @@ const PatientDetails = () => {
     };
 
     const handleExportPdf = async () => {
-        if (!patient || !user) return;
-        const doc = new jsPDF();
-        let y = 10;
-        const addText = (text: string, x: number, yPos: number, size: number, style: 'normal' | 'bold' = 'normal') => {
-            doc.setFontSize(size); doc.setFont('helvetica', style); doc.text(text, x, yPos);
-        };
-        const addSection = (title: string, yPos: number) => {
-            const newY = yPos + 5; addText(title, 10, newY, 16, 'bold'); doc.line(10, newY + 2, 200, newY + 2); return newY + 10;
-        };
-        y = addSection(`Patient: ${patient.first_name} ${patient.last_name}`, y);
-        addText(`DOB: ${patient.date_of_birth || 'N/A'} | Blood: ${patient.blood_group || 'N/A'}`, 10, y, 12); y += 10;
-        if (patient.consultations?.length) {
-            y = addSection('Consultations', y);
-            patient.consultations.forEach(c => {
-                if (y > 270) { doc.addPage(); y = 20; }
-                addText(new Date(c.consultation_date).toLocaleDateString(), 10, y, 12, 'bold'); y += 7;
-                addText(`Reason: ${c.reason_for_consultation}`, 10, y, 11); y += 7;
-                if (c.diagnosis) { addText(`Diagnosis: ${c.diagnosis}`, 10, y, 11); y += 7; }
-                y += 3;
-            });
+        if (!patient) return;
+        try {
+            const response = await api.get(`/patients/${patient.unique_id}/export-pdf/`, { responseType: 'blob' });
+            const url = URL.createObjectURL(response.data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${patient.first_name}_${patient.last_name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error('Failed to export PDF.');
         }
-        doc.save(`${patient.first_name}_${patient.last_name}_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
     const downloadFile = async (attachmentUrl: string | null | undefined, attachmentName?: string) => {

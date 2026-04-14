@@ -76,6 +76,8 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                 specialty_requested: referralToEdit.specialty_requested || '',
                 reason_for_referral: referralToEdit.reason_for_referral || '',
                 comments: referralToEdit.comments || '',
+                external_doctor_name: '',
+                external_hospital: '',
             });
         } else {
             setFormData({
@@ -83,6 +85,8 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
                 specialty_requested: '',
                 reason_for_referral: '',
                 comments: '',
+                external_doctor_name: '',
+                external_hospital: '',
             });
         }
     }, [referralToEdit]);

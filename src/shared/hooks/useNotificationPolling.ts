@@ -13,7 +13,7 @@ export function useNotificationPolling(
     onNewNotifications: (count: number) => void,
     intervalMs = 30_000,
 ) {
-    const intervalRef = useRef<ReturnType<typeof setInterval>>();
+    const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
     const callbackRef = useRef(onNewNotifications);
     callbackRef.current = onNewNotifications;
 
