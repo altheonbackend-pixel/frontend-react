@@ -27,9 +27,12 @@ interface Consultation {
     follow_up_date?: string | null;
     weight: number | null;
     height: number | null;
+    height_unit: string;
     sp2: number | null;
     temperature: number | null;
-    blood_pressure: string | null;
+    bp_systolic: number | null;
+    bp_diastolic: number | null;
+    blood_pressure_display?: string | null;
     visible_to_patient?: boolean;
 }
 
@@ -52,9 +55,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         follow_up_date: '',
         weight: '',
         height: '',
+        height_unit: 'cm',
         sp2: '',
         temperature: '',
-        blood_pressure: '',
+        bp_systolic: '',
+        bp_diastolic: '',
         visible_to_patient: false,
     });
     const [symptoms, setSymptoms] = useState<string[]>([]);
@@ -80,7 +85,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 height: consultationToEdit.height !== null ? String(consultationToEdit.height) : '',
                 sp2: consultationToEdit.sp2 !== null ? String(consultationToEdit.sp2) : '',
                 temperature: consultationToEdit.temperature !== null ? String(consultationToEdit.temperature) : '',
-                blood_pressure: consultationToEdit.blood_pressure || '',
+                bp_systolic: consultationToEdit.bp_systolic !== null ? String(consultationToEdit.bp_systolic) : '',
+                bp_diastolic: consultationToEdit.bp_diastolic !== null ? String(consultationToEdit.bp_diastolic) : '',
+                height_unit: consultationToEdit.height_unit || 'cm',
                 visible_to_patient: consultationToEdit.visible_to_patient || false,
             });
             setSymptoms(consultationToEdit.symptoms || []);
@@ -133,7 +140,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 height: formData.height ? parseFloat(formData.height) : null,
                 sp2: formData.sp2 ? parseFloat(formData.sp2) : null,
                 temperature: formData.temperature ? parseFloat(formData.temperature) : null,
-                blood_pressure: formData.blood_pressure || null,
+                bp_systolic: formData.bp_systolic ? parseInt(formData.bp_systolic, 10) : null,
+                bp_diastolic: formData.bp_diastolic ? parseInt(formData.bp_diastolic, 10) : null,
                 follow_up_date: formData.follow_up_date || null,
             };
 
@@ -251,7 +259,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                             <input type="number" step="0.01" id="weight" name="weight" value={formData.weight} onChange={handleChange} />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="height">{t('consultation.height')}</label>
+                            <label htmlFor="height">
+                                {t('consultation.height')}
+                                <select name="height_unit" value={formData.height_unit} onChange={handleChange} style={{ marginLeft: '8px', fontWeight: 'normal', fontSize: '0.85em' }}>
+                                    <option value="cm">cm</option>
+                                    <option value="m">m</option>
+                                </select>
+                            </label>
                             <input type="number" step="0.01" id="height" name="height" value={formData.height} onChange={handleChange} />
                         </div>
                     </div>
@@ -265,9 +279,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                             <input type="number" step="0.01" id="sp2" name="sp2" value={formData.sp2} onChange={handleChange} />
                         </div>
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="blood_pressure">{t('consultation.blood_pressure')}</label>
-                        <input type="text" id="blood_pressure" name="blood_pressure" value={formData.blood_pressure} onChange={handleChange} />
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label htmlFor="bp_systolic">BP Systolic (mmHg)</label>
+                            <input type="number" id="bp_systolic" name="bp_systolic" value={formData.bp_systolic} onChange={handleChange} min="50" max="300" />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="bp_diastolic">BP Diastolic (mmHg)</label>
+                            <input type="number" id="bp_diastolic" name="bp_diastolic" value={formData.bp_diastolic} onChange={handleChange} min="30" max="200" />
+                        </div>
                     </div>
 
                     <hr />

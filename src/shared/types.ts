@@ -160,9 +160,14 @@ export interface Consultation {
     follow_up_date: string | null;
     weight: number | null;
     height: number | null;
+    height_unit: string;
     sp2: number | null;
     temperature: number | null;
-    blood_pressure: string | null;
+    bp_systolic: number | null;
+    bp_diastolic: number | null;
+    blood_pressure_display?: string | null;
+    has_vital_alerts?: boolean;
+    vital_alert_reasons?: string[];
     visible_to_patient: boolean;
 }
 

@@ -36,9 +36,12 @@ interface VitalsPoint {
     consultation_date: string;
     weight: number | null;
     height: number | null;
+    height_unit: string;
     sp2: number | null;
     temperature: number | null;
-    blood_pressure: string | null;
+    bp_systolic: number | null;
+    bp_diastolic: number | null;
+    blood_pressure_display?: string | null;
 }
 
 // ── Inline SVG sparkline for vitals trend ──────────────────────────────────
@@ -707,7 +710,7 @@ const PatientDetails = () => {
                                             {c.height && <span className="vital-chip">Height: {c.height}m</span>}
                                             {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
                                             {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
-                                            {c.blood_pressure && <span className="vital-chip">BP: {c.blood_pressure}</span>}
+                                            {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
                                         </div>
                                         <div className="entry-actions">
                                             <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
@@ -1019,7 +1022,7 @@ const PatientDetails = () => {
                                                     <td className={v.height ? '' : 'muted'}>{v.height ?? '—'}</td>
                                                     <td className={v.sp2 ? (Number(v.sp2) < 95 ? 'vitals-warning' : '') : 'muted'}>{v.sp2 ?? '—'}</td>
                                                     <td className={v.temperature ? (Number(v.temperature) > 37.5 ? 'vitals-warning' : '') : 'muted'}>{v.temperature ?? '—'}</td>
-                                                    <td className={v.blood_pressure ? '' : 'muted'}>{v.blood_pressure ?? '—'}</td>
+                                                    <td className={(v.bp_systolic || v.bp_diastolic) ? '' : 'muted'}>{v.blood_pressure_display ?? (v.bp_systolic || v.bp_diastolic ? `${v.bp_systolic ?? '?'}/${v.bp_diastolic ?? '?'}` : '—')}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
