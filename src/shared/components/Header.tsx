@@ -7,8 +7,7 @@ import { useTranslation } from 'react-i18next';
 import Logo from './Logo';
 import NotificationBell from './NotificationBell';
 import api from '../../shared/services/api';
-import { features } from '../config/features';
-
+import { toast } from './ui';
 interface SearchResult {
     unique_id: string;
     first_name: string;
@@ -17,7 +16,7 @@ interface SearchResult {
 }
 
 const Header = () => {
-    const { isAuthenticated, user, profile, logout } = useAuth();
+    const { isAuthenticated, user, profile, logout, emailVerified, userType } = useAuth();
     const { t, i18n } = useTranslation();
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
@@ -86,8 +85,6 @@ const Header = () => {
                             <NavLink to="/appointments" className="nav-item">{t('nav.appointments')}</NavLink>
                             <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
                             <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
-                            {features.clinics && <NavLink to="/clinics" className="nav-item">Clinics</NavLink>}
-                            {features.forum && <NavLink to="/forum" className="nav-item">Forum</NavLink>}
                             <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
                             <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
                         </>
@@ -165,6 +162,25 @@ const Header = () => {
                     )}
                 </div>
             </nav>
+            {/* Email verification banner — shown for doctors who haven't verified yet */}
+            {isAuthenticated && userType === 'doctor' && !emailVerified && (
+                <div className="email-verification-banner" role="alert">
+                    <span>Please verify your email address to access patient records.</span>
+                    <button
+                        className="banner-resend-btn"
+                        onClick={async () => {
+                            try {
+                                await api.post('/auth/resend-verification/');
+                                toast.success('Verification email sent. Check your inbox.');
+                            } catch {
+                                toast.error('Could not send verification email. Try again later.');
+                            }
+                        }}
+                    >
+                        Resend verification email
+                    </button>
+                </div>
+            )}
         </header>
     );
 };

@@ -9,7 +9,7 @@ import api from '../../../shared/services/api';
 
 const EditProfile = () => {
     const { t } = useTranslation();
-    const { profile, updateProfileData, token } = useAuth();
+    const { profile, updateProfileData, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         first_name: '',
@@ -28,7 +28,7 @@ const EditProfile = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!token) {
+            if (!isAuthenticated) {
                 toast.error(t('edit_profile.error.auth'));
                 setInitialLoading(false);
                 return;
@@ -69,7 +69,7 @@ const EditProfile = () => {
         };
 
         fetchData();
-    }, [profile, token, t]);
+    }, [profile, isAuthenticated, t]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;

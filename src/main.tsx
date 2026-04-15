@@ -1,6 +1,26 @@
 // src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+// Sentry — error monitoring (only initialised when VITE_SENTRY_DSN is set)
+// Install with: npm install @sentry/react
+// CRITICAL: request.data is redacted to prevent patient data leaking to Sentry
+if (import.meta.env.VITE_SENTRY_DSN) {
+    import('@sentry/react').then(Sentry => {
+        Sentry.init({
+            dsn: import.meta.env.VITE_SENTRY_DSN,
+            environment: import.meta.env.VITE_ENV ?? 'production',
+            tracesSampleRate: 0.1,
+            beforeSend(event) {
+                // Never send form data — may contain patient names / medical info
+                if (event.request?.data) {
+                    event.request.data = '[REDACTED]';
+                }
+                return event;
+            },
+        });
+    });
+}
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

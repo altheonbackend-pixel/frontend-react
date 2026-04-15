@@ -7,12 +7,6 @@ interface AuthContextType {
     user: User | null;
     profile: DoctorProfile | null;
     adminProfile: AdminProfile | null;
-    /**
-     * Sentinel for backward-compat with components that guard API calls with `if (!token)`.
-     * Value is 'session' when authenticated, null when not. Never an actual JWT — tokens
-     * live in httpOnly cookies and are never accessible from JavaScript.
-     */
-    token: string | null;
     userType: 'doctor' | 'admin' | null;
     login: (credentials: { email: string; password: string }) => Promise<void>;
     logout: () => void;
@@ -183,12 +177,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profile?.address && profile.address.trim()
     );
 
-    // 'token' sentinel: non-null when authenticated, null when not.
-    // Keeps backward-compat with components that guard with `if (!token)`.
-    const token = isAuthenticated ? 'session' : null;
-
     const value = {
-        user, profile, adminProfile, token, userType, login, logout,
+        user, profile, adminProfile, userType, login, logout,
         isAuthenticated, authIsLoading, updateProfileData,
         hasAccessLevel, emailVerified, profileComplete,
     };

@@ -8,8 +8,6 @@ import { useKeyboardShortcut } from '../shared/hooks/useKeyboardShortcut';
 import Header from '../shared/components/Header';
 import PrivateRoutes from '../shared/components/PrivateRoutes';
 import ErrorBoundary from '../shared/components/ErrorBoundary';
-import { features } from '../shared/config/features';
-
 // Auth feature (tiny routes — no lazy penalty)
 import { useAuth } from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/auth/components/LandingPage';
@@ -21,9 +19,6 @@ import CompleteProfile from '../features/auth/components/CompleteProfile';
 import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
-import AdminClinicList from '../features/admin/components/AdminClinicList';
-import AdminForumModeration from '../features/admin/components/AdminForumModeration';
-
 // Code-split lazy imports — each becomes a separate chunk
 const Dashboard = lazy(() => import('../features/auth/components/Dashboard'));
 const Patients = lazy(() => import('../features/patients/components/Patients'));
@@ -33,10 +28,6 @@ const EditPatient = lazy(() => import('../features/patients/components/EditPatie
 const Appointments = lazy(() => import('../features/appointments/components/Appointments'));
 const DeletedAppointments = lazy(() => import('../features/appointments/components/DeletedAppointments'));
 // Notes feature removed — replaced by Private Notebook + Quick Note per v1 spec
-const ClinicList = lazy(() => import('../features/clinics/components/Clinics'));
-const ClinicDetail = lazy(() => import('../features/clinics/components/ClinicDetail'));
-const ClinicForm = lazy(() => import('../features/clinics/components/ClinicForm'));
-const Forum = lazy(() => import('../features/forum/components/Forum'));
 const Profile = lazy(() => import('../features/profile/components/Profile'));
 const EditProfile = lazy(() => import('../features/profile/components/EditProfile'));
 const ReferralsList = lazy(() => import('../features/referrals/components/ReferralsList'));
@@ -80,8 +71,6 @@ const PrivateAdminRoutes = () => {
                     <Route path="/doctors" element={<AdminDoctorList initialTab="active" />} />
                     <Route path="/doctors/pending" element={<AdminDoctorList initialTab="pending" />} />
                     <Route path="/doctors/rejected" element={<AdminDoctorList initialTab="rejected" />} />
-                    <Route path="/clinics" element={<AdminClinicList />} />
-                    <Route path="/forum" element={<AdminForumModeration />} />
                     <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
             </main>
@@ -160,20 +149,6 @@ function App() {
                         {/* /notes route removed — replaced by /notebook per v1 spec */}
 
                         <Route path="/referrals" element={<ErrorBoundary><ReferralsList /></ErrorBoundary>} />
-
-                        {/* Clinics + Forum: feature-flagged — enable via VITE_FEATURE_CLINICS/VITE_FEATURE_FORUM env vars */}
-                        {features.clinics && (
-                            <>
-                                <Route path="/clinics" element={<ErrorBoundary><ClinicList /></ErrorBoundary>} />
-                                <Route path="/clinics/add" element={<ErrorBoundary><ClinicForm /></ErrorBoundary>} />
-                                <Route path="/clinics/edit/:id" element={<ErrorBoundary><ClinicForm /></ErrorBoundary>} />
-                                <Route path="/clinics/:id" element={<ErrorBoundary><ClinicDetail /></ErrorBoundary>} />
-                            </>
-                        )}
-
-                        {features.forum && (
-                            <Route path="/forum" element={<ErrorBoundary><Forum /></ErrorBoundary>} />
-                        )}
 
                         <Route path="/notebook" element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
                         <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />

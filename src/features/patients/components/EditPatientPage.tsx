@@ -12,14 +12,14 @@ const EditPatientPage = () => {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [patient, setPatient] = useState<Patient | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchPatient = async () => {
-            if (!id || !token) {
+            if (!id || !isAuthenticated) {
                 setLoading(false);
                 setError(t('edit_patient.error.auth'));
                 return;
@@ -36,7 +36,7 @@ const EditPatientPage = () => {
         };
 
         fetchPatient();
-    }, [id, token]);
+    }, [id, isAuthenticated]);
 
     const handleSuccess = () => {
         // Redirige vers la liste des patients après la mise à jour

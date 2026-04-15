@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
+import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import '../styles/ConsultationForm.css';
 
 // ICD-10 suggestions come from the backend API (/api/icd10/search/?q=...) — 179+ codes
@@ -45,7 +46,7 @@ interface ConsultationFormProps {
 
 const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }: ConsultationFormProps) => {
     const { t } = useTranslation();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [formData, setFormData] = useState({
         consultation_date: new Date().toISOString().slice(0, 10),
         consultation_type: 'in_person',
@@ -71,29 +72,79 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [icdCode, setIcdCode] = useState('');
     const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
+    const [pendingRxRetry, setPendingRxRetry] = useState<{ consultationId: number; rxForm: typeof rxForm } | null>(null);
+    const [retryingRx, setRetryingRx] = useState(false);
+
+    // Draft auto-save (new consultations only)
+    type FormDraft = { formData: typeof formData; symptoms: string[]; icdCode: string };
+    const { loadDraft, saveDraft, clearDraft } = useFormDraft<FormDraft>(`consultation_${patientId}`);
+    const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const draftRestoredRef = useRef(false);
+
+    // On mount (new consultation only): prompt to restore draft if one exists
+    useEffect(() => {
+        if (consultationToEdit) return;
+        const entry = loadDraft();
+        if (!entry) return;
+        const savedAt = new Date(entry.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const restore = window.confirm(`Restore unsaved draft from ${savedAt}?`);
+        if (restore) {
+            setFormData(entry.data.formData);
+            setSymptoms(entry.data.symptoms);
+            setIcdCode(entry.data.icdCode);
+        } else {
+            clearDraft();
+        }
+        draftRestoredRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Debounce-save draft on every change (new consultations only, 10s debounce)
+    useEffect(() => {
+        if (consultationToEdit) return;
+        if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = setTimeout(() => {
+            saveDraft({ formData, symptoms, icdCode });
+        }, 10_000);
+        return () => {
+            if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [formData, symptoms, icdCode]);
 
     // Prescriptions for this visit
     const [rxList, setRxList] = useState<{ medication_name: string; dosage: string; frequency: string; duration_days: string; instructions: string }[]>([]);
     const [showRxForm, setShowRxForm] = useState(false);
     const [rxForm, setRxForm] = useState({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
-    const addRx = async (consultationId: number) => {
-        if (!rxForm.medication_name.trim() || !rxForm.dosage.trim()) return;
+    // Saves a prescription — throws on failure so the caller can handle partial saves.
+    const addRx = async (consultationId: number, rx: typeof rxForm) => {
+        if (!rx.medication_name.trim() || !rx.dosage.trim()) return;
+        await api.post('/prescriptions/', {
+            patient: patientId,
+            consultation: consultationId,
+            medication_name: rx.medication_name,
+            dosage: rx.dosage,
+            frequency: rx.frequency,
+            duration_days: rx.duration_days ? parseInt(rx.duration_days) : null,
+            instructions: rx.instructions,
+        });
+        setRxList(prev => [...prev, { ...rx }]);
+        setRxForm({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
+        setShowRxForm(false);
+    };
+
+    const handleRetryRx = async () => {
+        if (!pendingRxRetry) return;
+        setRetryingRx(true);
         try {
-            await api.post('/prescriptions/', {
-                patient: patientId,
-                consultation: consultationId,
-                medication_name: rxForm.medication_name,
-                dosage: rxForm.dosage,
-                frequency: rxForm.frequency,
-                duration_days: rxForm.duration_days ? parseInt(rxForm.duration_days) : null,
-                instructions: rxForm.instructions,
-            });
-            setRxList(prev => [...prev, { ...rxForm }]);
-            setRxForm({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
-            setShowRxForm(false);
-            toast.success('Prescription added.');
+            await addRx(pendingRxRetry.consultationId, pendingRxRetry.rxForm);
+            setPendingRxRetry(null);
+            toast.success('Prescription saved.');
+            if (!formData.follow_up_date) onSuccess();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to add prescription.'));
+            toast.error(parseApiError(err, 'Prescription save failed again. Please add it manually from the patient\'s Medications tab.'));
+        } finally {
+            setRetryingRx(false);
         }
     };
 
@@ -149,7 +200,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         e.preventDefault();
         setLoading(true);
 
-        if (!token) {
+        if (!isAuthenticated) {
             toast.error(t('consultation.error.auth'));
             setLoading(false);
             return;
@@ -178,10 +229,25 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
-                // Save any queued prescriptions against this consultation
+                // Attempt prescription save — treat as a separate fallible step
                 if (!isEditing && rxForm.medication_name.trim() && rxForm.dosage.trim()) {
-                    await addRx(response.data.id);
+                    try {
+                        await addRx(response.data.id, rxForm);
+                    } catch {
+                        // Partial save: consultation OK, prescription failed.
+                        // Show retry banner — do NOT clear draft or close yet.
+                        setPendingRxRetry({ consultationId: response.data.id, rxForm: { ...rxForm } });
+                        clearDraft();
+                        setDirty(false);
+                        toast.error(
+                            'Consultation saved, but the prescription could not be saved. Use the Retry button below before closing.',
+                            { duration: 8000 }
+                        );
+                        setLoading(false);
+                        return;
+                    }
                 }
+                clearDraft();
                 toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
                 setDirty(false);
                 // If new consultation with follow-up date, prompt to create follow-up appointment
@@ -255,12 +321,27 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             dirty={dirty}
             footer={
                 <>
-                    <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
-                        {t('consultation.cancel')}
-                    </button>
-                    <button type="submit" form="consultation-form" className="btn btn-primary" disabled={loading}>
-                        {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
-                    </button>
+                    {pendingRxRetry && (
+                        <div className="rx-retry-banner">
+                            <span>Prescription was not saved.</span>
+                            <button type="button" className="btn btn-danger" onClick={handleRetryRx} disabled={retryingRx}>
+                                {retryingRx ? 'Retrying...' : 'Retry Prescription'}
+                            </button>
+                            <button type="button" className="btn-link" onClick={() => { setPendingRxRetry(null); onSuccess(); }}>
+                                Skip (add manually later)
+                            </button>
+                        </div>
+                    )}
+                    {!pendingRxRetry && (
+                        <>
+                            <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
+                                {t('consultation.cancel')}
+                            </button>
+                            <button type="submit" form="consultation-form" className="btn btn-primary" disabled={loading}>
+                                {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
+                            </button>
+                        </>
+                    )}
                 </>
             }
         >

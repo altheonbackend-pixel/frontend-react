@@ -7,7 +7,7 @@ import api from '../../../shared/services/api';
 
 const DeletedAppointments = () => {
     const { t, i18n } = useTranslation();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [deletedAppointments, setDeletedAppointments] = useState<Array<{
         id: number;
         patient_details: { first_name: string; last_name: string };
@@ -24,7 +24,7 @@ const DeletedAppointments = () => {
     const fetchDeletedAppointments = async () => {
         setIsLoading(true);
         setError(null);
-        if (!token) {
+        if (!isAuthenticated) {
             setError(t('deleted_appointments.error.auth'));
             setIsLoading(false);
             return;
@@ -42,7 +42,7 @@ const DeletedAppointments = () => {
 
     useEffect(() => {
         fetchDeletedAppointments();
-    }, [token]);
+    }, [isAuthenticated]);
 
     return (
         <div className="deleted-appointments-page">

@@ -15,7 +15,7 @@ interface AppointmentFormProps {
 
 const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: AppointmentFormProps) => {
     const { t } = useTranslation();
-    const { token, profile } = useAuth();
+    const { isAuthenticated, profile } = useAuth();
     const [formData, setFormData] = useState({
         appointment_date: '',
         patient: '',
@@ -31,7 +31,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            if (!token) {
+            if (!isAuthenticated) {
                 setLoadError(t('appointments.error.auth'));
                 setLoading(false);
                 return;
@@ -51,7 +51,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
             }
         };
         fetchInitialData();
-    }, [token]);
+    }, [isAuthenticated]);
 
     useEffect(() => {
         if (!loading && appointment) {

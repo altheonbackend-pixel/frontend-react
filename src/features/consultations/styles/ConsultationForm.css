@@ -201,3 +201,18 @@
 .followup-prompt-modal .modal-title { font-size: var(--text-lg); font-weight: 600; margin-bottom: var(--space-2); }
 .followup-prompt-modal .modal-desc { font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: var(--space-5); line-height: 1.6; }
 .followup-prompt-modal .modal-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+
+/* ── Prescription Retry Banner ── */
+.rx-retry-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: var(--radius-md);
+  color: #742a2a;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  flex-wrap: wrap;
+}

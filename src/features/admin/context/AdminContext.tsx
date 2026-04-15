@@ -94,8 +94,6 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const logout = () => {
         localStorage.removeItem('admin_profile');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
         setProfile(null);
         setStats(null);
         setDoctors([]);

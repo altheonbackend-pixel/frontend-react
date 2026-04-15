@@ -369,3 +369,28 @@
 @media (max-width: 768px) {
   .header-search-wrap { display: none; }
 }
+
+/* ── Email Verification Banner ── */
+.email-verification-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: #fffbeb;
+  border-bottom: 1px solid #f6ad55;
+  color: #7b341e;
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+.banner-resend-btn {
+  background: none;
+  border: 1px solid #dd6b20;
+  color: #c05621;
+  border-radius: var(--radius-md);
+  padding: 2px 12px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  font-weight: 600;
+}
+.banner-resend-btn:hover { background: #feebc8; }

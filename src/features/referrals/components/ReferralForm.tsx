@@ -22,7 +22,7 @@ interface ReferralFormProps {
 
 const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClose, referralToEdit }) => {
     const { t } = useTranslation();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
     const [specialtyFilter, setSpecialtyFilter] = useState('');
     const [referralMode, setReferralMode] = useState<'platform' | 'external'>('platform');
@@ -39,7 +39,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
     const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchDoctors = async (specialty?: string) => {
-        if (!token) return;
+        if (!isAuthenticated) return;
         try {
             const params: Record<string, string> = {};
             if (specialty) params.specialty = specialty;
@@ -101,7 +101,7 @@ const ReferralForm: React.FC<ReferralFormProps> = ({ patientId, onSuccess, onClo
         e.preventDefault();
         setLoading(true);
 
-        if (!token) {
+        if (!isAuthenticated) {
             toast.error(t('referrals.form.error.auth'));
             setLoading(false);
             return;

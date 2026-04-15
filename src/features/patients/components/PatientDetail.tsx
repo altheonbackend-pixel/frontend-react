@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { useKeyboardShortcut } from '../../../shared/hooks/useKeyboardShortcut';
 import {
     type PatientWithHistory,
     type Consultation,
@@ -19,7 +20,7 @@ import PageLoader from '../../../shared/components/PageLoader';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 import { type LabResult, type Prescription } from '../../../shared/types';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -99,7 +100,7 @@ const PatientDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { token, profile, logout } = useAuth();
+    const { isAuthenticated, profile, logout } = useAuth();
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -149,19 +150,32 @@ const PatientDetails = () => {
     const [medications, setMedications] = useState<Prescription[]>([]);
     const [medicationsLoading, setMedicationsLoading] = useState(false);
 
+    // Appointments for this patient (read-only history)
+    const [patientAppointments, setPatientAppointments] = useState<Array<{
+        id: number;
+        appointment_date: string;
+        status: string;
+        reason_for_appointment: string;
+        workplace_details?: { name: string };
+    }>>([]);
+    const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+
+    // Tab refs for mobile scrollIntoView
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
     // Quick Note
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
     const [quickNoteLoaded, setQuickNoteLoaded] = useState(false);
 
     useEffect(() => {
-        if (id && token) {
+        if (id && isAuthenticated) {
             fetchPatientDetails();
             fetchQuickNote();
-        } else if (!token) {
+        } else if (!isAuthenticated) {
             navigate('/login');
         }
-    }, [id, token]);
+    }, [id, isAuthenticated]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -217,13 +231,36 @@ const PatientDetails = () => {
         setReferralToEdit(null);
     };
 
-    // Reset vitals/labs when navigating to a different patient
+    // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
+    const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm;
+    useKeyboardShortcut({
+        key: 'n',
+        modifiers: ['ctrl'],
+        enabled: !anyFormOpen,
+        onKeyDown: () => { setConsultationToEdit(null); setShowConsultationForm(true); setActiveTab('consultations'); },
+    });
+    useKeyboardShortcut({
+        key: 'Escape',
+        enabled: anyFormOpen,
+        onKeyDown: handleCancel,
+    });
+
+    // Reset vitals/labs/appointments when navigating to a different patient
     useEffect(() => {
         setVitalsTrend([]);
         setLabResults([]);
+        setPatientAppointments([]);
         setQuickNote('');
         setQuickNoteLoaded(false);
     }, [id]);
+
+    // Mobile tab bar: scroll active tab into view on tab change
+    useEffect(() => {
+        const el = tabRefs.current[activeTab];
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+    }, [activeTab]);
 
     const fetchVitalsTrend = async () => {
         if (!id) return;
@@ -261,6 +298,19 @@ const PatientDetails = () => {
             /* silently fail */
         } finally {
             setMedicationsLoading(false);
+        }
+    };
+
+    const fetchPatientAppointments = async () => {
+        if (!id) return;
+        setAppointmentsLoading(true);
+        try {
+            const res = await api.get('/appointments/', { params: { patient_id: id } });
+            setPatientAppointments(res.data.results ?? res.data);
+        } catch {
+            /* silently fail */
+        } finally {
+            setAppointmentsLoading(false);
         }
     };
 
@@ -504,6 +554,7 @@ const PatientDetails = () => {
         { key: 'notes', label: 'Notes', count: patient.patient_notes?.length },
         { key: 'procedures', label: 'Procedures', count: patient.medical_procedures?.length },
         { key: 'referrals', label: 'Referrals', count: patient.referrals?.length },
+        { key: 'appointments', label: 'Appointments', count: patientAppointments.length || undefined },
         { key: 'labs', label: 'Lab Results', count: labResults.length || patient.lab_results?.length },
         { key: 'medications', label: 'Medications', count: medications.length },
     ];
@@ -625,12 +676,14 @@ const PatientDetails = () => {
                 {TABS.map(tab => (
                     <button
                         key={tab.key}
+                        ref={el => { tabRefs.current[tab.key] = el; }}
                         className={`patient-tab${activeTab === tab.key ? ' active' : ''}`}
                         onClick={() => {
                             setActiveTab(tab.key);
                             if (tab.key === 'vitals') fetchVitalsTrend();
                             if (tab.key === 'labs') fetchLabResults();
                             if (tab.key === 'medications') fetchMedications();
+                            if (tab.key === 'appointments') fetchPatientAppointments();
                         }}
                     >
                         {tab.label}
@@ -1094,6 +1147,39 @@ const PatientDetails = () => {
                     </div>
                 )}
                 {/* Lab Results Tab */}
+                {/* Appointments Tab — read-only history; create/edit from /appointments */}
+                {activeTab === 'appointments' && (
+                    <div className="tab-panel">
+                        <h3>Appointment History</h3>
+                        {appointmentsLoading ? (
+                            <p className="muted">Loading appointments...</p>
+                        ) : patientAppointments.length === 0 ? (
+                            <p className="muted">No appointments on record for this patient.</p>
+                        ) : (
+                            <ul className="detail-list">
+                                {patientAppointments
+                                    .slice()
+                                    .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+                                    .map(appt => (
+                                        <li key={appt.id} className="detail-list-item">
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                <strong>{new Date(appt.appointment_date).toLocaleString()}</strong>
+                                                <span className={`status-badge status-${appt.status}`}>{appt.status}</span>
+                                            </div>
+                                            {appt.reason_for_appointment && (
+                                                <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                                            )}
+                                            {appt.workplace_details?.name && (
+                                                <div className="info-item"><strong>Clinic:</strong> {appt.workplace_details.name}</div>
+                                            )}
+                                        </li>
+                                    ))
+                                }
+                            </ul>
+                        )}
+                    </div>
+                )}
+
                 {activeTab === 'labs' && (
                     <div className="tab-panel">
                         <div className="tab-panel-header">

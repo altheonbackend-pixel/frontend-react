@@ -25,14 +25,14 @@ interface PatientStat {
 
 const Statistics = () => {
     const { t } = useTranslation();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchStatistics = async () => {
-            if (!token) {
+            if (!isAuthenticated) {
                 setError(t('statistics.error.auth'));
                 setLoading(false);
                 return;
@@ -59,7 +59,7 @@ const Statistics = () => {
         };
 
         fetchStatistics();
-    }, [token]);
+    }, [isAuthenticated]);
 
     if (loading) {
         return <PageLoader message={t('statistics.loading')} />;

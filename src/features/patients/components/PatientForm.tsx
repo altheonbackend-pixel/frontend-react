@@ -13,7 +13,7 @@ interface PatientFormProps {
 
 const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) => {
     const { t } = useTranslation();
-    const { token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [formData, setFormData] = useState({
         first_name: '',
         last_name: '',
@@ -91,7 +91,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         e.preventDefault();
         setLoading(true);
 
-        if (!token) {
+        if (!isAuthenticated) {
             toast.error(t('patient_form.error.auth'));
             setLoading(false);
             return;
