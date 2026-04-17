@@ -1,4 +1,4 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useState, useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from './useFocusTrap';
@@ -38,6 +38,7 @@ const Drawer = ({
     const titleId = useId();
     const containerRef = useFocusTrap<HTMLDivElement>(open);
     useBodyScrollLock(open);
+    const [discardOpen, setDiscardOpen] = useState(false);
 
     useEffect(() => {
         if (!open || !dismissOnEscape) return;
@@ -55,7 +56,8 @@ const Drawer = ({
     const attemptClose = () => {
         if (dismissOnBackdrop === 'never') return;
         if (dismissOnBackdrop === 'confirm' && dirty) {
-            if (!window.confirm(t('common.discard_changes'))) return;
+            setDiscardOpen(true);
+            return;
         }
         onClose();
     };
@@ -90,6 +92,21 @@ const Drawer = ({
                 <div className="ui-drawer__body">{children}</div>
                 {footer && <footer className="ui-drawer__footer">{footer}</footer>}
             </aside>
+            {discardOpen && (
+                <div className="ui-discard-overlay" onMouseDown={e => e.stopPropagation()}>
+                    <div className="ui-discard-dialog" role="alertdialog" aria-modal="true">
+                        <p className="ui-discard-msg">{t('common.discard_changes')}</p>
+                        <div className="ui-discard-actions">
+                            <button type="button" className="ui-discard-btn ui-discard-btn--cancel" onClick={() => setDiscardOpen(false)}>
+                                {t('common.cancel')}
+                            </button>
+                            <button type="button" className="ui-discard-btn ui-discard-btn--confirm" onClick={() => { setDiscardOpen(false); onClose(); }}>
+                                {t('common.discard')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>,
         document.body,
     );

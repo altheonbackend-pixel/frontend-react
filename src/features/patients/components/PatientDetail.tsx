@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -28,7 +28,7 @@ import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -548,7 +548,6 @@ const PatientDetails = () => {
         { key: 'vitals', label: 'Vitals Trend' },
         { key: 'conditions', label: 'Conditions', count: patient.conditions?.length },
         { key: 'allergies', label: 'Allergies', count: activeAllergies.length },
-        { key: 'notes', label: 'Notes', count: patient.patient_notes?.length },
         { key: 'procedures', label: 'Procedures', count: patient.medical_procedures?.length },
         { key: 'referrals', label: 'Referrals', count: patient.referrals?.length },
         { key: 'appointments', label: 'Appointments', count: patientAppointments.length || undefined },
@@ -991,31 +990,6 @@ const PatientDetails = () => {
                                 ))}
                             </div>
                         ) : <p className="muted">No allergies recorded.</p>}
-                    </div>
-                )}
-
-                {/* Notes Tab */}
-                {activeTab === 'notes' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Clinical Notes</h3>
-                            <Link to={`/notes?patient=${id}`} className="btn-add-primary">+ Add Note</Link>
-                        </div>
-                        {patient.patient_notes?.length ? (
-                            <ul className="detail-list">
-                                {patient.patient_notes.map(n => (
-                                    <li key={n.id} className="detail-list-item">
-                                        <div className="note-header">
-                                            <strong>{n.title}</strong>
-                                            <span className="note-type-badge">{n.note_type_display || n.note_type}</span>
-                                            <span className="note-date">{new Date(n.created_at).toLocaleDateString()}</span>
-                                        </div>
-                                        <p className="note-content">{n.content}</p>
-                                        {n.author_name && <div className="note-author">By Dr. {n.author_name}</div>}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="muted">No clinical notes recorded for this patient.</p>}
                     </div>
                 )}
 

@@ -5,6 +5,7 @@
   "common.loading": "Loading…",
   "common.save": "Save",
   "common.discard_changes": "You have unsaved changes. Are you sure you want to close?",
+  "common.discard": "Discard changes",
   "login.title": "Doctor Login",
   "login.email_label": "Professional Email",
   "login.email_placeholder": "Professional Email",

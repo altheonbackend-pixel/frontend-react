@@ -5,6 +5,7 @@
   "common.loading": "Chargement…",
   "common.save": "Enregistrer",
   "common.discard_changes": "Des modifications ne sont pas enregistrées. Voulez-vous vraiment fermer ?",
+  "common.discard": "Ignorer les modifications",
   "login.title": "Connexion Médecin",
   "login.email_label": "Email professionnel",
   "login.email_placeholder": "Email professionnel",

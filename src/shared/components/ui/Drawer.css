@@ -133,3 +133,50 @@
     .ui-drawer,
     .ui-drawer-overlay { animation: none; }
 }
+
+/* Discard-changes confirmation prompt — shared by Drawer and Modal */
+.ui-discard-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: calc(var(--z-modal, 1000) + 10);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ui-discard-dialog {
+    background: var(--bg-elevated, #fff);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg, 12px);
+    padding: 1.5rem;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+.ui-discard-msg {
+    margin: 0 0 1.25rem;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+.ui-discard-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+.ui-discard-btn {
+    padding: 0.5rem 1.125rem;
+    border-radius: var(--radius-md, 8px);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+}
+.ui-discard-btn--cancel {
+    background: var(--bg-subtle, #f3f4f6);
+    color: var(--text-secondary);
+}
+.ui-discard-btn--confirm {
+    background: var(--danger, #dc2626);
+    color: #fff;
+}

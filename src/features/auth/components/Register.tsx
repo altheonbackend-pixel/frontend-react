@@ -30,6 +30,9 @@ const step3Schema = z.object({
     specialty:         z.string().min(1, 'Please select a specialty'),
     license_number:    z.string().optional(),
     registration_code: z.string().min(1, 'Registration code is required'),
+    terms_accepted:    z.boolean().refine(val => val === true, {
+        message: 'You must accept the Terms of Service and Privacy Notice to register.',
+    }),
 });
 
 type Step1Data = z.infer<typeof step1Schema>;
@@ -82,6 +85,7 @@ export default function Register() {
                 specialty:         payload.specialty,
                 license_number:    payload.license_number ?? '',
                 registration_code: payload.registration_code,
+                terms_accepted:    true,
             });
             setSuccess(true);
             setTimeout(() => navigate('/login', { replace: true }), 2500);
@@ -251,6 +255,29 @@ export default function Register() {
                                 <input id="registration_code" className="input" placeholder="Provided by your administrator" {...s3.register('registration_code')} />
                                 {s3.formState.errors.registration_code && <span className="form-field-error">{s3.formState.errors.registration_code.message}</span>}
                             </div>
+
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '8px 0 4px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="terms_accepted"
+                                    {...s3.register('terms_accepted')}
+                                    style={{ marginTop: '3px', flexShrink: 0 }}
+                                />
+                                <label htmlFor="terms_accepted" style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                    I accept the{' '}
+                                    <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+                                        Terms of Service
+                                    </a>
+                                    {' '}and{' '}
+                                    <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+                                        Privacy Notice
+                                    </a>
+                                    .
+                                </label>
+                            </div>
+                            {s3.formState.errors.terms_accepted && (
+                                <span className="form-field-error">{s3.formState.errors.terms_accepted.message}</span>
+                            )}
 
                             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                                 <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(1)}>← Back</button>
