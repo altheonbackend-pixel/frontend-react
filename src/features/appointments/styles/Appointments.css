@@ -82,7 +82,7 @@
 }
 
 .react-calendar__tile.has-appointment:hover {
-  background: #A7F3D0 !important;
+  background: var(--color-success-light) !important;
 }
 
 /* ── Calendar action buttons ── */
@@ -180,7 +180,7 @@
   border-radius: var(--radius-pill);
   font-size: 11px;
   font-weight: var(--fw-semibold);
-  color: #fff;
+  color: var(--text-inverse);
   text-transform: capitalize;
   white-space: nowrap;
   flex-shrink: 0;
@@ -384,10 +384,10 @@
 
 /* ── Reschedule button ── */
 .reschedule-button {
-  background: var(--color-purple-600, #7c3aed);
-  color: #fff;
+  background: var(--accent);
+  color: var(--text-inverse);
 }
-.reschedule-button:hover { background: var(--color-purple-700, #6d28d9); }
+.reschedule-button:hover { background: var(--accent-hover); }
 
 /* ── Reschedule modal ── */
 .reschedule-modal {

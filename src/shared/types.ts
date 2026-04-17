@@ -309,8 +309,10 @@ export interface AdminStats {
     pending_doctors: number;
     rejected_doctors: number;
     total_patients: number;
+    new_patients_this_week: number;
     total_appointments: number;
     total_consultations: number;
+    new_consultations_this_week: number;
     total_procedures: number;
     total_referrals: number;
     total_clinics: number;

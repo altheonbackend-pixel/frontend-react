@@ -1,5 +1,5 @@
 // src/features/statistics/components/Statistics.tsx
-// Phase 8: Recharts charts + StatCard summary + per-patient table
+// Phase 9: Monthly BarChart, patient status PieChart — all Recharts use CSS variables
 
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,13 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatCard } from '../../../shared/components/StatCard';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+
+interface MonthlyPoint {
+    month: string;
+    consultations: number;
+    procedures: number;
+}
 
 interface PatientStat {
     unique_id: string;
@@ -26,13 +33,35 @@ interface Stats {
     total_patients: number;
     total_consultations: number;
     total_medical_procedures: number;
+    monthly_data: MonthlyPoint[];
+    patient_status: Record<string, number>;
     patients: PatientStat[];
 }
 
-const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b'];
+const TOOLTIP_STYLE = {
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border-default)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 12,
+};
+
+const STATUS_LABELS: Record<string, string> = {
+    active: 'Active',
+    inactive: 'Inactive',
+    transferred: 'Transferred',
+    deceased: 'Deceased',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+    active: 'var(--success)',
+    inactive: 'var(--text-muted)',
+    transferred: 'var(--info)',
+    deceased: 'var(--danger)',
+};
 
 const Statistics = () => {
     const { t } = useTranslation();
+    usePageTitle(t('pages.statistics', 'My Stats'));
 
     const { data: stats, isLoading, isError } = useQuery<Stats>({
         queryKey: queryKeys.stats.doctor(),
@@ -45,28 +74,24 @@ const Statistics = () => {
                 total_patients: statsRes.data.total_patients,
                 total_consultations: statsRes.data.total_consultations,
                 total_medical_procedures: statsRes.data.total_medical_procedures,
+                monthly_data: statsRes.data.monthly_data ?? [],
+                patient_status: statsRes.data.patient_status ?? {},
                 patients: patientsRes.data.results ?? patientsRes.data,
             };
         },
         staleTime: 5 * 60 * 1000,
     });
 
-    const pieData = stats ? [
-        { name: t('statistics.total_patients', 'Patients'), value: stats.total_patients },
-        { name: t('statistics.total_consultations', 'Consultations'), value: stats.total_consultations },
-        { name: t('statistics.total_procedures', 'Procedures'), value: stats.total_medical_procedures },
-    ] : [];
+    // Monthly BarChart data
+    const monthlyData: MonthlyPoint[] = stats?.monthly_data ?? [];
 
-    // Top 10 patients by consultations for the bar chart
-    const barData = (stats?.patients ?? [])
-        .slice()
-        .sort((a, b) => b.consultations_count - a.consultations_count)
-        .slice(0, 10)
-        .map(p => ({
-            name: p.full_name.split(' ')[0], // first name only for bar labels
-            Consultations: p.consultations_count,
-            Procedures: p.medical_procedures_count,
-            Referrals: p.referrals_count,
+    // Patient status PieChart data
+    const statusData = Object.entries(stats?.patient_status ?? {})
+        .filter(([, count]) => count > 0)
+        .map(([status, count]) => ({
+            name: STATUS_LABELS[status] ?? status,
+            value: count,
+            key: status,
         }));
 
     return (
@@ -110,64 +135,64 @@ const Statistics = () => {
             {/* Charts row */}
             {!isLoading && stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                    {/* Bar chart */}
+                    {/* Monthly consultation BarChart */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Top Patients by Activity</span>
+                            <span className="section-card-title">Monthly Activity (last 6 months)</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
-                            {barData.length > 0 ? (
+                            {monthlyData.some(m => m.consultations > 0 || m.procedures > 0) ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={barData} margin={{ top: 4, right: 8, bottom: 24, left: -16 }}>
+                                    <BarChart data={monthlyData} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                        <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} angle={-30} textAnchor="end" interval={0} />
+                                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
                                         <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} allowDecimals={false} />
-                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                                        <Legend iconSize={10} wrapperStyle={{ fontSize: 11, marginTop: 4 }} />
-                                        <Bar dataKey="Consultations" fill="#6366f1" radius={[3, 3, 0, 0]} />
-                                        <Bar dataKey="Procedures" fill="#10b981" radius={[3, 3, 0, 0]} />
-                                        <Bar dataKey="Referrals" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                                        <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                                        <Bar dataKey="consultations" fill="var(--accent)" radius={[4, 4, 0, 0]} name="Consultations" />
+                                        <Bar dataKey="procedures" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} name="Procedures" />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">📊</div>
-                                    <div className="empty-state-title">No activity data yet</div>
+                                    <div className="empty-state-title">No activity in the last 6 months</div>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Pie chart */}
+                    {/* Patient status PieChart */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Activity Breakdown</span>
+                            <span className="section-card-title">Patient Status</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
-                            {pieData.some(d => d.value > 0) ? (
+                            {statusData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={pieData}
+                                            data={statusData}
                                             cx="50%"
                                             cy="45%"
-                                            innerRadius={55}
-                                            outerRadius={85}
-                                            dataKey="value"
+                                            outerRadius={90}
                                             paddingAngle={3}
+                                            dataKey="value"
+                                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                            labelLine={false}
                                         >
-                                            {pieData.map((_, i) => (
-                                                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                            {statusData.map((entry) => (
+                                                <Cell key={entry.key} fill={STATUS_COLORS[entry.key] ?? 'var(--text-muted)'} />
                                             ))}
                                         </Pie>
-                                        <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                                        <Tooltip contentStyle={TOOLTIP_STYLE} />
                                         <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">🥧</div>
-                                    <div className="empty-state-title">No data yet</div>
+                                    <div className="empty-state-title">No patients yet</div>
                                 </div>
                             )}
                         </div>
@@ -239,7 +264,6 @@ const Statistics = () => {
                 </div>
             </div>
 
-            {/* Responsive: stack charts on mobile */}
             <style>{`
                 @media (max-width: 768px) {
                     .stats-charts-grid { grid-template-columns: 1fr !important; }

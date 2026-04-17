@@ -3,6 +3,7 @@ import { useAdmin } from '../context/AdminContext';
 import type { AdminDoctor } from '../../../shared/types';
 import '../styles/AdminDoctorList.css';
 import PageLoader from '../../../shared/components/PageLoader';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 type Tab = 'active' | 'pending' | 'rejected';
 
@@ -123,13 +124,22 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
         searchDoctors,
     } = useAdmin();
 
+    usePageTitle('Doctor Management');
     const [tab, setTab] = useState<Tab>(initialTab);
     const [rejectTarget, setRejectTarget] = useState<AdminDoctor | null>(null);
     const [transferTarget, setTransferTarget] = useState<AdminDoctor | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const pageSize = 50;
 
-    useEffect(() => { loadTab(tab, 1); }, [tab]);
+    // Debounce search
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 400);
+        return () => clearTimeout(t);
+    }, [search]);
+
+    useEffect(() => { loadTab(tab, 1); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const loadTab = (t: Tab, page: number) => {
         if (t === 'active') fetchDoctors(page);
@@ -161,7 +171,14 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
         setTransferTarget(null);
     };
 
-    const currentDoctors = tab === 'active' ? doctors : tab === 'pending' ? pendingDoctors : rejectedDoctors;
+    const allCurrentDoctors = tab === 'active' ? doctors : tab === 'pending' ? pendingDoctors : rejectedDoctors;
+    const currentDoctors = debouncedSearch
+        ? allCurrentDoctors.filter(d =>
+            d.full_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            d.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+            (d.license_number ?? '').toLowerCase().includes(debouncedSearch.toLowerCase())
+          )
+        : allCurrentDoctors;
     const totalCount = tab === 'active' ? totalDoctors : tab === 'pending' ? totalPending : totalRejected;
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -187,6 +204,18 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                 <button className={`tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
                     Rejected ({totalRejected})
                 </button>
+            </div>
+
+            {/* Search */}
+            <div style={{ margin: '0.75rem 0' }}>
+                <input
+                    type="search"
+                    className="input"
+                    placeholder="Search by name, email or license number…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ maxWidth: 400 }}
+                />
             </div>
 
             {successMsg && <div className="success-banner">{successMsg}</div>}

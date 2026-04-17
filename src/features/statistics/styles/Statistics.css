@@ -194,7 +194,7 @@
 /* ── Error ── */
 .stats-error {
   background: var(--color-danger-light);
-  border: 1px solid #FCA5A5;
+  border: 1px solid var(--color-danger-border);
   color: var(--color-danger-dark);
   padding: var(--space-5);
   border-radius: var(--radius-md);

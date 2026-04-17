@@ -12,6 +12,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Avatar } from '../../../shared/components/Avatar';
 import { SectionCard } from '../../../shared/components/SectionCard';
 import type { FollowUpConsultation } from '../../../shared/types';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 interface DashboardStats {
     total_patients: number;
@@ -97,6 +98,7 @@ const ListIcon = () => (
 function Dashboard() {
     const { t } = useTranslation();
     const { user, profile } = useAuth();
+    usePageTitle(t('pages.dashboard', 'Dashboard'));
 
     const { data, isLoading } = useQuery({
         queryKey: queryKeys.dashboard(),

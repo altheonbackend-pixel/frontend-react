@@ -19,7 +19,7 @@ export function AppLayout() {
 
             <AppSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-            <main className="app-main">
+            <main className="app-main" id="main-content">
                 {/* Mobile top bar */}
                 <div className="app-mobile-topbar">
                     <button

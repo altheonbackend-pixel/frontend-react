@@ -3,16 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAdmin } from '../context/AdminContext';
 import '../styles/AdminDashboard.css';
 import PageLoader from '../../../shared/components/PageLoader';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 interface StatCardProps {
     icon: string;
     label: string;
     value: string | number;
+    delta?: number | null;
+    deltaLabel?: string;
     onClick?: () => void;
     variant?: 'default' | 'warning' | 'danger' | 'success';
 }
 
-const StatCard = ({ icon, label, value, onClick, variant = 'default' }: StatCardProps) => (
+const StatCard = ({ icon, label, value, delta, deltaLabel = 'this week', onClick, variant = 'default' }: StatCardProps) => (
     <div
         className={`stat-card stat-card--${variant}${onClick ? ' stat-card--clickable' : ''}`}
         onClick={onClick}
@@ -23,6 +26,11 @@ const StatCard = ({ icon, label, value, onClick, variant = 'default' }: StatCard
         <div className="stat-card__content">
             <div className="stat-card__label">{label}</div>
             <div className="stat-card__value">{value}</div>
+            {delta != null && (
+                <div className="stat-card__delta">
+                    {delta > 0 ? `+${delta}` : delta} {deltaLabel}
+                </div>
+            )}
         </div>
         {onClick && <div className="stat-card__arrow">→</div>}
     </div>
@@ -31,6 +39,7 @@ const StatCard = ({ icon, label, value, onClick, variant = 'default' }: StatCard
 const AdminDashboard = () => {
     const { stats, isLoading, error, fetchStats } = useAdmin();
     const navigate = useNavigate();
+    usePageTitle('Admin Dashboard');
 
     useEffect(() => {
         fetchStats();
@@ -104,9 +113,21 @@ const AdminDashboard = () => {
             <div className="admin-dashboard__section">
                 <h2 className="admin-dashboard__section-title">Platform Activity</h2>
                 <div className="stats-grid">
-                    <StatCard icon="👥" label="Total Patients" value={stats.total_patients} />
+                    <StatCard
+                        icon="👥"
+                        label="Total Patients"
+                        value={stats.total_patients}
+                        delta={stats.new_patients_this_week ?? null}
+                        variant={stats.new_patients_this_week > 0 ? 'success' : 'default'}
+                    />
                     <StatCard icon="📅" label="Appointments" value={stats.total_appointments} />
-                    <StatCard icon="📋" label="Consultations" value={stats.total_consultations} />
+                    <StatCard
+                        icon="📋"
+                        label="Consultations"
+                        value={stats.total_consultations}
+                        delta={stats.new_consultations_this_week ?? null}
+                        variant={stats.new_consultations_this_week > 0 ? 'success' : 'default'}
+                    />
                     <StatCard icon="🏥" label="Procedures" value={stats.total_procedures} />
                     <StatCard icon="🔗" label="Referrals" value={stats.total_referrals} />
                 </div>

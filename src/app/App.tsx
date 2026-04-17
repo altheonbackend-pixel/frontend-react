@@ -1,7 +1,7 @@
 // src/app/App.tsx
 
 import { useState, lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useKeyboardShortcut } from '../shared/hooks/useKeyboardShortcut';
 
@@ -85,6 +85,7 @@ const RTL_LANGUAGES = ['ar', 'ur'];
 function App() {
     const { isAuthenticated, authIsLoading, userType } = useAuth();
     const { i18n } = useTranslation();
+    const location = useLocation();
 
     // Sync <html dir> and <html lang>
     useEffect(() => {
@@ -126,6 +127,7 @@ function App() {
     // ── Doctor app (sidebar layout) ────────────────────────────────────────────
     return (
         <div className="App">
+            <a href="#main-content" className="skip-link">Skip to main content</a>
             <Suspense fallback={<PageLoader message="Loading" />}>
                 <Routes>
                     {/* Public routes (no sidebar) */}
@@ -139,18 +141,18 @@ function App() {
                     {/* Protected doctor routes wrapped in AppLayout (sidebar) */}
                     <Route element={<PrivateRoutes />}>
                         <Route element={<AppLayout />}>
-                            <Route path="/dashboard"           element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-                            <Route path="/patients"            element={<ErrorBoundary><Patients /></ErrorBoundary>} />
-                            <Route path="/patients/add"        element={<ErrorBoundary><AddPatient /></ErrorBoundary>} />
-                            <Route path="/patients/edit/:id"   element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
-                            <Route path="/patients/:id"        element={<ErrorBoundary><PatientDetail /></ErrorBoundary>} />
-                            <Route path="/appointments"        element={<ErrorBoundary><Appointments /></ErrorBoundary>} />
-                            <Route path="/deleted-appointments" element={<ErrorBoundary><DeletedAppts /></ErrorBoundary>} />
-                            <Route path="/referrals"           element={<ErrorBoundary><ReferralsList /></ErrorBoundary>} />
-                            <Route path="/notebook"            element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
-                            <Route path="/profile"             element={<ErrorBoundary><Profile /></ErrorBoundary>} />
-                            <Route path="/edit-profile"        element={<ErrorBoundary><EditProfile /></ErrorBoundary>} />
-                            <Route path="/my-stats"            element={<ErrorBoundary><Statistics /></ErrorBoundary>} />
+                            <Route path="/dashboard"           element={<ErrorBoundary resetKey={location.pathname}><Dashboard /></ErrorBoundary>} />
+                            <Route path="/patients"            element={<ErrorBoundary resetKey={location.pathname}><Patients /></ErrorBoundary>} />
+                            <Route path="/patients/add"        element={<ErrorBoundary resetKey={location.pathname}><AddPatient /></ErrorBoundary>} />
+                            <Route path="/patients/edit/:id"   element={<ErrorBoundary resetKey={location.pathname}><EditPatient /></ErrorBoundary>} />
+                            <Route path="/patients/:id"        element={<ErrorBoundary resetKey={location.pathname}><PatientDetail /></ErrorBoundary>} />
+                            <Route path="/appointments"        element={<ErrorBoundary resetKey={location.pathname}><Appointments /></ErrorBoundary>} />
+                            <Route path="/deleted-appointments" element={<ErrorBoundary resetKey={location.pathname}><DeletedAppts /></ErrorBoundary>} />
+                            <Route path="/referrals"           element={<ErrorBoundary resetKey={location.pathname}><ReferralsList /></ErrorBoundary>} />
+                            <Route path="/notebook"            element={<ErrorBoundary resetKey={location.pathname}><PrivateNotebook /></ErrorBoundary>} />
+                            <Route path="/profile"             element={<ErrorBoundary resetKey={location.pathname}><Profile /></ErrorBoundary>} />
+                            <Route path="/edit-profile"        element={<ErrorBoundary resetKey={location.pathname}><EditProfile /></ErrorBoundary>} />
+                            <Route path="/my-stats"            element={<ErrorBoundary resetKey={location.pathname}><Statistics /></ErrorBoundary>} />
                         </Route>
                     </Route>
 

@@ -159,7 +159,7 @@
 /* ── Success message ── */
 .success-message {
   background: var(--color-success-light);
-  border: 1px solid #6EE7B7;
+  border: 1px solid var(--color-success-border);
   color: var(--color-success-dark);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
@@ -171,7 +171,7 @@
 /* ── Info message ── */
 .info-message {
   background: var(--color-info-light);
-  border: 1px solid #BFDBFE;
+  border: 1px solid var(--color-info-border);
   color: var(--color-info-dark);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
@@ -191,7 +191,7 @@
 /* ── Error ── */
 .error-message {
   background: var(--color-danger-light);
-  border: 1px solid #FCA5A5;
+  border: 1px solid var(--color-danger-border);
   color: var(--color-danger-dark);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);

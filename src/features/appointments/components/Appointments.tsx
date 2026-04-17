@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Appointment, type Patient } from '../../../shared/types';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
 import { useNavigate, Link } from 'react-router-dom';
@@ -39,6 +40,7 @@ function apptStatusClass(status: string) {
 
 const Appointments = () => {
     const { t } = useTranslation();
+    usePageTitle(t('pages.appointments', 'Appointments'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 

@@ -22,16 +22,11 @@ export default defineConfig({
       external: ['@sentry/react'],
       output: {
         manualChunks: {
-          // Core React runtime — cached aggressively; very rarely changes
-          'react-vendor': ['react', 'react-dom'],
-          // Routing
-          'router': ['react-router-dom'],
-          // i18n — large locale data kept separate
-          'i18n': ['react-i18next', 'i18next'],
-          // JWT decode utility
-          'jwt': ['jwt-decode'],
-          // Axios HTTP client
-          'axios': ['axios'],
+          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query':  ['@tanstack/react-query'],
+          'vendor-forms':  ['react-hook-form', 'zod', '@hookform/resolvers'],
+          'vendor-charts': ['recharts'],
+          'vendor-i18n':   ['i18next', 'react-i18next', 'i18next-http-backend', 'i18next-browser-languagedetector'],
         },
       },
     },

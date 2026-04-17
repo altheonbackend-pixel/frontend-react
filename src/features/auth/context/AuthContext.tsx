@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type DoctorProfile, type User, type AdminProfile } from '../../../shared/types';
 import api from '../../../shared/services/api';
+import { clearAllDraftsForDoctor } from '../../../shared/hooks/useFormDraft';
 
 interface AuthContextType {
     user: User | null;
@@ -35,6 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // Ignore errors — local logout proceeds regardless
         });
 
+        // Clear consultation drafts for the current doctor before signing out
+        if (profile?.id) {
+            clearAllDraftsForDoctor(profile.id);
+        }
+
         // Clear any non-sensitive metadata we kept in localStorage
         localStorage.removeItem('user_type');
         localStorage.removeItem('admin_profile');
@@ -45,7 +51,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserType(null);
         setIsAuthenticated(false);
         navigate('/login', { replace: true });
-    }, [navigate]);
+    }, [navigate, profile]);
 
     const updateProfileData = (newProfile: DoctorProfile) => {
         setProfile(newProfile);

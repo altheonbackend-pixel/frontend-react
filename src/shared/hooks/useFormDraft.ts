@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
 
+const DRAFT_PREFIX = 'altheon_draft_';
+
 interface DraftEntry<T> {
   data: T;
   savedAt: string;
 }
 
 export function useFormDraft<T>(key: string) {
-  const storageKey = `altheon_draft_${key}`;
+  const storageKey = `${DRAFT_PREFIX}${key}`;
 
   const loadDraft = useCallback((): DraftEntry<T> | null => {
     try {
@@ -37,4 +39,20 @@ export function useFormDraft<T>(key: string) {
   }, [storageKey]);
 
   return { loadDraft, saveDraft, clearDraft };
+}
+
+/**
+ * Clears all localStorage draft entries belonging to a specific doctor.
+ * Call this on logout and on 401 to prevent cross-session data leakage.
+ */
+export function clearAllDraftsForDoctor(doctorId: string | number) {
+  const prefix = `${DRAFT_PREFIX}consultation_${doctorId}_`;
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(key => localStorage.removeItem(key));
 }

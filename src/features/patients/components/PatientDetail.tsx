@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, ReferenceLine, Legend,
+} from 'recharts';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useKeyboardShortcut } from '../../../shared/hooks/useKeyboardShortcut';
 import {
@@ -48,43 +52,13 @@ interface VitalsPoint {
     blood_pressure_display?: string | null;
 }
 
-// ── Inline SVG sparkline for vitals trend ──────────────────────────────────
-function VitalSparkline({ label, data, color, dangerAbove, dangerBelow }: {
-    label: string;
-    data: { x: string; y: number }[];
-    color: string;
-    dangerAbove?: number;
-    dangerBelow?: number;
-}) {
-    const W = 240, H = 70, PAD = 8;
-    const ys = data.map(d => d.y);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const rangeY = maxY - minY || 1;
-    const toX = (i: number) => PAD + (i / (data.length - 1)) * (W - PAD * 2);
-    const toY = (v: number) => H - PAD - ((v - minY) / rangeY) * (H - PAD * 2);
-    const pts = data.map((d, i) => `${toX(i).toFixed(1)},${toY(d.y).toFixed(1)}`).join(' ');
-
-    return (
-        <div className="vital-sparkline-card">
-            <div className="vital-sparkline-label">{label}</div>
-            <div className="vital-sparkline-range">
-                <span>{maxY}</span>
-                <span>{minY}</span>
-            </div>
-            <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-                {dangerAbove && <line x1={PAD} x2={W - PAD} y1={toY(dangerAbove)} y2={toY(dangerAbove)} stroke="#e53e3e" strokeDasharray="3 2" strokeWidth={1} opacity={0.6} />}
-                {dangerBelow && <line x1={PAD} x2={W - PAD} y1={toY(dangerBelow)} y2={toY(dangerBelow)} stroke="#e53e3e" strokeDasharray="3 2" strokeWidth={1} opacity={0.6} />}
-                <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                {data.map((d, i) => (
-                    <circle key={i} cx={toX(i)} cy={toY(d.y)} r={3} fill={
-                        (dangerAbove && d.y > dangerAbove) || (dangerBelow && d.y < dangerBelow) ? '#e53e3e' : color
-                    } />
-                ))}
-            </svg>
-            <div className="vital-sparkline-last">Latest: <strong>{data[data.length - 1].y}</strong></div>
-        </div>
-    );
-}
+// ── Shared tooltip style for all vitals Recharts ────────────────────────────
+const VITALS_TOOLTIP_STYLE = {
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border-default)',
+    borderRadius: 'var(--radius-md)',
+    fontSize: 12,
+};
 
 const SEVERITY_COLORS: Record<string, string> = {
     mild: '#38a169',
@@ -128,6 +102,13 @@ const PatientDetails = () => {
     const [confirmDeleteConsultationId, setConfirmDeleteConsultationId] = useState<number | null>(null);
     const [confirmDeleteProcedureId, setConfirmDeleteProcedureId] = useState<number | null>(null);
     const [confirmDeleteReferralId, setConfirmDeleteReferralId] = useState<number | null>(null);
+
+    // Vitals tab: toggle per-vital chart visibility
+    const [visibleVitals, setVisibleVitals] = useState({
+        bp: true, spo2: true, temperature: true, weight: true,
+    });
+    const toggleVital = (key: keyof typeof visibleVitals) =>
+        setVisibleVitals(prev => ({ ...prev, [key]: !prev[key] }));
     const [confirmDeleteConditionId, setConfirmDeleteConditionId] = useState<number | null>(null);
     const [confirmDeleteAllergyId, setConfirmDeleteAllergyId] = useState<number | null>(null);
 
@@ -194,6 +175,37 @@ const PatientDetails = () => {
         staleTime: 2 * 60 * 1000,
     });
 
+    // BUG-03: consultations, procedures, referrals — lazy-loaded when tab is first activated
+    const { data: consultationsData = [], isLoading: consultationsLoading } = useQuery<Consultation[]>({
+        queryKey: ['patients', id, 'consultations'],
+        queryFn: async () => {
+            const res = await api.get(`/consultations/`, { params: { patient_id: id, ordering: '-consultation_date' } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('consultations'),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    const { data: proceduresData = [], isLoading: proceduresLoading } = useQuery<MedicalProcedure[]>({
+        queryKey: ['patients', id, 'procedures'],
+        queryFn: async () => {
+            const res = await api.get(`/medical-procedures/`, { params: { patient_id: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('procedures'),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    const { data: referralsData = [], isLoading: referralsLoading } = useQuery<Referral[]>({
+        queryKey: ['patients', id, 'referrals'],
+        queryFn: async () => {
+            const res = await api.get(`/referrals/`, { params: { patient_id: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('referrals'),
+        staleTime: 2 * 60 * 1000,
+    });
+
     // Tab refs for mobile scrollIntoView
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
@@ -252,6 +264,10 @@ const PatientDetails = () => {
         setProcedureToEdit(null);
         setReferralToEdit(null);
         fetchPatientDetails();
+        // Invalidate lazy tab caches so next activation fetches fresh data
+        queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+        queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
+        queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
     };
 
     const handleCancel = () => {
@@ -723,9 +739,11 @@ const PatientDetails = () => {
                             <h3>Consultation History</h3>
                             <button className="btn-add-primary" onClick={() => { setConsultationToEdit(null); setShowConsultationForm(true); }}>+ Add Consultation</button>
                         </div>
-                        {patient.consultations && patient.consultations.length > 0 ? (
+                        {consultationsLoading ? (
+                            <TabSkeleton rows={4} />
+                        ) : consultationsData.length > 0 ? (
                             <ul className="detail-list">
-                                {patient.consultations.map(c => (
+                                {consultationsData.map(c => (
                                     <li key={c.id} className="consultation-entry detail-list-item">
                                         <div className="consult-header">
                                             <h4>{new Date(c.consultation_date).toLocaleDateString()}</h4>
@@ -1010,9 +1028,11 @@ const PatientDetails = () => {
                                 <button className="btn-add-primary" onClick={() => { setProcedureToEdit(null); setShowProcedureForm(true); }}>+ Add Procedure</button>
                             )}
                         </div>
-                        {patient.medical_procedures?.length ? (
+                        {proceduresLoading ? (
+                            <TabSkeleton rows={4} />
+                        ) : proceduresData.length > 0 ? (
                             <ul className="detail-list">
-                                {patient.medical_procedures.map(p => (
+                                {proceduresData.map(p => (
                                     <li key={p.id} className="procedure-entry detail-list-item">
                                         <h4>{p.procedure_type} — {new Date(p.procedure_date).toLocaleDateString()}</h4>
                                         {p.result && <div className="info-item"><strong>Result:</strong> {p.result}</div>}
@@ -1030,70 +1050,168 @@ const PatientDetails = () => {
                     </div>
                 )}
 
-                {/* Vitals Tab */}
+                {/* Vitals Tab — Recharts LineCharts */}
                 {activeTab === 'vitals' && (
                     <div className="tab-panel">
-                        <h3>Vitals History</h3>
+                        <div className="tab-panel-header">
+                            <h3>Vitals History</h3>
+                        </div>
                         {vitalsLoading ? (
                             <TabSkeleton rows={3} />
                         ) : vitalsTrend.length === 0 ? (
-                            <p className="muted">No vitals recorded yet. Vitals are captured during consultations.</p>
-                        ) : (
-                            <div className="vitals-trend-container">
-                                <div className="vitals-trend-table-wrapper">
-                                    <table className="vitals-trend-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Weight (kg)</th>
-                                                <th>Height (cm)</th>
-                                                <th>SpO₂ (%)</th>
-                                                <th>Temp (°C)</th>
-                                                <th>Blood Pressure</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {vitalsTrend.map(v => (
-                                                <tr key={v.id}>
-                                                    <td>{new Date(v.consultation_date).toLocaleDateString()}</td>
-                                                    <td className={v.weight ? '' : 'muted'}>{v.weight ?? '—'}</td>
-                                                    <td className={v.height ? '' : 'muted'}>{v.height ?? '—'}</td>
-                                                    <td className={v.sp2 ? (Number(v.sp2) < 95 ? 'vitals-warning' : '') : 'muted'}>{v.sp2 ?? '—'}</td>
-                                                    <td className={v.temperature ? (Number(v.temperature) > 37.5 ? 'vitals-warning' : '') : 'muted'}>{v.temperature ?? '—'}</td>
-                                                    <td className={(v.bp_systolic || v.bp_diastolic) ? '' : 'muted'}>{v.blood_pressure_display ?? (v.bp_systolic || v.bp_diastolic ? `${v.bp_systolic ?? '?'}/${v.bp_diastolic ?? '?'}` : '—')}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {/* Inline sparklines */}
-                                {vitalsTrend.filter(v => v.weight).length >= 2 && (
-                                    <div className="vitals-sparklines">
-                                        <VitalSparkline
-                                            label="Weight (kg)"
-                                            data={vitalsTrend.filter(v => v.weight !== null).map(v => ({ x: v.consultation_date, y: Number(v.weight) }))}
-                                            color="#6366f1"
-                                        />
-                                        {vitalsTrend.filter(v => v.sp2).length >= 2 && (
-                                            <VitalSparkline
-                                                label="SpO₂ (%)"
-                                                data={vitalsTrend.filter(v => v.sp2 !== null).map(v => ({ x: v.consultation_date, y: Number(v.sp2) }))}
-                                                color="#38a169"
-                                                dangerBelow={95}
-                                            />
-                                        )}
-                                        {vitalsTrend.filter(v => v.temperature).length >= 2 && (
-                                            <VitalSparkline
-                                                label="Temperature (°C)"
-                                                data={vitalsTrend.filter(v => v.temperature !== null).map(v => ({ x: v.consultation_date, y: Number(v.temperature) }))}
-                                                color="#ed8936"
-                                                dangerAbove={37.5}
-                                            />
-                                        )}
-                                    </div>
-                                )}
+                            <div className="empty-state">
+                                <div className="empty-state-icon">📈</div>
+                                <div className="empty-state-title">No vitals recorded yet</div>
+                                <div className="empty-state-subtitle">Vitals are captured during consultations.</div>
                             </div>
-                        )}
+                        ) : (() => {
+                            // Format date labels
+                            const chartData = vitalsTrend.map(v => ({
+                                ...v,
+                                label: new Date(v.consultation_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                            }));
+
+                            // Last readings for StatCards
+                            const last = vitalsTrend[vitalsTrend.length - 1];
+
+                            const bpData = chartData.filter(v => v.bp_systolic !== null || v.bp_diastolic !== null);
+                            const spo2Data = chartData.filter(v => v.sp2 !== null);
+                            const tempData = chartData.filter(v => v.temperature !== null);
+                            const weightData = chartData.filter(v => v.weight !== null);
+
+                            return (
+                                <div>
+                                    {/* Per-vital toggle checkboxes */}
+                                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                                        {([
+                                            { key: 'bp', label: 'Blood Pressure' },
+                                            { key: 'spo2', label: 'SpO₂' },
+                                            { key: 'temperature', label: 'Temperature' },
+                                            { key: 'weight', label: 'Weight' },
+                                        ] as const).map(({ key, label }) => (
+                                            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={visibleVitals[key]}
+                                                    onChange={() => toggleVital(key)}
+                                                />
+                                                {label}
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    {/* Blood Pressure Chart */}
+                                    {visibleVitals.bp && bpData.length > 0 && (
+                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                            <div className="section-card-header">
+                                                <span className="section-card-title">Blood Pressure (mmHg)</span>
+                                                {(last.bp_systolic || last.bp_diastolic) && (
+                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                                                        Latest: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="section-card-body" style={{ height: 220 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={bpData}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <YAxis domain={[60, 200]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                        <ReferenceLine y={180} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Crisis', fontSize: 10, fill: 'var(--danger)' }} />
+                                                        <ReferenceLine y={90} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Hypotension', fontSize: 10, fill: 'var(--warning)' }} />
+                                                        <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Systolic" connectNulls />
+                                                        <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name="Diastolic" connectNulls />
+                                                        <Legend />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* SpO₂ Chart */}
+                                    {visibleVitals.spo2 && spo2Data.length > 0 && (
+                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                            <div className="section-card-header">
+                                                <span className="section-card-title">SpO₂ (%)</span>
+                                                {last.sp2 && (
+                                                    <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                                                        Latest: {last.sp2}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="section-card-body" style={{ height: 220 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={spo2Data}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <YAxis domain={[80, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                        <ReferenceLine y={94} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Low SpO₂', fontSize: 10, fill: 'var(--warning)' }} />
+                                                        <Line type="monotone" dataKey="sp2" stroke="var(--success)" strokeWidth={2} dot={{ r: 3 }} name="SpO₂ %" connectNulls />
+                                                        <Legend />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Temperature Chart */}
+                                    {visibleVitals.temperature && tempData.length > 0 && (
+                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                            <div className="section-card-header">
+                                                <span className="section-card-title">Temperature (°C)</span>
+                                                {last.temperature && (
+                                                    <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>
+                                                        Latest: {last.temperature}°C
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="section-card-body" style={{ height: 220 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={tempData}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <YAxis domain={[34, 42]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                        <ReferenceLine y={38.5} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Fever', fontSize: 10, fill: 'var(--danger)' }} />
+                                                        <ReferenceLine y={35.5} stroke="var(--info)" strokeDasharray="4 4" label={{ value: 'Hypothermia', fontSize: 10, fill: 'var(--info)' }} />
+                                                        <Line type="monotone" dataKey="temperature" stroke="var(--warning)" strokeWidth={2} dot={{ r: 3 }} name="Temp °C" connectNulls />
+                                                        <Legend />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Weight Chart */}
+                                    {visibleVitals.weight && weightData.length > 0 && (
+                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                            <div className="section-card-header">
+                                                <span className="section-card-title">Weight (kg)</span>
+                                                {last.weight && (
+                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                                                        Latest: {last.weight} kg
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="section-card-body" style={{ height: 220 }}>
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <LineChart data={weightData}>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                        <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Weight kg" connectNulls />
+                                                        <Legend />
+                                                    </LineChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 
@@ -1103,9 +1221,11 @@ const PatientDetails = () => {
                             <h3>Referral History</h3>
                             <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
                         </div>
-                        {patient.referrals?.length ? (
+                        {referralsLoading ? (
+                            <TabSkeleton rows={4} />
+                        ) : referralsData.length > 0 ? (
                             <ul className="detail-list">
-                                {patient.referrals.map(r => (
+                                {referralsData.map(r => (
                                     <li key={r.id} className="referral-entry detail-list-item">
                                         <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
                                         <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>

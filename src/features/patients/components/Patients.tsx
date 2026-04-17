@@ -7,6 +7,7 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { useTranslation } from 'react-i18next';
 import { type Patient } from '../../../shared/types';
 import api from '../../../shared/services/api';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import { Pagination } from '../../../shared/components/Pagination';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -35,6 +36,7 @@ function calcAge(dob: string | null | undefined): string {
 
 const Patients = () => {
     const { t } = useTranslation();
+    usePageTitle(t('pages.patients', 'Patients'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
@@ -217,6 +219,13 @@ const Patients = () => {
                                             key={patient.unique_id}
                                             onClick={() => navigate(`/patients/${patient.unique_id}`)}
                                             style={{ cursor: 'pointer' }}
+                                            onMouseEnter={() => {
+                                                queryClient.prefetchQuery({
+                                                    queryKey: queryKeys.patients.detail(patient.unique_id),
+                                                    queryFn: () => api.get(`/patients/${patient.unique_id}/`).then(r => r.data),
+                                                    staleTime: 30_000,
+                                                });
+                                            }}
                                         >
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

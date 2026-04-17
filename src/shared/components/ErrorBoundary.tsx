@@ -1,12 +1,15 @@
 // src/shared/components/ErrorBoundary.tsx
 // Catches unhandled React rendering errors and shows a friendly fallback UI
 // instead of crashing the entire app.
+// resetKey: pass location.pathname so a route change always resets stale error state.
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 interface Props {
     children: ReactNode;
     fallback?: ReactNode;
+    /** Pass location.pathname — error state resets whenever this value changes. */
+    resetKey?: string;
 }
 
 interface State {
@@ -28,6 +31,14 @@ class ErrorBoundary extends Component<Props, State> {
         console.error('Unhandled error caught by ErrorBoundary:', error, info.componentStack);
     }
 
+    componentDidUpdate(prevProps: Props) {
+        // Reset error state when the route changes so a crashed route doesn't
+        // stay broken after the user navigates away and back.
+        if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+            this.setState({ hasError: false, error: null });
+        }
+    }
+
     handleReset = () => {
         this.setState({ hasError: false, error: null });
     };
@@ -40,10 +51,10 @@ class ErrorBoundary extends Component<Props, State> {
             return (
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                     <h2>Something went wrong</h2>
-                    <p style={{ color: '#666', marginBottom: '1rem' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
                         {this.state.error?.message ?? 'An unexpected error occurred.'}
                     </p>
-                    <button onClick={this.handleReset}>Try again</button>
+                    <button className="btn btn-primary btn-sm" onClick={this.handleReset}>Try again</button>
                 </div>
             );
         }
