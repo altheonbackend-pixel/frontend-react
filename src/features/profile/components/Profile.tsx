@@ -1,17 +1,14 @@
+// src/features/profile/components/Profile.tsx
+
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { type Workplace } from '../../../shared/types';
-import '../../../shared/styles/DetailStyles.css'; // Assurez-vous que le fichier CSS est bien importé
+import { Link } from 'react-router-dom';
+import { PageHeader } from '../../../shared/components/PageHeader';
+import { Avatar } from '../../../shared/components/Avatar';
 
 const Profile = () => {
     const { t } = useTranslation();
     const { profile, authIsLoading } = useAuth();
-    const navigate = useNavigate();
-
-    const handleEditClick = () => {
-        navigate('/edit-profile');
-    };
 
     if (authIsLoading) {
         return <div className="loading-message">{t('profile.loading')}</div>;
@@ -21,34 +18,54 @@ const Profile = () => {
         return <div className="no-profile-data">{t('profile.no_data')}</div>;
     }
 
+    const doctorName = profile.full_name ?? '';
+
     return (
-        <div className="profile-container detail-container">
-            <div className="profile-header detail-header">
-                <h2 className="page-title">{t('profile.title')}</h2>
-                <button onClick={handleEditClick} className="edit-profile-button action-button">
-                    {t('profile.edit')}
-                </button>
+        <>
+            <PageHeader
+                title={t('profile.title', 'My Profile')}
+                actions={
+                    <Link to="/edit-profile" className="btn btn-secondary btn-sm">
+                        {t('profile.edit', 'Edit Profile')}
+                    </Link>
+                }
+            />
+
+            <div style={{ maxWidth: 520 }}>
+                <div className="section-card">
+                    <div className="section-card-body" style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                            <Avatar name={doctorName} size="xl" ring />
+                        </div>
+                        <h2 style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
+                            Dr. {doctorName}
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                            {profile.specialty_display || profile.specialty || t('profile.unspecified', 'Unspecified specialty')}
+                        </p>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '1rem 1.25rem' }}>
+                        <div className="profile-info-item">
+                            <span className="profile-info-label">{t('profile.email', 'Email')}</span>
+                            <span className="profile-info-value">{profile.email}</span>
+                        </div>
+                        <div className="profile-info-item">
+                            <span className="profile-info-label">{t('profile.license', 'License')}</span>
+                            <span className="profile-info-value">{profile.license_number || '—'}</span>
+                        </div>
+                        <div className="profile-info-item">
+                            <span className="profile-info-label">{t('profile.phone', 'Phone')}</span>
+                            <span className="profile-info-value">{profile.phone_number || '—'}</span>
+                        </div>
+                        <div className="profile-info-item">
+                            <span className="profile-info-label">{t('profile.address', 'Address')}</span>
+                            <span className="profile-info-value">{profile.address || '—'}</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div className="profile-details detail-info-group">
-                <p className="info-item"><strong>{t('profile.full_name')}</strong> {profile.full_name}</p>
-                <p className="info-item"><strong>{t('profile.email')}</strong> {profile.email}</p>
-                <p className="info-item"><strong>{t('profile.specialty')}</strong> {profile.specialty_display || profile.specialty || t('profile.unspecified')}</p>
-                <p className="info-item"><strong>{t('profile.license')}</strong> {profile.license_number || t('profile.unspecified')}</p>
-                <p className="info-item"><strong>{t('profile.address')}</strong> {profile.address || t('profile.unspecified')}</p>
-                
-                <p className="info-item"><strong>{t('profile.workplaces')}</strong></p>
-                {profile.workplaces && profile.workplaces.length > 0 ? (
-                    <ul>
-                        {profile.workplaces.map((workplace: Workplace) => (
-                            <li key={workplace.id} className="detail-list-item">{workplace.name}</li>
-                        ))}
-                    </ul>
-                ) : (
-                    <p>{t('profile.unspecified')}</p>
-                )}
-            </div>
-        </div>
+        </>
     );
 };
 

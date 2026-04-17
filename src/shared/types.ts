@@ -20,7 +20,6 @@ export interface DoctorProfile {
     license_number: string | null;
     phone_number: string | null;
     address: string | null;
-    workplaces?: Workplace[];
     email_verified?: boolean;
 }
 
@@ -59,18 +58,12 @@ export interface Appointment {
     confirmed_at?: string | null;
     completed_at?: string | null;
     rescheduled_from?: number | null;
-    workplace: number;
     patient_details?: {
         unique_id: string;
         first_name: string;
         last_name: string;
         status?: string;
         status_display?: string;
-    };
-    workplace_details?: {
-        id: number;
-        name: string;
-        address: string;
     };
 }
 
@@ -99,55 +92,10 @@ export interface Prescription {
     prescribed_at: string;
 }
 
-export interface Workplace {
-    id: number;
-    name: string;
-    address: string;
-    description: string;
-    phone: string;
-    email: string;
-    website: string;
-    is_public: boolean;
-    join_policy: 'open' | 'request' | 'invite';
-    join_policy_display?: string;
-    max_doctors: number;
-    creator: number | null;
-    creator_details?: { id: number; full_name: string; specialty: string | null } | null;
-    member_count?: number;
-    is_member?: boolean;
-    is_creator?: boolean;
-    created_at?: string | null;
-}
-
-export interface JoinRequest {
-    id: number;
-    workplace: number;
-    workplace_name?: string;
-    doctor: number;
-    doctor_name?: string;
-    doctor_specialty?: string | null;
-    status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-    status_display?: string;
-    message: string;
-    response_note: string;
-    created_at: string;
-    responded_at: string | null;
-}
-
-export interface ClinicMember {
-    id: number;
-    full_name: string;
-    specialty: string | null;
-    specialty_display?: string | null;
-    email: string;
-    is_creator: boolean;
-}
-
 export interface Consultation {
     id: number;
     patient: string;
     doctor: number;
-    workplace?: number | null;
     appointment?: number | null;
     consultation_date: string;
     consultation_type: 'in_person' | 'telemedicine' | 'home_visit';
@@ -265,7 +213,6 @@ export interface DeletedAppointment {
     appointment_id: number;
     patient_details: Patient;
     doctor_details: DoctorProfile;
-    workplace_details: Workplace;
     appointment_date: string;
     reason_for_appointment: string;
     deletion_date: string;
@@ -292,7 +239,6 @@ export interface Referral {
     urgency_display?: string;
     response_notes: string;
     responded_at: string | null;
-    workplace?: number | null;
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };
     patient_details?: { unique_id: string; first_name: string; last_name: string };
@@ -327,14 +273,6 @@ export interface PatientWithHistory extends Patient {
     status: string;
 }
 
-export interface WorkplaceStats {
-    id: number;
-    name: string;
-    consultation_count: number;
-    patient_count: number;
-    procedure_count: number;
-}
-
 export interface DoctorStats {
     id: number;
     full_name: string;
@@ -347,12 +285,10 @@ export interface DoctorStats {
 
 export interface GlobalStats {
     total_doctors: number;
-    total_workplaces: number;
     total_patients: number;
     total_consultations: number;
     total_referrals: number;
     total_procedures: number;
-    stats_by_workplace: WorkplaceStats[];
 }
 
 export interface AuthTokens {
@@ -398,42 +334,6 @@ export interface AdminDoctor {
     is_active: boolean;
     verification_status: 'pending_admin' | 'active' | 'rejected';
     verification_status_display?: string | null;
-    max_clinics_owned: number;
-    max_clinics_joined: number;
-    forum_suspended: boolean;
     rejection_reason: string;
-    clinics_owned: number;
-    clinics_joined: number;
     date_joined: string | null;
-}
-
-export interface AdminClinic {
-    id: number;
-    name: string;
-    address: string;
-    is_public: boolean;
-    creator_id: number | null;
-    creator_name: string | null;
-    creator_email: string | null;
-    member_count: number;
-}
-
-export interface AdminForumComment {
-    id: number;
-    content: string;
-    created_at: string;
-    author_name: string;
-    author_email: string;
-}
-
-export interface AdminForumPost {
-    id: number;
-    title: string;
-    content: string;
-    created_at: string;
-    author_id: number;
-    author_name: string;
-    author_email: string;
-    comment_count: number;
-    comments: AdminForumComment[];
 }

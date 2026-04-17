@@ -108,48 +108,6 @@ const TransferModal = ({ doctor, onConfirm, onClose, searchDoctors }: {
     );
 };
 
-// ── Limits Editor ─────────────────────────────────────────────────────────────
-const LimitsEditor = ({ doctor, onSave, onClose }: {
-    doctor: AdminDoctor;
-    onSave: (maxOwned: number, maxJoined: number) => void;
-    onClose: () => void;
-}) => {
-    const [maxOwned, setMaxOwned] = useState(doctor.max_clinics_owned);
-    const [maxJoined, setMaxJoined] = useState(doctor.max_clinics_joined);
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box" onClick={e => e.stopPropagation()}>
-                <h3>Edit Clinic Limits — {doctor.full_name}</h3>
-                <p className="modal-hint">Set to 0 for unlimited.</p>
-                <div className="modal-field">
-                    <label>Max clinics this doctor can CREATE</label>
-                    <input
-                        type="number"
-                        min={0}
-                        className="modal-input"
-                        value={maxOwned}
-                        onChange={e => setMaxOwned(parseInt(e.target.value) || 0)}
-                    />
-                </div>
-                <div className="modal-field">
-                    <label>Max clinics this doctor can JOIN</label>
-                    <input
-                        type="number"
-                        min={0}
-                        className="modal-input"
-                        value={maxJoined}
-                        onChange={e => setMaxJoined(parseInt(e.target.value) || 0)}
-                    />
-                </div>
-                <div className="modal-actions">
-                    <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                    <button className="btn btn-primary" onClick={() => onSave(maxOwned, maxJoined)}>Save Limits</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 // ── Main Component ────────────────────────────────────────────────────────────
 const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
     const {
@@ -158,17 +116,16 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
         rejectedDoctors, totalRejected,
         isLoading, error,
         fetchDoctors, fetchPendingDoctors, fetchRejectedDoctors,
-        updateDoctorAccessLevel, updateDoctorLimits,
+        updateDoctorAccessLevel,
         activateDoctor, deactivateDoctor,
         approveDoctor, rejectDoctor,
-        transferPatients, suspendForum, unsuspendForum,
+        transferPatients,
         searchDoctors,
     } = useAdmin();
 
     const [tab, setTab] = useState<Tab>(initialTab);
     const [rejectTarget, setRejectTarget] = useState<AdminDoctor | null>(null);
     const [transferTarget, setTransferTarget] = useState<AdminDoctor | null>(null);
-    const [limitsTarget, setLimitsTarget] = useState<AdminDoctor | null>(null);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const pageSize = 50;
 
@@ -202,13 +159,6 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
         const result = await transferPatients(transferTarget.id, toDoctorId);
         showSuccess(`Transferred ${result.transferred_count} patients from ${result.from_doctor} to ${result.to_doctor}.`);
         setTransferTarget(null);
-    };
-
-    const handleLimitsSave = async (maxOwned: number, maxJoined: number) => {
-        if (!limitsTarget) return;
-        await updateDoctorLimits(limitsTarget.id, maxOwned, maxJoined);
-        showSuccess(`Limits updated for ${limitsTarget.full_name}.`);
-        setLimitsTarget(null);
     };
 
     const currentDoctors = tab === 'active' ? doctors : tab === 'pending' ? pendingDoctors : rejectedDoctors;
@@ -252,14 +202,12 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                 <th>Specialty</th>
                                 <th>Access Level</th>
                                 <th>Status</th>
-                                <th>Clinics (Own/Join)</th>
-                                <th>Forum</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {doctors.length === 0 ? (
-                                <tr><td colSpan={7} className="no-data">No active doctors found</td></tr>
+                                <tr><td colSpan={5} className="no-data">No active doctors found</td></tr>
                             ) : doctors.map(doctor => (
                                 <tr key={doctor.id} className={`doctor-row ${doctor.is_active ? 'active' : 'inactive'}`}>
                                     <td>
@@ -288,17 +236,6 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                         </span>
                                     </td>
                                     <td>
-                                        <div className="limits-cell">
-                                            <span title="Clinics owned/max">{doctor.clinics_owned}/{doctor.max_clinics_owned === 0 ? '∞' : doctor.max_clinics_owned} own</span>
-                                            <span title="Clinics joined/max">{doctor.clinics_joined}/{doctor.max_clinics_joined === 0 ? '∞' : doctor.max_clinics_joined} joined</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span className={`forum-badge ${doctor.forum_suspended ? 'forum-suspended' : 'forum-active'}`}>
-                                            {doctor.forum_suspended ? 'Suspended' : 'Active'}
-                                        </span>
-                                    </td>
-                                    <td>
                                         <div className="action-menu">
                                             {doctor.is_active ? (
                                                 <button className="btn-sm btn-deactivate" onClick={() => deactivateDoctor(doctor.id)} title="Deactivate account">
@@ -314,18 +251,6 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                                                     Transfer Patients
                                                 </button>
                                             )}
-                                            {doctor.forum_suspended ? (
-                                                <button className="btn-sm btn-secondary" onClick={() => unsuspendForum(doctor.id)} title="Lift forum suspension">
-                                                    Unsuspend Forum
-                                                </button>
-                                            ) : (
-                                                <button className="btn-sm btn-warning" onClick={() => suspendForum(doctor.id)} title="Suspend from forum">
-                                                    Suspend Forum
-                                                </button>
-                                            )}
-                                            <button className="btn-sm btn-secondary" onClick={() => setLimitsTarget(doctor)} title="Edit clinic limits">
-                                                Edit Limits
-                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -449,13 +374,6 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                     onConfirm={handleTransfer}
                     onClose={() => setTransferTarget(null)}
                     searchDoctors={searchDoctors}
-                />
-            )}
-            {limitsTarget && (
-                <LimitsEditor
-                    doctor={limitsTarget}
-                    onSave={handleLimitsSave}
-                    onClose={() => setLimitsTarget(null)}
                 />
             )}
         </div>

@@ -1,44 +1,48 @@
 // src/app/App.tsx
 
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useKeyboardShortcut } from '../shared/hooks/useKeyboardShortcut';
 
-// Shared components (small — loaded eagerly)
-import Header from '../shared/components/Header';
-import PrivateRoutes from '../shared/components/PrivateRoutes';
+// Shared components
+import AppLayout from '../shared/components/AppLayout';
 import ErrorBoundary from '../shared/components/ErrorBoundary';
-// Auth feature (tiny routes — no lazy penalty)
+
+// Auth feature (tiny — loaded eagerly)
 import { useAuth } from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/auth/components/LandingPage';
 import Register from '../features/auth/components/Register';
 import VerifyEmail from '../features/auth/components/VerifyEmail';
 import CompleteProfile from '../features/auth/components/CompleteProfile';
+import ForgotPassword from '../features/auth/components/ForgotPassword';
+import ResetPassword from '../features/auth/components/ResetPassword';
 
 // Admin components
 import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
-// Code-split lazy imports — each becomes a separate chunk
-const Dashboard = lazy(() => import('../features/auth/components/Dashboard'));
-const Patients = lazy(() => import('../features/patients/components/Patients'));
-const PatientDetail = lazy(() => import('../features/patients/components/PatientDetail'));
-const AddPatient = lazy(() => import('../features/patients/components/AddPatient'));
-const EditPatient = lazy(() => import('../features/patients/components/EditPatientPage'));
-const Appointments = lazy(() => import('../features/appointments/components/Appointments'));
-const DeletedAppointments = lazy(() => import('../features/appointments/components/DeletedAppointments'));
-// Notes feature removed — replaced by Private Notebook + Quick Note per v1 spec
-const Profile = lazy(() => import('../features/profile/components/Profile'));
-const EditProfile = lazy(() => import('../features/profile/components/EditProfile'));
-const ReferralsList = lazy(() => import('../features/referrals/components/ReferralsList'));
-const Statistics = lazy(() => import('../features/statistics/components/Statistics'));
-const PrivateNotebook = lazy(() => import('../features/notebook/components/PrivateNotebook'));
 
+// Code-split lazy imports
+const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
+const Patients          = lazy(() => import('../features/patients/components/Patients'));
+const PatientDetail     = lazy(() => import('../features/patients/components/PatientDetail'));
+const AddPatient        = lazy(() => import('../features/patients/components/AddPatient'));
+const EditPatient       = lazy(() => import('../features/patients/components/EditPatientPage'));
+const Appointments      = lazy(() => import('../features/appointments/components/Appointments'));
+const DeletedAppts      = lazy(() => import('../features/appointments/components/DeletedAppointments'));
+const Profile           = lazy(() => import('../features/profile/components/Profile'));
+const EditProfile       = lazy(() => import('../features/profile/components/EditProfile'));
+const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
+const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
+const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
+
+import PrivateRoutes from '../shared/components/PrivateRoutes';
 import PageLoader from '../shared/components/PageLoader';
 import NotFound from '../shared/components/NotFound';
 import './App.css';
 
-// Route guard component for admin-only routes
+// ── Admin route guard ─────────────────────────────────────────────────────────
 const PrivateAdminRoutes = () => {
     const { isAuthenticated, userType, adminProfile } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -49,13 +53,11 @@ const PrivateAdminRoutes = () => {
 
     return (
         <div className="admin-layout">
-            {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="admin-sidebar-overlay" onClick={() => setSidebarOpen(false)} />
             )}
             <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             <main className={`admin-main${sidebarOpen ? ' sidebar-open' : ''}`}>
-                {/* Mobile top bar */}
                 <div className="admin-mobile-topbar">
                     <button
                         className="admin-hamburger"
@@ -67,23 +69,30 @@ const PrivateAdminRoutes = () => {
                     <span className="admin-mobile-title">Altheon Admin</span>
                 </div>
                 <Routes>
-                    <Route path="/dashboard" element={<AdminDashboard />} />
-                    <Route path="/doctors" element={<AdminDoctorList initialTab="active" />} />
-                    <Route path="/doctors/pending" element={<AdminDoctorList initialTab="pending" />} />
-                    <Route path="/doctors/rejected" element={<AdminDoctorList initialTab="rejected" />} />
-                    <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                    <Route path="/dashboard"         element={<AdminDashboard />} />
+                    <Route path="/doctors"           element={<AdminDoctorList initialTab="active" />} />
+                    <Route path="/doctors/pending"   element={<AdminDoctorList initialTab="pending" />} />
+                    <Route path="/doctors/rejected"  element={<AdminDoctorList initialTab="rejected" />} />
+                    <Route path="*"                  element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
             </main>
         </div>
     );
 };
 
+const RTL_LANGUAGES = ['ar', 'ur'];
+
 function App() {
     const { isAuthenticated, authIsLoading, userType } = useAuth();
-    // Use a counter instead of boolean so rapid successive adds each trigger a refresh
-    const [refreshPatients, setRefreshPatients] = useState(0);
+    const { i18n } = useTranslation();
 
-    // Global keyboard shortcut: Cmd/Ctrl+K → focus patient search
+    // Sync <html dir> and <html lang>
+    useEffect(() => {
+        document.documentElement.dir = RTL_LANGUAGES.includes(i18n.language) ? 'rtl' : 'ltr';
+        document.documentElement.lang = i18n.language;
+    }, [i18n.language]);
+
+    // Global Ctrl+K → focus patient search
     useKeyboardShortcut({
         key: 'k',
         modifiers: ['ctrl'],
@@ -95,72 +104,58 @@ function App() {
         },
     });
 
-    const handlePatientAdded = () => {
-        setRefreshPatients(prev => prev + 1);
-    };
-
     if (authIsLoading) {
         return <PageLoader message="Starting up" brand="Altheon Connect" fullScreen />;
     }
 
-    // Admin routes
+    // ── Admin app ──────────────────────────────────────────────────────────────
     if (isAuthenticated && userType === 'admin') {
         return (
             <div className="App">
                 <Suspense fallback={<PageLoader message="Loading" />}>
                     <Routes>
                         <Route path="/admin/*" element={<PrivateAdminRoutes />} />
-                        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-                        <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+                        <Route path="/"        element={<Navigate to="/admin/dashboard" replace />} />
+                        <Route path="*"        element={<Navigate to="/admin/dashboard" replace />} />
                     </Routes>
                 </Suspense>
             </div>
         );
     }
 
-    // Doctor routes (default)
+    // ── Doctor app (sidebar layout) ────────────────────────────────────────────
     return (
         <div className="App">
-            {isAuthenticated && <Header />}
-
             <Suspense fallback={<PageLoader message="Loading" />}>
                 <Routes>
-                    {/* 1. Registration page */}
-                    <Route path="/register" element={<Register />} />
-
-                    {/* 2. Login/Landing page */}
-                    <Route path="/login" element={<LandingPage />} />
-
-                    {/* 3. Email verification — accessible when logged in but not yet verified */}
-                    <Route path="/verify-email" element={<VerifyEmail />} />
-
-                    {/* 4. Profile completion gate — accessible after email verified, before profile complete */}
+                    {/* Public routes (no sidebar) */}
+                    <Route path="/register"        element={<Register />} />
+                    <Route path="/login"           element={<LandingPage />} />
+                    <Route path="/verify-email"    element={<VerifyEmail />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password"  element={<ResetPassword />} />
 
-                    {/* Protected routes for doctors */}
+                    {/* Protected doctor routes wrapped in AppLayout (sidebar) */}
                     <Route element={<PrivateRoutes />}>
-                        <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-                        <Route path="/patients" element={<ErrorBoundary><Patients refreshPatients={refreshPatients} /></ErrorBoundary>} />
-                        <Route path="/patients/:id" element={<ErrorBoundary><PatientDetail /></ErrorBoundary>} />
-                        <Route path="/patients/add" element={<ErrorBoundary><AddPatient onPatientAdded={handlePatientAdded} /></ErrorBoundary>} />
-                        <Route path="/patients/edit/:id" element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
-                        <Route path="/appointments" element={<ErrorBoundary><Appointments /></ErrorBoundary>} />
-                        <Route path="/deleted-appointments" element={<ErrorBoundary><DeletedAppointments /></ErrorBoundary>} />
-                        {/* /notes route removed — replaced by /notebook per v1 spec */}
-
-                        <Route path="/referrals" element={<ErrorBoundary><ReferralsList /></ErrorBoundary>} />
-
-                        <Route path="/notebook" element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
-                        <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
-                        <Route path="/edit-profile" element={<ErrorBoundary><EditProfile /></ErrorBoundary>} />
-
-                        {/* Personal stats: open to all doctors — every doctor should see their own caseload */}
-                        <Route path="/my-stats" element={<ErrorBoundary><Statistics /></ErrorBoundary>} />
-
+                        <Route element={<AppLayout />}>
+                            <Route path="/dashboard"           element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                            <Route path="/patients"            element={<ErrorBoundary><Patients /></ErrorBoundary>} />
+                            <Route path="/patients/add"        element={<ErrorBoundary><AddPatient /></ErrorBoundary>} />
+                            <Route path="/patients/edit/:id"   element={<ErrorBoundary><EditPatient /></ErrorBoundary>} />
+                            <Route path="/patients/:id"        element={<ErrorBoundary><PatientDetail /></ErrorBoundary>} />
+                            <Route path="/appointments"        element={<ErrorBoundary><Appointments /></ErrorBoundary>} />
+                            <Route path="/deleted-appointments" element={<ErrorBoundary><DeletedAppts /></ErrorBoundary>} />
+                            <Route path="/referrals"           element={<ErrorBoundary><ReferralsList /></ErrorBoundary>} />
+                            <Route path="/notebook"            element={<ErrorBoundary><PrivateNotebook /></ErrorBoundary>} />
+                            <Route path="/profile"             element={<ErrorBoundary><Profile /></ErrorBoundary>} />
+                            <Route path="/edit-profile"        element={<ErrorBoundary><EditProfile /></ErrorBoundary>} />
+                            <Route path="/my-stats"            element={<ErrorBoundary><Statistics /></ErrorBoundary>} />
+                        </Route>
                     </Route>
 
-                    {/* Default redirection */}
-                    <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+                    {/* Default redirects */}
+                    <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>

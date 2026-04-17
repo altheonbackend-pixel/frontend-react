@@ -1,23 +1,25 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { resources } from './translations';
+import HttpBackend from 'i18next-http-backend';
 import { default as LanguageDetector } from 'i18next-browser-languagedetector';
 
 i18n
+  .use(HttpBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources,
-    // lng: 'fr', // Remove hardcoded language to allow detection
     fallbackLng: 'en',
+    supportedLngs: ['en', 'fr'],
     interpolation: {
       escapeValue: false,
     },
-    // Détecter la langue
+    backend: {
+      loadPath: '/locales/{{lng}}/{{ns}}.json',
+    },
     detection: {
       order: ['queryString', 'cookie', 'localStorage', 'navigator'],
-      caches: ['localStorage'], // Stocker la préférence de langue
-    }
+      caches: ['localStorage'],
+    },
   });
 
 export default i18n;

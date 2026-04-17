@@ -1,17 +1,19 @@
 // src/main.tsx
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 
 // Sentry — error monitoring (only initialised when VITE_SENTRY_DSN is set)
 // Install with: npm install @sentry/react
 // CRITICAL: request.data is redacted to prevent patient data leaking to Sentry
 if (import.meta.env.VITE_SENTRY_DSN) {
-    import('@sentry/react').then(Sentry => {
+    // @ts-expect-error — @sentry/react is an optional dep (install when DSN is configured)
+    import('@sentry/react').then((Sentry: { init: (opts: Record<string, unknown>) => void }) => {
         Sentry.init({
             dsn: import.meta.env.VITE_SENTRY_DSN,
             environment: import.meta.env.VITE_ENV ?? 'production',
             tracesSampleRate: 0.1,
-            beforeSend(event) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            beforeSend(event: any) {
                 // Never send form data — may contain patient names / medical info
                 if (event.request?.data) {
                     event.request.data = '[REDACTED]';
@@ -53,7 +55,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         <Router>
           <AuthProvider>
             <AdminContextProvider>
-              <App />
+              <Suspense fallback={null}>
+                <App />
+              </Suspense>
               <Toaster position="top-right" richColors closeButton />
             </AdminContextProvider>
           </AuthProvider>

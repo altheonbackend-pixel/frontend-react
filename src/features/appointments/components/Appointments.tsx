@@ -1,47 +1,40 @@
+// src/features/appointments/components/Appointments.tsx
+// Phase 8: Calendar + appointment list side-by-side on desktop
+
 import { useState } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { type Appointment, type Patient, type Workplace } from '../../../shared/types';
+import { type Appointment, type Patient } from '../../../shared/types';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
 import { useNavigate, Link } from 'react-router-dom';
-import '../../../shared/styles/DetailStyles.css';
-import '../styles/Appointments.css';
-
 import api from '../../../shared/services/api';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 import { queryKeys } from '../../../shared/queryKeys';
+import { PageHeader } from '../../../shared/components/PageHeader';
+import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { Avatar } from '../../../shared/components/Avatar';
+import { TabSkeleton } from '../../../shared/components/SectionCard';
+import '../styles/Appointments.css';
 
 const CONSULTATION_STARTABLE = ['scheduled', 'confirmed', 'in_progress'];
 
-const STATUS_BADGE_COLORS: Record<string, string> = {
-    scheduled: '#3182ce',
-    confirmed: '#38a169',
-    completed: '#718096',
-    cancelled: '#e53e3e',
-    no_show: '#d69e2e',
-    rescheduled: '#805ad5',
-    pending: '#dd6b20',
-};
-
 interface AppointmentWithDetails extends Appointment {
     patient_details: Patient;
-    workplace_details: Workplace;
 }
 
 function toYYYYMM(d: Date) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    return `${y}-${m}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function toYYYYMMDD(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function toYYYYMMDD(d: Date) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+// Status → CSS class suffix for left border color
+function apptStatusClass(status: string) {
+    return `appt-card appt-card--${status.replace('_', '-')}`;
 }
 
 const Appointments = () => {
@@ -51,17 +44,15 @@ const Appointments = () => {
 
     const [date, setDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState<string>(toYYYYMM(new Date()));
-
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
-    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; currentDate: string } | null>(null);
+    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
 
     const selectedDate = toYYYYMMDD(date);
 
-    // Query 1: dots for calendar tile highlighting (staleTime: 5 min)
     const { data: dotDates = [] } = useQuery({
         queryKey: queryKeys.appointments.dots(currentMonth),
         queryFn: async () => {
@@ -71,80 +62,17 @@ const Appointments = () => {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Query 2: appointment list for selected date (staleTime: 60s)
     const { data: appointments = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.appointments.list(selectedDate),
         queryFn: async () => {
             const res = await api.get('/appointments/', { params: { date: selectedDate } });
             const list: AppointmentWithDetails[] = res.data.results ?? res.data;
-            return list.sort((a, b) =>
-                new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
-            );
+            return list.sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
         },
         staleTime: 60 * 1000,
     });
 
-    const invalidateAll = () => {
-        queryClient.invalidateQueries({ queryKey: ['appointments'] });
-    };
-
-    const handleDateChange = (newDate: unknown) => {
-        if (newDate instanceof Date) {
-            setDate(newDate);
-        }
-    };
-
-    const handleActiveStartDateChange = ({ activeStartDate }: { activeStartDate: Date | null }) => {
-        if (activeStartDate) setCurrentMonth(toYYYYMM(activeStartDate));
-    };
-
-    const handleCreateAppointmentClick = () => {
-        setSelectedAppointment(null);
-        setIsFormVisible(true);
-    };
-
-    const handleEditAppointment = (appointment: Appointment) => {
-        setSelectedAppointment(appointment);
-        setIsFormVisible(true);
-    };
-
-    const handleDeleteClick = (appointment: Appointment) => {
-        setSelectedAppointment(appointment);
-        setIsDeleteModalVisible(true);
-    };
-
-    const handleFormSuccess = () => {
-        setIsFormVisible(false);
-        setSelectedAppointment(null);
-        invalidateAll();
-    };
-
-    const handleFormCancel = () => {
-        setIsFormVisible(false);
-        setSelectedAppointment(null);
-    };
-
-    const handleDeleteSuccess = () => {
-        setIsDeleteModalVisible(false);
-        setSelectedAppointment(null);
-        invalidateAll();
-    };
-
-    const handleDeleteCancel = () => {
-        setIsDeleteModalVisible(false);
-        setSelectedAppointment(null);
-    };
-
-    const requestLifecycleAction = (apptId: number, action: 'confirm' | 'complete' | 'cancel' | 'no_show') => {
-        setLifecycleConfirm({ id: apptId, action });
-    };
-
-    const handleRescheduleClick = (appt: AppointmentWithDetails) => {
-        const dt = new Date(appt.appointment_date);
-        const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-        setRescheduleDate(local);
-        setRescheduleTarget({ id: appt.id, currentDate: appt.appointment_date });
-    };
+    const invalidateAll = () => queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
     const executeReschedule = async () => {
         if (!rescheduleTarget || !rescheduleDate) return;
@@ -186,115 +114,197 @@ const Appointments = () => {
         }
     };
 
-    const tileClassName = ({ date: tileDate, view }: { date: Date; view: string }) => {
-        if (view === 'month') {
-            const iso = toYYYYMMDD(tileDate);
-            if (dotDates.includes(iso)) return 'has-appointment';
-        }
+    const tileClassName = ({ date: td, view }: { date: Date; view: string }) => {
+        if (view === 'month' && dotDates.includes(toYYYYMMDD(td))) return 'has-appointment';
         return null;
     };
 
+    const dateHeading = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
     return (
-        <div className="appointments-page">
-            <h2>{t('appointments.title')}</h2>
-            <div className="calendar-container">
-                <Calendar
-                    onChange={handleDateChange}
-                    value={date}
-                    tileClassName={tileClassName}
-                    onActiveStartDateChange={handleActiveStartDateChange}
-                />
-                <button onClick={handleCreateAppointmentClick} className="create-appt-button">
-                    {t('appointments.create_button')} {date.toLocaleDateString()}
-                </button>
-                <button onClick={() => navigate('/deleted-appointments')} className="view-deleted-button">
-                    {t('appointments.view_deleted')}
-                </button>
+        <>
+            <PageHeader
+                title={t('appointments.title', 'Appointments')}
+                actions={
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate('/deleted-appointments')}
+                    >
+                        Deleted appointments
+                    </button>
+                }
+            />
+
+            {/* Side-by-side layout on desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.25rem', alignItems: 'start' }}>
+                {/* Calendar panel */}
+                <div className="section-card">
+                    <div className="section-card-body" style={{ padding: '1rem' }}>
+                        <Calendar
+                            onChange={(v) => { if (v instanceof Date) setDate(v); }}
+                            value={date}
+                            tileClassName={tileClassName}
+                            onActiveStartDateChange={({ activeStartDate }) => {
+                                if (activeStartDate) setCurrentMonth(toYYYYMM(activeStartDate));
+                            }}
+                        />
+                    </div>
+                </div>
+
+                {/* Appointments list panel */}
+                <div className="section-card">
+                    <div className="section-card-header">
+                        <span className="section-card-title">{dateHeading}</span>
+                        <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => { setSelectedAppointment(null); setIsFormVisible(true); }}
+                        >
+                            + {t('appointments.create_button', 'New Appointment')}
+                        </button>
+                    </div>
+
+                    <div className="section-card-body section-card-body--flush">
+                        {isLoading && <div style={{ padding: '1.25rem' }}><TabSkeleton rows={4} /></div>}
+                        {isError && <div className="error-message" style={{ margin: '1rem' }}>{t('appointments.error.load')}</div>}
+
+                        {!isLoading && !isError && appointments.length === 0 && (
+                            <div className="empty-state">
+                                <div className="empty-state-icon">📅</div>
+                                <div className="empty-state-title">{t('appointments.no_appointments', 'No appointments on this day')}</div>
+                                <div className="empty-state-subtitle">Click "New Appointment" to schedule one.</div>
+                            </div>
+                        )}
+
+                        {appointments.map(appt => {
+                            const apptDate = new Date(appt.appointment_date);
+                            const patientName = appt.patient_details
+                                ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}`
+                                : 'Patient';
+
+                            return (
+                                <div key={appt.id} className={apptStatusClass(appt.status)} style={{ margin: '0.75rem' }}>
+                                    {/* Card header row */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                                        <Avatar name={patientName} size="sm" />
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                                                    {appt.patient_details
+                                                        ? <Link to={`/patients/${appt.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{patientName}</Link>
+                                                        : patientName}
+                                                </span>
+                                                <StatusBadge status={appt.status} label={appt.status_display} />
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                                🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {appt.reason_for_appointment && (
+                                        <div style={{ fontSize: '0.8375rem', color: 'var(--text-secondary)', marginBottom: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-subtle)' }}>
+                                            {appt.reason_for_appointment}
+                                        </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                        {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
+                                            <button
+                                                onClick={() => handleStartConsultation(appt)}
+                                                className="btn btn-primary btn-sm"
+                                                aria-label="Start consultation"
+                                            >
+                                                + Consult
+                                            </button>
+                                        )}
+                                        {(appt.status === 'scheduled' || appt.status === 'pending') && (
+                                            <button
+                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'confirm' })}
+                                                className="btn btn-success btn-sm"
+                                                aria-label="Confirm appointment"
+                                            >
+                                                Confirm
+                                            </button>
+                                        )}
+                                        {(appt.status === 'confirmed' || appt.status === 'in_progress') && (
+                                            <button
+                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'complete' })}
+                                                className="btn btn-secondary btn-sm"
+                                                aria-label="Mark as completed"
+                                            >
+                                                Complete
+                                            </button>
+                                        )}
+                                        {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (
+                                            <>
+                                                <button
+                                                    onClick={() => {
+                                                        const dt = new Date(appt.appointment_date);
+                                                        const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                                                        setRescheduleDate(local);
+                                                        setRescheduleTarget({ id: appt.id });
+                                                    }}
+                                                    className="btn btn-muted btn-sm"
+                                                    aria-label="Reschedule appointment"
+                                                >
+                                                    Reschedule
+                                                </button>
+                                                <button
+                                                    onClick={() => setLifecycleConfirm({ id: appt.id, action: 'cancel' })}
+                                                    className="btn-danger-outline btn-sm"
+                                                    aria-label="Cancel appointment"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </>
+                                        )}
+                                        {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                            <button
+                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
+                                                className="btn btn-muted btn-sm"
+                                                aria-label="Mark as no-show"
+                                            >
+                                                No Show
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); }}
+                                            className="btn btn-ghost btn-sm"
+                                            aria-label="Edit appointment"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => { setSelectedAppointment(appt); setIsDeleteModalVisible(true); }}
+                                            className="btn-danger-outline btn-sm"
+                                            aria-label="Delete appointment"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
-            <div className="appointments-list">
-                <h3>{t('appointments.list_title')} {date.toLocaleDateString()}</h3>
-                {isLoading && <p>{t('appointments.loading')}</p>}
-                {isError && <p className="error-message">{t('appointments.error.load')}</p>}
-                {!isLoading && appointments.length === 0 ? (
-                    <p>{t('appointments.no_appointments')}</p>
-                ) : (
-                    appointments.map(appt => (
-                        <div key={appt.id} className="appointment-item">
-                            <div className="appt-item-header">
-                                <span className="appt-patient-name">
-                                    {appt.patient_details
-                                        ? <Link to={`/patients/${appt.patient_details.unique_id}`} className="appt-patient-link">
-                                            {appt.patient_details.first_name} {appt.patient_details.last_name}
-                                          </Link>
-                                        : t('appointments.patient_unavailable')}
-                                </span>
-                                <span className="appt-status-badge" style={{ background: STATUS_BADGE_COLORS[appt.status] || '#718096' }}>
-                                    {appt.status_display || appt.status}
-                                </span>
-                            </div>
-
-                            <div className="appt-meta">
-                                <span className="appt-meta-item">
-                                    <span className="appt-meta-label">Time</span>
-                                    {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                                {appt.workplace_details && (
-                                    <span className="appt-meta-item">
-                                        <span className="appt-meta-label">Clinic</span>
-                                        {appt.workplace_details.name}
-                                    </span>
-                                )}
-                                <span className="appt-meta-item">
-                                    <span className="appt-meta-label">Reason</span>
-                                    {appt.reason_for_appointment}
-                                </span>
-                            </div>
-                            {appt.notes && <p className="appt-notes">{appt.notes}</p>}
-
-                            <div className="appointment-actions">
-                                {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
-                                    <button onClick={() => handleStartConsultation(appt)} className="appt-start-consult-btn">
-                                        + Document Consultation
-                                    </button>
-                                )}
-                                {(appt.status === 'scheduled' || appt.status === 'pending') && (
-                                    <button onClick={() => requestLifecycleAction(appt.id, 'confirm')} className="action-button confirm-button">Confirm</button>
-                                )}
-                                {(appt.status === 'confirmed' || appt.status === 'in_progress') && (
-                                    <button onClick={() => requestLifecycleAction(appt.id, 'complete')} className="action-button complete-button">Complete</button>
-                                )}
-                                {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (
-                                    <button onClick={() => requestLifecycleAction(appt.id, 'cancel')} className="action-button cancel-appt-button">Cancel</button>
-                                )}
-                                {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
-                                    <button onClick={() => requestLifecycleAction(appt.id, 'no_show')} className="action-button noshow-button">No Show</button>
-                                )}
-                                {!['cancelled', 'completed', 'no_show', 'rescheduled'].includes(appt.status) && (
-                                    <button onClick={() => handleRescheduleClick(appt)} className="action-button reschedule-button">Reschedule</button>
-                                )}
-                                <button onClick={() => handleEditAppointment(appt)} className="action-button edit-button">{t('appointments.edit')}</button>
-                                <button onClick={() => handleDeleteClick(appt)} className="action-button delete-button">{t('appointments.delete')}</button>
-                            </div>
-                        </div>
-                    ))
-                )}
-            </div>
-
+            {/* Forms & Modals */}
             {isFormVisible && (
                 <AppointmentForm
                     initialDate={date}
                     appointment={selectedAppointment}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleFormCancel}
+                    onSuccess={() => { setIsFormVisible(false); setSelectedAppointment(null); invalidateAll(); }}
+                    onCancel={() => { setIsFormVisible(false); setSelectedAppointment(null); }}
                 />
             )}
 
             {isDeleteModalVisible && selectedAppointment && (
                 <DeleteAppointmentModal
                     appointment={selectedAppointment}
-                    onSuccess={handleDeleteSuccess}
-                    onCancel={handleDeleteCancel}
+                    onSuccess={() => { setIsDeleteModalVisible(false); setSelectedAppointment(null); invalidateAll(); }}
+                    onCancel={() => { setIsDeleteModalVisible(false); setSelectedAppointment(null); }}
                 />
             )}
 
@@ -302,35 +312,51 @@ const Appointments = () => {
                 open={lifecycleConfirm !== null}
                 onClose={() => setLifecycleConfirm(null)}
                 onConfirm={executeLifecycleAction}
-                title={lifecycleConfirm ? t(`appointments.lifecycle.${lifecycleConfirm.action}_title`, { defaultValue: `${lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ')} appointment?` }) : ''}
-                message={lifecycleConfirm ? t(`appointments.lifecycle.${lifecycleConfirm.action}_message`, { defaultValue: 'This action will update the appointment status. Are you sure?' }) : ''}
+                title={lifecycleConfirm
+                    ? t(`appointments.lifecycle.${lifecycleConfirm.action}_title`, { defaultValue: `${lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ')} appointment?` })
+                    : ''}
+                message={lifecycleConfirm
+                    ? t(`appointments.lifecycle.${lifecycleConfirm.action}_message`, { defaultValue: 'This action will update the appointment status. Are you sure?' })
+                    : ''}
                 tone={lifecycleConfirm?.action === 'cancel' || lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
                 confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
             />
 
+            {/* BUG-07 fix: Reschedule now uses shared Modal pattern */}
             {rescheduleTarget && (
                 <div className="modal-overlay" onClick={() => setRescheduleTarget(null)}>
-                    <div className="modal-box reschedule-modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
                         <h3 className="modal-title">Reschedule Appointment</h3>
-                        <p className="modal-desc">Select a new date and time. The current appointment will be marked as rescheduled and a new one will be created.</p>
-                        <div className="form-group">
-                            <label htmlFor="reschedule-date">New Date &amp; Time <span className="required">*</span></label>
+                        <p className="modal-desc" style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                            Select a new date and time. The current appointment will be marked as rescheduled.
+                        </p>
+                        <div className="form-field">
+                            <label htmlFor="reschedule-date">New Date &amp; Time</label>
                             <input
                                 id="reschedule-date"
                                 type="datetime-local"
+                                className="input"
                                 value={rescheduleDate}
                                 onChange={e => setRescheduleDate(e.target.value)}
-                                className="reschedule-input"
                             />
                         </div>
-                        <div className="modal-actions">
-                            <button type="button" onClick={() => setRescheduleTarget(null)} className="cancel-button">Cancel</button>
-                            <button type="button" onClick={executeReschedule} className="action-button confirm-button" disabled={!rescheduleDate}>Reschedule</button>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRescheduleTarget(null)}>Cancel</button>
+                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={executeReschedule} disabled={!rescheduleDate}>
+                                Reschedule
+                            </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+
+            {/* Mobile responsive override */}
+            <style>{`
+                @media (max-width: 900px) {
+                    .appt-layout-grid { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
+        </>
     );
 };
 

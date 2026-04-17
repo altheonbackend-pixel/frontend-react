@@ -8,6 +8,14 @@ export const queryKeys = {
         list: (filters?: object) => ['patients', 'list', filters] as const,
         detail: (id: string) => ['patients', 'detail', id] as const,
         quickNote: (id: string) => ['patients', 'quickNote', id] as const,
+        // Per-tab lazy-loaded data (fetched only when tab is first activated)
+        consultations: (id: string) => ['patients', id, 'consultations'] as const,
+        procedures: (id: string) => ['patients', id, 'procedures'] as const,
+        referrals: (id: string) => ['patients', id, 'referrals'] as const,
+        vitals: (id: string) => ['patients', id, 'vitals'] as const,
+        labs: (id: string) => ['patients', id, 'labs'] as const,
+        medications: (id: string) => ['patients', id, 'medications'] as const,
+        appointments: (id: string) => ['patients', id, 'appointments'] as const,
     },
 
     consultations: {

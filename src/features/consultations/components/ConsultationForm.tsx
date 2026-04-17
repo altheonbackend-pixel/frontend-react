@@ -72,8 +72,6 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [icdCode, setIcdCode] = useState('');
     const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
-    const [pendingRxRetry, setPendingRxRetry] = useState<{ consultationId: number; rxForm: typeof rxForm } | null>(null);
-    const [retryingRx, setRetryingRx] = useState(false);
 
     // Draft auto-save (new consultations only)
     type FormDraft = { formData: typeof formData; symptoms: string[]; icdCode: string };
@@ -112,40 +110,16 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData, symptoms, icdCode]);
 
-    // Prescriptions for this visit
-    const [rxList, setRxList] = useState<{ medication_name: string; dosage: string; frequency: string; duration_days: string; instructions: string }[]>([]);
-    const [showRxForm, setShowRxForm] = useState(false);
-    const [rxForm, setRxForm] = useState({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
-    // Saves a prescription — throws on failure so the caller can handle partial saves.
-    const addRx = async (consultationId: number, rx: typeof rxForm) => {
-        if (!rx.medication_name.trim() || !rx.dosage.trim()) return;
-        await api.post('/prescriptions/', {
-            patient: patientId,
-            consultation: consultationId,
-            medication_name: rx.medication_name,
-            dosage: rx.dosage,
-            frequency: rx.frequency,
-            duration_days: rx.duration_days ? parseInt(rx.duration_days) : null,
-            instructions: rx.instructions,
-        });
-        setRxList(prev => [...prev, { ...rx }]);
-        setRxForm({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '', instructions: '' });
-        setShowRxForm(false);
-    };
+    // Prescriptions for this visit — compact multi-medicine adder
+    type RxDraft = { medication_name: string; dosage: string; frequency: string; duration_days: string };
+    const emptyRxDraft = (): RxDraft => ({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '' });
+    const [rxList, setRxList] = useState<RxDraft[]>([]);
+    const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
 
-    const handleRetryRx = async () => {
-        if (!pendingRxRetry) return;
-        setRetryingRx(true);
-        try {
-            await addRx(pendingRxRetry.consultationId, pendingRxRetry.rxForm);
-            setPendingRxRetry(null);
-            toast.success('Prescription saved.');
-            if (!formData.follow_up_date) onSuccess();
-        } catch (err) {
-            toast.error(parseApiError(err, 'Prescription save failed again. Please add it manually from the patient\'s Medications tab.'));
-        } finally {
-            setRetryingRx(false);
-        }
+    const pushRxToList = () => {
+        if (!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()) return;
+        setRxList(prev => [...prev, { ...rxDraft }]);
+        setRxDraft(emptyRxDraft());
     };
 
     useEffect(() => {
@@ -229,22 +203,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
-                // Attempt prescription save — treat as a separate fallible step
-                if (!isEditing && rxForm.medication_name.trim() && rxForm.dosage.trim()) {
-                    try {
-                        await addRx(response.data.id, rxForm);
-                    } catch {
-                        // Partial save: consultation OK, prescription failed.
-                        // Show retry banner — do NOT clear draft or close yet.
-                        setPendingRxRetry({ consultationId: response.data.id, rxForm: { ...rxForm } });
-                        clearDraft();
-                        setDirty(false);
-                        toast.error(
-                            'Consultation saved, but the prescription could not be saved. Use the Retry button below before closing.',
-                            { duration: 8000 }
-                        );
-                        setLoading(false);
-                        return;
+                // Save all queued prescriptions — each failure shows a toast but doesn't block close
+                if (!isEditing && rxList.length > 0) {
+                    let failCount = 0;
+                    for (const rx of rxList) {
+                        try {
+                            await api.post('/prescriptions/', {
+                                patient: patientId,
+                                consultation: response.data.id,
+                                medication_name: rx.medication_name,
+                                dosage: rx.dosage,
+                                frequency: rx.frequency,
+                                duration_days: rx.duration_days ? parseInt(rx.duration_days, 10) : null,
+                                instructions: '',
+                            });
+                        } catch {
+                            failCount++;
+                        }
+                    }
+                    if (failCount > 0) {
+                        toast.error(`${failCount} prescription(s) could not be saved. Add them manually from the Medications tab.`);
                     }
                 }
                 clearDraft();
@@ -321,27 +299,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             dirty={dirty}
             footer={
                 <>
-                    {pendingRxRetry && (
-                        <div className="rx-retry-banner">
-                            <span>Prescription was not saved.</span>
-                            <button type="button" className="btn btn-danger" onClick={handleRetryRx} disabled={retryingRx}>
-                                {retryingRx ? 'Retrying...' : 'Retry Prescription'}
-                            </button>
-                            <button type="button" className="btn-link" onClick={() => { setPendingRxRetry(null); onSuccess(); }}>
-                                Skip (add manually later)
-                            </button>
-                        </div>
-                    )}
-                    {!pendingRxRetry && (
-                        <>
-                            <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
-                                {t('consultation.cancel')}
-                            </button>
-                            <button type="submit" form="consultation-form" className="btn btn-primary" disabled={loading}>
-                                {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
-                            </button>
-                        </>
-                    )}
+                    <button type="button" onClick={onCancel} className="cancel-button" disabled={loading}>
+                        {t('consultation.cancel')}
+                    </button>
+                    <button type="submit" form="consultation-form" className="btn btn-primary" disabled={loading}>
+                        {loading ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
+                    </button>
                 </>
             }
         >
@@ -515,82 +478,89 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         <input type="date" id="follow_up_date" name="follow_up_date" value={formData.follow_up_date} onChange={handleChange} />
                     </div>
 
-                    {/* Prescriptions this visit */}
+                    {/* Prescriptions this visit — compact multi-medicine adder */}
                     {!consultationToEdit && (
-                        <div className="form-group">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <label style={{ marginBottom: 0 }}>Prescriptions this visit</label>
-                                <button type="button" className="btn btn--sm btn--secondary" onClick={() => setShowRxForm(v => !v)}>
-                                    {showRxForm ? 'Cancel' : '+ Add Prescription'}
-                                </button>
+                        <div className="rx-section">
+                            <div className="rx-section-header">
+                                <span className="rx-section-label">Prescriptions this visit</span>
+                                {rxList.length > 0 && <span className="rx-count">{rxList.length}</span>}
                             </div>
+
+                            {/* Added medicines */}
                             {rxList.length > 0 && (
-                                <ul style={{ margin: '0 0 8px 0', padding: '0', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div className="rx-list">
                                     {rxList.map((rx, i) => (
-                                        <li key={i} style={{ fontSize: 'var(--text-sm)', padding: '6px 10px', background: 'var(--color-background-secondary)', borderRadius: '6px' }}>
-                                            <strong>{rx.medication_name}</strong> — {rx.dosage} ({rx.frequency})
-                                        </li>
+                                        <div key={i} className="rx-item">
+                                            <span className="rx-item-name">{rx.medication_name}</span>
+                                            <span className="rx-item-sep">·</span>
+                                            <span className="rx-item-detail">{rx.dosage}</span>
+                                            <span className="rx-item-sep">·</span>
+                                            <span className="rx-item-detail">{rx.frequency.replace(/_/g, ' ')}</span>
+                                            {rx.duration_days && (
+                                                <><span className="rx-item-sep">·</span><span className="rx-item-detail">{rx.duration_days}d</span></>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className="rx-remove"
+                                                onClick={() => setRxList(p => p.filter((_, j) => j !== i))}
+                                                aria-label="Remove prescription"
+                                            >×</button>
+                                        </div>
                                     ))}
-                                </ul>
-                            )}
-                            {showRxForm && (
-                                <div style={{ border: '1px solid var(--color-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Medication <span className="required">*</span></label>
-                                            <input
-                                                value={rxForm.medication_name}
-                                                onChange={e => setRxForm(p => ({ ...p, medication_name: e.target.value }))}
-                                                placeholder="e.g. Amoxicillin 500mg"
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Dosage <span className="required">*</span></label>
-                                            <input
-                                                value={rxForm.dosage}
-                                                onChange={e => setRxForm(p => ({ ...p, dosage: e.target.value }))}
-                                                placeholder="e.g. 1 tablet"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label>Frequency</label>
-                                            <select value={rxForm.frequency} onChange={e => setRxForm(p => ({ ...p, frequency: e.target.value }))}>
-                                                <option value="once">Once</option>
-                                                <option value="once_daily">Once Daily</option>
-                                                <option value="twice_daily">Twice Daily</option>
-                                                <option value="three_times_daily">Three Times Daily</option>
-                                                <option value="four_times_daily">Four Times Daily</option>
-                                                <option value="as_needed">As Needed</option>
-                                                <option value="weekly">Weekly</option>
-                                                <option value="other">Other</option>
-                                            </select>
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Duration (days)</label>
-                                            <input
-                                                type="number"
-                                                value={rxForm.duration_days}
-                                                onChange={e => setRxForm(p => ({ ...p, duration_days: e.target.value }))}
-                                                placeholder="e.g. 7"
-                                                min="1"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Instructions</label>
-                                        <input
-                                            value={rxForm.instructions}
-                                            onChange={e => setRxForm(p => ({ ...p, instructions: e.target.value }))}
-                                            placeholder="e.g. Take with food"
-                                        />
-                                    </div>
-                                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', margin: 0 }}>
-                                        Prescription will be saved when you submit the consultation.
-                                    </p>
                                 </div>
                             )}
+
+                            {/* Compact inline adder row */}
+                            <div className="rx-adder">
+                                <input
+                                    type="text"
+                                    className="rx-adder-input"
+                                    placeholder="Medication name"
+                                    value={rxDraft.medication_name}
+                                    onChange={e => setRxDraft(p => ({ ...p, medication_name: e.target.value }))}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
+                                />
+                                <input
+                                    type="text"
+                                    className="rx-adder-input rx-adder-dosage"
+                                    placeholder="Dosage"
+                                    value={rxDraft.dosage}
+                                    onChange={e => setRxDraft(p => ({ ...p, dosage: e.target.value }))}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
+                                />
+                                <select
+                                    className="rx-adder-select"
+                                    value={rxDraft.frequency}
+                                    onChange={e => setRxDraft(p => ({ ...p, frequency: e.target.value }))}
+                                >
+                                    <option value="once">Once</option>
+                                    <option value="once_daily">Once daily</option>
+                                    <option value="twice_daily">Twice daily</option>
+                                    <option value="three_times_daily">3× daily</option>
+                                    <option value="four_times_daily">4× daily</option>
+                                    <option value="as_needed">PRN</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="other">Other</option>
+                                </select>
+                                <input
+                                    type="number"
+                                    className="rx-adder-input rx-adder-days"
+                                    placeholder="Days"
+                                    min="1"
+                                    value={rxDraft.duration_days}
+                                    onChange={e => setRxDraft(p => ({ ...p, duration_days: e.target.value }))}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
+                                />
+                                <button
+                                    type="button"
+                                    className="rx-adder-btn"
+                                    disabled={!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()}
+                                    onClick={pushRxToList}
+                                >
+                                    + Add
+                                </button>
+                            </div>
+                            <p className="rx-hint">Prescriptions save automatically when you submit the consultation.</p>
                         </div>
                     )}
 

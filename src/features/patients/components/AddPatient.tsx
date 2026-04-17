@@ -1,15 +1,18 @@
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import PatientForm from './PatientForm';
+import type { Patient } from '../../../shared/types';
 
-interface AddPatientProps {
-    onPatientAdded: () => void;
-}
-
-const AddPatient = ({ onPatientAdded }: AddPatientProps) => {
+const AddPatient = () => {
     const navigate = useNavigate();
-    const handleClose = () => navigate('/patients');
+    const queryClient = useQueryClient();
 
-    return <PatientForm onSuccess={onPatientAdded} onCancel={handleClose} />;
+    const handleSuccess = (_patient: Patient) => {
+        queryClient.invalidateQueries({ queryKey: ['patients'] });
+        navigate('/patients');
+    };
+
+    return <PatientForm onSuccess={handleSuccess} onCancel={() => navigate('/patients')} />;
 };
 
 export default AddPatient;

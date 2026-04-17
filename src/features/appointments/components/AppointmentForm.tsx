@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { type Patient, type Workplace, type Appointment } from '../../../shared/types';
+import { type Patient, type Appointment } from '../../../shared/types';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 import '../styles/AppointmentForm.css';
@@ -19,11 +19,9 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
     const [formData, setFormData] = useState({
         appointment_date: '',
         patient: '',
-        workplace: '',
         reason_for_appointment: ''
     });
     const [patients, setPatients] = useState<Patient[]>([]);
-    const [workplaces, setWorkplaces] = useState<Workplace[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [dirty, setDirty] = useState(false);
@@ -41,9 +39,6 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                 const patientsResponse = await api.get('/patients/');
                 setPatients(patientsResponse.data.results ?? patientsResponse.data);
 
-                const workplacesResponse = await api.get('/workplaces/');
-                setWorkplaces(workplacesResponse.data.results ?? workplacesResponse.data);
-
                 setLoading(false);
             } catch {
                 setLoadError(t('appointments.form.error_load'));
@@ -57,9 +52,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
         if (!loading && appointment) {
             setFormData({
                 appointment_date: appointment.appointment_date.slice(0, 16),
-                // CORRECTION ICI : Utilisez `appointment.patient` directement car c'est déjà l'ID du patient.
                 patient: appointment.patient,
-                workplace: String(appointment.workplace),
                 reason_for_appointment: appointment.reason_for_appointment
             });
         } else if (!loading) {
@@ -138,25 +131,6 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                             {patients.map(patient => (
                                 <option key={patient.unique_id} value={patient.unique_id}>
                                     {patient.first_name} {patient.last_name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className="form-group">
-                        <label htmlFor="workplace">{t('appointments.workplace_label')}</label>
-                        <select
-                            id="workplace"
-                            name="workplace"
-                            className="select-input"
-                            value={formData.workplace}
-                            onChange={handleChange}
-                            required
-                        >
-                            <option value="">{t('appointments.form.select_workplace')}</option>
-                            {workplaces.map(workplace => (
-                                <option key={workplace.id} value={workplace.id}>
-                                    {workplace.name}
                                 </option>
                             ))}
                         </select>

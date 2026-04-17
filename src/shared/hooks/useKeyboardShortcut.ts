@@ -7,6 +7,8 @@ interface ShortcutOptions {
   modifiers?: ModifierKey[];
   onKeyDown: (event: KeyboardEvent) => void;
   enabled?: boolean;
+  /** BUG-11 fix: return true from this to suppress the shortcut (e.g. when focused in input) */
+  ignoreWhen?: () => boolean;
 }
 
 export function useKeyboardShortcut({
@@ -14,10 +16,16 @@ export function useKeyboardShortcut({
   modifiers = [],
   onKeyDown,
   enabled = true,
+  ignoreWhen,
 }: ShortcutOptions) {
   const handler = useCallback(
     (event: KeyboardEvent) => {
       if (!enabled) return;
+
+      // BUG-11: don't fire when focused inside text-entry elements
+      const activeTag = (document.activeElement as HTMLElement)?.tagName?.toUpperCase();
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return;
+      if (ignoreWhen?.()) return;
 
       const matchesKey = event.key.toLowerCase() === key.toLowerCase();
       const matchesShift = modifiers.includes('shift') ? event.shiftKey : !event.shiftKey;
@@ -34,7 +42,7 @@ export function useKeyboardShortcut({
         onKeyDown(event);
       }
     },
-    [key, modifiers, onKeyDown, enabled],
+    [key, modifiers, onKeyDown, enabled, ignoreWhen],
   );
 
   useEffect(() => {

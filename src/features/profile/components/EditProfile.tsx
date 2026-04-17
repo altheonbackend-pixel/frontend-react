@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Select from 'react-select';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { type DoctorProfile, type Workplace } from '../../../shared/types';
+import { type DoctorProfile } from '../../../shared/types';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 
@@ -20,69 +19,40 @@ const EditProfile = () => {
         phone_number: '',
         address: '',
     });
-    const [workplaces, setWorkplaces] = useState<Workplace[]>([]);
-    const [selectedWorkplaces, setSelectedWorkplaces] = useState<Workplace[]>([]);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [dirty, setDirty] = useState(false);
 
     useEffect(() => {
-        const fetchData = async () => {
-            if (!isAuthenticated) {
-                toast.error(t('edit_profile.error.auth'));
-                setInitialLoading(false);
-                return;
-            }
+        if (!isAuthenticated) {
+            toast.error(t('edit_profile.error.auth'));
+            setInitialLoading(false);
+            return;
+        }
 
-            try {
-                const workplacesResponse = await api.get('/workplaces/');
-                const allWorkplaces: Workplace[] = workplacesResponse.data.results ?? workplacesResponse.data;
-                setWorkplaces(allWorkplaces);
+        if (profile) {
+            const nameParts = profile.full_name.split(' ');
+            const firstName = nameParts.shift() || '';
+            const lastName = nameParts.join(' ');
 
-                if (profile) {
-                    const nameParts = profile.full_name.split(' ');
-                    const firstName = nameParts.shift() || '';
-                    const lastName = nameParts.join(' ');
+            setFormData({
+                first_name: firstName,
+                last_name: lastName,
+                email: profile.email,
+                specialty: profile.specialty || '',
+                license_number: profile.license_number || '',
+                phone_number: profile.phone_number || '',
+                address: profile.address || '',
+            });
+        }
 
-                    setFormData({
-                        first_name: firstName,
-                        last_name: lastName,
-                        email: profile.email,
-                        specialty: profile.specialty || '',
-                        license_number: profile.license_number || '',
-                        phone_number: profile.phone_number || '',
-                        address: profile.address || '',
-                    });
-
-                    if (profile.workplaces) {
-                        const preselected = allWorkplaces.filter(w =>
-                            profile.workplaces?.some(pw => pw.id === w.id)
-                        );
-                        setSelectedWorkplaces(preselected);
-                    }
-                }
-            } catch (err) {
-                toast.error(parseApiError(err, t('edit_profile.error.load')));
-            } finally {
-                setInitialLoading(false);
-            }
-        };
-
-        fetchData();
+        setInitialLoading(false);
     }, [profile, isAuthenticated, t]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setDirty(true);
-        setFormData(prevData => ({
-            ...prevData,
-            [name]: value,
-        }));
-    };
-
-    const handleSelectChange = (newValue: readonly (Workplace & { value: number; label: string })[]) => {
-        setDirty(true);
-        setSelectedWorkplaces(newValue.map(({ value: _v, label: _l, ...rest }) => rest as Workplace));
+        setFormData(prevData => ({ ...prevData, [name]: value }));
     };
 
     const handleClose = () => navigate('/profile');
@@ -92,12 +62,7 @@ const EditProfile = () => {
         setLoading(true);
 
         try {
-            const payload = {
-                ...formData,
-                workplaces: selectedWorkplaces.map(w => w.id),
-            };
-
-            const response = await api.put('/profile/update/', payload);
+            const response = await api.put('/profile/update/', formData);
 
             const updatedProfile: DoctorProfile = {
                 id: response.data.id,
@@ -107,7 +72,6 @@ const EditProfile = () => {
                 license_number: response.data.license_number,
                 phone_number: response.data.phone_number,
                 address: response.data.address,
-                workplaces: response.data.workplaces,
                 access_level: response.data.access_level || 1,
             };
 
@@ -121,18 +85,6 @@ const EditProfile = () => {
             setLoading(false);
         }
     };
-
-    const options = workplaces.map(w => ({
-        value: w.id,
-        label: w.name,
-        ...w
-    }));
-
-    const defaultValues = selectedWorkplaces.map(w => ({
-        value: w.id,
-        label: w.name,
-        ...w
-    }));
 
     return (
         <Modal
@@ -185,17 +137,6 @@ const EditProfile = () => {
                     <div className="form-group">
                         <label htmlFor="address">{t('edit_profile.labels.address')}</label>
                         <textarea id="address" name="address" value={formData.address} onChange={handleChange}></textarea>
-                    </div>
-
-                    <div className="form-group">
-                        <label>{t('edit_profile.labels.workplaces')}</label>
-                        <Select
-                            isMulti
-                            options={options}
-                            value={defaultValues}
-                            onChange={handleSelectChange}
-                            placeholder={t('edit_profile.placeholders.workplaces')}
-                        />
                     </div>
                 </form>
             )}

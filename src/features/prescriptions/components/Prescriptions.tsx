@@ -5,6 +5,8 @@ import { type Prescription } from '../../../shared/types';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import '../styles/Prescriptions.css';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
+import { PageHeader } from '../../../shared/components/PageHeader';
+import { TabSkeleton } from '../../../shared/components/SectionCard';
 
 // Drug suggestions come from the backend API (/api/drugs/search/?q=...) — 413+ drugs
 let drugSearchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -233,14 +235,13 @@ function Prescriptions() {
     });
 
     return (
-        <div className="prescriptions-page">
-            <div className="prescriptions-header">
-                <div>
-                    <h2>Prescriptions</h2>
-                    <p className="prescriptions-sub">Manage all medication prescriptions</p>
-                </div>
-                <button onClick={openCreateForm} className="btn-create-rx">+ New Prescription</button>
-            </div>
+        <>
+        <PageHeader
+            title="Prescriptions"
+            subtitle="Manage all medication prescriptions"
+            actions={<button onClick={openCreateForm} className="btn-create-rx">+ New Prescription</button>}
+        />
+        <div className="prescriptions-page" style={{ paddingTop: 0 }}>
 
             {error && <div className="rx-error">{error}</div>}
 
@@ -268,7 +269,7 @@ function Prescriptions() {
 
             {/* Prescription list */}
             {loading ? (
-                <p className="rx-loading">Loading prescriptions...</p>
+                <div className="section-card"><div className="section-card-body"><TabSkeleton rows={4} /></div></div>
             ) : filtered.length === 0 ? (
                 <p className="rx-empty">No prescriptions found.</p>
             ) : (
@@ -430,6 +431,7 @@ function Prescriptions() {
                 />
             )}
         </div>
+        </>
     );
 }
 

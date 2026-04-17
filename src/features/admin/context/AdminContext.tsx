@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { AdminProfile, AdminStats, AdminDoctor, AdminClinic, AdminForumPost } from '../../../shared/types';
+import type { AdminProfile, AdminStats, AdminDoctor } from '../../../shared/types';
 import api from '../../../shared/services/api';
 
 interface AdminContextType {
@@ -17,16 +17,6 @@ interface AdminContextType {
     rejectedDoctors: AdminDoctor[];
     totalRejected: number;
 
-    // Clinics
-    clinics: AdminClinic[];
-    totalClinics: number;
-    currentClinicsPage: number;
-
-    // Forum
-    forumPosts: AdminForumPost[];
-    totalForumPosts: number;
-    currentForumPage: number;
-
     logout: () => void;
 
     // Stats
@@ -37,26 +27,12 @@ interface AdminContextType {
     fetchPendingDoctors: (page: number) => Promise<void>;
     fetchRejectedDoctors: (page: number) => Promise<void>;
     updateDoctorAccessLevel: (doctorId: number, accessLevel: 1 | 2) => Promise<void>;
-    updateDoctorLimits: (doctorId: number, maxOwned: number, maxJoined: number) => Promise<void>;
     activateDoctor: (doctorId: number) => Promise<void>;
     deactivateDoctor: (doctorId: number) => Promise<void>;
     approveDoctor: (doctorId: number) => Promise<void>;
     rejectDoctor: (doctorId: number, reason: string) => Promise<void>;
     transferPatients: (fromDoctorId: number, toDoctorId: number) => Promise<{ transferred_count: number; from_doctor: string; to_doctor: string }>;
-    suspendForum: (doctorId: number) => Promise<void>;
-    unsuspendForum: (doctorId: number) => Promise<void>;
     searchDoctors: (query: string) => Promise<AdminDoctor[]>;
-
-    // Clinic management
-    fetchClinics: (page: number) => Promise<void>;
-    deactivateClinic: (clinicId: number) => Promise<void>;
-    transferClinicOwner: (clinicId: number, newOwnerId: number) => Promise<void>;
-    deleteClinic: (clinicId: number) => Promise<void>;
-
-    // Forum moderation
-    fetchForumPosts: (page: number) => Promise<void>;
-    removeForumPost: (postId: number) => Promise<void>;
-    removeForumComment: (commentId: number) => Promise<void>;
 }
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -77,14 +53,6 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [rejectedDoctors, setRejectedDoctors] = useState<AdminDoctor[]>([]);
     const [totalRejected, setTotalRejected] = useState(0);
 
-    const [clinics, setClinics] = useState<AdminClinic[]>([]);
-    const [totalClinics, setTotalClinics] = useState(0);
-    const [currentClinicsPage, setCurrentClinicsPage] = useState(1);
-
-    const [forumPosts, setForumPosts] = useState<AdminForumPost[]>([]);
-    const [totalForumPosts, setTotalForumPosts] = useState(0);
-    const [currentForumPage, setCurrentForumPage] = useState(1);
-
     useEffect(() => {
         const storedProfile = localStorage.getItem('admin_profile');
         if (storedProfile) {
@@ -99,8 +67,6 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setDoctors([]);
         setPendingDoctors([]);
         setRejectedDoctors([]);
-        setClinics([]);
-        setForumPosts([]);
         setError(null);
     };
 
@@ -188,21 +154,6 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
     };
 
-    const updateDoctorLimits = async (doctorId: number, maxOwned: number, maxJoined: number) => {
-        try {
-            setError(null);
-            await api.patch(`/admin/doctors/${doctorId}/`, {
-                max_clinics_owned: maxOwned,
-                max_clinics_joined: maxJoined,
-            });
-            setDoctors(prev => prev.map(d =>
-                d.id === doctorId ? { ...d, max_clinics_owned: maxOwned, max_clinics_joined: maxJoined } : d
-            ));
-        } catch (_err) {
-            setError('Failed to update doctor limits.');
-        }
-    };
-
     const activateDoctor = async (doctorId: number) => {
         try {
             setError(null);
@@ -258,117 +209,9 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return res.data as { transferred_count: number; from_doctor: string; to_doctor: string };
     };
 
-    const suspendForum = async (doctorId: number) => {
-        try {
-            setError(null);
-            await api.post(`/admin/doctors/${doctorId}/suspend-forum/`);
-            setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, forum_suspended: true } : d));
-            await fetchStats();
-        } catch (_err) {
-            setError('Failed to suspend forum access.');
-        }
-    };
-
-    const unsuspendForum = async (doctorId: number) => {
-        try {
-            setError(null);
-            await api.post(`/admin/doctors/${doctorId}/unsuspend-forum/`);
-            setDoctors(prev => prev.map(d => d.id === doctorId ? { ...d, forum_suspended: false } : d));
-            await fetchStats();
-        } catch (_err) {
-            setError('Failed to lift forum suspension.');
-        }
-    };
-
     const searchDoctors = async (query: string): Promise<AdminDoctor[]> => {
         const res = await api.get('/admin/doctors/search/', { params: { q: query } });
         return res.data.results;
-    };
-
-    // ── Clinic management ─────────────────────────────────────────────────────
-    const fetchClinics = async (page = 1) => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const response = await api.get('/admin/clinics/', { params: { page } });
-            setClinics(response.data.results);
-            setTotalClinics(response.data.count);
-            setCurrentClinicsPage(page);
-        } catch (err) {
-            handleError(err, 'Failed to load clinics.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const deactivateClinic = async (clinicId: number) => {
-        try {
-            setError(null);
-            await api.post(`/admin/clinics/${clinicId}/deactivate/`);
-            setClinics(prev => prev.map(c => c.id === clinicId ? { ...c, is_public: false } : c));
-            await fetchStats();
-        } catch (_err) {
-            setError('Failed to deactivate clinic.');
-        }
-    };
-
-    const transferClinicOwner = async (clinicId: number, newOwnerId: number) => {
-        try {
-            setError(null);
-            const res = await api.post(`/admin/clinics/${clinicId}/transfer-owner/`, { new_owner_id: newOwnerId });
-            setClinics(prev => prev.map(c => c.id === clinicId ? res.data : c));
-        } catch (_err) {
-            setError('Failed to transfer clinic ownership.');
-        }
-    };
-
-    const deleteClinic = async (clinicId: number) => {
-        try {
-            setError(null);
-            await api.delete(`/admin/clinics/${clinicId}/delete_clinic/`);
-            setClinics(prev => prev.filter(c => c.id !== clinicId));
-            setTotalClinics(prev => Math.max(0, prev - 1));
-            await fetchStats();
-        } catch (_err) {
-            setError('Failed to delete clinic.');
-        }
-    };
-
-    // ── Forum moderation ──────────────────────────────────────────────────────
-    const fetchForumPosts = async (page = 1) => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const response = await api.get('/admin/forum/', { params: { page } });
-            setForumPosts(response.data.results);
-            setTotalForumPosts(response.data.count);
-            setCurrentForumPage(page);
-        } catch (err) {
-            handleError(err, 'Failed to load forum posts.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const removeForumPost = async (postId: number) => {
-        try {
-            setError(null);
-            await api.delete(`/admin/forum/${postId}/remove-post/`);
-            setForumPosts(prev => prev.filter(p => p.id !== postId));
-            setTotalForumPosts(prev => Math.max(0, prev - 1));
-            await fetchStats();
-        } catch (_err) {
-            setError('Failed to remove forum post.');
-        }
-    };
-
-    const removeForumComment = async (commentId: number) => {
-        try {
-            setError(null);
-            await api.delete(`/admin/forum/remove-comment/?comment_id=${commentId}`);
-        } catch (_err) {
-            setError('Failed to remove forum comment.');
-        }
     };
 
     return (
@@ -378,19 +221,14 @@ export const AdminContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 doctors, totalDoctors, currentPage,
                 pendingDoctors, totalPending,
                 rejectedDoctors, totalRejected,
-                clinics, totalClinics, currentClinicsPage,
-                forumPosts, totalForumPosts, currentForumPage,
                 logout,
                 fetchStats,
                 fetchDoctors, fetchPendingDoctors, fetchRejectedDoctors,
-                updateDoctorAccessLevel, updateDoctorLimits,
+                updateDoctorAccessLevel,
                 activateDoctor, deactivateDoctor,
                 approveDoctor, rejectDoctor,
                 transferPatients,
-                suspendForum, unsuspendForum,
                 searchDoctors,
-                fetchClinics, deactivateClinic, transferClinicOwner, deleteClinic,
-                fetchForumPosts, removeForumPost, removeForumComment,
             }}
         >
             {children}

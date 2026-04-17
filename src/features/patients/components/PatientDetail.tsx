@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useKeyboardShortcut } from '../../../shared/hooks/useKeyboardShortcut';
 import {
@@ -19,6 +20,9 @@ import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 import { type LabResult, type Prescription } from '../../../shared/types';
+import { PageHeader } from '../../../shared/components/PageHeader';
+import { Avatar } from '../../../shared/components/Avatar';
+import { TabSkeleton } from '../../../shared/components/SectionCard';
 
 type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'notes' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
 
@@ -105,6 +109,8 @@ const PatientDetails = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['overview']));
+    const queryClient = useQueryClient();
 
     const [showConsultationForm, setShowConsultationForm] = useState(false);
     const [showProcedureForm, setShowProcedureForm] = useState(false);
@@ -133,32 +139,60 @@ const PatientDetails = () => {
     const [allergenSuggestions, setAllergenSuggestions] = useState<string[]>([]);
     const [showAllergenSuggestions, setShowAllergenSuggestions] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
-    const [vitalsTrend, setVitalsTrend] = useState<VitalsPoint[]>([]);
-    const [vitalsLoading, setVitalsLoading] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
     // Lab Results
-    const [labResults, setLabResults] = useState<LabResult[]>([]);
-    const [labsLoading, setLabsLoading] = useState(false);
     const [showLabForm, setShowLabForm] = useState(false);
     const [editingLabId, setEditingLabId] = useState<number | null>(null);
     const [labForm, setLabForm] = useState({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
     const [labFormLoading, setLabFormLoading] = useState(false);
     const [confirmDeleteLabId, setConfirmDeleteLabId] = useState<number | null>(null);
 
-    // Medications (active prescriptions)
-    const [medications, setMedications] = useState<Prescription[]>([]);
-    const [medicationsLoading, setMedicationsLoading] = useState(false);
+    // Lazy-loaded tab data via TanStack Query (fetched only when tab is first activated)
+    const { data: vitalsTrend = [], isLoading: vitalsLoading } = useQuery<VitalsPoint[]>({
+        queryKey: ['patients', id, 'vitals'],
+        queryFn: async () => {
+            const res = await api.get(`/patients/${id}/vitals-trend/`);
+            return res.data.vitals || [];
+        },
+        enabled: loadedTabs.has('vitals'),
+        staleTime: 2 * 60 * 1000,
+    });
 
-    // Appointments for this patient (read-only history)
-    const [patientAppointments, setPatientAppointments] = useState<Array<{
+    const { data: labResults = [], isLoading: labsLoading } = useQuery<LabResult[]>({
+        queryKey: ['patients', id, 'labs'],
+        queryFn: async () => {
+            const res = await api.get('/lab-results/', { params: { patient: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('labs'),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    const { data: medications = [], isLoading: medicationsLoading } = useQuery<Prescription[]>({
+        queryKey: ['patients', id, 'medications'],
+        queryFn: async () => {
+            const res = await api.get('/prescriptions/', { params: { patient_id: id, is_active: true } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('medications'),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    const { data: patientAppointments = [], isLoading: appointmentsLoading } = useQuery<Array<{
         id: number;
         appointment_date: string;
         status: string;
         reason_for_appointment: string;
-        workplace_details?: { name: string };
-    }>>([]);
-    const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+    }>>({
+        queryKey: ['patients', id, 'appointments'],
+        queryFn: async () => {
+            const res = await api.get('/appointments/', { params: { patient_id: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('appointments'),
+        staleTime: 2 * 60 * 1000,
+    });
 
     // Tab refs for mobile scrollIntoView
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -231,13 +265,21 @@ const PatientDetails = () => {
         setReferralToEdit(null);
     };
 
+    // handleTabChange: mark tab as loaded (triggers useQuery for that tab on first activation)
+    const handleTabChange = (tab: Tab) => {
+        setActiveTab(tab);
+        setLoadedTabs(prev => new Set([...prev, tab]));
+        const el = tabRefs.current[tab];
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    };
+
     // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
     const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm;
     useKeyboardShortcut({
         key: 'n',
         modifiers: ['ctrl'],
         enabled: !anyFormOpen,
-        onKeyDown: () => { setConsultationToEdit(null); setShowConsultationForm(true); setActiveTab('consultations'); },
+        onKeyDown: () => { setConsultationToEdit(null); setShowConsultationForm(true); handleTabChange('consultations'); },
     });
     useKeyboardShortcut({
         key: 'Escape',
@@ -245,74 +287,13 @@ const PatientDetails = () => {
         onKeyDown: handleCancel,
     });
 
-    // Reset vitals/labs/appointments when navigating to a different patient
+    // Reset quick note and loadedTabs when navigating to a different patient
+    // (TanStack Query automatically scopes cached data per patient via query keys)
     useEffect(() => {
-        setVitalsTrend([]);
-        setLabResults([]);
-        setPatientAppointments([]);
         setQuickNote('');
         setQuickNoteLoaded(false);
+        setLoadedTabs(new Set(['overview']));
     }, [id]);
-
-    // Mobile tab bar: scroll active tab into view on tab change
-    useEffect(() => {
-        const el = tabRefs.current[activeTab];
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-    }, [activeTab]);
-
-    const fetchVitalsTrend = async () => {
-        if (!id) return;
-        setVitalsLoading(true);
-        try {
-            const res = await api.get(`/patients/${id}/vitals-trend/`);
-            setVitalsTrend(res.data.vitals || []);
-        } catch {
-            /* silently fail */
-        } finally {
-            setVitalsLoading(false);
-        }
-    };
-
-    const fetchLabResults = async () => {
-        if (!id) return;
-        setLabsLoading(true);
-        try {
-            const res = await api.get('/lab-results/', { params: { patient: id } });
-            setLabResults(res.data.results ?? res.data);
-        } catch {
-            /* silently fail */
-        } finally {
-            setLabsLoading(false);
-        }
-    };
-
-    const fetchMedications = async () => {
-        if (!id) return;
-        setMedicationsLoading(true);
-        try {
-            const res = await api.get('/prescriptions/', { params: { patient_id: id, is_active: true } });
-            setMedications(res.data.results ?? res.data);
-        } catch {
-            /* silently fail */
-        } finally {
-            setMedicationsLoading(false);
-        }
-    };
-
-    const fetchPatientAppointments = async () => {
-        if (!id) return;
-        setAppointmentsLoading(true);
-        try {
-            const res = await api.get('/appointments/', { params: { patient_id: id } });
-            setPatientAppointments(res.data.results ?? res.data);
-        } catch {
-            /* silently fail */
-        } finally {
-            setAppointmentsLoading(false);
-        }
-    };
 
     const fetchQuickNote = async () => {
         if (!id) return;
@@ -352,7 +333,7 @@ const PatientDetails = () => {
             setShowLabForm(false);
             setEditingLabId(null);
             setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
-            fetchLabResults();
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to save lab result.'));
         } finally {
@@ -365,7 +346,7 @@ const PatientDetails = () => {
             await api.delete(`/lab-results/${labId}/`);
             toast.success('Lab result deleted.');
             setConfirmDeleteLabId(null);
-            setLabResults(prev => prev.filter(l => l.id !== labId));
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to delete lab result.'));
             setConfirmDeleteLabId(null);
@@ -561,13 +542,15 @@ const PatientDetails = () => {
 
     return (
         <>
+        <PageHeader
+            title={`${patient.first_name} ${patient.last_name}`}
+            breadcrumb={[{ label: 'Patients', href: '/patients' }]}
+        />
         <div className="patient-details-container detail-container">
             {/* Header */}
             <div className="patient-header-card">
                 <div className="patient-header-identity">
-                    <div className="patient-avatar-lg" aria-hidden="true">
-                        {patient.first_name.charAt(0)}{patient.last_name.charAt(0)}
-                    </div>
+                    <Avatar name={`${patient.first_name} ${patient.last_name}`} size="lg" ring />
                     <div className="patient-header-info">
                         <h2 className="patient-name">{patient.first_name} {patient.last_name}</h2>
                         <div className="patient-meta">
@@ -591,19 +574,19 @@ const PatientDetails = () => {
                 {/* Action strip — scrollable horizontal row, never makes page wider */}
                 <div className="patient-action-strip">
                     <button
-                        onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); setActiveTab('consultations'); }}
+                        onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); handleTabChange('consultations'); }}
                         className="strip-btn strip-btn--primary"
                     >
                         + Consultation
                     </button>
                     <button
-                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); setActiveTab('referrals'); }}
+                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('referrals'); }}
                         className="strip-btn"
                     >
                         + Referral
                     </button>
                     <button
-                        onClick={() => { setShowConditionForm(true); setActiveTab('conditions'); }}
+                        onClick={() => { setShowConditionForm(true); handleTabChange('conditions'); }}
                         className="strip-btn"
                     >
                         + Condition
@@ -620,7 +603,7 @@ const PatientDetails = () => {
                                 {(profile?.access_level ?? 1) >= 2 && (
                                     <li>
                                         <button
-                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); setActiveTab('procedures'); }}
+                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('procedures'); }}
                                             className="action-button dropdown-item"
                                         >
                                             + Add Procedure
@@ -629,7 +612,7 @@ const PatientDetails = () => {
                                 )}
                                 <li>
                                     <button
-                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); setActiveTab('allergies'); }}
+                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('allergies'); }}
                                         className="action-button dropdown-item"
                                     >
                                         + Add Allergy
@@ -678,13 +661,7 @@ const PatientDetails = () => {
                         key={tab.key}
                         ref={el => { tabRefs.current[tab.key] = el; }}
                         className={`patient-tab${activeTab === tab.key ? ' active' : ''}`}
-                        onClick={() => {
-                            setActiveTab(tab.key);
-                            if (tab.key === 'vitals') fetchVitalsTrend();
-                            if (tab.key === 'labs') fetchLabResults();
-                            if (tab.key === 'medications') fetchMedications();
-                            if (tab.key === 'appointments') fetchPatientAppointments();
-                        }}
+                        onClick={() => handleTabChange(tab.key)}
                     >
                         {tab.label}
                         {tab.count !== undefined && tab.count > 0 && <span className="tab-count">{tab.count}</span>}
@@ -733,7 +710,7 @@ const PatientDetails = () => {
                                     </div>
                                 ))}
                                 {!patient.consultations?.length && <p className="muted">No consultations yet.</p>}
-                                <button className="btn-view-all" onClick={() => setActiveTab('consultations')}>View all consultations →</button>
+                                <button className="btn-view-all" onClick={() => handleTabChange('consultations')}>View all consultations →</button>
                             </div>
                         </div>
                     </div>
@@ -1058,7 +1035,7 @@ const PatientDetails = () => {
                     <div className="tab-panel">
                         <h3>Vitals History</h3>
                         {vitalsLoading ? (
-                            <p className="muted">Loading vitals...</p>
+                            <TabSkeleton rows={3} />
                         ) : vitalsTrend.length === 0 ? (
                             <p className="muted">No vitals recorded yet. Vitals are captured during consultations.</p>
                         ) : (
@@ -1152,7 +1129,7 @@ const PatientDetails = () => {
                     <div className="tab-panel">
                         <h3>Appointment History</h3>
                         {appointmentsLoading ? (
-                            <p className="muted">Loading appointments...</p>
+                            <TabSkeleton rows={3} />
                         ) : patientAppointments.length === 0 ? (
                             <p className="muted">No appointments on record for this patient.</p>
                         ) : (
@@ -1168,9 +1145,6 @@ const PatientDetails = () => {
                                             </div>
                                             {appt.reason_for_appointment && (
                                                 <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
-                                            )}
-                                            {appt.workplace_details?.name && (
-                                                <div className="info-item"><strong>Clinic:</strong> {appt.workplace_details.name}</div>
                                             )}
                                         </li>
                                     ))
@@ -1238,7 +1212,7 @@ const PatientDetails = () => {
                             </form>
                         )}
                         {labsLoading ? (
-                            <p className="muted">Loading lab results...</p>
+                            <TabSkeleton rows={3} />
                         ) : labResults.length === 0 ? (
                             <p className="muted">No lab results recorded.</p>
                         ) : (
@@ -1288,7 +1262,7 @@ const PatientDetails = () => {
                     <div className="tab-panel">
                         <h3>Active Medications</h3>
                         {medicationsLoading ? (
-                            <p className="muted">Loading medications...</p>
+                            <TabSkeleton rows={3} />
                         ) : medications.length === 0 ? (
                             <p className="muted">No active medications on record.</p>
                         ) : (

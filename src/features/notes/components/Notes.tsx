@@ -8,6 +8,7 @@ import api from '../../../shared/services/api';
 import ConfirmModal from '../../../shared/components/ConfirmModal';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
+import { PageHeader } from '../../../shared/components/PageHeader';
 
 interface Note {
     id: number;
@@ -211,16 +212,13 @@ const Notes = () => {
     if (error) return <div className="text-page-container error-message">{error}</div>;
 
     return (
-        <div className="notes-page">
-            <div className="notes-page-header">
-                <div>
-                    <h1>{t('notes.title')}</h1>
-                    <p className="notes-sub">{notes.length} note{notes.length !== 1 ? 's' : ''}</p>
-                </div>
-                <button onClick={handleNewNote} className="btn-new-note">
-                    + New Note
-                </button>
-            </div>
+        <>
+        <PageHeader
+            title={t('notes.title', 'Clinical Notes')}
+            subtitle={`${notes.length} note${notes.length !== 1 ? 's' : ''}`}
+            actions={<button onClick={handleNewNote} className="btn btn-primary btn-sm">+ New Note</button>}
+        />
+        <div className="notes-page" style={{ paddingTop: 0 }}>
 
             {/* Filters */}
             <div className="notes-filters">
@@ -367,6 +365,7 @@ const Notes = () => {
                 />
             )}
         </div>
+        </>
     );
 };
 
