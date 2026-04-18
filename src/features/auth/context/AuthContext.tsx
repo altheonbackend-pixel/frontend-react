@@ -121,11 +121,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Register the 401 response interceptor so any mid-session expiry triggers logout.
     // 403 (access level denied) is NOT a logout condition.
+    // Auth-related endpoints are excluded: /logout/ calling logout() would loop back
+    // into itself, and /token/refresh/ + /me/ are handled by api.ts and initSession().
     useEffect(() => {
         const responseInterceptor = api.interceptors.response.use(
             (response) => response,
             (error) => {
-                if (error.response?.status === 401) {
+                const url = (error.config?.url ?? '') as string;
+                const isAuthEndpoint = /\/(logout|token\/refresh|me)\//i.test(url);
+                if (error.response?.status === 401 && !isAuthEndpoint) {
                     logout();
                 }
                 return Promise.reject(error);
