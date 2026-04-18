@@ -67,7 +67,7 @@ api.interceptors.response.use(
             // POST to refresh endpoint — refresh_token cookie is sent automatically.
             // Server sets a new access_token cookie in the response.
             // No body needed; no token to read from the response.
-            await axios.post(`${API_BASE_URL}/token/refresh/`, {}, { withCredentials: true });
+            await axios.post(`${API_BASE_URL}/token/refresh/`, {}, { withCredentials: true, timeout: 10000 });
             onRefreshed();
             return api(original);
         } catch (refreshError) {
