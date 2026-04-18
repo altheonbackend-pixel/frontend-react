@@ -22,6 +22,7 @@ import ResetPassword from '../features/auth/components/ResetPassword';
 import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
+import AdminPatientList from '../features/admin/components/AdminPatientList';
 
 // Code-split lazy imports
 const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
@@ -73,6 +74,7 @@ const PrivateAdminRoutes = () => {
                     <Route path="/doctors"           element={<AdminDoctorList initialTab="active" />} />
                     <Route path="/doctors/pending"   element={<AdminDoctorList initialTab="pending" />} />
                     <Route path="/doctors/rejected"  element={<AdminDoctorList initialTab="rejected" />} />
+                    <Route path="/patients"          element={<AdminPatientList />} />
                     <Route path="*"                  element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
             </main>

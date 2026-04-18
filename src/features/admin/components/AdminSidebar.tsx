@@ -57,17 +57,10 @@ const AdminSidebar = ({ isOpen = true, onClose }: AdminSidebarProps) => {
                     Rejected
                 </NavLink>
 
-                <div className="admin-sidebar__section-label">Platform</div>
-                <NavLink to="/admin/clinics" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
-                    <span className="admin-sidebar__link-icon">🏥</span>
-                    Clinics
-                </NavLink>
-                <NavLink to="/admin/forum" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
-                    <span className="admin-sidebar__link-icon">💬</span>
-                    Forum Moderation
-                    {stats && stats.forum_suspended_doctors > 0 && (
-                        <span className="admin-sidebar__badge admin-sidebar__badge--warning">{stats.forum_suspended_doctors}</span>
-                    )}
+                <div className="admin-sidebar__section-label">Compliance</div>
+                <NavLink to="/admin/patients" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                    <span className="admin-sidebar__link-icon">🗑️</span>
+                    Deleted Patients
                 </NavLink>
             </nav>
 

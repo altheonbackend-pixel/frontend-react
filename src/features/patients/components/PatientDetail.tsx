@@ -27,6 +27,7 @@ import { type LabResult, type Prescription } from '../../../shared/types';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
+import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
 
@@ -82,6 +83,7 @@ const PatientDetails = () => {
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    usePageTitle(patient ? `${patient.first_name} ${patient.last_name}` : 'Patient');
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['overview']));
     const queryClient = useQueryClient();
@@ -610,7 +612,13 @@ const PatientDetails = () => {
                         PDF
                     </button>
                     <div className="strip-dropdown" ref={dropdownRef}>
-                        <button onClick={() => setShowDropdown(!showDropdown)} className="strip-btn">
+                        <button
+                            onClick={() => setShowDropdown(!showDropdown)}
+                            className="strip-btn"
+                            aria-label="More actions"
+                            aria-expanded={showDropdown}
+                            aria-haspopup="menu"
+                        >
                             More ▾
                         </button>
                         {showDropdown && (
@@ -670,13 +678,27 @@ const PatientDetails = () => {
             {showReferralForm && <ReferralForm patientId={id!} onSuccess={handleSuccess} onClose={handleCancel} referralToEdit={referralToEdit ? { ...referralToEdit, comments: referralToEdit.comments ?? undefined } : null} />}
 
             {/* Tabs */}
-            <div className="patient-tabs">
-                {TABS.map(tab => (
+            <div className="patient-tabs" role="tablist" aria-label="Patient record sections">
+                {TABS.map((tab, idx) => (
                     <button
                         key={tab.key}
                         ref={el => { tabRefs.current[tab.key] = el; }}
+                        role="tab"
+                        id={`tab-${tab.key}`}
+                        aria-selected={activeTab === tab.key}
+                        aria-controls={`panel-${tab.key}`}
+                        tabIndex={activeTab === tab.key ? 0 : -1}
                         className={`patient-tab${activeTab === tab.key ? ' active' : ''}`}
                         onClick={() => handleTabChange(tab.key)}
+                        onKeyDown={e => {
+                            if (e.key === 'ArrowRight') {
+                                const next = TABS[(idx + 1) % TABS.length];
+                                handleTabChange(next.key);
+                            } else if (e.key === 'ArrowLeft') {
+                                const prev = TABS[(idx - 1 + TABS.length) % TABS.length];
+                                handleTabChange(prev.key);
+                            }
+                        }}
                     >
                         {tab.label}
                         {tab.count !== undefined && tab.count > 0 && <span className="tab-count">{tab.count}</span>}
@@ -684,7 +706,12 @@ const PatientDetails = () => {
                 ))}
             </div>
 
-            <div className="patient-tab-content">
+            <div
+                className="patient-tab-content"
+                role="tabpanel"
+                id={`panel-${activeTab}`}
+                aria-labelledby={`tab-${activeTab}`}
+            >
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                     <div className="tab-panel">

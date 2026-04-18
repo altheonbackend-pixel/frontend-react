@@ -8,6 +8,7 @@ import Dialog from '../../../shared/components/ui/Dialog';
 import api from '../../../shared/services/api';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
+import { FailedPrescriptionsPanel, type RxItem } from './FailedPrescriptionsPanel';
 import '../styles/ConsultationForm.css';
 
 // ICD-10 suggestions come from the backend API (/api/icd10/search/?q=...) — 179+ codes
@@ -62,6 +63,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [showIcdSuggestions, setShowIcdSuggestions] = useState(false);
     const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
+    const [showCloseWithFailedRxWarning, setShowCloseWithFailedRxWarning] = useState(false);
 
     const {
         register,
@@ -141,6 +143,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const emptyRxDraft = (): RxDraft => ({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '' });
     const [rxList, setRxList] = useState<RxDraft[]>([]);
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
+    const [failedRx, setFailedRx] = useState<RxItem[]>([]);
 
     const pushRxToList = () => {
         if (!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()) return;
@@ -209,26 +212,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
-                // Save all queued prescriptions — each failure shows a toast but doesn't block close
+                // Save all queued prescriptions via Promise.allSettled — failures surface in retry panel
                 if (!isEditing && rxList.length > 0) {
-                    let failCount = 0;
-                    for (const rx of rxList) {
-                        try {
-                            await api.post('/prescriptions/', {
-                                patient: patientId,
-                                consultation: response.data.id,
-                                medication_name: rx.medication_name,
-                                dosage: rx.dosage,
-                                frequency: rx.frequency,
-                                duration_days: rx.duration_days ? parseInt(rx.duration_days, 10) : null,
-                                instructions: '',
-                            });
-                        } catch {
-                            failCount++;
-                        }
-                    }
-                    if (failCount > 0) {
-                        toast.error(`${failCount} prescription(s) could not be saved. Add them manually from the Medications tab.`);
+                    const rxPayloads: RxItem[] = rxList.map(rx => ({
+                        patient: patientId,
+                        consultation: response.data.id,
+                        medication_name: rx.medication_name,
+                        dosage: rx.dosage,
+                        frequency: rx.frequency,
+                        duration_days: rx.duration_days ? parseInt(rx.duration_days, 10) : null,
+                    }));
+                    const results = await Promise.allSettled(
+                        rxPayloads.map(rx => api.post('/prescriptions/', rx))
+                    );
+                    const failed = rxPayloads.filter((_, i) => results[i].status === 'rejected');
+                    if (failed.length > 0) {
+                        setFailedRx(failed);
+                        // Don't call onSuccess yet — doctor must resolve failed prescriptions first
+                        toast.error(`${failed.length} prescription(s) could not be saved. Retry from the panel below.`);
+                        clearDraft();
+                        return;
                     }
                 }
                 clearDraft();
@@ -294,11 +297,29 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         );
     }
 
+    const handleCancel = () => {
+        if (failedRx.length > 0) {
+            setShowCloseWithFailedRxWarning(true);
+        } else {
+            onCancel();
+        }
+    };
+
     // ICD-10 field registration (custom onChange needed for typeahead)
     const icdCodeField = register('icd_code');
 
     return (
         <>
+        <Dialog
+            open={showCloseWithFailedRxWarning}
+            tone="danger"
+            title="Unsaved prescriptions"
+            message={`${failedRx.length} prescription(s) have not been saved. Closing now will permanently lose this data.`}
+            confirmLabel="Close and lose data"
+            cancelLabel="Go back and save"
+            onConfirm={() => { setFailedRx([]); setShowCloseWithFailedRxWarning(false); onCancel(); }}
+            onClose={() => setShowCloseWithFailedRxWarning(false)}
+        />
         <Dialog
             open={!!draftPrompt}
             tone="info"
@@ -322,13 +343,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         />
         <Drawer
             open
-            onClose={onCancel}
+            onClose={handleCancel}
             title={isEditing ? t('consultation.title_edit') : t('consultation.title_add')}
             size="lg"
-            dirty={isDirty}
+            dirty={isDirty || failedRx.length > 0}
             footer={
                 <>
-                    <button type="button" onClick={onCancel} className="cancel-button" disabled={isSubmitting}>
+                    <button type="button" onClick={handleCancel} className="cancel-button" disabled={isSubmitting}>
                         {t('consultation.cancel')}
                     </button>
                     <button type="submit" form="consultation-form" className="btn btn-primary" disabled={isSubmitting}>
@@ -613,6 +634,14 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         {' '}Will be visible to patient once the patient portal is live
                     </label>
                 </div>
+
+                {/* Failed prescription retry panel — shown after submit if any prescriptions failed */}
+                <FailedPrescriptionsPanel
+                    failed={failedRx}
+                    onItemSaved={(saved) =>
+                        setFailedRx(prev => prev.filter(rx => rx.medication_name !== saved.medication_name))
+                    }
+                />
             </form>
         </Drawer>
         </>
