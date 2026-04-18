@@ -1,19 +1,24 @@
+import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
-import { SectionCard } from '../../../shared/components/SectionCard';
+import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
-import { usePatientPortal } from '../context/PatientPortalContext';
+import { queryKeys } from '../../../shared/queryKeys';
+import { patientPortalService } from '../services/patientPortalService';
 
 function formatDate(value: string) {
     return new Date(value).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
+        day: 'numeric', month: 'short', year: 'numeric',
     });
 }
 
 export default function PatientVisits() {
-    const { visits } = usePatientPortal();
     usePageTitle('Patient Visits');
+
+    const { data: visits = [], isLoading, isError } = useQuery({
+        queryKey: queryKeys.patientPortal.consultations(),
+        queryFn: patientPortalService.getConsultations,
+        staleTime: 2 * 60_000,
+    });
 
     return (
         <>
@@ -21,6 +26,13 @@ export default function PatientVisits() {
                 title="Visit summaries"
                 subtitle="A patient-friendly timeline of visible consultations and follow-up plans."
             />
+
+            {isLoading && <SectionCard title=""><TabSkeleton rows={4} /></SectionCard>}
+            {isError && <div className="error-message" style={{ margin: '0 0 1rem' }}>Failed to load visits. Please refresh.</div>}
+
+            {!isLoading && !isError && visits.length === 0 && (
+                <SectionCard empty={{ title: 'No visit summaries yet', subtitle: 'Your doctor will share summaries after consultations.' }}>{null}</SectionCard>
+            )}
 
             <div style={{ display: 'grid', gap: '1rem' }}>
                 {visits.map(visit => (
@@ -32,15 +44,26 @@ export default function PatientVisits() {
                                 <span>{visit.consultation_type === 'telemedicine' ? 'Telemedicine' : 'In person'}</span>
                             </div>
 
-                            <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
-                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Diagnosis summary</div>
-                                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{visit.diagnosis_summary}</div>
-                            </div>
+                            {visit.diagnosis && (
+                                <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Diagnosis</div>
+                                    <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{visit.diagnosis}</div>
+                                </div>
+                            )}
 
-                            <div>
-                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>What your doctor shared with you</div>
-                                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{visit.patient_summary}</div>
-                            </div>
+                            {visit.patient_summary && (
+                                <div>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>What your doctor shared with you</div>
+                                    <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{visit.patient_summary}</div>
+                                </div>
+                            )}
+
+                            {visit.patient_instructions && (
+                                <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)' }}>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>Instructions</div>
+                                    <div style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{visit.patient_instructions}</div>
+                                </div>
+                            )}
 
                             {visit.follow_up_date && (
                                 <div style={{ padding: '0.75rem 0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', color: 'var(--text-primary)', fontWeight: 600 }}>

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { type DoctorProfile, type User, type AdminProfile, type PatientProfile } from '../../../shared/types';
 import api from '../../../shared/services/api';
 import { clearAllDraftsForDoctor } from '../../../shared/hooks/useFormDraft';
-import { DEMO_PATIENT_CREDENTIALS, DEMO_PATIENT_PROFILE } from '../../patient-portal/mockData';
 
 interface AuthContextType {
     user: User | null;
@@ -47,7 +46,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Clear any non-sensitive metadata we kept in localStorage
         localStorage.removeItem('user_type');
         localStorage.removeItem('admin_profile');
-        localStorage.removeItem('demo_patient_session');
 
         setUser(null);
         setProfile(null);
@@ -86,23 +84,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * before this catch block runs, so a single expiry is handled silently.
      */
     const initSession = useCallback(async () => {
-        const demoPatientSession = localStorage.getItem('demo_patient_session') === 'true';
-        if (demoPatientSession) {
-            setUserType('patient');
-            setPatientProfile(DEMO_PATIENT_PROFILE);
-            setUser({
-                id: DEMO_PATIENT_PROFILE.id,
-                email: DEMO_PATIENT_PROFILE.email,
-                full_name: DEMO_PATIENT_PROFILE.full_name,
-            });
-            setIsAuthenticated(true);
-            setAuthIsLoading(false);
-            return;
-        }
-
         try {
             const res = await api.get('/me/');
-            const { user_type, user: userData, profile: profileData } = res.data;
+            const { user_type, user: userData, profile: profileData, patient_profile: patientProfileData } = res.data;
 
             setUserType(user_type);
             setIsAuthenticated(true);
@@ -114,9 +98,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     full_name: userData.full_name,
                 };
                 setAdminProfile(adminData);
-                // Store non-sensitive admin metadata for fast re-hydration hint
                 localStorage.setItem('user_type', 'admin');
                 localStorage.setItem('admin_profile', JSON.stringify(adminData));
+            } else if (user_type === 'patient') {
+                setUser({ id: userData.id || 0, email: userData.email, full_name: userData.full_name });
+                setPatientProfile({
+                    id: userData.id || 0,
+                    patient_id: patientProfileData?.patient_id || '',
+                    full_name: userData.full_name,
+                    email: userData.email,
+                    date_of_birth: '',
+                    phone_number: '',
+                    address: '',
+                    emergency_contact_name: '',
+                    emergency_contact_number: '',
+                    blood_group: '',
+                    primary_doctor_name: '',
+                    email_verified: patientProfileData?.email_verified ?? true,
+                    claim_status: patientProfileData?.claim_status || 'claimed',
+                    preferred_language: patientProfileData?.preferred_language || 'en',
+                });
+                localStorage.setItem('user_type', 'patient');
             } else {
                 setUser({
                     id: userData.id,
@@ -165,29 +167,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = async (credentials: { email: string; password: string }) => {
-        if (
-            credentials.email.trim().toLowerCase() === DEMO_PATIENT_CREDENTIALS.email &&
-            credentials.password === DEMO_PATIENT_CREDENTIALS.password
-        ) {
-            setUserType('patient');
-            setPatientProfile(DEMO_PATIENT_PROFILE);
-            setUser({
-                id: DEMO_PATIENT_PROFILE.id,
-                email: DEMO_PATIENT_PROFILE.email,
-                full_name: DEMO_PATIENT_PROFILE.full_name,
-            });
-            setProfile(null);
-            setAdminProfile(null);
-            setIsAuthenticated(true);
-            localStorage.setItem('user_type', 'patient');
-            localStorage.setItem('demo_patient_session', 'true');
-            navigate('/patient/dashboard');
-            return;
-        }
-
         const response = await api.post('/login/', credentials);
         const { user: loginUserData } = response.data;
-        const userTypeFromResponse: 'doctor' | 'admin' = loginUserData.user_type || 'doctor';
+        const userTypeFromResponse: 'doctor' | 'admin' | 'patient' = loginUserData.user_type || 'doctor';
 
         // Tokens are in httpOnly cookies — never stored in JS memory or localStorage
         setUserType(userTypeFromResponse);
@@ -204,6 +186,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.setItem('admin_profile', JSON.stringify(adminData));
             setIsAuthenticated(true);
             navigate('/admin/dashboard');
+        } else if (userTypeFromResponse === 'patient') {
+            setUser({ id: 0, email: loginUserData.email, full_name: loginUserData.full_name });
+            setPatientProfile({
+                id: 0,
+                patient_id: '',
+                full_name: loginUserData.full_name,
+                email: loginUserData.email,
+                date_of_birth: '',
+                phone_number: '',
+                address: '',
+                emergency_contact_name: '',
+                emergency_contact_number: '',
+                blood_group: '',
+                primary_doctor_name: '',
+                email_verified: true,
+                claim_status: 'claimed',
+                preferred_language: 'en',
+            });
+            setProfile(null);
+            setAdminProfile(null);
+            setIsAuthenticated(true);
+            navigate('/patient/dashboard');
         } else {
             setUser({
                 id: loginUserData.id,

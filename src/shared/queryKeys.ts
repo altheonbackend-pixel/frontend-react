@@ -44,4 +44,19 @@ export const queryKeys = {
     stats: {
         doctor: () => ['stats', 'doctor'] as const,
     },
+
+    patientPortal: {
+        dashboard: () => ['patient', 'dashboard'] as const,
+        profile: () => ['patient', 'profile'] as const,
+        settings: () => ['patient', 'settings'] as const,
+        appointments: () => ['patient', 'appointments'] as const,
+        doctors: () => ['patient', 'doctors'] as const,
+        consultations: () => ['patient', 'consultations'] as const,
+        consultation: (id: number) => ['patient', 'consultations', id] as const,
+        prescriptions: () => ['patient', 'prescriptions'] as const,
+        labResults: () => ['patient', 'lab-results'] as const,
+        labResult: (id: number) => ['patient', 'lab-results', id] as const,
+        notifications: () => ['patient', 'notifications'] as const,
+        notificationsUnreadCount: () => ['patient', 'notifications', 'unread-count'] as const,
+    },
 } as const;
