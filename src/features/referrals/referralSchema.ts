@@ -1,17 +1,14 @@
 import { z } from 'zod';
 
 export const referralSchema = z.object({
-  is_external: z.boolean().default(false),
-  referred_to: z.preprocess(
-    v => (v === '' || v == null) ? null : Number(v),
-    z.number().optional().nullable()
-  ),
-  external_doctor_name: z.string().optional().default(''),
-  external_hospital: z.string().optional().default(''),
+  is_external: z.boolean(),
+  referred_to: z.number().int().positive().nullable().optional(),
+  external_doctor_name: z.string(),
+  external_hospital: z.string(),
   specialty_requested: z.string().min(1, 'Specialty is required'),
-  urgency: z.enum(['routine', 'urgent', 'emergency']).default('routine'),
+  urgency: z.enum(['routine', 'urgent', 'emergency']),
   reason_for_referral: z.string().min(10, 'Reason must be at least 10 characters'),
-  comments: z.string().optional().default(''),
+  comments: z.string(),
 }).superRefine((data, ctx) => {
   if (!data.is_external && !data.referred_to) {
     ctx.addIssue({ code: 'custom', message: 'Select a receiving doctor', path: ['referred_to'] });

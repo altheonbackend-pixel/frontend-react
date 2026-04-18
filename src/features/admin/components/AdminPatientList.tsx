@@ -81,7 +81,7 @@ const AdminPatientList = () => {
                 }
                 confirmLabel="I understand — permanently erase"
                 cancelLabel="Cancel"
-                onConfirm={() => eraseTarget && eraseMutation.mutate(eraseTarget.id)}
+                onConfirm={() => { if (eraseTarget) eraseMutation.mutate(eraseTarget.id); }}
                 onClose={() => { setShowEraseConfirm(false); setEraseTarget(null); }}
             />
 
@@ -92,7 +92,7 @@ const AdminPatientList = () => {
                 message={recoverTarget ? `Restore ${recoverTarget.name} to active patient records?` : undefined}
                 confirmLabel="Recover"
                 cancelLabel="Cancel"
-                onConfirm={() => recoverTarget && recoverMutation.mutate(recoverTarget.id)}
+                onConfirm={() => { if (recoverTarget) recoverMutation.mutate(recoverTarget.id); }}
                 onClose={() => { setShowRecoverConfirm(false); setRecoverTarget(null); }}
             />
 

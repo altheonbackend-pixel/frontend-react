@@ -1,15 +1,15 @@
 import { z } from 'zod';
 
 export const consultationSchema = z.object({
-  consultation_type: z.enum(['in_person', 'telemedicine', 'home_visit']).default('in_person'),
+  consultation_type: z.enum(['in_person', 'telemedicine', 'home_visit']),
   consultation_date: z.string().min(1, 'Date is required'),
   reason_for_consultation: z.string().min(5, 'Reason must be at least 5 characters'),
-  diagnosis: z.string().optional().default(''),
-  icd_code: z.string().max(20).optional().nullable().default(null),
-  medical_report: z.string().optional().default(''),
-  follow_up_date: z.string().optional().nullable().default(null),
-  visible_to_patient: z.boolean().default(false),
-  height_unit: z.enum(['cm', 'm']).default('cm'),
+  diagnosis: z.string(),
+  icd_code: z.string().max(20).nullable().optional(),
+  medical_report: z.string(),
+  follow_up_date: z.string().nullable().optional(),
+  visible_to_patient: z.boolean(),
+  height_unit: z.enum(['cm', 'm']),
   // Vitals — optional; setValueAs in register converts empty string to null before zod sees it
   weight: z.number().positive('Weight must be positive').max(500, 'Weight too high').optional().nullable(),
   height: z.number().positive('Height must be positive').max(300, 'Height too high').optional().nullable(),

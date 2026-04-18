@@ -186,7 +186,11 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
 
                         <div className="form-group">
                             <label htmlFor="referred_to">{t('referrals.form.doctor_label')}</label>
-                            <select id="referred_to" className="select-input" {...register('referred_to')}>
+                            <select
+                                id="referred_to"
+                                className="select-input"
+                                {...register('referred_to', { setValueAs: (v: string) => v === '' ? null : Number(v) })}
+                            >
                                 <option value="">{t('referrals.form.select_doctor')}</option>
                                 {doctors.map(doctor => (
                                     <option key={doctor.id} value={doctor.id}>

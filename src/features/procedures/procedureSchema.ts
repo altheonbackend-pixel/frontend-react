@@ -12,10 +12,10 @@ export const PROCEDURE_CATEGORIES = [
 const CATEGORY_VALUES = PROCEDURE_CATEGORIES.map(c => c.value) as [string, ...string[]];
 
 export const procedureSchema = z.object({
-  procedure_category: z.enum(CATEGORY_VALUES as [string, ...string[]]).default('diagnostic'),
+  procedure_category: z.enum(CATEGORY_VALUES as [string, ...string[]]),
   procedure_type: z.string().min(1, 'Procedure type is required'),
   procedure_date: z.string().min(1, 'Date is required'),
-  result: z.string().optional().default(''),
+  result: z.string(),
 });
 
 export type ProcedureFormData = z.infer<typeof procedureSchema>;
