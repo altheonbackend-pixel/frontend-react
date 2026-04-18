@@ -29,7 +29,7 @@ import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments';
+type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments' | 'portal';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -207,6 +207,134 @@ const PatientDetails = () => {
         enabled: loadedTabs.has('referrals'),
         staleTime: 2 * 60 * 1000,
     });
+
+    // Portal tab state
+    const [portalInviteEmail, setPortalInviteEmail] = useState('');
+    const [portalInviteSending, setPortalInviteSending] = useState(false);
+    const [portalSettingsSaving, setPortalSettingsSaving] = useState(false);
+    const [shareConsultationId, setShareConsultationId] = useState<number | null>(null);
+    const [shareConsultationSummary, setShareConsultationSummary] = useState('');
+    const [shareLabId, setShareLabId] = useState<number | null>(null);
+    const [shareLabNote, setShareLabNote] = useState('');
+    const [approveRequestId, setApproveRequestId] = useState<number | null>(null);
+    const [rejectRequestId, setRejectRequestId] = useState<number | null>(null);
+    const [rejectReason, setRejectReason] = useState('');
+    const [requestActionLoading, setRequestActionLoading] = useState(false);
+
+    const { data: portalStatus, isLoading: portalLoading, refetch: refetchPortalStatus } = useQuery({
+        queryKey: ['patients', id, 'portalStatus'],
+        queryFn: async () => {
+            const res = await api.get(`/patients/${id}/portal/status/`);
+            return res.data as {
+                portal_enabled: boolean;
+                allow_self_claim: boolean;
+                claim_status: 'unclaimed' | 'invited' | 'claimed' | 'locked';
+                invited_at: string | null;
+                claimed_at: string | null;
+                primary_contact_email: string | null;
+            };
+        },
+        enabled: loadedTabs.has('portal') && !!id,
+        staleTime: 60_000,
+    });
+
+    const { data: pendingRequests = [], isLoading: pendingRequestsLoading, refetch: refetchPendingRequests } = useQuery({
+        queryKey: ['patients', id, 'pendingRequests'],
+        queryFn: async () => {
+            const res = await api.get('/doctor/appointment-requests/');
+            const all = res.data as Array<{ id: number; patient_name: string; patient_id: string; appointment_date: string; reason: string; notes: string }>;
+            return all.filter(r => r.patient_id === id);
+        },
+        enabled: loadedTabs.has('portal') && !!id,
+        staleTime: 60_000,
+    });
+
+    const handlePortalInvite = async () => {
+        if (!id || !portalInviteEmail.trim()) return;
+        setPortalInviteSending(true);
+        try {
+            await api.post(`/patients/${id}/portal/invite/`, { email: portalInviteEmail.trim() });
+            toast.success(`Portal invitation sent to ${portalInviteEmail.trim()}.`);
+            setPortalInviteEmail('');
+            refetchPortalStatus();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to send invitation.'));
+        } finally {
+            setPortalInviteSending(false);
+        }
+    };
+
+    const handlePortalSettingToggle = async (field: string, currentValue: boolean) => {
+        if (!id) return;
+        setPortalSettingsSaving(true);
+        try {
+            await api.patch(`/patients/${id}/portal/settings/`, { [field]: !currentValue });
+            refetchPortalStatus();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update portal settings.'));
+        } finally {
+            setPortalSettingsSaving(false);
+        }
+    };
+
+    const handleShareConsultation = async () => {
+        if (!shareConsultationId) return;
+        try {
+            await api.post(`/consultations/${shareConsultationId}/share-with-patient/`, {
+                patient_summary: shareConsultationSummary,
+            });
+            toast.success('Consultation shared with patient.');
+            setShareConsultationId(null);
+            setShareConsultationSummary('');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to share consultation.'));
+        }
+    };
+
+    const handleReleaseLabResult = async () => {
+        if (!shareLabId) return;
+        try {
+            await api.post(`/lab-results/${shareLabId}/release-to-patient/`, {
+                patient_note: shareLabNote,
+            });
+            toast.success('Lab result released to patient.');
+            setShareLabId(null);
+            setShareLabNote('');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to release lab result.'));
+        }
+    };
+
+    const handleApproveRequest = async (apptId: number, instructions?: string) => {
+        setRequestActionLoading(true);
+        try {
+            await api.post(`/appointments/${apptId}/approve/`, { portal_instructions: instructions || '' });
+            toast.success('Appointment request approved.');
+            setApproveRequestId(null);
+            refetchPendingRequests();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to approve request.'));
+        } finally {
+            setRequestActionLoading(false);
+        }
+    };
+
+    const handleRejectRequest = async (apptId: number, reason: string) => {
+        setRequestActionLoading(true);
+        try {
+            await api.post(`/appointments/${apptId}/reject/`, { reason });
+            toast.success('Appointment request declined.');
+            setRejectRequestId(null);
+            setRejectReason('');
+            refetchPendingRequests();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to reject request.'));
+        } finally {
+            setRequestActionLoading(false);
+        }
+    };
 
     // Tab refs for mobile scrollIntoView
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -555,6 +683,7 @@ const PatientDetails = () => {
         { key: 'appointments', label: 'Appointments', count: patientAppointments.length || undefined },
         { key: 'labs', label: 'Lab Results', count: labResults.length || patient.lab_results?.length },
         { key: 'medications', label: 'Medications', count: medications.length },
+        { key: 'portal', label: 'Patient Portal', count: pendingRequests.length || undefined },
     ];
 
     return (
@@ -1406,6 +1535,202 @@ const PatientDetails = () => {
                                     </li>
                                 ))}
                             </ul>
+                        )}
+                    </div>
+                )}
+
+                {/* Patient Portal Tab — doctor-side portal management */}
+                {activeTab === 'portal' && (
+                    <div className="tab-panel" style={{ display: 'grid', gap: '1.25rem' }}>
+                        {portalLoading ? (
+                            <TabSkeleton rows={4} />
+                        ) : (
+                            <>
+                                {/* ── Portal Status Card ── */}
+                                <div className="section-card">
+                                    <div className="section-card-header">
+                                        <span className="section-card-title">Portal access</span>
+                                        {portalStatus && (
+                                            <span className={`portal-status-badge ${
+                                                portalStatus.claim_status === 'claimed' ? 'portal-status-badge--active'
+                                                : portalStatus.claim_status === 'invited' ? 'portal-status-badge--invited'
+                                                : portalStatus.portal_enabled ? 'portal-status-badge--pending'
+                                                : 'portal-status-badge--inactive'
+                                            }`}>
+                                                {portalStatus.claim_status === 'claimed' ? '● Active'
+                                                    : portalStatus.claim_status === 'invited' ? '⏳ Invited — awaiting claim'
+                                                    : portalStatus.portal_enabled ? '⏳ Enabled — not yet claimed'
+                                                    : '○ Not enabled'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="section-card-body">
+                                        {portalStatus ? (
+                                            <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                                {portalStatus.primary_contact_email && (
+                                                    <div className="info-item"><strong>Portal email:</strong> {portalStatus.primary_contact_email}</div>
+                                                )}
+                                                {portalStatus.invited_at && (
+                                                    <div className="info-item"><strong>Invited:</strong> {new Date(portalStatus.invited_at).toLocaleDateString()}</div>
+                                                )}
+                                                {portalStatus.claimed_at && (
+                                                    <div className="info-item"><strong>Claimed:</strong> {new Date(portalStatus.claimed_at).toLocaleDateString()}</div>
+                                                )}
+
+                                                {/* Invite form — only show if not yet claimed */}
+                                                {portalStatus.claim_status !== 'claimed' && (
+                                                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                                        <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
+                                                            <label htmlFor="portalInviteEmail" style={{ fontSize: '0.8rem' }}>
+                                                                {portalStatus.claim_status === 'invited' ? 'Re-send invitation to' : 'Send portal invitation to'}
+                                                            </label>
+                                                            <input
+                                                                id="portalInviteEmail"
+                                                                type="email"
+                                                                value={portalInviteEmail || portalStatus.primary_contact_email || patient.email || ''}
+                                                                onChange={e => setPortalInviteEmail(e.target.value)}
+                                                                placeholder="patient@example.com"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={handlePortalInvite}
+                                                            disabled={portalInviteSending}
+                                                            style={{ marginBottom: '1px' }}
+                                                        >
+                                                            {portalInviteSending ? 'Sending…'
+                                                                : portalStatus.claim_status === 'invited' ? 'Resend invite'
+                                                                : 'Send invite'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                                <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
+                                                    <label htmlFor="portalInviteEmailNew" style={{ fontSize: '0.8rem' }}>Send portal invitation</label>
+                                                    <input
+                                                        id="portalInviteEmailNew"
+                                                        type="email"
+                                                        value={portalInviteEmail || patient.email || ''}
+                                                        onChange={e => setPortalInviteEmail(e.target.value)}
+                                                        placeholder={patient.email || 'patient@example.com'}
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={handlePortalInvite}
+                                                    disabled={portalInviteSending}
+                                                    style={{ marginBottom: '1px' }}
+                                                >
+                                                    {portalInviteSending ? 'Sending…' : 'Send invite'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* ── Pending appointment requests ── */}
+                                <div className="section-card">
+                                    <div className="section-card-header">
+                                        <span className="section-card-title">
+                                            Appointment requests
+                                            {pendingRequests.length > 0 && (
+                                                <span className="tab-count" style={{ marginLeft: '0.5rem' }}>{pendingRequests.length}</span>
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="section-card-body">
+                                        {pendingRequestsLoading ? (
+                                            <TabSkeleton rows={2} />
+                                        ) : pendingRequests.length === 0 ? (
+                                            <p className="muted">No pending appointment requests from this patient.</p>
+                                        ) : (
+                                            <div style={{ display: 'grid', gap: '0.875rem' }}>
+                                                {pendingRequests.map(req => (
+                                                    <div key={req.id} style={{ padding: '0.875rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', display: 'grid', gap: '0.5rem' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                                            <div>
+                                                                <div style={{ fontWeight: 700 }}>{new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason}</div>
+                                                                {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Note: {req.notes}</div>}
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-success btn-sm"
+                                                                    onClick={() => handleApproveRequest(req.id)}
+                                                                    disabled={requestActionLoading}
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="btn btn-danger-outline btn-sm"
+                                                                    onClick={() => { setRejectRequestId(req.id); setRejectReason(''); }}
+                                                                    disabled={requestActionLoading}
+                                                                >
+                                                                    Decline
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* ── Sharing settings ── */}
+                                {portalStatus?.claim_status === 'claimed' && (
+                                    <div className="section-card">
+                                        <div className="section-card-header">
+                                            <span className="section-card-title">Sharing settings</span>
+                                            {portalSettingsSaving && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Saving…</span>}
+                                        </div>
+                                        <div className="section-card-body" style={{ display: 'grid', gap: '0.5rem' }}>
+                                            {([
+                                                ['share_consultations_by_default', 'Share visit summaries by default'],
+                                                ['share_labs_by_default', 'Share lab results by default'],
+                                                ['share_prescriptions_by_default', 'Share medications by default'],
+                                                ['share_conditions_by_default', 'Share conditions by default'],
+                                                ['share_allergies_by_default', 'Share allergies by default'],
+                                            ] as [string, string][]).map(([field, label]) => {
+                                                const val = (portalStatus as Record<string, unknown>)[field] as boolean | undefined;
+                                                return (
+                                                    <div key={field} className="portal-toggle-row">
+                                                        <div>
+                                                            <div className="portal-toggle-label">{label}</div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className={`btn btn-sm ${val ? 'btn-primary' : 'btn-secondary'}`}
+                                                            onClick={() => handlePortalSettingToggle(field, !!val)}
+                                                            disabled={portalSettingsSaving}
+                                                        >
+                                                            {val ? 'On' : 'Off'}
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Reject request dialog ── */}
+                                <Dialog
+                                    open={rejectRequestId !== null}
+                                    tone="danger"
+                                    title="Decline appointment request"
+                                    message="Optionally provide a reason. The patient will be notified."
+                                    confirmLabel="Decline request"
+                                    cancelLabel="Keep pending"
+                                    onConfirm={() => { if (rejectRequestId) handleRejectRequest(rejectRequestId, rejectReason); }}
+                                    onClose={() => { setRejectRequestId(null); setRejectReason(''); }}
+                                />
+                            </>
                         )}
                     </div>
                 )}

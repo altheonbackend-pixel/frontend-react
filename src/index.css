@@ -2183,3 +2183,229 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+/* ── Patient Portal Auth Pages ───────────────────────────────────────────────── */
+.patient-auth-shell {
+  min-height: 100vh;
+  display: flex;
+}
+.patient-auth-left {
+  width: 420px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, var(--accent) 0%, #1a4a7a 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem;
+}
+.patient-auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+}
+.patient-auth-brand-name {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.patient-auth-left-body {
+  flex: 1;
+}
+.patient-auth-headline {
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+.patient-auth-sub {
+  font-size: 0.92rem;
+  opacity: 0.85;
+  line-height: 1.65;
+  margin-bottom: 2rem;
+}
+.patient-auth-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.patient-auth-features li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.875rem;
+  opacity: 0.9;
+}
+.feature-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.feature-dot--green  { background: #68d391; }
+.feature-dot--blue   { background: #90cdf4; }
+.feature-dot--purple { background: #d6bcfa; }
+.feature-dot--orange { background: #fbd38d; }
+.patient-auth-left-footer {
+  margin-top: 2rem;
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+.patient-auth-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-app);
+  padding: 2rem;
+}
+.patient-auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+}
+.patient-auth-card-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.02em;
+}
+.patient-auth-card-sub {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1.75rem;
+}
+.patient-auth-form { display: grid; gap: 1rem; }
+.patient-auth-error {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  font-size: 0.875rem;
+  border: 1px solid var(--danger);
+}
+.patient-auth-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.patient-auth-link:hover { text-decoration: underline; }
+.patient-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.patient-auth-divider::before,
+.patient-auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+/* Claim flow stepper */
+.claim-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 2rem;
+}
+.claim-step {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.claim-step.active { color: var(--accent); font-weight: 700; }
+.claim-step.done   { color: var(--success); }
+.claim-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border-default);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.claim-step.active .claim-step-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.claim-step.done .claim-step-dot {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+.claim-step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle);
+  margin: 0 0.25rem;
+}
+/* Patient preview card (claim complete step) */
+.patient-preview-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.patient-preview-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.patient-preview-email {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+/* Responsive: stack at narrow widths */
+@media (max-width: 800px) {
+  .patient-auth-shell { flex-direction: column; }
+  .patient-auth-left { width: 100%; padding: 2rem 1.5rem 1.5rem; }
+  .patient-auth-left-body { display: none; }
+  .patient-auth-left-footer { margin-top: 0.5rem; }
+  .patient-auth-headline { font-size: 1.2rem; margin-bottom: 0.5rem; }
+}
+/* Portal management panel (PatientDetail Portal tab) */
+.portal-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.portal-status-badge--active   { background: var(--success-bg);  color: var(--success-text);  }
+.portal-status-badge--invited  { background: var(--info-bg);     color: var(--info);           }
+.portal-status-badge--pending  { background: var(--warning-bg);  color: var(--warning-text);   }
+.portal-status-badge--inactive { background: var(--bg-muted);    color: var(--text-muted);     }
+.portal-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+}
+.portal-toggle-label { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+.portal-toggle-sub   { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+

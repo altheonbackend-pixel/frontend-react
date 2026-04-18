@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
-import { Modal, toast } from '../../../shared/components/ui';
+import { Modal, Dialog, toast } from '../../../shared/components/ui';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
@@ -24,8 +24,11 @@ export default function PatientAppointments() {
     const queryClient = useQueryClient();
 
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
-    const [open, setOpen] = useState(false);
+    const [requestOpen, setRequestOpen] = useState(false);
     const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', notes: '' });
+
+    // Cancel confirm dialog state
+    const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
 
     const { data: appointments = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.appointments(),
@@ -48,18 +51,31 @@ export default function PatientAppointments() {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
-            setOpen(false);
+            setRequestOpen(false);
             setFormData({ doctorId: 0, appointmentDate: '', reason: '', notes: '' });
             toast.success('Appointment request submitted. Awaiting doctor approval.');
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
     });
 
+    const { mutate: cancelAppointment, isPending: isCancelling } = useMutation({
+        mutationFn: (id: number) => patientPortalService.cancelAppointment(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            setCancelTarget(null);
+            toast.success('Appointment cancelled.');
+        },
+        onError: (err) => {
+            setCancelTarget(null);
+            toast.error(parseApiError(err, 'Failed to cancel appointment.'));
+        },
+    });
+
     const upcoming = useMemo(() => appointments.filter(a => UPCOMING_STATUSES.includes(a.status)), [appointments]);
     const past = useMemo(() => appointments.filter(a => PAST_STATUSES.includes(a.status)), [appointments]);
     const activeList = tab === 'upcoming' ? upcoming : past;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmitRequest = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.doctorId || !formData.appointmentDate || !formData.reason.trim()) {
             toast.error('Please choose a doctor, a time, and a reason for the visit.');
@@ -73,16 +89,27 @@ export default function PatientAppointments() {
             <PageHeader
                 title="Appointments"
                 subtitle="Request a visit, track approval status, and review upcoming care."
-                actions={<button className="btn btn-primary btn-sm" onClick={() => { setFormData(f => ({ ...f, doctorId: doctors[0]?.id ?? 0 })); setOpen(true); }}>Request appointment</button>}
+                actions={
+                    <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => {
+                            setFormData(f => ({ ...f, doctorId: doctors[0]?.id ?? 0 }));
+                            setRequestOpen(true);
+                        }}
+                    >
+                        Request appointment
+                    </button>
+                }
             />
 
-            <SectionCard title="Request flow">
+            {/* Request flow explainer */}
+            <SectionCard title="How it works">
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                    {[
-                        ['1. Select a doctor', 'Choose the doctor, preferred date, and visit reason from the portal.', 'var(--bg-subtle)'],
-                        ['2. Request stays pending', 'New requests show as pending until the doctor reviews and approves them.', 'var(--accent-lighter)'],
-                        ['3. Patient gets notified', 'Once approved, the appointment status updates and you get a notification.', 'var(--color-info-light)'],
-                    ].map(([title, body, bg]) => (
+                    {([
+                        ['1. Select a doctor', 'Choose the doctor, preferred date, and visit reason.', 'var(--bg-subtle)'],
+                        ['2. Request stays pending', 'New requests show as pending until the doctor reviews and approves.', 'var(--accent-lighter)'],
+                        ['3. You get notified', 'Once approved, the appointment status updates and you get a notification.', 'var(--color-info-light)'],
+                    ] as [string, string, string][]).map(([title, body, bg]) => (
                         <div key={title} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
                             <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{title}</div>
                             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{body}</div>
@@ -91,9 +118,14 @@ export default function PatientAppointments() {
                 </div>
             </SectionCard>
 
+            {/* Tab toggle */}
             <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
-                <button className={`btn btn-sm ${tab === 'upcoming' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('upcoming')}>Upcoming</button>
-                <button className={`btn btn-sm ${tab === 'past' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('past')}>Past & closed</button>
+                <button className={`btn btn-sm ${tab === 'upcoming' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('upcoming')}>
+                    Upcoming {upcoming.length > 0 && <span style={{ marginLeft: '0.3rem', opacity: 0.8 }}>({upcoming.length})</span>}
+                </button>
+                <button className={`btn btn-sm ${tab === 'past' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('past')}>
+                    Past & closed
+                </button>
             </div>
 
             {isLoading && <SectionCard title=""><TabSkeleton rows={3} /></SectionCard>}
@@ -104,13 +136,21 @@ export default function PatientAppointments() {
                     {activeList.map(item => (
                         <SectionCard key={item.id}>
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                {/* Header row: doctor + status */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{item.doctor_name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{item.specialty}{item.clinic ? ` · ${item.clinic}` : ''}</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {item.specialty}{item.clinic ? ` · ${item.clinic}` : ''}
+                                        </div>
                                     </div>
-                                    <StatusBadge status={item.status} label={item.status === 'pending' ? 'Pending approval' : undefined} />
+                                    <StatusBadge
+                                        status={item.status}
+                                        label={item.status === 'pending' ? 'Pending approval' : undefined}
+                                    />
                                 </div>
+
+                                {/* Detail row */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>When</div>
@@ -121,11 +161,33 @@ export default function PatientAppointments() {
                                         <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.reason_for_appointment}</div>
                                     </div>
                                 </div>
+
+                                {/* Instructions / status note */}
                                 {(item.status === 'pending' || item.portal_instructions || item.notes) && (
-                                    <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: item.status === 'pending' ? 'var(--color-warning-light)' : 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                    <div style={{
+                                        padding: '0.875rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        background: item.status === 'pending' ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
+                                        color: 'var(--text-secondary)',
+                                        fontSize: '0.875rem',
+                                    }}>
                                         {item.status === 'pending'
                                             ? 'This request has been submitted and is waiting for the doctor to approve it.'
                                             : item.portal_instructions || item.notes}
+                                    </div>
+                                )}
+
+                                {/* Cancel button — only for upcoming appointments where patient_can_cancel */}
+                                {UPCOMING_STATUSES.includes(item.status) && item.patient_can_cancel && (
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-danger-outline"
+                                            onClick={() => setCancelTarget({ id: item.id, doctorName: item.doctor_name })}
+                                            disabled={isCancelling}
+                                        >
+                                            Cancel appointment
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -140,24 +202,43 @@ export default function PatientAppointments() {
                 </div>
             )}
 
+            {/* ── Cancel confirmation dialog ── */}
+            <Dialog
+                open={!!cancelTarget}
+                tone="danger"
+                title="Cancel appointment"
+                message={cancelTarget
+                    ? `Are you sure you want to cancel your appointment with ${cancelTarget.doctorName}? The doctor will be notified.`
+                    : undefined}
+                confirmLabel="Yes, cancel"
+                cancelLabel="Keep it"
+                onConfirm={() => { if (cancelTarget) cancelAppointment(cancelTarget.id); }}
+                onClose={() => setCancelTarget(null)}
+            />
+
+            {/* ── Request appointment modal ── */}
             <Modal
-                open={open}
-                onClose={() => setOpen(false)}
+                open={requestOpen}
+                onClose={() => setRequestOpen(false)}
                 title="Request a new appointment"
                 size="lg"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={() => setOpen(false)}>Cancel</button>
+                        <button type="button" className="cancel-button" onClick={() => setRequestOpen(false)}>Cancel</button>
                         <button type="submit" form="patient-appt-form" className="btn btn-primary" disabled={isSubmitting}>
                             {isSubmitting ? 'Sending…' : 'Send request'}
                         </button>
                     </>
                 }
             >
-                <form id="patient-appt-form" onSubmit={handleSubmit} className="form">
+                <form id="patient-appt-form" onSubmit={handleSubmitRequest} className="form">
                     <div className="form-group">
                         <label htmlFor="doctorId">Choose doctor</label>
-                        <select id="doctorId" value={formData.doctorId} onChange={e => setFormData(p => ({ ...p, doctorId: Number(e.target.value) }))}>
+                        <select
+                            id="doctorId"
+                            value={formData.doctorId}
+                            onChange={e => setFormData(p => ({ ...p, doctorId: Number(e.target.value) }))}
+                        >
                             <option value={0} disabled>— Select a doctor —</option>
                             {doctors.map(d => (
                                 <option key={d.id} value={d.id}>{d.full_name} · {d.specialty}</option>
@@ -166,15 +247,35 @@ export default function PatientAppointments() {
                     </div>
                     <div className="form-group">
                         <label htmlFor="appointmentDate">Preferred date & time</label>
-                        <input id="appointmentDate" type="datetime-local" value={formData.appointmentDate} onChange={e => setFormData(p => ({ ...p, appointmentDate: e.target.value }))} />
+                        <input
+                            id="appointmentDate"
+                            type="datetime-local"
+                            value={formData.appointmentDate}
+                            onChange={e => setFormData(p => ({ ...p, appointmentDate: e.target.value }))}
+                        />
                     </div>
                     <div className="form-group">
                         <label htmlFor="reason">Reason for appointment</label>
-                        <textarea id="reason" rows={4} value={formData.reason} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} placeholder="Briefly describe what you need help with." />
+                        <textarea
+                            id="reason"
+                            rows={4}
+                            value={formData.reason}
+                            onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
+                            placeholder="Briefly describe what you need help with."
+                        />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label htmlFor="notes">Additional notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                        <textarea id="notes" rows={2} value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Any other information for the clinic." />
+                        <label htmlFor="notes">
+                            Additional notes{' '}
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                        </label>
+                        <textarea
+                            id="notes"
+                            rows={2}
+                            value={formData.notes}
+                            onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
+                            placeholder="Any other information for the clinic."
+                        />
                     </div>
                 </form>
             </Modal>

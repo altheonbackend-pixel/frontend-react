@@ -172,4 +172,47 @@ export const patientPortalService = {
 
     markAllNotificationsRead: () =>
         api.post('/patient/notifications/mark-all-read/').then(r => r.data),
+
+    cancelAppointment: (id: number) =>
+        api.post(`/appointments/${id}/cancel/`).then(r => r.data),
+
+    // ── Doctor-side portal management (called from PatientDetail) ──────────────
+
+    getPortalStatus: (patientId: string) =>
+        api.get<{
+            portal_enabled: boolean;
+            allow_self_claim: boolean;
+            claim_status: 'unclaimed' | 'invited' | 'claimed' | 'locked';
+            invited_at: string | null;
+            claimed_at: string | null;
+            primary_contact_email: string | null;
+        }>(`/patients/${patientId}/portal/status/`).then(r => r.data),
+
+    sendPortalInvite: (patientId: string, email: string) =>
+        api.post(`/patients/${patientId}/portal/invite/`, { email }).then(r => r.data),
+
+    updatePortalSettings: (patientId: string, data: Record<string, boolean>) =>
+        api.patch(`/patients/${patientId}/portal/settings/`, data).then(r => r.data),
+
+    shareConsultation: (consultationId: number, data: { patient_summary?: string; patient_instructions?: string }) =>
+        api.post(`/consultations/${consultationId}/share-with-patient/`, data).then(r => r.data),
+
+    releaseLabResult: (labId: number, data: { patient_note?: string }) =>
+        api.post(`/lab-results/${labId}/release-to-patient/`, data).then(r => r.data),
+
+    getPendingAppointmentRequests: () =>
+        api.get<Array<{
+            id: number;
+            patient_name: string;
+            patient_id: string;
+            appointment_date: string;
+            reason: string;
+            notes: string;
+        }>>('/doctor/appointment-requests/').then(r => r.data),
+
+    approveAppointmentRequest: (id: number, portal_instructions?: string) =>
+        api.post(`/appointments/${id}/approve/`, { portal_instructions }).then(r => r.data),
+
+    rejectAppointmentRequest: (id: number, reason?: string) =>
+        api.post(`/appointments/${id}/reject/`, { reason }).then(r => r.data),
 };
