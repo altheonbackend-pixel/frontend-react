@@ -72,7 +72,8 @@ api.interceptors.response.use(
             return api(original);
         } catch (refreshError) {
             onRefreshFailed(refreshError);
-            window.location.href = '/login';
+            // Do NOT use window.location.href here — hard reload while already on /login
+            // causes an infinite reload loop. AuthContext's 401 interceptor handles logout.
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;
