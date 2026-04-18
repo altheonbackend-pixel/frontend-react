@@ -303,7 +303,7 @@
 }
 .rx-adder-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .rx-adder-dosage { flex: 1; min-width: 70px; }
-.rx-adder-days   { flex: 0 0 58px; min-width: 50px; }
+.rx-adder-days   { flex: 0 0 76px; min-width: 66px; }
 .rx-adder-select {
   flex: 1.25;
   min-width: 100px;

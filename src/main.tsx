@@ -30,6 +30,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import App from './app/App';
 import { AuthProvider } from './features/auth/context/AuthContext';
 import { AdminContextProvider } from './features/admin/context/AdminContext';
+import { PatientPortalProvider } from './features/patient-portal/context/PatientPortalContext';
 import ErrorBoundary from './shared/components/ErrorBoundary';
 import './i18n';
 import './index.css';
@@ -54,12 +55,14 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
       <QueryClientProvider client={queryClient}>
         <Router>
           <AuthProvider>
-            <AdminContextProvider>
-              <Suspense fallback={null}>
-                <App />
-              </Suspense>
-              <Toaster position="top-right" richColors closeButton />
-            </AdminContextProvider>
+            <PatientPortalProvider>
+              <AdminContextProvider>
+                <Suspense fallback={null}>
+                  <App />
+                </Suspense>
+                <Toaster position="top-right" richColors closeButton />
+              </AdminContextProvider>
+            </PatientPortalProvider>
           </AuthProvider>
         </Router>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

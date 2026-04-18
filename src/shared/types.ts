@@ -302,6 +302,23 @@ export interface AdminProfile {
     full_name: string;
 }
 
+export interface PatientProfile {
+    id: number;
+    patient_id: string;
+    full_name: string;
+    email: string;
+    date_of_birth: string;
+    phone_number: string;
+    address: string;
+    emergency_contact_name: string;
+    emergency_contact_number: string;
+    blood_group: string;
+    primary_doctor_name: string;
+    email_verified: boolean;
+    claim_status: 'unclaimed' | 'invited' | 'claimed' | 'locked';
+    preferred_language: string;
+}
+
 export interface AdminStats {
     total_doctors: number;
     total_active_doctors: number;

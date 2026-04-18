@@ -1,14 +1,16 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { type DoctorProfile, type User, type AdminProfile } from '../../../shared/types';
+import { type DoctorProfile, type User, type AdminProfile, type PatientProfile } from '../../../shared/types';
 import api from '../../../shared/services/api';
 import { clearAllDraftsForDoctor } from '../../../shared/hooks/useFormDraft';
+import { DEMO_PATIENT_CREDENTIALS, DEMO_PATIENT_PROFILE } from '../../patient-portal/mockData';
 
 interface AuthContextType {
     user: User | null;
     profile: DoctorProfile | null;
     adminProfile: AdminProfile | null;
-    userType: 'doctor' | 'admin' | null;
+    patientProfile: PatientProfile | null;
+    userType: 'doctor' | 'admin' | 'patient' | null;
     login: (credentials: { email: string; password: string }) => Promise<void>;
     logout: () => void;
     isAuthenticated: boolean;
@@ -25,7 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<DoctorProfile | null>(null);
     const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
-    const [userType, setUserType] = useState<'doctor' | 'admin' | null>(null);
+    const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
+    const [userType, setUserType] = useState<'doctor' | 'admin' | 'patient' | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [authIsLoading, setAuthIsLoading] = useState<boolean>(true);
     const navigate = useNavigate();
@@ -44,10 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Clear any non-sensitive metadata we kept in localStorage
         localStorage.removeItem('user_type');
         localStorage.removeItem('admin_profile');
+        localStorage.removeItem('demo_patient_session');
 
         setUser(null);
         setProfile(null);
         setAdminProfile(null);
+        setPatientProfile(null);
         setUserType(null);
         setIsAuthenticated(false);
         navigate('/login', { replace: true });
@@ -81,6 +86,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * before this catch block runs, so a single expiry is handled silently.
      */
     const initSession = useCallback(async () => {
+        const demoPatientSession = localStorage.getItem('demo_patient_session') === 'true';
+        if (demoPatientSession) {
+            setUserType('patient');
+            setPatientProfile(DEMO_PATIENT_PROFILE);
+            setUser({
+                id: DEMO_PATIENT_PROFILE.id,
+                email: DEMO_PATIENT_PROFILE.email,
+                full_name: DEMO_PATIENT_PROFILE.full_name,
+            });
+            setIsAuthenticated(true);
+            setAuthIsLoading(false);
+            return;
+        }
+
         try {
             const res = await api.get('/me/');
             const { user_type, user: userData, profile: profileData } = res.data;
@@ -146,6 +165,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const login = async (credentials: { email: string; password: string }) => {
+        if (
+            credentials.email.trim().toLowerCase() === DEMO_PATIENT_CREDENTIALS.email &&
+            credentials.password === DEMO_PATIENT_CREDENTIALS.password
+        ) {
+            setUserType('patient');
+            setPatientProfile(DEMO_PATIENT_PROFILE);
+            setUser({
+                id: DEMO_PATIENT_PROFILE.id,
+                email: DEMO_PATIENT_PROFILE.email,
+                full_name: DEMO_PATIENT_PROFILE.full_name,
+            });
+            setProfile(null);
+            setAdminProfile(null);
+            setIsAuthenticated(true);
+            localStorage.setItem('user_type', 'patient');
+            localStorage.setItem('demo_patient_session', 'true');
+            navigate('/patient/dashboard');
+            return;
+        }
+
         const response = await api.post('/login/', credentials);
         const { user: loginUserData } = response.data;
         const userTypeFromResponse: 'doctor' | 'admin' = loginUserData.user_type || 'doctor';
@@ -161,6 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 full_name: loginUserData.full_name,
             };
             setAdminProfile(adminData);
+            setPatientProfile(null);
             localStorage.setItem('admin_profile', JSON.stringify(adminData));
             setIsAuthenticated(true);
             navigate('/admin/dashboard');
@@ -173,6 +213,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 specialty: loginUserData.specialty,
             });
             setIsAuthenticated(true);
+            setPatientProfile(null);
             // Fetch full doctor profile now that cookies are set
             const profileRes = await api.get('/profile/');
             setProfile(profileRes.data);
@@ -181,14 +222,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // Derived state
-    const emailVerified = userType === 'admin' || (profile?.email_verified ?? true);
-    const profileComplete = userType === 'admin' || !!(
+    const emailVerified = userType === 'admin' || userType === 'patient' || (profile?.email_verified ?? true);
+    const profileComplete = userType === 'admin' || userType === 'patient' || !!(
         profile?.phone_number && profile.phone_number.trim() &&
         profile?.address && profile.address.trim()
     );
 
     const value = {
-        user, profile, adminProfile, userType, login, logout,
+        user, profile, adminProfile, patientProfile, userType, login, logout,
         isAuthenticated, authIsLoading, updateProfileData,
         hasAccessLevel, emailVerified, profileComplete,
     };

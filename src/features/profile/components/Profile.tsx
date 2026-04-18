@@ -17,7 +17,7 @@ interface AuditEntry {
     action: string;
     description: string;
     ip_address: string | null;
-    created_at: string;
+    timestamp: string;
 }
 
 const Profile = () => {
@@ -27,11 +27,50 @@ const Profile = () => {
     const [activityPage, setActivityPage] = useState(1);
     const PAGE_SIZE = 10;
 
+    // Change password form state
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [pwLoading, setPwLoading] = useState(false);
+    const [pwError, setPwError] = useState('');
+    const [pwSuccess, setPwSuccess] = useState('');
+
     const { data: activityData, isLoading: activityLoading } = useQuery({
         queryKey: ['my-activity', activityPage],
         queryFn: () => api.get(`/audit/my-activity/?page=${activityPage}&page_size=${PAGE_SIZE}`).then(r => r.data),
         staleTime: 60_000,
     });
+
+    const handleChangePassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPwError('');
+        setPwSuccess('');
+
+        if (newPassword !== confirmPassword) {
+            setPwError('New passwords do not match.');
+            return;
+        }
+        if (newPassword.length < 8) {
+            setPwError('Password must be at least 8 characters.');
+            return;
+        }
+
+        setPwLoading(true);
+        try {
+            await api.post('/change-password/', { current_password: currentPassword, new_password: newPassword });
+            setPwSuccess('Password changed successfully.');
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch (err: unknown) {
+            const msg =
+                (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+                'Failed to change password. Please try again.';
+            setPwError(msg);
+        } finally {
+            setPwLoading(false);
+        }
+    };
 
     if (authIsLoading) {
         return <div className="loading-message">{t('profile.loading')}</div>;
@@ -92,6 +131,79 @@ const Profile = () => {
                     </div>
                 </div>
 
+                {/* Security — Change Password */}
+                <div className="section-card" style={{ marginBottom: '1.25rem' }}>
+                    <div className="section-card-header">
+                        <span className="section-card-title">Security</span>
+                    </div>
+                    <div className="section-card-body">
+                        <form onSubmit={handleChangePassword}>
+                            {pwError && (
+                                <div className="error-message" style={{ marginBottom: '1rem' }}>{pwError}</div>
+                            )}
+                            {pwSuccess && (
+                                <div style={{
+                                    background: 'var(--color-success-light, #f0fff4)',
+                                    border: '1px solid var(--color-success-border, #9ae6b4)',
+                                    color: 'var(--color-success-dark, #276749)',
+                                    padding: '0.625rem 1rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    fontSize: '0.875rem',
+                                    marginBottom: '1rem',
+                                }}>
+                                    {pwSuccess}
+                                </div>
+                            )}
+                            <div className="form-group">
+                                <label htmlFor="current-password">Current Password</label>
+                                <input
+                                    id="current-password"
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={e => setCurrentPassword(e.target.value)}
+                                    placeholder="Enter current password"
+                                    autoComplete="current-password"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="new-password">New Password</label>
+                                <input
+                                    id="new-password"
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={e => setNewPassword(e.target.value)}
+                                    placeholder="At least 8 characters"
+                                    autoComplete="new-password"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="confirm-password">Confirm New Password</label>
+                                <input
+                                    id="confirm-password"
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={e => setConfirmPassword(e.target.value)}
+                                    placeholder="Repeat new password"
+                                    autoComplete="new-password"
+                                    required
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary btn-sm"
+                                    disabled={pwLoading}
+                                    style={{ minWidth: 140 }}
+                                >
+                                    {pwLoading ? 'Saving…' : 'Change Password'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 {/* Activity log */}
                 <div className="section-card">
                     <div className="section-card-header">
@@ -135,7 +247,7 @@ const Profile = () => {
                                                         {entry.ip_address || '—'}
                                                     </td>
                                                     <td style={{ padding: '0.5rem 1rem', color: 'var(--text-muted)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                                        {new Date(entry.created_at).toLocaleString(undefined, {
+                                                        {new Date(entry.timestamp).toLocaleString(undefined, {
                                                             month: 'short', day: 'numeric',
                                                             hour: '2-digit', minute: '2-digit',
                                                         })}

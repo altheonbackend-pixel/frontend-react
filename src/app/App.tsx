@@ -23,6 +23,7 @@ import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
 import AdminPatientList from '../features/admin/components/AdminPatientList';
+import PatientLayout from '../features/patient-portal/components/PatientLayout';
 
 // Code-split lazy imports
 const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
@@ -37,6 +38,14 @@ const EditProfile       = lazy(() => import('../features/profile/components/Edit
 const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
+const PatientDashboard  = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
+const PatientAppointments = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
+const PatientVisits     = lazy(() => import('../features/patient-portal/components/PatientVisits'));
+const PatientMedications = lazy(() => import('../features/patient-portal/components/PatientMedications'));
+const PatientLabs       = lazy(() => import('../features/patient-portal/components/PatientLabs'));
+const PatientNotifications = lazy(() => import('../features/patient-portal/components/PatientNotifications'));
+const PatientProfile    = lazy(() => import('../features/patient-portal/components/PatientProfile'));
+const PatientSettings   = lazy(() => import('../features/patient-portal/components/PatientSettings'));
 
 import PrivateRoutes from '../shared/components/PrivateRoutes';
 import PageLoader from '../shared/components/PageLoader';
@@ -126,6 +135,34 @@ function App() {
         );
     }
 
+    if (isAuthenticated && userType === 'patient') {
+        return (
+            <div className="App">
+                <a href="#main-content" className="skip-link">Skip to main content</a>
+                <Suspense fallback={<PageLoader message="Loading portal" />}>
+                    <Routes>
+                        <Route element={<PrivateRoutes />}>
+                            <Route element={<PatientLayout />}>
+                                <Route path="/patient/dashboard" element={<ErrorBoundary resetKey={location.pathname}><PatientDashboard /></ErrorBoundary>} />
+                                <Route path="/patient/appointments" element={<ErrorBoundary resetKey={location.pathname}><PatientAppointments /></ErrorBoundary>} />
+                                <Route path="/patient/visits" element={<ErrorBoundary resetKey={location.pathname}><PatientVisits /></ErrorBoundary>} />
+                                <Route path="/patient/medications" element={<ErrorBoundary resetKey={location.pathname}><PatientMedications /></ErrorBoundary>} />
+                                <Route path="/patient/labs" element={<ErrorBoundary resetKey={location.pathname}><PatientLabs /></ErrorBoundary>} />
+                                <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
+                                <Route path="/patient/profile" element={<ErrorBoundary resetKey={location.pathname}><PatientProfile /></ErrorBoundary>} />
+                                <Route path="/patient/settings" element={<ErrorBoundary resetKey={location.pathname}><PatientSettings /></ErrorBoundary>} />
+                            </Route>
+                        </Route>
+                        <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
+                        <Route path="/login" element={<LandingPage />} />
+                        <Route path="/patient/login" element={<LandingPage />} />
+                        <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+                    </Routes>
+                </Suspense>
+            </div>
+        );
+    }
+
     // ── Doctor app (sidebar layout) ────────────────────────────────────────────
     return (
         <div className="App">
@@ -135,6 +172,7 @@ function App() {
                     {/* Public routes (no sidebar) */}
                     <Route path="/register"        element={<Register />} />
                     <Route path="/login"           element={<LandingPage />} />
+                    <Route path="/patient/login"   element={<LandingPage />} />
                     <Route path="/verify-email"    element={<VerifyEmail />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
