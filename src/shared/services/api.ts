@@ -53,6 +53,15 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
+        // Never attempt a token refresh when the 401 came from an auth endpoint —
+        // the login endpoint returns 401 for bad credentials (not expiry), and
+        // the refresh endpoint itself can't be refreshed. Without this guard the
+        // interceptor swallows the real error and surfaces "Refresh token not found."
+        const url: string = original.url ?? '';
+        if (url.includes('/login/') || url.includes('/token/refresh/')) {
+            return Promise.reject(error);
+        }
+
         // If a refresh is already in-flight, queue this request until it resolves
         if (isRefreshing) {
             return new Promise<void>((resolve, reject) => {
