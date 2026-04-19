@@ -1,6 +1,7 @@
 import api from '../../../shared/services/api';
 
 export interface PatientDashboardData {
+    pending_appointment_requests: number;
     next_appointment: {
         id: number;
         appointment_date: string;

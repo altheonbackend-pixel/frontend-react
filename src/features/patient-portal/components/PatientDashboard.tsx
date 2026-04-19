@@ -51,7 +51,7 @@ export default function PatientDashboard() {
         );
     }
 
-    const { next_appointment, active_medications_count, unread_notifications, latest_visible_consultation, latest_lab_result } = data;
+    const { pending_appointment_requests, next_appointment, active_medications_count, unread_notifications, latest_visible_consultation, latest_lab_result } = data;
 
     return (
         <>
@@ -89,16 +89,42 @@ export default function PatientDashboard() {
                 </SectionCard>
 
                 <SectionCard title="Outstanding actions">
-                    <div style={{ display: 'grid', gap: '0.75rem' }}>
-                        <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Profile review</div>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Check your phone number and emergency contact details before your next visit.</div>
+                    {pending_appointment_requests === 0 && !unread_notifications ? (
+                        <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            No outstanding actions — you're all caught up.
                         </div>
-                        <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-info-light)' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>Appointment requests</div>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>New requests appear with a pending status until the doctor approves them.</div>
+                    ) : (
+                        <div style={{ display: 'grid', gap: '0.75rem' }}>
+                            {pending_appointment_requests > 0 && (
+                                <Link
+                                    to="/patient/appointments"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-warning-light)', cursor: 'pointer' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                            {pending_appointment_requests} appointment request{pending_appointment_requests > 1 ? 's' : ''} pending
+                                        </div>
+                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                                            Awaiting doctor approval — tap to view.
+                                        </div>
+                                    </div>
+                                </Link>
+                            )}
+                            {unread_notifications > 0 && (
+                                <Link
+                                    to="/patient/notifications"
+                                    style={{ textDecoration: 'none' }}
+                                >
+                                    <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-info-light)', cursor: 'pointer' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                            {unread_notifications} unread notification{unread_notifications > 1 ? 's' : ''}
+                                        </div>
+                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Tap to view your notifications.</div>
+                                    </div>
+                                </Link>
+                            )}
                         </div>
-                    </div>
+                    )}
                 </SectionCard>
             </div>
 
