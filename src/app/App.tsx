@@ -53,6 +53,7 @@ const PatientAllergies  = lazy(() => import('../features/patient-portal/componen
 const PatientReferrals  = lazy(() => import('../features/patient-portal/components/PatientReferrals'));
 const PatientProfile    = lazy(() => import('../features/patient-portal/components/PatientProfile'));
 const PatientSettings   = lazy(() => import('../features/patient-portal/components/PatientSettings'));
+const PatientDoctorProfile = lazy(() => import('../features/patient-portal/components/PatientDoctorProfile'));
 
 import PrivateRoutes from '../shared/components/PrivateRoutes';
 import PageLoader from '../shared/components/PageLoader';
@@ -161,6 +162,7 @@ function App() {
                                 <Route path="/patient/referrals" element={<ErrorBoundary resetKey={location.pathname}><PatientReferrals /></ErrorBoundary>} />
                                 <Route path="/patient/profile" element={<ErrorBoundary resetKey={location.pathname}><PatientProfile /></ErrorBoundary>} />
                                 <Route path="/patient/settings" element={<ErrorBoundary resetKey={location.pathname}><PatientSettings /></ErrorBoundary>} />
+                                <Route path="/patient/doctor/:id" element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
                             </Route>
                         </Route>
                         {/* Public patient routes (accessible even when logged in as patient) */}

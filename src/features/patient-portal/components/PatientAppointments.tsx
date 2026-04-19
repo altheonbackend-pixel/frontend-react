@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
@@ -159,6 +160,12 @@ export default function PatientAppointments() {
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                             {item.specialty}{item.clinic ? ` · ${item.clinic}` : ''}
                                         </div>
+                                        <Link
+                                            to={`/patient/doctor/${item.doctor_id}`}
+                                            style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none', marginTop: '0.2rem', display: 'inline-block' }}
+                                        >
+                                            View profile →
+                                        </Link>
                                     </div>
                                     <StatusBadge
                                         status={item.status}

@@ -26,6 +26,7 @@ export interface PatientDashboardData {
 
 export interface PatientAppointment {
     id: number;
+    doctor_id: number;
     doctor_name: string;
     specialty: string;
     clinic: string | null;
@@ -136,6 +137,15 @@ export interface PatientAllergy {
     reaction_type: 'drug' | 'food' | 'environmental' | 'other';
     severity: 'mild' | 'moderate' | 'severe' | 'life_threatening';
     reaction_description: string;
+}
+
+export interface PatientDoctorProfile {
+    id: number;
+    full_name: string;
+    specialty: string | null;
+    clinic: string | null;
+    phone_number: string | null;
+    email: string;
 }
 
 export interface PatientReferral {
@@ -256,4 +266,7 @@ export const patientPortalService = {
 
     getReferrals: () =>
         api.get<PatientReferral[]>('/patient/referrals/').then(r => r.data),
+
+    getDoctorProfile: (id: number) =>
+        api.get<PatientDoctorProfile>(`/patient/doctor/${id}/`).then(r => r.data),
 };
