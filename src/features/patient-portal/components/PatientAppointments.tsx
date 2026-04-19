@@ -27,8 +27,9 @@ export default function PatientAppointments() {
     const [requestOpen, setRequestOpen] = useState(false);
     const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', notes: '' });
 
-    // Cancel confirm dialog state
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
+    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
+    const [rescheduleDate, setRescheduleDate] = useState('');
 
     const { data: appointments = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.appointments(),
@@ -56,6 +57,21 @@ export default function PatientAppointments() {
             toast.success('Appointment request submitted. Awaiting doctor approval.');
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
+    });
+
+    const { mutate: rescheduleAppointment, isPending: isRescheduling } = useMutation({
+        mutationFn: ({ id, date }: { id: number; date: string }) =>
+            patientPortalService.rescheduleAppointment(id, date),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            setRescheduleTarget(null);
+            setRescheduleDate('');
+            toast.success('Reschedule request submitted. Awaiting doctor approval.');
+        },
+        onError: (err) => {
+            setRescheduleTarget(null);
+            toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
+        },
     });
 
     const { mutate: cancelAppointment, isPending: isCancelling } = useMutation({
@@ -177,17 +193,28 @@ export default function PatientAppointments() {
                                     </div>
                                 )}
 
-                                {/* Cancel button — only for upcoming appointments where patient_can_cancel */}
-                                {UPCOMING_STATUSES.includes(item.status) && item.patient_can_cancel && (
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <button
-                                            type="button"
-                                            className="btn btn-sm btn-danger-outline"
-                                            onClick={() => setCancelTarget({ id: item.id, doctorName: item.doctor_name })}
-                                            disabled={isCancelling}
-                                        >
-                                            Cancel appointment
-                                        </button>
+                                {UPCOMING_STATUSES.includes(item.status) && (item.patient_can_cancel || item.patient_can_reschedule) && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                        {item.patient_can_reschedule && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-secondary"
+                                                onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name }); setRescheduleDate(''); }}
+                                                disabled={isRescheduling}
+                                            >
+                                                Reschedule
+                                            </button>
+                                        )}
+                                        {item.patient_can_cancel && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-danger-outline"
+                                                onClick={() => setCancelTarget({ id: item.id, doctorName: item.doctor_name })}
+                                                disabled={isCancelling}
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -201,6 +228,45 @@ export default function PatientAppointments() {
                     )}
                 </div>
             )}
+
+            {/* ── Reschedule modal ── */}
+            <Modal
+                open={!!rescheduleTarget}
+                onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); }}
+                title="Reschedule appointment"
+                size="sm"
+                footer={
+                    <>
+                        <button type="button" className="cancel-button" onClick={() => setRescheduleTarget(null)}>Keep it</button>
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={!rescheduleDate || isRescheduling}
+                            onClick={() => rescheduleTarget && rescheduleDate && rescheduleAppointment({ id: rescheduleTarget.id, date: rescheduleDate })}
+                        >
+                            {isRescheduling ? 'Submitting…' : 'Request reschedule'}
+                        </button>
+                    </>
+                }
+            >
+                {rescheduleTarget && (
+                    <div className="form">
+                        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                            Choose a new date for your appointment with {rescheduleTarget.doctorName}. The doctor will need to approve the reschedule.
+                        </p>
+                        <div className="form-group">
+                            <label htmlFor="reschedule-date">New date &amp; time</label>
+                            <input
+                                id="reschedule-date"
+                                type="datetime-local"
+                                min={new Date().toISOString().slice(0, 16)}
+                                value={rescheduleDate}
+                                onChange={e => setRescheduleDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+            </Modal>
 
             {/* ── Cancel confirmation dialog ── */}
             <Dialog

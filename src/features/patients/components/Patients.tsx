@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { type Patient } from '../../../shared/types';
 import api from '../../../shared/services/api';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
-import ConfirmModal from '../../../shared/components/ConfirmModal';
+import Dialog from '../../../shared/components/ui/Dialog';
 import { Pagination } from '../../../shared/components/Pagination';
 import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
@@ -286,13 +286,13 @@ const Patients = () => {
                 />
             </div>
 
-            {confirmDeleteId && (
-                <ConfirmModal
-                    message={t('patients.error.delete_confirm', 'Are you sure you want to delete this patient? This action cannot be undone.')}
-                    onConfirm={() => handleDelete(confirmDeleteId)}
-                    onCancel={() => setConfirmDeleteId(null)}
-                />
-            )}
+            <Dialog
+                open={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+                title={t('patients.error.delete_confirm', 'Are you sure you want to delete this patient? This action cannot be undone.')}
+                tone="danger"
+            />
         </>
     );
 };

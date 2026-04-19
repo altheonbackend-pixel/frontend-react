@@ -20,7 +20,10 @@ export function PatientPortalProvider({ children }: { children: ReactNode }) {
         queryFn: patientPortalService.getUnreadCount,
         enabled: userType === 'patient',
         staleTime: 30_000,
-        refetchInterval: 60_000,
+        refetchInterval: (query) => {
+            if (document.hidden) return false;
+            return (query.state.data ?? 0) > 0 ? 30_000 : 120_000;
+        },
     });
 
     const invalidateUnreadCount = () => {

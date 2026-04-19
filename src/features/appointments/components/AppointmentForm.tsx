@@ -35,6 +35,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
             appointment_date: defaultDate,
             patient: '',
             reason_for_appointment: '',
+            appointment_type: 'in_person' as const,
             status: 'scheduled',
             notes: '',
         },
@@ -134,6 +135,15 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
                             {...register('appointment_date')}
                         />
                         {errors.appointment_date && <span className="field-error">{errors.appointment_date.message}</span>}
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="appointment_type">{t('appointments.form.type_label', { defaultValue: 'Appointment type' })}</label>
+                        <select id="appointment_type" className="select-input" {...register('appointment_type')}>
+                            <option value="in_person">In person</option>
+                            <option value="telemedicine">Telemedicine</option>
+                            <option value="phone">Phone</option>
+                        </select>
                     </div>
 
                     <div className="form-group">

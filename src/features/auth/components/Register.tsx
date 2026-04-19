@@ -85,7 +85,7 @@ export default function Register() {
                 specialty:         payload.specialty,
                 license_number:    payload.license_number ?? '',
                 registration_code: payload.registration_code,
-                terms_accepted:    true,
+                terms_accepted:    payload.terms_accepted ?? true,
             });
             setSuccess(true);
             setTimeout(() => navigate('/login', { replace: true }), 2500);

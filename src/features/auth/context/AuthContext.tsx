@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type DoctorProfile, type User, type AdminProfile, type PatientProfile } from '../../../shared/types';
-import api from '../../../shared/services/api';
+import api, { setLogoutCallback } from '../../../shared/services/api';
 import { clearAllDraftsForDoctor } from '../../../shared/hooks/useFormDraft';
 
 interface AuthContextType {
@@ -33,10 +33,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const navigate = useNavigate();
 
     const logout = useCallback(() => {
-        // Tell the server to blacklist the refresh token cookie and clear both cookies
-        api.post('/logout/').catch(() => {
-            // Ignore errors — local logout proceeds regardless
-        });
+        const logoutEndpoint = userType === 'patient' ? '/patient/logout/' : '/logout/';
+        api.post(logoutEndpoint).catch(() => {});
+        setLogoutCallback(() => {});
 
         // Clear consultation drafts for the current doctor before signing out
         if (profile?.id) {
@@ -54,7 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserType(null);
         setIsAuthenticated(false);
         navigate('/login', { replace: true });
-    }, [navigate, profile]);
+    }, [navigate, profile, userType]);
 
     const updateProfileData = (newProfile: DoctorProfile) => {
         setProfile(newProfile);
@@ -140,25 +139,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    // Register the 401 response interceptor so any mid-session expiry triggers logout.
-    // 403 (access level denied) is NOT a logout condition.
-    // Auth-related endpoints are excluded: /logout/ calling logout() would loop back
-    // into itself, and /token/refresh/ + /me/ are handled by api.ts and initSession().
+    // Keep the api.ts logout callback up-to-date when logout identity changes
     useEffect(() => {
-        const responseInterceptor = api.interceptors.response.use(
-            (response) => response,
-            (error) => {
-                const url = (error.config?.url ?? '') as string;
-                const isAuthEndpoint = /\/(logout|token\/refresh|me)\//i.test(url);
-                if (error.response?.status === 401 && !isAuthEndpoint) {
-                    logout();
-                }
-                return Promise.reject(error);
-            }
-        );
-        return () => {
-            api.interceptors.response.eject(responseInterceptor);
-        };
+        setLogoutCallback(logout);
     }, [logout]);
 
     // Validate session on mount — single /api/me/ call, cookie sent automatically

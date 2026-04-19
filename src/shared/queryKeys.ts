@@ -58,5 +58,8 @@ export const queryKeys = {
         labResult: (id: number) => ['patient', 'lab-results', id] as const,
         notifications: () => ['patient', 'notifications'] as const,
         notificationsUnreadCount: () => ['patient', 'notifications', 'unread-count'] as const,
+        conditions: () => ['patient', 'conditions'] as const,
+        allergies: () => ['patient', 'allergies'] as const,
+        referrals: () => ['patient', 'referrals'] as const,
     },
 } as const;

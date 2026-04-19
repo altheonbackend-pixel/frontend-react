@@ -3,6 +3,11 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
 
+// Logout callback registered by AuthContext after login so api.ts can trigger
+// logout without importing AuthContext (avoids circular dependencies).
+let _logoutRef: (() => void) | null = null;
+export function setLogoutCallback(fn: () => void) { _logoutRef = fn; }
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     timeout: 15000,
@@ -81,8 +86,7 @@ api.interceptors.response.use(
             return api(original);
         } catch (refreshError) {
             onRefreshFailed(refreshError);
-            // Do NOT use window.location.href here — hard reload while already on /login
-            // causes an infinite reload loop. AuthContext's 401 interceptor handles logout.
+            _logoutRef?.();
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;

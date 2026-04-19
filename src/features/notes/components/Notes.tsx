@@ -5,7 +5,7 @@ import '../../../shared/styles/DetailStyles.css';
 import '../../../shared/styles/TextStyles.css';
 import './Notes.css';
 import api from '../../../shared/services/api';
-import ConfirmModal from '../../../shared/components/ConfirmModal';
+import Dialog from '../../../shared/components/ui/Dialog';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import { PageHeader } from '../../../shared/components/PageHeader';
@@ -357,13 +357,14 @@ const Notes = () => {
                 </form>
             </Drawer>
 
-            {confirmDeleteNoteId !== null && (
-                <ConfirmModal
-                    message={t('notes.delete_confirm')}
-                    onConfirm={() => handleDelete(confirmDeleteNoteId)}
-                    onCancel={() => setConfirmDeleteNoteId(null)}
-                />
-            )}
+            <Dialog
+                open={confirmDeleteNoteId !== null}
+                onClose={() => setConfirmDeleteNoteId(null)}
+                onConfirm={() => confirmDeleteNoteId !== null && handleDelete(confirmDeleteNoteId)}
+                title={t('notes.delete_confirm')}
+                tone="danger"
+                confirmLabel={t('common.confirm')}
+            />
         </div>
         </>
     );

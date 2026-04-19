@@ -4,6 +4,7 @@ import type { AdminDoctor } from '../../../shared/types';
 import '../styles/AdminDoctorList.css';
 import PageLoader from '../../../shared/components/PageLoader';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { Pagination } from '../../../shared/components/Pagination';
 
 type Tab = 'active' | 'pending' | 'rejected';
 
@@ -368,26 +369,13 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                 </div>
             )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="pagination">
-                    <button
-                        className="pagination-btn"
-                        onClick={() => loadTab(tab, currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        ← Previous
-                    </button>
-                    <span className="pagination-info">Page {currentPage} of {totalPages}</span>
-                    <button
-                        className="pagination-btn"
-                        onClick={() => loadTab(tab, currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                onPageChange={(page) => loadTab(tab, page)}
+                isLoading={isLoading}
+            />
 
             {/* Modals */}
             {rejectTarget && (

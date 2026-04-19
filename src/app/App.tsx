@@ -48,6 +48,9 @@ const PatientVisits     = lazy(() => import('../features/patient-portal/componen
 const PatientMedications = lazy(() => import('../features/patient-portal/components/PatientMedications'));
 const PatientLabs       = lazy(() => import('../features/patient-portal/components/PatientLabs'));
 const PatientNotifications = lazy(() => import('../features/patient-portal/components/PatientNotifications'));
+const PatientConditions = lazy(() => import('../features/patient-portal/components/PatientConditions'));
+const PatientAllergies  = lazy(() => import('../features/patient-portal/components/PatientAllergies'));
+const PatientReferrals  = lazy(() => import('../features/patient-portal/components/PatientReferrals'));
 const PatientProfile    = lazy(() => import('../features/patient-portal/components/PatientProfile'));
 const PatientSettings   = lazy(() => import('../features/patient-portal/components/PatientSettings'));
 
@@ -153,6 +156,9 @@ function App() {
                                 <Route path="/patient/medications" element={<ErrorBoundary resetKey={location.pathname}><PatientMedications /></ErrorBoundary>} />
                                 <Route path="/patient/labs" element={<ErrorBoundary resetKey={location.pathname}><PatientLabs /></ErrorBoundary>} />
                                 <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
+                                <Route path="/patient/conditions" element={<ErrorBoundary resetKey={location.pathname}><PatientConditions /></ErrorBoundary>} />
+                                <Route path="/patient/allergies" element={<ErrorBoundary resetKey={location.pathname}><PatientAllergies /></ErrorBoundary>} />
+                                <Route path="/patient/referrals" element={<ErrorBoundary resetKey={location.pathname}><PatientReferrals /></ErrorBoundary>} />
                                 <Route path="/patient/profile" element={<ErrorBoundary resetKey={location.pathname}><PatientProfile /></ErrorBoundary>} />
                                 <Route path="/patient/settings" element={<ErrorBoundary resetKey={location.pathname}><PatientSettings /></ErrorBoundary>} />
                             </Route>

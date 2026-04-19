@@ -121,6 +121,35 @@ export interface PatientPortalSettings {
     marketing_emails: boolean;
 }
 
+export interface PatientCondition {
+    id: number;
+    name: string;
+    patient_friendly_name: string;
+    status: 'active' | 'resolved' | 'chronic' | 'in_remission';
+    onset_date: string | null;
+    notes: string;
+}
+
+export interface PatientAllergy {
+    id: number;
+    allergen: string;
+    reaction_type: 'drug' | 'food' | 'environmental' | 'other';
+    severity: 'mild' | 'moderate' | 'severe' | 'life_threatening';
+    reaction_description: string;
+}
+
+export interface PatientReferral {
+    id: number;
+    reason_for_referral: string;
+    urgency: 'routine' | 'urgent' | 'emergency';
+    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected';
+    specialty_requested: string;
+    referred_by: string | null;
+    referred_to: string | null;
+    is_external: boolean;
+    created_at: string;
+}
+
 export const patientPortalService = {
     getDashboard: () =>
         api.get<PatientDashboardData>('/patient/dashboard/').then(r => r.data),
@@ -215,4 +244,16 @@ export const patientPortalService = {
 
     rejectAppointmentRequest: (id: number, reason?: string) =>
         api.post(`/appointments/${id}/reject/`, { reason }).then(r => r.data),
+
+    rescheduleAppointment: (id: number, new_appointment_date: string) =>
+        api.post(`/patient/appointments/${id}/reschedule/`, { new_appointment_date }).then(r => r.data),
+
+    getConditions: () =>
+        api.get<PatientCondition[]>('/patient/conditions/').then(r => r.data),
+
+    getAllergies: () =>
+        api.get<PatientAllergy[]>('/patient/allergies/').then(r => r.data),
+
+    getReferrals: () =>
+        api.get<PatientReferral[]>('/patient/referrals/').then(r => r.data),
 };

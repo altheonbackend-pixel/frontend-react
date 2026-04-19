@@ -18,11 +18,11 @@ import './PatientDetail.css';
 import ConsultationForm from '../../consultations/components/ConsultationForm';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
-import ConfirmModal from '../../../shared/components/ConfirmModal';
+import Dialog from '../../../shared/components/ui/Dialog';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
-import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
+import { Dialog, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { type LabResult, type Prescription } from '../../../shared/types';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
@@ -926,6 +926,13 @@ const PatientDetails = () => {
                                         <div className="entry-actions">
                                             <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
                                             <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
+                                            <button
+                                                onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                className="action-button"
+                                                style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                            >
+                                                {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
+                                            </button>
                                         </div>
                                     </li>
                                 ))}
@@ -1499,6 +1506,13 @@ const PatientDetails = () => {
                                                 setShowLabForm(true);
                                             }} className="edit-button action-button">Edit</button>
                                             <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                                            <button
+                                                onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
+                                                className="action-button"
+                                                style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                            >
+                                                {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
+                                            </button>
                                         </div>
                                     </li>
                                 ))}
@@ -1737,24 +1751,65 @@ const PatientDetails = () => {
             </div>
         </div>
 
-        {confirmDeleteConsultationId !== null && (
-            <ConfirmModal message={t('patient_detail.error.delete_consultation')} onConfirm={() => handleDeleteConsultation(confirmDeleteConsultationId)} onCancel={() => setConfirmDeleteConsultationId(null)} />
-        )}
-        {confirmDeleteProcedureId !== null && (
-            <ConfirmModal message={t('patient_detail.error.delete_procedure')} onConfirm={() => handleDeleteProcedure(confirmDeleteProcedureId)} onCancel={() => setConfirmDeleteProcedureId(null)} />
-        )}
-        {confirmDeleteReferralId !== null && (
-            <ConfirmModal message={t('patient_detail.error.delete_referral')} onConfirm={() => handleDeleteReferral(confirmDeleteReferralId)} onCancel={() => setConfirmDeleteReferralId(null)} />
-        )}
-        {confirmDeleteConditionId !== null && (
-            <ConfirmModal message="Delete this condition?" onConfirm={() => handleDeleteCondition(confirmDeleteConditionId)} onCancel={() => setConfirmDeleteConditionId(null)} />
-        )}
-        {confirmDeleteAllergyId !== null && (
-            <ConfirmModal message="Delete this allergy?" onConfirm={() => handleDeleteAllergy(confirmDeleteAllergyId)} onCancel={() => setConfirmDeleteAllergyId(null)} />
-        )}
-        {confirmDeleteLabId !== null && (
-            <ConfirmModal message="Delete this lab result?" onConfirm={() => handleDeleteLab(confirmDeleteLabId)} onCancel={() => setConfirmDeleteLabId(null)} />
-        )}
+        <Dialog open={confirmDeleteConsultationId !== null} onClose={() => setConfirmDeleteConsultationId(null)} onConfirm={() => confirmDeleteConsultationId !== null && handleDeleteConsultation(confirmDeleteConsultationId)} title={t('patient_detail.error.delete_consultation')} tone="danger" />
+        <Dialog open={confirmDeleteProcedureId !== null} onClose={() => setConfirmDeleteProcedureId(null)} onConfirm={() => confirmDeleteProcedureId !== null && handleDeleteProcedure(confirmDeleteProcedureId)} title={t('patient_detail.error.delete_procedure')} tone="danger" />
+        <Dialog open={confirmDeleteReferralId !== null} onClose={() => setConfirmDeleteReferralId(null)} onConfirm={() => confirmDeleteReferralId !== null && handleDeleteReferral(confirmDeleteReferralId)} title={t('patient_detail.error.delete_referral')} tone="danger" />
+        <Dialog open={confirmDeleteConditionId !== null} onClose={() => setConfirmDeleteConditionId(null)} onConfirm={() => confirmDeleteConditionId !== null && handleDeleteCondition(confirmDeleteConditionId)} title="Delete this condition?" tone="danger" />
+        <Dialog open={confirmDeleteAllergyId !== null} onClose={() => setConfirmDeleteAllergyId(null)} onConfirm={() => confirmDeleteAllergyId !== null && handleDeleteAllergy(confirmDeleteAllergyId)} title="Delete this allergy?" tone="danger" />
+        <Dialog open={confirmDeleteLabId !== null} onClose={() => setConfirmDeleteLabId(null)} onConfirm={() => confirmDeleteLabId !== null && handleDeleteLab(confirmDeleteLabId)} title="Delete this lab result?" tone="danger" />
+
+        {/* Share consultation with patient modal */}
+        <Modal
+            open={shareConsultationId !== null}
+            onClose={() => { setShareConsultationId(null); setShareConsultationSummary(''); }}
+            title="Share consultation with patient"
+            size="md"
+            footer={
+                <>
+                    <button type="button" className="cancel-button" onClick={() => { setShareConsultationId(null); setShareConsultationSummary(''); }}>Cancel</button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={handleShareConsultation}>Share</button>
+                </>
+            }
+        >
+            <div className="form">
+                <div className="form-group">
+                    <label>Patient-friendly summary</label>
+                    <textarea
+                        rows={4}
+                        value={shareConsultationSummary}
+                        onChange={e => setShareConsultationSummary(e.target.value)}
+                        placeholder="Write a plain-language summary the patient can understand…"
+                    />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>This replaces clinical diagnosis with a patient-friendly explanation. The clinical notes remain private.</span>
+                </div>
+            </div>
+        </Modal>
+
+        {/* Release lab result to patient modal */}
+        <Modal
+            open={shareLabId !== null}
+            onClose={() => { setShareLabId(null); setShareLabNote(''); }}
+            title="Release lab result to patient"
+            size="md"
+            footer={
+                <>
+                    <button type="button" className="cancel-button" onClick={() => { setShareLabId(null); setShareLabNote(''); }}>Cancel</button>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={handleReleaseLabResult}>Release</button>
+                </>
+            }
+        >
+            <div className="form">
+                <div className="form-group">
+                    <label>Patient note <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
+                    <textarea
+                        rows={3}
+                        value={shareLabNote}
+                        onChange={e => setShareLabNote(e.target.value)}
+                        placeholder="Add a plain-language explanation of the result for the patient…"
+                    />
+                </div>
+            </div>
+        </Modal>
 
         <Dialog
             open={pendingStatus !== null}

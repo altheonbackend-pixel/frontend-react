@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { type NotebookEntry } from '../../../shared/types';
 import { toast, parseApiError } from '../../../shared/components/ui';
-import ConfirmModal from '../../../shared/components/ConfirmModal';
+import Dialog from '../../../shared/components/ui/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../shared/services/api';
 import { PageHeader } from '../../../shared/components/PageHeader';
@@ -236,13 +236,13 @@ function PrivateNotebook() {
                 </div>
             </div>
 
-            {confirmDeleteId && (
-                <ConfirmModal
-                    message="Delete this notebook entry? This cannot be undone."
-                    onConfirm={() => deleteMutation.mutate(confirmDeleteId)}
-                    onCancel={() => setConfirmDeleteId(null)}
-                />
-            )}
+            <Dialog
+                open={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={() => confirmDeleteId && deleteMutation.mutate(confirmDeleteId)}
+                title="Delete this notebook entry? This cannot be undone."
+                tone="danger"
+            />
         </>
     );
 }
