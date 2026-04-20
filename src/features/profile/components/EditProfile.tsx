@@ -29,6 +29,7 @@ const EditProfile = () => {
             license_number: '',
             phone_number: '',
             address: '',
+            next_available: '',
         },
     });
 
@@ -49,6 +50,7 @@ const EditProfile = () => {
                 license_number: profile.license_number || '',
                 phone_number: profile.phone_number || '',
                 address: profile.address || '',
+                next_available: profile.next_available ? profile.next_available.slice(0, 16) : '',
             });
         }
     }, [profile, isAuthenticated, reset, t]);
@@ -67,6 +69,7 @@ const EditProfile = () => {
                 phone_number: response.data.phone_number,
                 address: response.data.address,
                 access_level: response.data.access_level || 1,
+                next_available: response.data.next_available ?? null,
             };
             updateProfileData(updatedProfile);
             toast.success(t('edit_profile.success', { defaultValue: 'Profile updated.' }));
@@ -135,6 +138,11 @@ const EditProfile = () => {
                     <label htmlFor="address">{t('edit_profile.labels.address')}</label>
                     <textarea id="address" {...register('address')} />
                     {errors.address && <span className="field-error">{errors.address.message}</span>}
+                </div>
+                <div className="form-group">
+                    <label htmlFor="next_available">Next available slot</label>
+                    <input type="datetime-local" id="next_available" {...register('next_available')} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shown to patients as a scheduling hint when they request appointments.</span>
                 </div>
             </form>
         </Modal>

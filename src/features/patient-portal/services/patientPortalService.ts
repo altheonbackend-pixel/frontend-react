@@ -45,6 +45,7 @@ export interface PatientDoctorOption {
     full_name: string;
     specialty: string;
     clinic: string | null;
+    next_available: string | null;
 }
 
 export interface PatientConsultation {

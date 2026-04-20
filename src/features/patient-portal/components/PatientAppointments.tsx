@@ -326,6 +326,19 @@ export default function PatientAppointments() {
                             value={formData.appointmentDate}
                             onChange={e => setFormData(p => ({ ...p, appointmentDate: e.target.value }))}
                         />
+                        {(() => {
+                            const sel = doctors.find(d => d.id === formData.doctorId);
+                            if (!sel?.next_available) return null;
+                            const dt = new Date(sel.next_available);
+                            const isFuture = dt > new Date();
+                            return (
+                                <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: isFuture ? 'var(--success)' : 'var(--text-muted)' }}>
+                                    {isFuture
+                                        ? `Next available: ${dt.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                                        : 'Contact clinic for current availability'}
+                                </div>
+                            );
+                        })()}
                     </div>
                     <div className="form-group">
                         <label htmlFor="reason">Reason for appointment</label>

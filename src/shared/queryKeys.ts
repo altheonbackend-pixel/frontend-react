@@ -45,6 +45,10 @@ export const queryKeys = {
         doctor: () => ['stats', 'doctor'] as const,
     },
 
+    audit: {
+        myActivity: () => ['audit', 'my-activity'] as const,
+    },
+
     patientPortal: {
         dashboard: () => ['patient', 'dashboard'] as const,
         profile: () => ['patient', 'profile'] as const,

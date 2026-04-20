@@ -21,6 +21,7 @@ export interface DoctorProfile {
     phone_number: string | null;
     address: string | null;
     email_verified?: boolean;
+    next_available: string | null;
 }
 
 export interface SpecialtyChoice {
