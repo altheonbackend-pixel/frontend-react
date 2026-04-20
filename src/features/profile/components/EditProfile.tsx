@@ -34,6 +34,7 @@ const EditProfile = () => {
             phone_number: '',
             address: '',
             next_available: '',
+            timezone: 'UTC',
         },
     });
 
@@ -79,6 +80,7 @@ const EditProfile = () => {
                 phone_number: profile.phone_number || '',
                 address: profile.address || '',
                 next_available: profile.next_available ? profile.next_available.slice(0, 16) : '',
+                timezone: (profile as any).timezone || 'UTC',
             });
         }
     }, [profile, isAuthenticated, reset, t]);
@@ -171,6 +173,30 @@ const EditProfile = () => {
                     <label htmlFor="next_available">Next available slot</label>
                     <input type="datetime-local" id="next_available" {...register('next_available')} />
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shown to patients as a scheduling hint when they request appointments.</span>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="timezone">Timezone</label>
+                    <select id="timezone" {...register('timezone')}>
+                        <option value="UTC">UTC (Coordinated Universal Time)</option>
+                        <option value="Asia/Karachi">Pakistan (UTC+5)</option>
+                        <option value="Asia/Kolkata">India (UTC+5:30)</option>
+                        <option value="Asia/Dhaka">Bangladesh (UTC+6)</option>
+                        <option value="Asia/Dubai">UAE (UTC+4)</option>
+                        <option value="Asia/Riyadh">Saudi Arabia (UTC+3)</option>
+                        <option value="Asia/Baghdad">Iraq (UTC+3)</option>
+                        <option value="Asia/Istanbul">Turkey (UTC+3)</option>
+                        <option value="Europe/London">United Kingdom (UTC+0/+1)</option>
+                        <option value="Europe/Paris">France / Central Europe (UTC+1/+2)</option>
+                        <option value="Europe/Berlin">Germany (UTC+1/+2)</option>
+                        <option value="Africa/Cairo">Egypt (UTC+2)</option>
+                        <option value="Africa/Lagos">Nigeria (UTC+1)</option>
+                        <option value="Africa/Nairobi">Kenya / East Africa (UTC+3)</option>
+                        <option value="America/New_York">US Eastern (UTC-5/-4)</option>
+                        <option value="America/Chicago">US Central (UTC-6/-5)</option>
+                        <option value="America/Los_Angeles">US Pacific (UTC-8/-7)</option>
+                        <option value="Australia/Sydney">Australia Eastern (UTC+10/+11)</option>
+                    </select>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sets the timezone for your working hours schedule. Patient appointment slots are shown in their local time.</span>
                 </div>
             </form>
 
