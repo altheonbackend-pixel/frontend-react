@@ -29,6 +29,14 @@ export interface SpecialtyChoice {
     label: string;
 }
 
+export interface DoctorScheduleDay {
+    day_of_week: number;
+    day_name: string;
+    is_available: boolean;
+    start_time: string;
+    end_time: string;
+}
+
 export interface Patient {
     unique_id: string;
     first_name: string;

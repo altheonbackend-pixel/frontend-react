@@ -1,18 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { type DoctorProfile } from '../../../shared/types';
+import { type DoctorProfile, type DoctorScheduleDay } from '../../../shared/types';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 import { profileSchema, type ProfileFormData } from '../profileSchema';
+
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const EditProfile = () => {
     const { t } = useTranslation();
     const { profile, updateProfileData, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const [schedule, setSchedule] = useState<DoctorScheduleDay[]>([]);
+    const [savingDay, setSavingDay] = useState<number | null>(null);
 
     const {
         register,
@@ -32,6 +36,30 @@ const EditProfile = () => {
             next_available: '',
         },
     });
+
+    useEffect(() => {
+        api.get<DoctorScheduleDay[]>('/schedule/').then(r => setSchedule(r.data)).catch(() => {});
+    }, []);
+
+    const handleScheduleChange = (dayOfWeek: number, field: keyof DoctorScheduleDay, value: string | boolean) => {
+        setSchedule(prev => prev.map(d => d.day_of_week === dayOfWeek ? { ...d, [field]: value } : d));
+    };
+
+    const handleSaveDay = async (day: DoctorScheduleDay) => {
+        setSavingDay(day.day_of_week);
+        try {
+            await api.patch(`/schedule/${day.day_of_week}/`, {
+                is_available: day.is_available,
+                start_time: day.start_time,
+                end_time: day.end_time,
+            });
+            toast.success(`${DAY_NAMES[day.day_of_week]} schedule saved.`);
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save schedule.'));
+        } finally {
+            setSavingDay(null);
+        }
+    };
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -145,6 +173,51 @@ const EditProfile = () => {
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shown to patients as a scheduling hint when they request appointments.</span>
                 </div>
             </form>
+
+            {schedule.length > 0 && (
+                <section style={{ marginTop: '2rem' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Working Hours</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {schedule.map(day => (
+                            <div key={day.day_of_week} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <span style={{ minWidth: '90px', fontWeight: 500 }}>{DAY_NAMES[day.day_of_week]}</span>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={day.is_available}
+                                        onChange={e => handleScheduleChange(day.day_of_week, 'is_available', e.target.checked)}
+                                    />
+                                    Available
+                                </label>
+                                <input
+                                    type="time"
+                                    value={day.start_time.slice(0, 5)}
+                                    disabled={!day.is_available}
+                                    onChange={e => handleScheduleChange(day.day_of_week, 'start_time', e.target.value + ':00')}
+                                    style={{ width: '110px' }}
+                                />
+                                <span style={{ color: 'var(--text-muted)' }}>to</span>
+                                <input
+                                    type="time"
+                                    value={day.end_time.slice(0, 5)}
+                                    disabled={!day.is_available}
+                                    onChange={e => handleScheduleChange(day.day_of_week, 'end_time', e.target.value + ':00')}
+                                    style={{ width: '110px' }}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
+                                    onClick={() => handleSaveDay(day)}
+                                    disabled={savingDay === day.day_of_week}
+                                >
+                                    {savingDay === day.day_of_week ? 'Saving…' : 'Save'}
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
         </Modal>
     );
 };
