@@ -23,6 +23,7 @@ import AdminSidebar from '../features/admin/components/AdminSidebar';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
 import AdminPatientList from '../features/admin/components/AdminPatientList';
+import AdminActivePatientList from '../features/admin/components/AdminActivePatientList';
 import PatientLayout from '../features/patient-portal/components/PatientLayout';
 import PatientLoginPage from '../features/patient-portal/pages/PatientLoginPage';
 import PatientClaim from '../features/patient-portal/pages/PatientClaim';
@@ -93,6 +94,7 @@ const PrivateAdminRoutes = () => {
                     <Route path="/doctors/pending"   element={<AdminDoctorList initialTab="pending" />} />
                     <Route path="/doctors/rejected"  element={<AdminDoctorList initialTab="rejected" />} />
                     <Route path="/patients"          element={<AdminPatientList />} />
+                    <Route path="/patients/active"   element={<AdminActivePatientList />} />
                     <Route path="*"                  element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
             </main>

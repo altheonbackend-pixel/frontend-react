@@ -57,8 +57,12 @@ const AdminSidebar = ({ isOpen = true, onClose }: AdminSidebarProps) => {
                     Rejected
                 </NavLink>
 
-                <div className="admin-sidebar__section-label">Compliance</div>
-                <NavLink to="/admin/patients" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                <div className="admin-sidebar__section-label">Patient Management</div>
+                <NavLink to="/admin/patients/active" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                    <span className="admin-sidebar__link-icon">👥</span>
+                    Active Patients
+                </NavLink>
+                <NavLink to="/admin/patients" end onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">🗑️</span>
                     Deleted Patients
                 </NavLink>

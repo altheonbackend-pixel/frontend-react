@@ -26,7 +26,7 @@ export default function PatientAppointments() {
 
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [requestOpen, setRequestOpen] = useState(false);
-    const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', notes: '' });
+    const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
 
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
@@ -49,12 +49,13 @@ export default function PatientAppointments() {
             doctor_id: formData.doctorId,
             appointment_date: formData.appointmentDate,
             reason: formData.reason,
+            appointment_type: formData.appointmentType,
             notes: formData.notes || undefined,
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
             setRequestOpen(false);
-            setFormData({ doctorId: 0, appointmentDate: '', reason: '', notes: '' });
+            setFormData({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
             toast.success('Appointment request submitted. Awaiting doctor approval.');
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
@@ -316,6 +317,18 @@ export default function PatientAppointments() {
                             {doctors.map(d => (
                                 <option key={d.id} value={d.id}>{d.full_name} · {d.specialty}</option>
                             ))}
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="appointmentType">Visit type</label>
+                        <select
+                            id="appointmentType"
+                            value={formData.appointmentType}
+                            onChange={e => setFormData(p => ({ ...p, appointmentType: e.target.value }))}
+                        >
+                            <option value="in_person">In person</option>
+                            <option value="telemedicine">Telemedicine (video)</option>
+                            <option value="phone">Phone call</option>
                         </select>
                     </div>
                     <div className="form-group">

@@ -114,9 +114,9 @@ const PatientDetails = () => {
     const [confirmDeleteAllergyId, setConfirmDeleteAllergyId] = useState<number | null>(null);
 
     // Inline condition form state
-    const [conditionForm, setConditionForm] = useState({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
+    const [conditionForm, setConditionForm] = useState({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false });
     const [editingConditionId, setEditingConditionId] = useState<number | null>(null);
-    const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
+    const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true, visible_to_patient: true });
     const [formLoading, setFormLoading] = useState(false);
     const [allergenSuggestions, setAllergenSuggestions] = useState<string[]>([]);
     const [showAllergenSuggestions, setShowAllergenSuggestions] = useState(false);
@@ -586,6 +586,24 @@ const PatientDetails = () => {
         }
     };
 
+    const handleToggleVisibleToPatient = async (
+        resource: 'conditions' | 'allergies' | 'prescriptions',
+        itemId: number,
+        current: boolean,
+    ) => {
+        try {
+            await api.patch(`/${resource}/${itemId}/`, { visible_to_patient: !current });
+            toast.success(!current ? 'Now visible to patient.' : 'Hidden from patient.');
+            if (resource === 'prescriptions') {
+                queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+            } else {
+                fetchPatientDetails();
+            }
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update visibility.'));
+        }
+    };
+
     const handleConditionSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setFormLoading(true);
@@ -599,7 +617,7 @@ const PatientDetails = () => {
                 setShowConditionForm(false);
                 toast.success('Condition added.');
             }
-            setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' });
+            setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false });
             fetchPatientDetails();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to save condition.'));
@@ -614,7 +632,7 @@ const PatientDetails = () => {
         try {
             await api.post('/allergies/', { ...allergyForm, patient: id });
             setShowAllergyForm(false);
-            setAllergyForm({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true });
+            setAllergyForm({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true, visible_to_patient: true });
             toast.success('Allergy added.');
             fetchPatientDetails();
         } catch (err) {
@@ -976,6 +994,12 @@ const PatientDetails = () => {
                                     <label>Notes</label>
                                     <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm(p => ({ ...p, notes: e.target.value }))} />
                                 </div>
+                                <div className="form-group form-checkbox">
+                                    <label>
+                                        <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
+                                        {' '}Visible to patient on portal
+                                    </label>
+                                </div>
                                 <div className="form-actions">
                                     <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Condition'}</button>
                                     <button type="button" onClick={() => setShowConditionForm(false)} className="cancel-button">Cancel</button>
@@ -1017,9 +1041,15 @@ const PatientDetails = () => {
                                                     <label>Notes</label>
                                                     <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm(p => ({ ...p, notes: e.target.value }))} />
                                                 </div>
+                                                <div className="form-group form-checkbox">
+                                                    <label>
+                                                        <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
+                                                        {' '}Visible to patient on portal
+                                                    </label>
+                                                </div>
                                                 <div className="form-actions">
                                                     <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</button>
-                                                    <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '' }); }} className="cancel-button">Cancel</button>
+                                                    <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false }); }} className="cancel-button">Cancel</button>
                                                 </div>
                                             </form>
                                         ) : (
@@ -1036,7 +1066,14 @@ const PatientDetails = () => {
                                                 {c.onset_date && <div className="condition-meta">Since: {new Date(c.onset_date).toLocaleDateString()}</div>}
                                                 {c.notes && <p className="condition-notes">{c.notes}</p>}
                                                 <div className="entry-actions">
-                                                    <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '' }); }} className="action-button">Edit</button>
+                                                    <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '', visible_to_patient: c.visible_to_patient ?? false }); }} className="action-button">Edit</button>
+                                                    <button
+                                                        onClick={() => handleToggleVisibleToPatient('conditions', c.id, c.visible_to_patient ?? false)}
+                                                        className="action-button"
+                                                        style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                                    >
+                                                        {c.visible_to_patient ? '✓ Patient can see' : 'Show to patient'}
+                                                    </button>
                                                     <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">Delete</button>
                                                 </div>
                                             </>
@@ -1119,6 +1156,12 @@ const PatientDetails = () => {
                                     <label>Reaction Description</label>
                                     <textarea rows={2} value={allergyForm.reaction_description} onChange={e => setAllergyForm(p => ({ ...p, reaction_description: e.target.value }))} />
                                 </div>
+                                <div className="form-group form-checkbox">
+                                    <label>
+                                        <input type="checkbox" checked={allergyForm.visible_to_patient} onChange={e => setAllergyForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
+                                        {' '}Visible to patient on portal
+                                    </label>
+                                </div>
                                 <div className="form-actions">
                                     <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Allergy'}</button>
                                     <button type="button" onClick={() => setShowAllergyForm(false)} className="cancel-button">Cancel</button>
@@ -1143,6 +1186,13 @@ const PatientDetails = () => {
                                         <div className="entry-actions">
                                             <button onClick={() => handleToggleAllergy(a.id, a.is_active)} className="action-button">
                                                 {a.is_active ? 'Deactivate' : 'Activate'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleToggleVisibleToPatient('allergies', a.id, a.visible_to_patient ?? true)}
+                                                className="action-button"
+                                                style={{ color: a.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
+                                            >
+                                                {a.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
                                             </button>
                                             <button onClick={() => setConfirmDeleteAllergyId(a.id)} className="delete-button action-button">Delete</button>
                                         </div>
@@ -1542,6 +1592,15 @@ const PatientDetails = () => {
                                         {rx.instructions && <div className="info-item"><strong>Instructions:</strong> {rx.instructions}</div>}
                                         <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                             Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
+                                        </div>
+                                        <div className="entry-actions">
+                                            <button
+                                                onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
+                                                className="action-button"
+                                                style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
+                                            >
+                                                {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
+                                            </button>
                                         </div>
                                     </li>
                                 ))}

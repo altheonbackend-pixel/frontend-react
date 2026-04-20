@@ -181,7 +181,7 @@ export const patientPortalService = {
     getAppointments: () =>
         api.get<PatientAppointment[]>('/patient/appointments/').then(r => r.data),
 
-    requestAppointment: (data: { doctor_id: number; appointment_date: string; reason: string; notes?: string }) =>
+    requestAppointment: (data: { doctor_id: number; appointment_date: string; reason: string; appointment_type?: string; notes?: string }) =>
         api.post<{ id: number; status: string; message: string }>('/patient/appointments/request/', data).then(r => r.data),
 
     getDoctors: () =>

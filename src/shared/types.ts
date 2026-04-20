@@ -91,6 +91,7 @@ export interface Prescription {
     instructions: string;
     is_active: boolean;
     prescribed_at: string;
+    visible_to_patient: boolean;
 }
 
 export interface Consultation {
@@ -172,6 +173,7 @@ export interface PatientCondition {
     recorded_by_name?: string;
     created_at: string;
     updated_at: string;
+    visible_to_patient: boolean;
 }
 
 export interface PatientAllergy {
@@ -184,6 +186,7 @@ export interface PatientAllergy {
     severity_display?: string;
     reaction_description: string;
     is_active: boolean;
+    visible_to_patient: boolean;
     recorded_by: number | null;
     recorded_by_name?: string;
     created_at: string;
