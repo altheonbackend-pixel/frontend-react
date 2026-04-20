@@ -226,7 +226,7 @@ export const patientPortalService = {
         api.post('/patient/notifications/mark-all-read/').then(r => r.data),
 
     cancelAppointment: (id: number) =>
-        api.post(`/appointments/${id}/cancel/`).then(r => r.data),
+        api.post(`/patient/appointments/${id}/cancel/`).then(r => r.data),
 
     // ── Doctor-side portal management (called from PatientDetail) ──────────────
 
