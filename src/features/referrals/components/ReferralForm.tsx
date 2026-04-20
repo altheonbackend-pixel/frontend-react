@@ -43,6 +43,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
             is_external: false,
             referred_to: null,
             external_doctor_name: '',
+            external_doctor_email: '',
             external_hospital: '',
             specialty_requested: '',
             urgency: 'routine',
@@ -94,6 +95,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                 reason_for_referral: referralToEdit.reason_for_referral || '',
                 comments: referralToEdit.comments || '',
                 external_doctor_name: '',
+                external_doctor_email: '',
                 external_hospital: '',
             });
         } else {
@@ -216,6 +218,24 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                             />
                         </div>
                         <div className="form-group">
+                            <label htmlFor="external_doctor_email">
+                                Doctor's Email{' '}
+                                <span className="form-hint" style={{ display: 'inline' }}>
+                                    — sends a platform invite to this doctor
+                                </span>
+                            </label>
+                            <input
+                                type="email"
+                                id="external_doctor_email"
+                                className="input"
+                                placeholder="e.g. dr.specialist@hospital.com"
+                                {...register('external_doctor_email')}
+                            />
+                            {errors.external_doctor_email && (
+                                <span className="field-error">{errors.external_doctor_email.message}</span>
+                            )}
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="external_hospital">Hospital / Clinic <span className="required">*</span></label>
                             <input
                                 type="text"
@@ -230,13 +250,36 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                 )}
 
                 <div className="form-group">
-                    <label htmlFor="specialty_requested">{t('referrals.form.specialty_label')}</label>
-                    <input
-                        type="text"
-                        id="specialty_requested"
-                        className="input"
-                        {...register('specialty_requested')}
-                    />
+                    <label htmlFor="specialty_requested">{t('referrals.form.specialty_label')} <span className="required">*</span></label>
+                    <select id="specialty_requested" className="select-input" {...register('specialty_requested')}>
+                        <option value="">Select specialty…</option>
+                        <option value="general_practice">General Practice</option>
+                        <option value="cardiology">Cardiology</option>
+                        <option value="dermatology">Dermatology</option>
+                        <option value="endocrinology">Endocrinology</option>
+                        <option value="gastroenterology">Gastroenterology</option>
+                        <option value="hematology">Hematology</option>
+                        <option value="infectious_disease">Infectious Disease</option>
+                        <option value="internal_medicine">Internal Medicine</option>
+                        <option value="nephrology">Nephrology</option>
+                        <option value="neurology">Neurology</option>
+                        <option value="oncology">Oncology</option>
+                        <option value="ophthalmology">Ophthalmology</option>
+                        <option value="orthopedics">Orthopedics</option>
+                        <option value="pediatrics">Pediatrics</option>
+                        <option value="psychiatry">Psychiatry</option>
+                        <option value="pulmonology">Pulmonology</option>
+                        <option value="radiology">Radiology</option>
+                        <option value="rheumatology">Rheumatology</option>
+                        <option value="surgery_general">General Surgery</option>
+                        <option value="urology">Urology</option>
+                        <option value="gynecology">Gynecology &amp; Obstetrics</option>
+                        <option value="ent">ENT (Ear, Nose &amp; Throat)</option>
+                        <option value="emergency_medicine">Emergency Medicine</option>
+                        <option value="anesthesiology">Anesthesiology</option>
+                        <option value="pathology">Pathology</option>
+                        <option value="other">Other</option>
+                    </select>
                     {errors.specialty_requested && <span className="field-error">{errors.specialty_requested.message}</span>}
                 </div>
 
