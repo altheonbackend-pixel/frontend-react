@@ -28,6 +28,7 @@ export default function PatientAppointments() {
     const [requestOpen, setRequestOpen] = useState(false);
     const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
 
+    const [requestDate, setRequestDate] = useState('');
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
@@ -44,6 +45,14 @@ export default function PatientAppointments() {
         staleTime: 5 * 60_000,
     });
 
+    const { data: slotsData, isFetching: slotsLoading } = useQuery({
+        queryKey: ['patient', 'available-slots', formData.doctorId, requestDate],
+        queryFn: () => patientPortalService.getAvailableSlots(formData.doctorId, requestDate),
+        enabled: formData.doctorId > 0 && requestDate.length === 10,
+        staleTime: 60_000,
+    });
+    const availableSlots = slotsData?.slots ?? [];
+
     const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
         mutationFn: () => patientPortalService.requestAppointment({
             doctor_id: formData.doctorId,
@@ -56,6 +65,7 @@ export default function PatientAppointments() {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
             setRequestOpen(false);
             setFormData({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
+            setRequestDate('');
             toast.success('Appointment request submitted. Awaiting doctor approval.');
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
@@ -95,8 +105,8 @@ export default function PatientAppointments() {
 
     const handleSubmitRequest = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.doctorId || !formData.appointmentDate || !formData.reason.trim()) {
-            toast.error('Please choose a doctor, a time, and a reason for the visit.');
+        if (!formData.doctorId || !requestDate || !formData.appointmentDate || !formData.reason.trim()) {
+            toast.error('Please choose a doctor, a date, a time slot, and a reason for the visit.');
             return;
         }
         submitRequest();
@@ -332,27 +342,56 @@ export default function PatientAppointments() {
                         </select>
                     </div>
                     <div className="form-group">
-                        <label htmlFor="appointmentDate">Preferred date & time</label>
+                        <label htmlFor="requestDate">Preferred date</label>
                         <input
-                            id="appointmentDate"
-                            type="datetime-local"
-                            value={formData.appointmentDate}
-                            onChange={e => setFormData(p => ({ ...p, appointmentDate: e.target.value }))}
+                            id="requestDate"
+                            type="date"
+                            value={requestDate}
+                            min={new Date().toISOString().slice(0, 10)}
+                            onChange={e => {
+                                setRequestDate(e.target.value);
+                                setFormData(p => ({ ...p, appointmentDate: '' }));
+                            }}
                         />
-                        {(() => {
-                            const sel = doctors.find(d => d.id === formData.doctorId);
-                            if (!sel?.next_available) return null;
-                            const dt = new Date(sel.next_available);
-                            const isFuture = dt > new Date();
-                            return (
-                                <div style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: isFuture ? 'var(--success)' : 'var(--text-muted)' }}>
-                                    {isFuture
-                                        ? `Next available: ${dt.toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
-                                        : 'Contact clinic for current availability'}
-                                </div>
-                            );
-                        })()}
                     </div>
+                    {requestDate && formData.doctorId > 0 && (
+                        <div className="form-group">
+                            <label>Available time slots</label>
+                            {slotsLoading ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Checking availability…</div>
+                            ) : availableSlots.length === 0 ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    No available slots on this day. Try another date.
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                    {availableSlots.map(slot => {
+                                        const value = `${requestDate}T${slot}:00`;
+                                        const isSelected = formData.appointmentDate === value;
+                                        return (
+                                            <button
+                                                key={slot}
+                                                type="button"
+                                                onClick={() => setFormData(p => ({ ...p, appointmentDate: value }))}
+                                                style={{
+                                                    padding: '0.35rem 0.85rem',
+                                                    borderRadius: '999px',
+                                                    border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                                                    background: isSelected ? 'var(--accent)' : 'var(--bg-card)',
+                                                    color: isSelected ? '#fff' : 'var(--text-primary)',
+                                                    fontWeight: isSelected ? 700 : 400,
+                                                    fontSize: '0.875rem',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {slot}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <div className="form-group">
                         <label htmlFor="reason">Reason for appointment</label>
                         <textarea

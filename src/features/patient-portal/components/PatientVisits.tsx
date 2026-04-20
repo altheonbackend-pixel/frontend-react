@@ -70,6 +70,24 @@ export default function PatientVisits() {
                                     Follow-up suggested on {formatDate(visit.follow_up_date)}
                                 </div>
                             )}
+                            {visit.file_attachments?.length > 0 && (
+                                <div>
+                                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Documents</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        {visit.file_attachments.map(att => (
+                                            <a
+                                                key={att.id}
+                                                href={att.download_url ?? '#'}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline' }}
+                                            >
+                                                {att.original_filename}
+                                            </a>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </SectionCard>
                 ))}

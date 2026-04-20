@@ -48,6 +48,15 @@ export interface PatientDoctorOption {
     next_available: string | null;
 }
 
+export interface PatientAttachment {
+    id: number;
+    original_filename: string;
+    file_size: number | null;
+    mime_type: string;
+    created_at: string;
+    download_url: string | null;
+}
+
 export interface PatientConsultation {
     id: number;
     consultation_date: string;
@@ -58,6 +67,7 @@ export interface PatientConsultation {
     patient_summary: string;
     patient_instructions: string;
     follow_up_date: string | null;
+    file_attachments: PatientAttachment[];
 }
 
 export interface PatientPrescription {
@@ -87,6 +97,7 @@ export interface PatientLabResult {
     status: 'normal' | 'abnormal' | 'critical' | 'pending';
     patient_note: string;
     released_to_patient_at: string | null;
+    file_attachments: PatientAttachment[];
 }
 
 export interface PatientNotification {
@@ -271,4 +282,10 @@ export const patientPortalService = {
 
     getDoctorProfile: (id: number) =>
         api.get<PatientDoctorProfile>(`/patient/doctor/${id}/`).then(r => r.data),
+
+    getAvailableSlots: (doctorId: number, date: string) =>
+        api.get<{ date: string; doctor_id: number; slots: string[] }>(
+            '/patient/appointments/available-slots/',
+            { params: { doctor_id: doctorId, date } },
+        ).then(r => r.data),
 };

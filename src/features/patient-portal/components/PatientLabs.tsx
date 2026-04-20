@@ -86,6 +86,24 @@ export default function PatientLabs() {
                                         <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{lab.patient_note}</div>
                                     </div>
                                 )}
+                                {lab.file_attachments?.length > 0 && (
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Attachments</div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {lab.file_attachments.map(att => (
+                                                <a
+                                                    key={att.id}
+                                                    href={att.download_url ?? '#'}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline' }}
+                                                >
+                                                    {att.original_filename}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </SectionCard>
                     );
