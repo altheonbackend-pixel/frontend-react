@@ -170,7 +170,7 @@ export interface PatientReferral {
     referred_by: string | null;
     referred_to: string | null;
     is_external: boolean;
-    created_at: string;
+    date_of_referral: string;
 }
 
 export const patientPortalService = {
@@ -288,4 +288,7 @@ export const patientPortalService = {
             '/patient/appointments/available-slots/',
             { params: { doctor_id: doctorId, date } },
         ).then(r => r.data),
+
+    changePassword: (data: { current_password: string; new_password: string; confirm_password: string }) =>
+        api.post('/patient/change-password/', data).then(r => r.data),
 };

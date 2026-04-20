@@ -70,7 +70,7 @@ export default function PatientReferrals() {
                             <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
                                 {item.reason_for_referral}
                             </div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{formatDate(item.created_at)}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{formatDate(item.date_of_referral)}</div>
                         </div>
                     ))}
                 </div>

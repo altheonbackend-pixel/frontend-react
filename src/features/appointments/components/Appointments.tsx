@@ -52,8 +52,58 @@ const Appointments = () => {
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
+    const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
+    const [approveInstructions, setApproveInstructions] = useState('');
+    const [rejectTarget, setRejectTarget] = useState<{ id: number; patientName: string } | null>(null);
+    const [rejectReason, setRejectReason] = useState('');
 
     const selectedDate = toYYYYMMDD(date);
+
+    interface PendingRequest {
+        id: number;
+        appointment_date: string;
+        reason_for_appointment: string;
+        appointment_type: string;
+        patient: string;
+        patient_name: string;
+    }
+
+    const { data: pendingRequests = [], refetch: refetchRequests } = useQuery<PendingRequest[]>({
+        queryKey: ['appointments', 'pending-requests'],
+        queryFn: async () => {
+            const res = await api.get('/doctor/appointment-requests/');
+            return res.data.results ?? res.data;
+        },
+        staleTime: 30_000,
+    });
+
+    const handleApprove = async () => {
+        if (!approveTarget) return;
+        try {
+            await api.post(`/appointments/${approveTarget.id}/approve/`, { portal_instructions: approveInstructions });
+            toast.success('Appointment approved.');
+            setApproveTarget(null);
+            setApproveInstructions('');
+            refetchRequests();
+            invalidateAll();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to approve.'));
+        }
+    };
+
+    const handleReject = async () => {
+        if (!rejectTarget) return;
+        try {
+            await api.post(`/appointments/${rejectTarget.id}/reject/`, { reason: rejectReason });
+            toast.success('Request rejected.');
+            setRejectTarget(null);
+            setRejectReason('');
+            refetchRequests();
+            invalidateAll();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to reject.'));
+        }
+    };
 
     const { data: dotDates = [] } = useQuery({
         queryKey: queryKeys.appointments.dots(currentMonth),
@@ -136,6 +186,47 @@ const Appointments = () => {
                     </button>
                 }
             />
+
+            {/* Pending patient appointment requests */}
+            {pendingRequests.length > 0 && (
+                <div className="section-card" style={{ marginBottom: '1.25rem', border: '1px solid var(--color-warning)' }}>
+                    <div className="section-card-header">
+                        <span className="section-card-title" style={{ color: 'var(--color-warning-text)' }}>
+                            Patient Appointment Requests ({pendingRequests.length})
+                        </span>
+                    </div>
+                    <div className="section-card-body" style={{ display: 'grid', gap: '0.75rem' }}>
+                        {pendingRequests.map(req => (
+                            <div key={req.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{req.patient_name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        {new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        {' · '}{req.appointment_type?.replace(/_/g, ' ')}
+                                    </div>
+                                    {req.reason_for_appointment && (
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason_for_appointment}</div>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                    <button
+                                        className="btn btn-success btn-sm"
+                                        onClick={() => { setApproveTarget({ id: req.id, patientName: req.patient_name }); setApproveInstructions(''); }}
+                                    >
+                                        Approve
+                                    </button>
+                                    <button
+                                        className="btn-danger-outline btn-sm"
+                                        onClick={() => { setRejectTarget({ id: req.id, patientName: req.patient_name }); setRejectReason(''); }}
+                                    >
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Side-by-side layout on desktop */}
             <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.25rem', alignItems: 'start' }}>
@@ -347,6 +438,55 @@ const Appointments = () => {
                             <button className="btn btn-primary" style={{ flex: 1 }} onClick={executeReschedule} disabled={!rescheduleDate}>
                                 Reschedule
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approve modal */}
+            {approveTarget && (
+                <div className="modal-overlay" onClick={() => setApproveTarget(null)}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                        <h3 className="modal-title">Approve Request — {approveTarget.patientName}</h3>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                            Optionally add instructions for the patient (e.g. what to bring, fasting requirements).
+                        </p>
+                        <div className="form-group">
+                            <label htmlFor="approve-instructions">Portal instructions (optional)</label>
+                            <textarea
+                                id="approve-instructions"
+                                rows={3}
+                                value={approveInstructions}
+                                onChange={e => setApproveInstructions(e.target.value)}
+                                placeholder="e.g. Please bring your home BP log."
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setApproveTarget(null)}>Cancel</button>
+                            <button className="btn btn-success" style={{ flex: 1 }} onClick={handleApprove}>Approve</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject modal */}
+            {rejectTarget && (
+                <div className="modal-overlay" onClick={() => setRejectTarget(null)}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                        <h3 className="modal-title">Reject Request — {rejectTarget.patientName}</h3>
+                        <div className="form-group">
+                            <label htmlFor="reject-reason">Reason for rejection</label>
+                            <textarea
+                                id="reject-reason"
+                                rows={3}
+                                value={rejectReason}
+                                onChange={e => setRejectReason(e.target.value)}
+                                placeholder="e.g. No availability on this day. Please request another date."
+                            />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRejectTarget(null)}>Cancel</button>
+                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReject}>Reject</button>
                         </div>
                     </div>
                 </div>

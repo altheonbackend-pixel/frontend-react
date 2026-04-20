@@ -21,7 +21,11 @@ interface DashboardStats {
     total_appointments: number;
     total_procedures: number;
     pending_referrals: number;
+    pending_patient_requests: number;
+    scheduled_appointments: number;
     follow_up_today: number;
+    new_patients_this_week: number;
+    new_consultations_this_week: number;
 }
 
 interface UpcomingAppt {
@@ -181,6 +185,15 @@ function Dashboard() {
                     value={isLoading ? '…' : stats?.total_procedures ?? 0}
                     variant="default"
                 />
+                {(stats?.pending_patient_requests ?? 0) > 0 && (
+                    <StatCard
+                        icon={<CalendarIcon />}
+                        label="Patient Appointment Requests"
+                        value={isLoading ? '…' : stats?.pending_patient_requests ?? 0}
+                        variant="warning"
+                        href="/appointments"
+                    />
+                )}
             </div>
 
             {/* Quick actions */}
