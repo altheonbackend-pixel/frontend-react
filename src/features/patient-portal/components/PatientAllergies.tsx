@@ -6,13 +6,6 @@ import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 
-const SEVERITY_LABELS: Record<string, string> = {
-    mild: 'Mild',
-    moderate: 'Moderate',
-    severe: 'Severe',
-    life_threatening: 'Life threatening',
-};
-
 const REACTION_TYPE_LABELS: Record<string, string> = {
     drug: 'Drug',
     food: 'Food',

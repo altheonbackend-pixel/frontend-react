@@ -239,7 +239,7 @@ function PrivateNotebook() {
             <Dialog
                 open={!!confirmDeleteId}
                 onClose={() => setConfirmDeleteId(null)}
-                onConfirm={() => confirmDeleteId && deleteMutation.mutate(confirmDeleteId)}
+                onConfirm={() => { if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId); }}
                 title="Delete this notebook entry? This cannot be undone."
                 tone="danger"
             />

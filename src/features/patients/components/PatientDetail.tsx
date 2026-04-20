@@ -18,7 +18,6 @@ import './PatientDetail.css';
 import ConsultationForm from '../../consultations/components/ConsultationForm';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
-import Dialog from '../../../shared/components/ui/Dialog';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
@@ -216,7 +215,6 @@ const PatientDetails = () => {
     const [shareConsultationSummary, setShareConsultationSummary] = useState('');
     const [shareLabId, setShareLabId] = useState<number | null>(null);
     const [shareLabNote, setShareLabNote] = useState('');
-    const [approveRequestId, setApproveRequestId] = useState<number | null>(null);
     const [rejectRequestId, setRejectRequestId] = useState<number | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [requestActionLoading, setRequestActionLoading] = useState(false);
@@ -312,7 +310,6 @@ const PatientDetails = () => {
         try {
             await api.post(`/appointments/${apptId}/approve/`, { portal_instructions: instructions || '' });
             toast.success('Appointment request approved.');
-            setApproveRequestId(null);
             refetchPendingRequests();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to approve request.'));
@@ -1751,12 +1748,12 @@ const PatientDetails = () => {
             </div>
         </div>
 
-        <Dialog open={confirmDeleteConsultationId !== null} onClose={() => setConfirmDeleteConsultationId(null)} onConfirm={() => confirmDeleteConsultationId !== null && handleDeleteConsultation(confirmDeleteConsultationId)} title={t('patient_detail.error.delete_consultation')} tone="danger" />
-        <Dialog open={confirmDeleteProcedureId !== null} onClose={() => setConfirmDeleteProcedureId(null)} onConfirm={() => confirmDeleteProcedureId !== null && handleDeleteProcedure(confirmDeleteProcedureId)} title={t('patient_detail.error.delete_procedure')} tone="danger" />
-        <Dialog open={confirmDeleteReferralId !== null} onClose={() => setConfirmDeleteReferralId(null)} onConfirm={() => confirmDeleteReferralId !== null && handleDeleteReferral(confirmDeleteReferralId)} title={t('patient_detail.error.delete_referral')} tone="danger" />
-        <Dialog open={confirmDeleteConditionId !== null} onClose={() => setConfirmDeleteConditionId(null)} onConfirm={() => confirmDeleteConditionId !== null && handleDeleteCondition(confirmDeleteConditionId)} title="Delete this condition?" tone="danger" />
-        <Dialog open={confirmDeleteAllergyId !== null} onClose={() => setConfirmDeleteAllergyId(null)} onConfirm={() => confirmDeleteAllergyId !== null && handleDeleteAllergy(confirmDeleteAllergyId)} title="Delete this allergy?" tone="danger" />
-        <Dialog open={confirmDeleteLabId !== null} onClose={() => setConfirmDeleteLabId(null)} onConfirm={() => confirmDeleteLabId !== null && handleDeleteLab(confirmDeleteLabId)} title="Delete this lab result?" tone="danger" />
+        <Dialog open={confirmDeleteConsultationId !== null} onClose={() => setConfirmDeleteConsultationId(null)} onConfirm={() => { if (confirmDeleteConsultationId !== null) handleDeleteConsultation(confirmDeleteConsultationId); }} title={t('patient_detail.error.delete_consultation')} tone="danger" />
+        <Dialog open={confirmDeleteProcedureId !== null} onClose={() => setConfirmDeleteProcedureId(null)} onConfirm={() => { if (confirmDeleteProcedureId !== null) handleDeleteProcedure(confirmDeleteProcedureId); }} title={t('patient_detail.error.delete_procedure')} tone="danger" />
+        <Dialog open={confirmDeleteReferralId !== null} onClose={() => setConfirmDeleteReferralId(null)} onConfirm={() => { if (confirmDeleteReferralId !== null) handleDeleteReferral(confirmDeleteReferralId); }} title={t('patient_detail.error.delete_referral')} tone="danger" />
+        <Dialog open={confirmDeleteConditionId !== null} onClose={() => setConfirmDeleteConditionId(null)} onConfirm={() => { if (confirmDeleteConditionId !== null) handleDeleteCondition(confirmDeleteConditionId); }} title="Delete this condition?" tone="danger" />
+        <Dialog open={confirmDeleteAllergyId !== null} onClose={() => setConfirmDeleteAllergyId(null)} onConfirm={() => { if (confirmDeleteAllergyId !== null) handleDeleteAllergy(confirmDeleteAllergyId); }} title="Delete this allergy?" tone="danger" />
+        <Dialog open={confirmDeleteLabId !== null} onClose={() => setConfirmDeleteLabId(null)} onConfirm={() => { if (confirmDeleteLabId !== null) handleDeleteLab(confirmDeleteLabId); }} title="Delete this lab result?" tone="danger" />
 
         {/* Share consultation with patient modal */}
         <Modal

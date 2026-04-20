@@ -117,6 +117,8 @@ export interface Consultation {
     has_vital_alerts?: boolean;
     vital_alert_reasons?: string[];
     visible_to_patient: boolean;
+    patient_summary: string | null;
+    patient_instructions: string | null;
 }
 
 export interface LabResult {
@@ -133,6 +135,9 @@ export interface LabResult {
     status: 'normal' | 'abnormal' | 'critical' | 'pending';
     status_display?: string;
     notes: string;
+    patient_note: string | null;
+    visible_to_patient: boolean;
+    released_to_patient_at: string | null;
     attachment?: string | null;
     created_at: string;
     updated_at: string;

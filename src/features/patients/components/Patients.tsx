@@ -289,7 +289,7 @@ const Patients = () => {
             <Dialog
                 open={!!confirmDeleteId}
                 onClose={() => setConfirmDeleteId(null)}
-                onConfirm={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+                onConfirm={() => { if (confirmDeleteId) handleDelete(confirmDeleteId); }}
                 title={t('patients.error.delete_confirm', 'Are you sure you want to delete this patient? This action cannot be undone.')}
                 tone="danger"
             />

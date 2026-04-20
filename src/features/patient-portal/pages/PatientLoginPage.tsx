@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { parseApiError } from '../../../shared/components/ui/toast';
 import { toast } from '../../../shared/components/ui';
@@ -8,7 +8,6 @@ import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 export default function PatientLoginPage() {
     usePageTitle('Patient Portal — Sign In');
     const { login } = useAuth();
-    const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

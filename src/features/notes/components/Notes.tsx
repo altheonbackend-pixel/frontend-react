@@ -360,7 +360,7 @@ const Notes = () => {
             <Dialog
                 open={confirmDeleteNoteId !== null}
                 onClose={() => setConfirmDeleteNoteId(null)}
-                onConfirm={() => confirmDeleteNoteId !== null && handleDelete(confirmDeleteNoteId)}
+                onConfirm={() => { if (confirmDeleteNoteId !== null) handleDelete(confirmDeleteNoteId); }}
                 title={t('notes.delete_confirm')}
                 tone="danger"
                 confirmLabel={t('common.confirm')}
