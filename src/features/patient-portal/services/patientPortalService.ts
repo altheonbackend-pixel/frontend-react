@@ -156,6 +156,7 @@ export interface PatientPortalProfile {
 
 export interface PatientPortalSettings {
     preferred_language: string;
+    timezone: string;
     email_notifications: boolean;
     appointment_reminders: boolean;
     lab_result_notifications: boolean;
@@ -312,7 +313,7 @@ export const patientPortalService = {
         api.get<PatientDoctorProfile>(`/patient/doctor/${id}/`).then(r => r.data),
 
     getAvailableSlots: (doctorId: number, date: string) =>
-        api.get<{ date: string; doctor_id: number; slots: string[] }>(
+        api.get<{ date: string; doctor_id: number; slots: string[]; doctor_available: boolean; doctor_timezone: string; patient_timezone: string }>(
             '/patient/appointments/available-slots/',
             { params: { doctor_id: doctorId, date } },
         ).then(r => r.data),

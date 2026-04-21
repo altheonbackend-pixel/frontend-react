@@ -70,7 +70,7 @@ export default function PatientSettings() {
         );
     }
 
-    const toggle = (key: keyof Omit<PatientPortalSettings, 'preferred_language'>) => {
+    const toggle = (key: keyof Omit<PatientPortalSettings, 'preferred_language' | 'timezone'>) => {
         save({ [key]: !settings[key] });
     };
 
@@ -83,19 +83,52 @@ export default function PatientSettings() {
 
             <div style={{ display: 'grid', gap: '1rem' }}>
                 <SectionCard title="Language & communication">
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label htmlFor="preferred_language">Preferred language</label>
-                        <select
-                            id="preferred_language"
-                            value={settings.preferred_language}
-                            disabled={isPending}
-                            onChange={e => save({ preferred_language: e.target.value })}
-                        >
-                            <option value="en">English</option>
-                            <option value="ur">Urdu</option>
-                            <option value="fr">French</option>
-                            <option value="ar">Arabic</option>
-                        </select>
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="preferred_language">Preferred language</label>
+                            <select
+                                id="preferred_language"
+                                value={settings.preferred_language}
+                                disabled={isPending}
+                                onChange={e => save({ preferred_language: e.target.value })}
+                            >
+                                <option value="en">English</option>
+                                <option value="ur">Urdu</option>
+                                <option value="fr">French</option>
+                                <option value="ar">Arabic</option>
+                            </select>
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="timezone">Timezone</label>
+                            <select
+                                id="timezone"
+                                value={settings.timezone || 'UTC'}
+                                disabled={isPending}
+                                onChange={e => save({ timezone: e.target.value })}
+                            >
+                                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                                <option value="Asia/Karachi">Pakistan (UTC+5)</option>
+                                <option value="Asia/Kolkata">India (UTC+5:30)</option>
+                                <option value="Asia/Dhaka">Bangladesh (UTC+6)</option>
+                                <option value="Asia/Dubai">UAE (UTC+4)</option>
+                                <option value="Asia/Riyadh">Saudi Arabia (UTC+3)</option>
+                                <option value="Asia/Baghdad">Iraq (UTC+3)</option>
+                                <option value="Asia/Istanbul">Turkey (UTC+3)</option>
+                                <option value="Europe/London">United Kingdom (UTC+0/+1)</option>
+                                <option value="Europe/Paris">France / Central Europe (UTC+1/+2)</option>
+                                <option value="Europe/Berlin">Germany (UTC+1/+2)</option>
+                                <option value="Africa/Cairo">Egypt (UTC+2)</option>
+                                <option value="Africa/Lagos">Nigeria (UTC+1)</option>
+                                <option value="Africa/Nairobi">Kenya / East Africa (UTC+3)</option>
+                                <option value="America/New_York">US Eastern (UTC-5/-4)</option>
+                                <option value="America/Chicago">US Central (UTC-6/-5)</option>
+                                <option value="America/Los_Angeles">US Pacific (UTC-8/-7)</option>
+                                <option value="Australia/Sydney">Australia Eastern (UTC+10/+11)</option>
+                            </select>
+                            <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                Appointment times will be displayed in this timezone.
+                            </small>
+                        </div>
                     </div>
                 </SectionCard>
 
@@ -149,7 +182,7 @@ export default function PatientSettings() {
                             ['lab_result_notifications', 'Lab result notifications', 'Get notified when a new lab result is released to the portal.'],
                             ['visit_summary_notifications', 'Visit summary notifications', 'Receive a notice when a doctor shares a new consultation summary.'],
                             ['marketing_emails', 'Product updates', 'Allow non-clinical product announcements and educational updates.'],
-                        ] as [keyof Omit<PatientPortalSettings, 'preferred_language'>, string, string][]).map(([key, title, subtitle]) => (
+                        ] as [keyof Omit<PatientPortalSettings, 'preferred_language' | 'timezone'>, string, string][]).map(([key, title, subtitle]) => (
                             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', padding: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
                                 <div>
                                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{title}</div>

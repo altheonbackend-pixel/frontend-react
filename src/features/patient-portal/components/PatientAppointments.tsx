@@ -11,9 +11,17 @@ import { parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 
-function formatDateTime(value: string) {
+function formatDateTime(value: string, timeZone?: string) {
     return new Date(value).toLocaleString('en-GB', {
         weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+        ...(timeZone ? { timeZone } : {}),
+    });
+}
+
+function formatSlotTime(isoUtc: string, timeZone?: string) {
+    return new Date(isoUtc).toLocaleString('en-GB', {
+        hour: '2-digit', minute: '2-digit',
+        ...(timeZone ? { timeZone } : {}),
     });
 }
 
@@ -45,6 +53,13 @@ export default function PatientAppointments() {
         staleTime: 5 * 60_000,
     });
 
+    const { data: settings } = useQuery({
+        queryKey: queryKeys.patientPortal.settings(),
+        queryFn: patientPortalService.getSettings,
+        staleTime: 5 * 60_000,
+    });
+    const patientTimezone = settings?.timezone || undefined;
+
     const { data: slotsData, isFetching: slotsLoading } = useQuery({
         queryKey: ['patient', 'available-slots', formData.doctorId, requestDate],
         queryFn: () => patientPortalService.getAvailableSlots(formData.doctorId, requestDate),
@@ -52,6 +67,7 @@ export default function PatientAppointments() {
         staleTime: 60_000,
     });
     const availableSlots = slotsData?.slots ?? [];
+    const doctorAvailable = slotsData?.doctor_available ?? true;
 
     const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
         mutationFn: () => patientPortalService.requestAppointment({
@@ -189,8 +205,10 @@ export default function PatientAppointments() {
                                 {/* Detail row */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>When</div>
-                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(item.appointment_date)}</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                            When{patientTimezone ? ` · ${patientTimezone.replace('_', ' ')}` : ''}
+                                        </div>
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(item.appointment_date, patientTimezone)}</div>
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Reason</div>
@@ -361,20 +379,23 @@ export default function PatientAppointments() {
                             <label>Available time slots</label>
                             {slotsLoading ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Checking availability…</div>
+                            ) : !doctorAvailable ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', padding: '0.5rem 0.75rem', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
+                                    The doctor does not work on this day. Please choose a weekday (Monday – Friday).
+                                </div>
                             ) : availableSlots.length === 0 ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                                    No pre-set slots on this day — you can still send a request and the doctor will confirm a time.
+                                    No open slots on this day — you can still send a request and the doctor will confirm a time.
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
                                     {availableSlots.map(slot => {
-                                        const value = `${requestDate}T${slot}:00`;
-                                        const isSelected = formData.appointmentDate === value;
+                                        const isSelected = formData.appointmentDate === slot;
                                         return (
                                             <button
                                                 key={slot}
                                                 type="button"
-                                                onClick={() => setFormData(p => ({ ...p, appointmentDate: value }))}
+                                                onClick={() => setFormData(p => ({ ...p, appointmentDate: slot }))}
                                                 style={{
                                                     padding: '0.35rem 0.85rem',
                                                     borderRadius: '999px',
@@ -387,7 +408,7 @@ export default function PatientAppointments() {
                                                     transition: 'all 0.15s',
                                                 }}
                                             >
-                                                {slot}
+                                                {formatSlotTime(slot, patientTimezone)}
                                             </button>
                                         );
                                     })}
