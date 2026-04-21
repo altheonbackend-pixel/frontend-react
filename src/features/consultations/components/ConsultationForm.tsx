@@ -274,29 +274,6 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         }
     };
 
-    // Follow-up prompt dialog shown after consultation saved
-    if (pendingFollowUp) {
-        return (
-            <div className="modal-overlay">
-                <div className="modal-box followup-prompt-modal">
-                    <h3 className="modal-title">Create Follow-up Appointment?</h3>
-                    <p className="modal-desc">
-                        You set a follow-up date of <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString()}</strong>.
-                        Would you like to create a scheduled appointment for that date?
-                    </p>
-                    <div className="modal-actions">
-                        <button type="button" className="cancel-button" onClick={() => { setPendingFollowUp(null); onSuccess(); }}>
-                            No, skip
-                        </button>
-                        <button type="button" className="btn btn-success" onClick={handleCreateFollowUpAppointment} disabled={creatingFollowUp}>
-                            {creatingFollowUp ? 'Creating...' : 'Yes, create appointment'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     const handleCancel = () => {
         if (failedRx.length > 0) {
             setShowCloseWithFailedRxWarning(true);
@@ -310,6 +287,16 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
     return (
         <>
+        <Dialog
+            open={!!pendingFollowUp}
+            tone="info"
+            title="Create Follow-up Appointment?"
+            message={pendingFollowUp ? <>You set a follow-up date of <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>. Would you like to create a scheduled appointment for that date?</> : undefined}
+            confirmLabel={creatingFollowUp ? 'Creating…' : 'Yes, create appointment'}
+            cancelLabel="No, skip"
+            onConfirm={handleCreateFollowUpAppointment}
+            onClose={() => { setPendingFollowUp(null); onSuccess(); }}
+        />
         <Dialog
             open={showCloseWithFailedRxWarning}
             tone="danger"
