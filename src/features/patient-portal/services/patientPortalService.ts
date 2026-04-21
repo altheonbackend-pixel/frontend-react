@@ -90,6 +90,12 @@ export interface PatientConsultation {
     bp_systolic: number | null;
     bp_diastolic: number | null;
     bp_display: string | null;
+    // Follow-up appointment live status
+    follow_up_appointment_info: {
+        id: number;
+        status: string;
+        appointment_date: string;
+    } | null;
 }
 
 export interface PatientPrescription {

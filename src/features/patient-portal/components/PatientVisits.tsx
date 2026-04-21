@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
@@ -32,6 +33,7 @@ const FREQ_LABEL: Record<string, string> = {
 export default function PatientVisits() {
     usePageTitle('Patient Visits');
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+    const navigate = useNavigate();
 
     const { data: visits = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.consultations(),
@@ -275,23 +277,77 @@ export default function PatientVisits() {
                                         </div>
                                     )}
 
-                                    {/* Follow-up */}
-                                    {visit.follow_up_date && (
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.6rem',
-                                            padding: '0.75rem 1rem',
-                                            borderRadius: 'var(--radius-md)',
-                                            background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
-                                            border: '1px solid color-mix(in srgb, var(--accent) 25%, transparent)',
-                                        }}>
-                                            <span style={{ fontSize: '1rem' }}>📅</span>
-                                            <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem' }}>
-                                                Follow-up recommended on {formatDateShort(visit.follow_up_date)}
-                                            </span>
-                                        </div>
-                                    )}
+                                    {/* Follow-up appointment status */}
+                                    {visit.follow_up_date && (() => {
+                                        const info = visit.follow_up_appointment_info;
+                                        const isCancelled = info?.status === 'cancelled';
+                                        const isRescheduled = info?.status === 'rescheduled' ||
+                                            (info && info.appointment_date &&
+                                             new Date(info.appointment_date).toDateString() !==
+                                             new Date(visit.follow_up_date + 'T00:00:00').toDateString());
+                                        const isConfirmed = info?.status === 'confirmed';
+                                        const isScheduled = info && !isCancelled && !isRescheduled;
+
+                                        const bgColor = isCancelled
+                                            ? 'color-mix(in srgb, var(--color-danger) 8%, transparent)'
+                                            : 'color-mix(in srgb, var(--accent) 8%, transparent)';
+                                        const borderColor = isCancelled
+                                            ? 'color-mix(in srgb, var(--color-danger) 25%, transparent)'
+                                            : 'color-mix(in srgb, var(--accent) 25%, transparent)';
+
+                                        return (
+                                            <div style={{
+                                                padding: '0.75rem 1rem',
+                                                borderRadius: 'var(--radius-md)',
+                                                background: bgColor,
+                                                border: `1px solid ${borderColor}`,
+                                            }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                                    <span style={{ fontSize: '1rem' }}>📅</span>
+                                                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isCancelled ? 'var(--color-danger)' : 'var(--text-primary)' }}>
+                                                        {!info && `Follow-up recommended on ${formatDateShort(visit.follow_up_date)}`}
+                                                        {isCancelled && `Follow-up appointment cancelled`}
+                                                        {isRescheduled && `Follow-up rescheduled to ${formatDateShort(info!.appointment_date)}`}
+                                                        {isScheduled && !isRescheduled && !isCancelled && `Follow-up ${isConfirmed ? 'confirmed' : 'scheduled'} for ${formatDateShort(info!.appointment_date)}`}
+                                                    </span>
+                                                    {info && !isCancelled && (
+                                                        <span style={{
+                                                            fontSize: '0.72rem', fontWeight: 700,
+                                                            padding: '0.15rem 0.5rem', borderRadius: '999px',
+                                                            background: isConfirmed ? 'var(--color-success)' : 'var(--accent)',
+                                                            color: '#fff', textTransform: 'uppercase',
+                                                        }}>
+                                                            {info.status}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {isCancelled && (
+                                                    <div style={{ marginTop: '0.6rem' }}>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-primary btn-sm"
+                                                            onClick={() => navigate('/patient/appointments')}
+                                                        >
+                                                            Book a new appointment
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                {!info && (
+                                                    <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                        No appointment booked yet.{' '}
+                                                        <button
+                                                            type="button"
+                                                            className="btn-ghost"
+                                                            style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline', padding: 0 }}
+                                                            onClick={() => navigate('/patient/appointments')}
+                                                        >
+                                                            Book now →
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
 
                                     {/* Documents */}
                                     {visit.file_attachments?.length > 0 && (

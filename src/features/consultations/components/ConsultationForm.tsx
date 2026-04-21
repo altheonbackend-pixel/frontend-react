@@ -61,7 +61,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [customSymptom, setCustomSymptom] = useState('');
     const [icdSuggestions, setIcdSuggestions] = useState<{ code: string; label: string }[]>([]);
     const [showIcdSuggestions, setShowIcdSuggestions] = useState(false);
-    const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string } | null>(null);
+    const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string; consultationId: number } | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
     const [showCloseWithFailedRxWarning, setShowCloseWithFailedRxWarning] = useState(false);
 
@@ -242,6 +242,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     setPendingFollowUp({
                         date: data.follow_up_date,
                         reason: `Follow-up: ${data.reason_for_consultation}`,
+                        consultationId: response.data.id,
                     });
                 } else {
                     onSuccess();
@@ -258,12 +259,17 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         if (!pendingFollowUp) return;
         setCreatingFollowUp(true);
         try {
-            await api.post('/appointments/', {
+            const apptRes = await api.post('/appointments/', {
                 patient: patientId,
                 appointment_date: `${pendingFollowUp.date}T09:00:00`,
                 reason_for_appointment: pendingFollowUp.reason,
                 status: 'scheduled',
             });
+            // Link the appointment back to the consultation so the patient portal
+            // can reflect live status changes (reschedule / cancel).
+            await api.patch(`/consultations/${pendingFollowUp.consultationId}/`, {
+                follow_up_appointment: apptRes.data.id,
+            }).catch(() => {});
             toast.success('Follow-up appointment created and scheduled.');
         } catch {
             toast.error('Could not create follow-up appointment. You can create it manually from the Appointments page.');
