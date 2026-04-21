@@ -30,7 +30,7 @@ function ResetPassword() {
         return (
             <div className="auth-container">
                 <h2 className="login-title">Invalid link</h2>
-                <p style={{ textAlign: 'center', color: '#4a5568', marginBottom: '1.5rem' }}>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
                     This password reset link is missing a token. Please request a new one.
                 </p>
                 <p style={{ textAlign: 'center' }}>
@@ -57,7 +57,7 @@ function ResetPassword() {
         return (
             <div className="auth-container">
                 <h2 className="login-title">Password updated</h2>
-                <p style={{ textAlign: 'center', color: '#4a5568' }}>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                     Your password has been reset successfully. Redirecting you to login…
                 </p>
             </div>

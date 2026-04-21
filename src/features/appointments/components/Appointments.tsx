@@ -197,18 +197,18 @@ const Appointments = () => {
                     </div>
                     <div className="section-card-body" style={{ display: 'grid', gap: '0.75rem' }}>
                         {pendingRequests.map(req => (
-                            <div key={req.id} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', flexWrap: 'wrap' }}>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{req.patient_name}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                            <div key={req.id} className="request-card">
+                                <div className="request-card__info">
+                                    <div className="request-card__name">{req.patient_name}</div>
+                                    <div className="request-card__meta">
                                         {new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         {' · '}{req.appointment_type?.replace(/_/g, ' ')}
                                     </div>
                                     {req.reason_for_appointment && (
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason_for_appointment}</div>
+                                        <div className="request-card__reason">{req.reason_for_appointment}</div>
                                     )}
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                <div className="request-card__actions">
                                     <button
                                         className="btn btn-success btn-sm"
                                         onClick={() => { setApproveTarget({ id: req.id, patientName: req.patient_name }); setApproveInstructions(''); }}
@@ -229,7 +229,7 @@ const Appointments = () => {
             )}
 
             {/* Side-by-side layout on desktop */}
-            <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.25rem', alignItems: 'start' }}>
+            <div className="appt-layout">
                 {/* Calendar panel */}
                 <div className="section-card">
                     <div className="section-card-body" style={{ padding: '1rem' }}>
@@ -280,28 +280,26 @@ const Appointments = () => {
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                                         <Avatar name={patientName} size="sm" />
                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                <span style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                                            <div className="btn-row" style={{ marginBottom: '0.15rem' }}>
+                                                <span className="card-name">
                                                     {appt.patient_details
                                                         ? <Link to={`/patients/${appt.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{patientName}</Link>
                                                         : patientName}
                                                 </span>
                                                 <StatusBadge status={appt.status} label={appt.status_display} />
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                                            <div className="card-meta">
                                                 🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                         </div>
                                     </div>
 
                                     {appt.reason_for_appointment && (
-                                        <div style={{ fontSize: '0.8375rem', color: 'var(--text-secondary)', marginBottom: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-subtle)' }}>
-                                            {appt.reason_for_appointment}
-                                        </div>
+                                        <p className="card-reason">{appt.reason_for_appointment}</p>
                                     )}
 
                                     {/* Action buttons */}
-                                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                    <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                         {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
                                             <button
                                                 onClick={() => handleStartConsultation(appt)}
@@ -433,9 +431,9 @@ const Appointments = () => {
                                 onChange={e => setRescheduleDate(e.target.value)}
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRescheduleTarget(null)}>Cancel</button>
-                            <button className="btn btn-primary" style={{ flex: 1 }} onClick={executeReschedule} disabled={!rescheduleDate}>
+                        <div className="btn-row btn-row--mt">
+                            <button className="btn btn-secondary btn-full" onClick={() => setRescheduleTarget(null)}>Cancel</button>
+                            <button className="btn btn-primary btn-full" onClick={executeReschedule} disabled={!rescheduleDate}>
                                 Reschedule
                             </button>
                         </div>
@@ -446,9 +444,9 @@ const Appointments = () => {
             {/* Approve modal */}
             {approveTarget && (
                 <div className="modal-overlay" onClick={() => setApproveTarget(null)}>
-                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
                         <h3 className="modal-title">Approve Request — {approveTarget.patientName}</h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                        <p className="card-meta" style={{ marginBottom: '1rem' }}>
                             Optionally add instructions for the patient (e.g. what to bring, fasting requirements).
                         </p>
                         <div className="form-group">
@@ -461,9 +459,9 @@ const Appointments = () => {
                                 placeholder="e.g. Please bring your home BP log."
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setApproveTarget(null)}>Cancel</button>
-                            <button className="btn btn-success" style={{ flex: 1 }} onClick={handleApprove}>Approve</button>
+                        <div className="btn-row btn-row--mt">
+                            <button className="btn btn-secondary btn-full" onClick={() => setApproveTarget(null)}>Cancel</button>
+                            <button className="btn btn-success btn-full" onClick={handleApprove}>Approve</button>
                         </div>
                     </div>
                 </div>
@@ -472,7 +470,7 @@ const Appointments = () => {
             {/* Reject modal */}
             {rejectTarget && (
                 <div className="modal-overlay" onClick={() => setRejectTarget(null)}>
-                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
                         <h3 className="modal-title">Reject Request — {rejectTarget.patientName}</h3>
                         <div className="form-group">
                             <label htmlFor="reject-reason">Reason for rejection</label>
@@ -484,20 +482,14 @@ const Appointments = () => {
                                 placeholder="e.g. No availability on this day. Please request another date."
                             />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                            <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setRejectTarget(null)}>Cancel</button>
-                            <button className="btn btn-danger" style={{ flex: 1 }} onClick={handleReject}>Reject</button>
+                        <div className="btn-row btn-row--mt">
+                            <button className="btn btn-secondary btn-full" onClick={() => setRejectTarget(null)}>Cancel</button>
+                            <button className="btn btn-danger btn-full" onClick={handleReject}>Reject</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Mobile responsive override */}
-            <style>{`
-                @media (max-width: 900px) {
-                    .appt-layout-grid { grid-template-columns: 1fr !important; }
-                }
-            `}</style>
         </>
     );
 };

@@ -1582,7 +1582,7 @@ const PatientDetails = () => {
                                     <li key={rx.id} className="detail-list-item">
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                             <strong>{rx.medication_name}</strong>
-                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: '#e6fffa', color: '#234e52', border: '1px solid #81e6d9' }}>
+                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)' }}>
                                                 Active
                                             </span>
                                         </div>

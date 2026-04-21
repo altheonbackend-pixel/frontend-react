@@ -37,7 +37,7 @@ export const FailedPrescriptionsPanel = ({ failed, onItemSaved }: Props) => {
     return (
         <div
             style={{
-                border: '1.5px solid var(--danger, #dc2626)',
+                border: '1.5px solid var(--color-danger)',
                 borderRadius: 'var(--radius-lg, 12px)',
                 marginTop: '16px',
                 overflow: 'hidden',
@@ -46,11 +46,11 @@ export const FailedPrescriptionsPanel = ({ failed, onItemSaved }: Props) => {
             <div
                 style={{
                     padding: '12px 16px',
-                    background: 'color-mix(in srgb, var(--danger, #dc2626) 8%, transparent)',
-                    borderBottom: '1px solid color-mix(in srgb, var(--danger, #dc2626) 20%, transparent)',
+                    background: 'color-mix(in srgb, var(--color-danger) 8%, transparent)',
+                    borderBottom: '1px solid color-mix(in srgb, var(--color-danger) 20%, transparent)',
                 }}
             >
-                <span style={{ fontWeight: 600, color: 'var(--danger, #dc2626)', fontSize: '14px' }}>
+                <span style={{ fontWeight: 600, color: 'var(--color-danger)', fontSize: '14px' }}>
                     Unsaved prescriptions — action required
                 </span>
             </div>

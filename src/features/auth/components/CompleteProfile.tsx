@@ -57,7 +57,7 @@ const CompleteProfile = () => {
             <div className="auth-container">
                 <form onSubmit={handleSubmit} className="auth-form">
                     <h2>Complete Your Profile</h2>
-                    <p style={{ color: '#718096', fontSize: '14px', marginBottom: '20px' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>
                         Please provide the following information before accessing the platform.
                     </p>
 
@@ -111,7 +111,7 @@ const CompleteProfile = () => {
                     <button
                         type="button"
                         className="auth-button"
-                        style={{ background: '#718096', marginTop: '8px' }}
+                        style={{ background: 'var(--bg-muted)', marginTop: '8px' }}
                         onClick={logout}
                     >
                         Log Out

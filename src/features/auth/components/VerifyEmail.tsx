@@ -84,11 +84,11 @@ const VerifyEmail = () => {
 
                     {status === 'idle' && !token && !profile?.email_verified && (
                         <>
-                            <p style={{ color: '#4a5568', marginBottom: '16px' }}>
+                            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
                                 A verification email has been sent to <strong>{profile?.email}</strong>.
                                 Please check your inbox and click the link to verify your account.
                             </p>
-                            <p style={{ color: '#718096', fontSize: '14px', marginBottom: '20px' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>
                                 You must verify your email before accessing the platform.
                             </p>
 
@@ -110,7 +110,7 @@ const VerifyEmail = () => {
                             {isAuthenticated && (
                                 <button
                                     className="auth-button"
-                                    style={{ background: '#718096' }}
+                                    style={{ background: 'var(--bg-muted)' }}
                                     onClick={logout}
                                 >
                                     Log Out

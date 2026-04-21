@@ -140,7 +140,7 @@ function PrivateNotebook() {
                         {isLoading && (
                             <div style={{ padding: '1rem' }}>
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} style={{ height: 56, background: '#f3f4f6', borderRadius: 6, marginBottom: 8, animation: 'shimmer 1.4s infinite' }} />
+                                    <div key={i} className="skeleton-row" />
                                 ))}
                             </div>
                         )}

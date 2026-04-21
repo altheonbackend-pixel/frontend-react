@@ -34,11 +34,11 @@ function ForgotPassword() {
         return (
             <div className="auth-container">
                 <h2 className="login-title">Check your email</h2>
-                <p style={{ textAlign: 'center', color: '#4a5568', marginBottom: '1.5rem' }}>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
                     If <strong>{submittedEmail}</strong> is registered, you will receive a password reset link within a few minutes.
                 </p>
                 <p style={{ textAlign: 'center' }}>
-                    <Link to="/login" style={{ color: 'var(--primary-color, #3b82f6)', textDecoration: 'none' }}>
+                    <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
                         ← Back to login
                     </Link>
                 </p>
@@ -49,7 +49,7 @@ function ForgotPassword() {
     return (
         <div className="auth-container">
             <h2 className="login-title">Forgot password</h2>
-            <p style={{ textAlign: 'center', color: '#4a5568', marginBottom: '1.5rem' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
                 Enter your account email and we will send you a reset link.
             </p>
 

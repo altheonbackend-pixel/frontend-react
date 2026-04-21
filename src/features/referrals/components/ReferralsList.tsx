@@ -46,7 +46,7 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
                 <h3 className="modal-title">New Referral — Select Patient</h3>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                     Search for a patient to create a referral for.
@@ -77,9 +77,9 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
                         </button>
                     ))}
                 </div>
-                <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
+                <div className="btn-row btn-row--mt">
                     <button className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
-                    <Link to="/patients" className="btn btn-ghost btn-full" style={{ textAlign: 'center' }}>
+                    <Link to="/patients" className="btn btn-secondary btn-full" style={{ textAlign: 'center' }}>
                         Browse all patients →
                     </Link>
                 </div>
@@ -119,7 +119,7 @@ const RespondModal = ({
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
                 <h3 className="modal-title">Respond to Referral</h3>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
                     Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
@@ -155,9 +155,9 @@ const RespondModal = ({
                             required={respondStatus === 'rejected'}
                         />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-                        <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending}>
+                    <div className="btn-row btn-row--mt">
+                        <button type="button" className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary btn-full" disabled={isPending}>
                             {isPending ? 'Saving…' : 'Submit Response'}
                         </button>
                     </div>
@@ -224,17 +224,7 @@ const ReferralsList = () => {
     const TabBtn = ({ value, label }: { value: Tab; label: string }) => (
         <button
             onClick={() => handleTabChange(value)}
-            style={{
-                padding: '0.5rem 1.25rem',
-                fontWeight: 600,
-                fontSize: '0.875rem',
-                border: 'none',
-                borderBottom: tab === value ? '2px solid var(--accent)' : '2px solid transparent',
-                background: 'transparent',
-                color: tab === value ? 'var(--accent)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'color 120ms ease',
-            }}
+            className={`tab-btn${tab === value ? ' tab-btn--active' : ''}`}
         >
             {label}
         </button>
@@ -253,14 +243,14 @@ const ReferralsList = () => {
             />
 
             {/* Tab bar */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border-default)', marginBottom: '1rem' }}>
+            <div className="tab-bar">
                 <TabBtn value="all" label="All" />
                 <TabBtn value="received" label="Received" />
                 <TabBtn value="sent" label="Sent" />
             </div>
 
             {/* Filters */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+            <div className="filter-row">
                 <select
                     className="input select-input"
                     style={{ width: 'auto', minWidth: 160 }}
@@ -302,7 +292,7 @@ const ReferralsList = () => {
                     </div>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div className="referral-list">
                     {referrals.map(referral => {
                         const isReceived = referral.referred_to === myId;
                         const canRespond = isReceived && referral.status !== 'completed' && referral.status !== 'rejected';
@@ -311,29 +301,29 @@ const ReferralsList = () => {
                         return (
                             <div key={referral.id} className={urgencyClass(urgency)}>
                                 {/* Header row */}
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', marginBottom: '0.625rem' }}>
+                                <div className="referral-card__header">
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+                                        <div className="referral-card__badges">
                                             <StatusBadge status={urgency} label={referral.urgency_display} size="md" />
-                                            {isReceived
-                                                ? <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>← Received from Dr. {referral.referred_by_details?.full_name ?? '?'}</span>
-                                                : <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>→ Sent to Dr. {referral.referred_to_details?.full_name ?? '?'}</span>
-                                            }
+                                            <span className="card-meta">
+                                                {isReceived
+                                                    ? `← Received from Dr. ${referral.referred_by_details?.full_name ?? '?'}`
+                                                    : `→ Sent to Dr. ${referral.referred_to_details?.full_name ?? '?'}`
+                                                }
+                                            </span>
                                         </div>
-                                        <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>
+                                        <div className="card-name">
                                             {referral.patient_details
                                                 ? <Link to={`/patients/${referral.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                                                     {referral.patient_details.first_name} {referral.patient_details.last_name}
                                                   </Link>
                                                 : 'Patient'}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                                            Specialty: {referral.specialty_display ?? referral.specialty_requested}
-                                        </div>
+                                        <div className="card-meta">Specialty: {referral.specialty_display ?? referral.specialty_requested}</div>
                                     </div>
-                                    <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+                                    <div className="referral-card__status">
                                         <StatusBadge status={referral.status} label={referral.status_display} />
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        <span className="card-meta">
                                             {new Date(referral.date_of_referral).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
                                     </div>
@@ -341,21 +331,19 @@ const ReferralsList = () => {
 
                                 {/* Reason */}
                                 {referral.reason_for_referral && (
-                                    <p style={{ fontSize: '0.8375rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', paddingLeft: '0.5rem', borderLeft: '2px solid var(--border-subtle)' }}>
-                                        {referral.reason_for_referral}
-                                    </p>
+                                    <p className="card-reason">{referral.reason_for_referral}</p>
                                 )}
 
                                 {/* Response notes */}
                                 {referral.response_notes && (
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--color-success-dark)', background: 'var(--color-success-light)', borderRadius: '0.375rem', padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
+                                    <div className="referral-card__response">
                                         Response: {referral.response_notes}
                                     </div>
                                 )}
 
                                 {/* Actions */}
                                 {canRespond && (
-                                    <div style={{ marginTop: '0.5rem' }}>
+                                    <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                         <button
                                             className="btn btn-primary btn-sm"
                                             onClick={() => setRespondTarget(referral)}

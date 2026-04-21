@@ -443,6 +443,45 @@
 .btn-secondary:hover { background: var(--bg-subtle); color: var(--text-primary); }
 .error-text { color: var(--color-danger); font-size: var(--text-sm); margin-bottom: var(--space-3); }
 
+/* ── Modal size modifiers ── */
+.modal-box--sm { max-width: 400px; }
+.modal-box--md { max-width: 480px; }
+.modal-box--lg { max-width: 560px; }
+
+/* ── Phase 8 referral card (list view) ── */
+.referral-card--routine   { border-left: 3px solid var(--border-default); }
+.referral-card--urgent    { border-left: 3px solid var(--color-warning); }
+.referral-card--emergency { border-left: 3px solid var(--color-danger); }
+
+.referral-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+}
+.referral-card__badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem;
+}
+.referral-card__status {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.3rem;
+}
+.referral-card__response {
+    font-size: 0.8rem;
+    color: var(--color-success-dark);
+    background: var(--color-success-light);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
 /* ── Mobile modal bottom-sheet ── */
 @media (max-width: 768px) {
     .modal-overlay { padding: 0; align-items: flex-end; }
