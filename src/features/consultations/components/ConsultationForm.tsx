@@ -90,7 +90,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             temperature: null,
             bp_systolic: null,
             bp_diastolic: null,
-            visible_to_patient: false,
+            visible_to_patient: true,
         },
     });
 
@@ -169,7 +169,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 temperature: consultationToEdit.temperature,
                 bp_systolic: consultationToEdit.bp_systolic,
                 bp_diastolic: consultationToEdit.bp_diastolic,
-                visible_to_patient: consultationToEdit.visible_to_patient || false,
+                visible_to_patient: true,
             });
             setSymptoms(consultationToEdit.symptoms || []);
         }
@@ -613,14 +613,6 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         <p className="rx-hint">Prescriptions save automatically when you submit the consultation.</p>
                     </div>
                 )}
-
-                {/* Visible to patient toggle */}
-                <div className="form-group form-checkbox">
-                    <label>
-                        <input type="checkbox" {...register('visible_to_patient')} />
-                        {' '}Will be visible to patient once the patient portal is live
-                    </label>
-                </div>
 
                 {/* Failed prescription retry panel — shown after submit if any prescriptions failed */}
                 <FailedPrescriptionsPanel

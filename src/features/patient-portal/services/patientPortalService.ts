@@ -81,6 +81,15 @@ export interface PatientConsultation {
     follow_up_date: string | null;
     file_attachments: PatientAttachment[];
     prescriptions: ConsultationPrescription[];
+    // Vitals
+    weight: string | null;
+    height: string | null;
+    height_unit: 'cm' | 'm';
+    temperature: string | null;
+    sp2: string | null;
+    bp_systolic: number | null;
+    bp_diastolic: number | null;
+    bp_display: string | null;
 }
 
 export interface PatientPrescription {

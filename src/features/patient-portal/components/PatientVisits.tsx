@@ -154,6 +154,45 @@ export default function PatientVisits() {
                                         </div>
                                     )}
 
+                                    {/* Vitals */}
+                                    {(visit.weight || visit.height || visit.temperature || visit.sp2 || visit.bp_display) && (
+                                        <div>
+                                            <div className="visit-section-label">Vitals recorded at this visit</div>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                {visit.weight && (
+                                                    <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Weight</span>
+                                                        <strong>{visit.weight} kg</strong>
+                                                    </div>
+                                                )}
+                                                {visit.height && (
+                                                    <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Height</span>
+                                                        <strong>{visit.height} {visit.height_unit}</strong>
+                                                    </div>
+                                                )}
+                                                {visit.temperature && (
+                                                    <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Temp</span>
+                                                        <strong>{visit.temperature}°C</strong>
+                                                    </div>
+                                                )}
+                                                {visit.sp2 && (
+                                                    <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>SpO₂</span>
+                                                        <strong>{visit.sp2}%</strong>
+                                                    </div>
+                                                )}
+                                                {visit.bp_display && (
+                                                    <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Blood pressure</span>
+                                                        <strong>{visit.bp_display} mmHg</strong>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Doctor's note to patient */}
                                     {visit.patient_summary && (
                                         <div>
