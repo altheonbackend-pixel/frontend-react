@@ -1760,6 +1760,13 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   border-left: 2px solid var(--border-subtle);
   margin-bottom: 0.5rem;
 }
+.visit-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
 .field-label {
   font-size: 0.75rem;
   font-weight: 700;

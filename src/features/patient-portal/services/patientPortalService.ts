@@ -57,6 +57,18 @@ export interface PatientAttachment {
     download_url: string | null;
 }
 
+export interface ConsultationPrescription {
+    id: number;
+    medication_name: string;
+    dosage: string;
+    frequency: string;
+    frequency_display: string;
+    duration_days: number | null;
+    instructions: string;
+    patient_medication_note: string;
+    is_active: boolean;
+}
+
 export interface PatientConsultation {
     id: number;
     consultation_date: string;
@@ -68,6 +80,7 @@ export interface PatientConsultation {
     patient_instructions: string;
     follow_up_date: string | null;
     file_attachments: PatientAttachment[];
+    prescriptions: ConsultationPrescription[];
 }
 
 export interface PatientPrescription {
