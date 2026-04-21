@@ -56,7 +56,9 @@ export default function PatientAppointments() {
     const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
         mutationFn: () => patientPortalService.requestAppointment({
             doctor_id: formData.doctorId,
-            appointment_date: formData.appointmentDate,
+            // Fall back to 09:00 on the chosen date when no slots were available.
+            // Doctor confirms exact time on approval.
+            appointment_date: formData.appointmentDate || `${requestDate}T09:00:00`,
             reason: formData.reason,
             appointment_type: formData.appointmentType,
             notes: formData.notes || undefined,
@@ -105,8 +107,8 @@ export default function PatientAppointments() {
 
     const handleSubmitRequest = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.doctorId || !requestDate || !formData.appointmentDate || !formData.reason.trim()) {
-            toast.error('Please choose a doctor, a date, a time slot, and a reason for the visit.');
+        if (!formData.doctorId || !requestDate || !formData.reason.trim()) {
+            toast.error('Please choose a doctor, a date, and a reason for the visit.');
             return;
         }
         submitRequest();
@@ -360,8 +362,8 @@ export default function PatientAppointments() {
                             {slotsLoading ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Checking availability…</div>
                             ) : availableSlots.length === 0 ? (
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    No available slots on this day. Try another date.
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                                    No pre-set slots on this day — you can still send a request and the doctor will confirm a time.
                                 </div>
                             ) : (
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>

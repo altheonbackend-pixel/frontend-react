@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +28,6 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     const { isAuthenticated } = useAuth();
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
     const [specialtyFilter, setSpecialtyFilter] = useState('');
-    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const {
         register,
@@ -73,12 +72,11 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSpecialtyFilter(val);
         setValue('referred_to', null);
-        if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
-        filterTimerRef.current = setTimeout(() => fetchDoctors(val || undefined), 300);
+        fetchDoctors(val || undefined);
     };
 
     useEffect(() => {
@@ -175,15 +173,37 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                     <>
                         <div className="form-group">
                             <label htmlFor="specialty_filter">Filter by Specialty</label>
-                            <input
-                                type="text"
+                            <select
                                 id="specialty_filter"
-                                className="input"
-                                placeholder="e.g. cardiology, neurology..."
+                                className="select-input"
                                 value={specialtyFilter}
                                 onChange={handleSpecialtyFilter}
-                            />
-                            {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) found</small>}
+                            >
+                                <option value="">All specialties</option>
+                                <option value="general_practice">General Practice</option>
+                                <option value="cardiology">Cardiology</option>
+                                <option value="dermatology">Dermatology</option>
+                                <option value="endocrinology">Endocrinology</option>
+                                <option value="gastroenterology">Gastroenterology</option>
+                                <option value="neurology">Neurology</option>
+                                <option value="oncology">Oncology</option>
+                                <option value="ophthalmology">Ophthalmology</option>
+                                <option value="orthopaedics">Orthopaedics</option>
+                                <option value="paediatrics">Paediatrics</option>
+                                <option value="psychiatry">Psychiatry</option>
+                                <option value="pulmonology">Pulmonology</option>
+                                <option value="radiology">Radiology</option>
+                                <option value="rheumatology">Rheumatology</option>
+                                <option value="urology">Urology</option>
+                                <option value="nephrology">Nephrology</option>
+                                <option value="haematology">Haematology</option>
+                                <option value="infectious_disease">Infectious Disease</option>
+                                <option value="emergency_medicine">Emergency Medicine</option>
+                                <option value="anaesthesiology">Anaesthesiology</option>
+                                <option value="pathology">Pathology</option>
+                                <option value="other">Other</option>
+                            </select>
+                            {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) in this specialty</small>}
                         </div>
 
                         <div className="form-group">
