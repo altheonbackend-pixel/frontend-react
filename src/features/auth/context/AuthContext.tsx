@@ -55,7 +55,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPatientProfile(null);
         setUserType(null);
         setIsAuthenticated(false);
-        navigate(effectiveType === 'patient' ? '/patient/login' : '/login', { replace: true });
+        // If the user is currently on any /patient/* route, always send them to the patient login.
+        // This prevents a stale user_type='doctor' in localStorage from redirecting a visitor
+        // who is on /patient/login to /login when the token refresh fails on page load.
+        const isPatient = effectiveType === 'patient' || window.location.pathname.startsWith('/patient/');
+        navigate(isPatient ? '/patient/login' : '/login', { replace: true });
     }, [navigate, profile, userType]);
 
     const updateProfileData = (newProfile: DoctorProfile) => {
