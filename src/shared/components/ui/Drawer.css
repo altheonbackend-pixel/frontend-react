@@ -177,6 +177,6 @@
     color: var(--text-secondary);
 }
 .ui-discard-btn--confirm {
-    background: var(--danger, #dc2626);
+    background: var(--color-danger);
     color: #fff;
 }

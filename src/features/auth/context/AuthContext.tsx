@@ -33,7 +33,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const navigate = useNavigate();
 
     const logout = useCallback(() => {
-        const logoutEndpoint = userType === 'patient' ? '/patient/logout/' : '/logout/';
+        // userType may be null when called from api.ts interceptor at mount time,
+        // so fall back to localStorage to determine the correct login destination.
+        const effectiveType = userType ?? localStorage.getItem('user_type');
+        const logoutEndpoint = effectiveType === 'patient' ? '/patient/logout/' : '/logout/';
         api.post(logoutEndpoint).catch(() => {});
         setLogoutCallback(() => {});
 
@@ -52,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPatientProfile(null);
         setUserType(null);
         setIsAuthenticated(false);
-        navigate('/login', { replace: true });
+        navigate(effectiveType === 'patient' ? '/patient/login' : '/login', { replace: true });
     }, [navigate, profile, userType]);
 
     const updateProfileData = (newProfile: DoctorProfile) => {
@@ -132,12 +135,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem('user_type', 'doctor');
             }
         } catch {
-            // 401 after refresh attempt failed, or network error — treat as logged out
+            // 401 after refresh attempt failed, or network error — treat as logged out.
+            // Read localStorage before clearing it so we can redirect to the right login page.
+            const storedType = localStorage.getItem('user_type');
+            localStorage.removeItem('user_type');
+            localStorage.removeItem('admin_profile');
             setIsAuthenticated(false);
+            if (storedType === 'patient') {
+                navigate('/patient/login', { replace: true });
+            } else if (storedType) {
+                navigate('/login', { replace: true });
+            }
         } finally {
             setAuthIsLoading(false);
         }
-    }, []);
+    }, [navigate]);
 
     // Keep the api.ts logout callback up-to-date when logout identity changes
     useEffect(() => {

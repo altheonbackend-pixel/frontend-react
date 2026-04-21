@@ -1,7 +1,7 @@
 // src/features/referrals/components/ReferralsList.tsx
 // Phase 8: Urgency-colored left borders, tabs with badge counts, proper Modal for Respond
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Referral } from '../../../shared/types';
 import { Link } from 'react-router-dom';
@@ -13,10 +13,80 @@ import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { toast } from '../../../shared/components/ui';
+import ReferralForm from './ReferralForm';
 import '../styles/ReferralsList.css';
 
 const PAGE_SIZE = 20;
 type Tab = 'all' | 'received' | 'sent';
+
+interface PatientResult { unique_id: string; first_name: string; last_name: string; }
+
+// ── Patient Picker Modal ───────────────────────────────────────────────────────
+const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => void; onClose: () => void }) => {
+    const [q, setQ] = useState('');
+    const [results, setResults] = useState<PatientResult[]>([]);
+    const [loading, setLoading] = useState(false);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => { inputRef.current?.focus(); }, []);
+
+    const search = (val: string) => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        if (!val.trim()) { setResults([]); return; }
+        timerRef.current = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const res = await api.get('/patients/', { params: { search: val, page_size: 8 } });
+                setResults((res.data.results ?? res.data) as PatientResult[]);
+            } catch { /* ignore */ }
+            finally { setLoading(false); }
+        }, 300);
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+                <h3 className="modal-title">New Referral — Select Patient</h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                    Search for a patient to create a referral for.
+                </p>
+                <input
+                    ref={inputRef}
+                    className="input"
+                    placeholder="Search by name or ID…"
+                    value={q}
+                    onChange={e => { setQ(e.target.value); search(e.target.value); }}
+                    style={{ marginBottom: '0.75rem' }}
+                />
+                {loading && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>Searching…</p>}
+                {!loading && results.length === 0 && q.trim() && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>No patients found.</p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: 260, overflowY: 'auto' }}>
+                    {results.map(p => (
+                        <button
+                            key={p.unique_id}
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '0.625rem 0.75rem' }}
+                            onClick={() => onSelect(p)}
+                        >
+                            <span style={{ fontWeight: 600 }}>{p.first_name} {p.last_name}</span>
+                            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{p.unique_id}</span>
+                        </button>
+                    ))}
+                </div>
+                <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem' }}>
+                    <button className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
+                    <Link to="/patients" className="btn btn-ghost btn-full" style={{ textAlign: 'center' }}>
+                        Browse all patients →
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // ── Respond Modal (using shared .modal-overlay pattern) ────────────────────────
 const RespondModal = ({
@@ -107,7 +177,8 @@ const ReferralsList = () => {
     const [urgencyFilter, setUrgencyFilter] = useState('');
     const [respondTarget, setRespondTarget] = useState<Referral | null>(null);
     const [page, setPage] = useState(1);
-    const [showForm, setShowForm] = useState(false);
+    const [showPatientPicker, setShowPatientPicker] = useState(false);
+    const [newReferralPatient, setNewReferralPatient] = useState<PatientResult | null>(null);
 
     const filters = { tab, statusFilter, urgencyFilter, page };
 
@@ -175,7 +246,7 @@ const ReferralsList = () => {
                 title="Referrals"
                 subtitle="Track and respond to patient referrals"
                 actions={
-                    <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
+                    <button className="btn btn-primary btn-sm" onClick={() => setShowPatientPicker(true)}>
                         + New Referral
                     </button>
                 }
@@ -317,19 +388,22 @@ const ReferralsList = () => {
                 />
             )}
 
-            {/* Placeholder for new referral form — deferred to Sprint 9 */}
-            {showForm && (
-                <div className="modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
-                        <h3 className="modal-title">New Referral</h3>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            Use the patient detail page to create referrals linked to a patient.
-                        </p>
-                        <div style={{ marginTop: '1.25rem' }}>
-                            <button className="btn btn-secondary btn-full" onClick={() => setShowForm(false)}>Close</button>
-                        </div>
-                    </div>
-                </div>
+            {showPatientPicker && (
+                <PatientPicker
+                    onSelect={p => { setNewReferralPatient(p); setShowPatientPicker(false); }}
+                    onClose={() => setShowPatientPicker(false)}
+                />
+            )}
+
+            {newReferralPatient && (
+                <ReferralForm
+                    patientId={newReferralPatient.unique_id}
+                    onClose={() => setNewReferralPatient(null)}
+                    onSuccess={() => {
+                        setNewReferralPatient(null);
+                        queryClient.invalidateQueries({ queryKey: queryKeys.referrals.list(filters) });
+                    }}
+                />
             )}
         </>
     );

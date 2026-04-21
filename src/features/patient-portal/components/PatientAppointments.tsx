@@ -376,12 +376,13 @@ export default function PatientAppointments() {
                                                 style={{
                                                     padding: '0.35rem 0.85rem',
                                                     borderRadius: '999px',
-                                                    border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
-                                                    background: isSelected ? 'var(--accent)' : 'var(--bg-card)',
+                                                    border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-default)'}`,
+                                                    background: isSelected ? 'var(--accent)' : 'var(--bg-subtle)',
                                                     color: isSelected ? '#fff' : 'var(--text-primary)',
                                                     fontWeight: isSelected ? 700 : 400,
                                                     fontSize: '0.875rem',
                                                     cursor: 'pointer',
+                                                    transition: 'all 0.15s',
                                                 }}
                                             >
                                                 {slot}

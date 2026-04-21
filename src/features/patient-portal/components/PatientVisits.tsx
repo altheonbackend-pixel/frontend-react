@@ -75,15 +75,25 @@ export default function PatientVisits() {
                                     <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Documents</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                         {visit.file_attachments.map(att => (
-                                            <a
-                                                key={att.id}
-                                                href={att.download_url ?? '#'}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline' }}
-                                            >
-                                                {att.original_filename}
-                                            </a>
+                                            att.download_url ? (
+                                                <a
+                                                    key={att.id}
+                                                    href={att.download_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline' }}
+                                                >
+                                                    {att.original_filename}
+                                                </a>
+                                            ) : (
+                                                <span
+                                                    key={att.id}
+                                                    title="File not available"
+                                                    style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through', cursor: 'not-allowed' }}
+                                                >
+                                                    {att.original_filename}
+                                                </span>
+                                            )
                                         ))}
                                     </div>
                                 </div>

@@ -136,6 +136,22 @@
   --z-overlay: 100;
   --z-modal:   1000;
   --z-toast:   9999;
+
+  /* ── Legacy token aliases — resolve undefined-variable silent failures ── */
+  --bg-app:        var(--bg-base);
+  --bg-surface:    var(--bg-base);
+  --bg-card:       var(--bg-base);
+  --border:        var(--border-default);
+  --danger:        var(--color-danger);
+  --danger-bg:     var(--color-danger-light);
+  --danger-text:   var(--color-danger-dark);
+  --success:       var(--color-success);
+  --success-bg:    var(--color-success-light);
+  --success-text:  var(--color-success-dark);
+  --info:          var(--color-info);
+  --info-bg:       var(--color-info-light);
+  --warning-bg:    var(--color-warning-light);
+  --warning-text:  var(--color-warning-dark);
 }
 
 /* ── Base Reset ── */
@@ -956,12 +972,14 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   top: 0;
   left: 0;
   height: 100vh;
-  z-index: var(--z-raised);
+  /* z-raised + 1 so the sidebar slides over the sticky topbar on mobile */
+  z-index: calc(var(--z-raised) + 1);
   background: #ffffff;
   border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: visible;
   scrollbar-width: thin;
   transition: transform var(--transition-base);
 }
@@ -971,7 +989,8 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.35);
-  z-index: calc(var(--z-raised) - 1);
+  /* same z as topbar so overlay covers it when sidebar is open */
+  z-index: var(--z-raised);
 }
 
 .app-main {
@@ -1263,26 +1282,26 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   white-space: nowrap;
 }
 /* patient statuses */
-.status-active      { background: #d1fae5; color: #065f46; }
+.status-active      { background: var(--color-success-light); color: var(--color-success-dark); }
 .status-inactive    { background: #f3f4f6; color: #6b7280; }
-.status-transferred { background: #dbeafe; color: #1e40af; }
+.status-transferred { background: var(--color-info-light);    color: var(--color-info-dark); }
 .status-deceased    { background: #f1f5f9; color: #64748b; }
 /* appointment statuses */
-.status-scheduled   { background: #dbeafe; color: #1e40af; }
-.status-confirmed   { background: #d1fae5; color: #065f46; }
+.status-scheduled   { background: var(--color-info-light);    color: var(--color-info-dark); }
+.status-confirmed   { background: var(--color-success-light); color: var(--color-success-dark); }
 .status-completed   { background: #f3f4f6; color: #6b7280; }
-.status-cancelled   { background: #fee2e2; color: #991b1b; }
+.status-cancelled   { background: var(--color-danger-light);  color: var(--color-danger-dark); }
 .status-no_show,
-.status-no-show     { background: #fef3c7; color: #92400e; }
-.status-rescheduled { background: #ede9fe; color: #5b21b6; }
+.status-no-show     { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.status-rescheduled { background: var(--accent-lighter);      color: #5b21b6; }
 /* clinical statuses */
-.status-routine     { background: #e0e7ff; color: #3730a3; }
-.status-urgent      { background: #fef3c7; color: #92400e; }
-.status-emergency   { background: #fee2e2; color: #991b1b; }
-.status-normal      { background: #d1fae5; color: #065f46; }
-.status-abnormal    { background: #fef3c7; color: #92400e; }
-.status-critical    { background: #fee2e2; color: #991b1b; }
-.status-pending     { background: #fef3c7; color: #92400e; }
+.status-routine     { background: var(--accent-light);        color: #3730a3; }
+.status-urgent      { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.status-emergency   { background: var(--color-danger-light);  color: var(--color-danger-dark); }
+.status-normal      { background: var(--color-success-light); color: var(--color-success-dark); }
+.status-abnormal    { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.status-critical    { background: var(--color-danger-light);  color: var(--color-danger-dark); }
+.status-pending     { background: var(--color-warning-light); color: var(--color-warning-dark); }
 
 /* ── Stat card ── */
 .stat-card {
@@ -1312,10 +1331,10 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   justify-content: center;
   flex-shrink: 0;
 }
-.stat-card-icon.variant-default  { background: #eef2ff; color: var(--accent); }
-.stat-card-icon.variant-success  { background: #d1fae5; color: #065f46; }
-.stat-card-icon.variant-warning  { background: #fef3c7; color: #92400e; }
-.stat-card-icon.variant-danger   { background: #fee2e2; color: #991b1b; }
+.stat-card-icon.variant-default  { background: var(--bg-muted);            color: var(--accent); }
+.stat-card-icon.variant-success  { background: var(--color-success-light); color: var(--color-success-dark); }
+.stat-card-icon.variant-warning  { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.stat-card-icon.variant-danger   { background: var(--color-danger-light);  color: var(--color-danger-dark); }
 .stat-card-body {}
 .stat-card-value {
   font-size: 1.75rem;
@@ -1384,10 +1403,13 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   content: ' *';
   color: var(--color-danger);
 }
-.form-field-error {
+.form-field-error,
+.field-error {
   font-size: 0.75rem;
   color: var(--color-danger);
   animation: shakeX 0.3s ease;
+  display: block;
+  margin-top: 0.2rem;
 }
 .form-field-hint {
   font-size: 0.75rem;
@@ -1597,6 +1619,9 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+}
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1670,28 +1695,10 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   white-space: nowrap;
 }
 
-/* empty state */
-.empty-state {
-  text-align: center;
-  padding: 3rem 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-.empty-state-icon {
-  font-size: 3rem;
-  opacity: 0.3;
-}
-.empty-state-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.empty-state-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-}
+/* empty state — flat naming (legacy Dashboard usage) */
+.empty-state-icon    { font-size: 3rem; opacity: 0.3; }
+.empty-state-title   { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.empty-state-subtitle{ font-size: 0.875rem; color: var(--text-muted); }
 
 /* ── Patient table/card hybrid ── */
 .patients-table {
@@ -1838,29 +1845,58 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   font-weight: 500;
 }
 
-/* ── Workplace card ── */
-.workplace-card {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 0.875rem 1rem;
+/* ── Working hours schedule editor (EditProfile) ── */
+.schedule-section { margin-top: 2rem; }
+.schedule-section h3 {
+  font-size: var(--text-base);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin-bottom: 0.875rem;
+}
+.schedule-list { display: flex; flex-direction: column; gap: 0; }
+.schedule-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.75rem;
-  background: rgba(255,255,255,0.7);
-  transition: box-shadow var(--transition-fast);
+  flex-wrap: wrap;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--border-subtle);
 }
-.workplace-card:hover {
-  box-shadow: var(--shadow-sm);
-}
-.workplace-card-name {
-  font-weight: 600;
-  font-size: 0.9375rem;
+.schedule-row:last-child { border-bottom: none; }
+.schedule-day-label {
+  min-width: 88px;
+  font-size: var(--text-sm);
+  font-weight: var(--fw-medium);
   color: var(--text-primary);
 }
-.workplace-card-address {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 0.15rem;
+.schedule-avail-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.schedule-time-input {
+  width: 110px;
+  padding: 0.5rem 0.625rem;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.schedule-time-input:focus { border-color: var(--border-focus); box-shadow: var(--shadow-focus); }
+.schedule-time-input:disabled { opacity: 0.4; cursor: not-allowed; background: var(--bg-subtle); }
+.schedule-sep { font-size: var(--text-xs); color: var(--text-muted); }
+@media (max-width: 600px) {
+  .schedule-row { gap: 0.5rem; }
+  .schedule-day-label { min-width: 72px; }
+  .schedule-time-input { width: 96px; }
 }
 
 /* ── Notebook two-col ── */
@@ -2141,35 +2177,21 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   cursor: not-allowed;
 }
 
-/* ── Empty state ── */
+/* ── Empty state (canonical definition) ── */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10, 3rem) var(--space-6, 1.5rem);
+  padding: 3rem 2rem;
   text-align: center;
   gap: var(--space-3, 0.75rem);
 }
 
-.empty-state__icon {
-  font-size: 2.5rem;
-  line-height: 1;
-}
-
-.empty-state__title {
-  font-size: var(--text-base, 1rem);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.empty-state__description {
-  font-size: var(--text-sm, 0.875rem);
-  color: var(--text-secondary);
-  margin: 0;
-  max-width: 360px;
-}
+/* BEM child classes */
+.empty-state__icon        { font-size: 2.5rem; line-height: 1; }
+.empty-state__title       { font-size: var(--text-base); font-weight: 600; color: var(--text-primary); margin: 0; }
+.empty-state__description { font-size: var(--text-sm); color: var(--text-secondary); margin: 0; max-width: 360px; }
 
 /* ── Skeleton loading ── */
 .skeleton {
@@ -2287,10 +2309,10 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
 .patient-auth-error {
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  background: var(--danger-bg);
-  color: var(--danger-text);
+  background: var(--color-danger-light);
+  color: var(--color-danger-dark);
   font-size: 0.875rem;
-  border: 1px solid var(--danger);
+  border: 1px solid var(--color-danger-border);
 }
 .patient-auth-link {
   color: var(--accent);
@@ -2328,7 +2350,7 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   color: var(--text-muted);
 }
 .claim-step.active { color: var(--accent); font-weight: 700; }
-.claim-step.done   { color: var(--success); }
+.claim-step.done   { color: var(--color-success); }
 .claim-step-dot {
   width: 22px;
   height: 22px;
@@ -2346,8 +2368,8 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   color: #fff;
 }
 .claim-step.done .claim-step-dot {
-  border-color: var(--success);
-  background: var(--success);
+  border-color: var(--color-success);
+  background: var(--color-success);
   color: #fff;
 }
 .claim-step-connector {
@@ -2394,10 +2416,10 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.portal-status-badge--active   { background: var(--success-bg);  color: var(--success-text);  }
-.portal-status-badge--invited  { background: var(--info-bg);     color: var(--info);           }
-.portal-status-badge--pending  { background: var(--warning-bg);  color: var(--warning-text);   }
-.portal-status-badge--inactive { background: var(--bg-muted);    color: var(--text-muted);     }
+.portal-status-badge--active   { background: var(--color-success-light); color: var(--color-success-dark); }
+.portal-status-badge--invited  { background: var(--color-info-light);    color: var(--color-info-dark);    }
+.portal-status-badge--pending  { background: var(--color-warning-light); color: var(--color-warning-dark); }
+.portal-status-badge--inactive { background: var(--bg-muted);            color: var(--text-muted);         }
 .portal-toggle-row {
   display: flex;
   justify-content: space-between;

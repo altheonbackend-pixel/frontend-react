@@ -89,7 +89,7 @@ const EditProfile = () => {
 
     const onSubmit = async (data: ProfileFormData) => {
         try {
-            const response = await api.put('/profile/update/', data);
+            const response = await api.patch('/profile/update/', data);
             const updatedProfile: DoctorProfile = {
                 id: response.data.id,
                 full_name: `${response.data.first_name} ${response.data.last_name}`,
@@ -201,43 +201,42 @@ const EditProfile = () => {
             </form>
 
             {schedule.length > 0 && (
-                <section style={{ marginTop: '2rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Working Hours</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <section className="schedule-section">
+                    <h3 className="schedule-heading">{t('edit_profile.working_hours', 'Working Hours')}</h3>
+                    <div className="schedule-list">
                         {schedule.map(day => (
-                            <div key={day.day_of_week} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                <span style={{ minWidth: '90px', fontWeight: 500 }}>{DAY_NAMES[day.day_of_week]}</span>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', cursor: 'pointer' }}>
+                            <div key={day.day_of_week} className="schedule-row">
+                                <span className="schedule-day">{DAY_NAMES[day.day_of_week]}</span>
+                                <label className="schedule-available-label">
                                     <input
                                         type="checkbox"
                                         checked={day.is_available}
                                         onChange={e => handleScheduleChange(day.day_of_week, 'is_available', e.target.checked)}
                                     />
-                                    Available
+                                    {t('edit_profile.available', 'Available')}
                                 </label>
                                 <input
                                     type="time"
+                                    className="schedule-time-input"
                                     value={day.start_time.slice(0, 5)}
                                     disabled={!day.is_available}
                                     onChange={e => handleScheduleChange(day.day_of_week, 'start_time', e.target.value + ':00')}
-                                    style={{ width: '110px' }}
                                 />
-                                <span style={{ color: 'var(--text-muted)' }}>to</span>
+                                <span className="schedule-to">{t('edit_profile.to', 'to')}</span>
                                 <input
                                     type="time"
+                                    className="schedule-time-input"
                                     value={day.end_time.slice(0, 5)}
                                     disabled={!day.is_available}
                                     onChange={e => handleScheduleChange(day.day_of_week, 'end_time', e.target.value + ':00')}
-                                    style={{ width: '110px' }}
                                 />
                                 <button
                                     type="button"
-                                    className="btn btn-primary"
-                                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }}
+                                    className="btn btn-primary btn-sm"
                                     onClick={() => handleSaveDay(day)}
                                     disabled={savingDay === day.day_of_week}
                                 >
-                                    {savingDay === day.day_of_week ? 'Saving…' : 'Save'}
+                                    {savingDay === day.day_of_week ? t('edit_profile.saving', 'Saving…') : t('edit_profile.save_day', 'Save')}
                                 </button>
                             </div>
                         ))}

@@ -153,10 +153,7 @@ function PrivateNotebook() {
 
                         {/* New entry placeholder in list */}
                         {isNew && (
-                            <div
-                                className="notebook-entry-item active"
-                                onClick={() => {}}
-                            >
+                            <div className="notebook-entry-item active">
                                 <div className="notebook-entry-title">{formData.title || 'Untitled entry'}</div>
                                 <div className="notebook-entry-preview">New entry</div>
                             </div>

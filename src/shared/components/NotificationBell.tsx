@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import type { Notification } from '../types';
 import './NotificationBell.css';
-
-const POLL_INTERVAL = 30_000; // 30 seconds
 
 const NotificationBell = () => {
     const [unread, setUnread] = useState(0);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(false);
+    const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
+    const bellRef = useRef<HTMLButtonElement>(null);
     const drawerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
 
@@ -35,15 +36,19 @@ const NotificationBell = () => {
     // Poll unread count
     useEffect(() => {
         fetchCount();
-        const id = setInterval(fetchCount, POLL_INTERVAL);
+        const id = setInterval(fetchCount, 30_000);
         return () => clearInterval(id);
     }, [fetchCount]);
 
-    // Close on outside click
+    // Close on outside click — checks both bell and dropdown refs
     useEffect(() => {
         if (!open) return;
         const handler = (e: MouseEvent) => {
-            if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            if (
+                drawerRef.current && !drawerRef.current.contains(target) &&
+                bellRef.current && !bellRef.current.contains(target)
+            ) {
                 setOpen(false);
             }
         };
@@ -51,9 +56,25 @@ const NotificationBell = () => {
         return () => document.removeEventListener('mousedown', handler);
     }, [open]);
 
+    // Close on Escape
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [open]);
+
     const handleOpen = () => {
-        setOpen(o => !o);
-        if (!open) fetchAll();
+        const next = !open;
+        if (next && bellRef.current) {
+            const rect = bellRef.current.getBoundingClientRect();
+            // Position below the bell, aligned to its left edge;
+            // clamp so the 340px panel stays within the viewport width.
+            const left = Math.min(rect.left, window.innerWidth - 348);
+            setDropPos({ top: rect.bottom + 8, left });
+        }
+        setOpen(next);
+        if (next) fetchAll();
     };
 
     const markAll = async () => {
@@ -83,8 +104,8 @@ const NotificationBell = () => {
     };
 
     return (
-        <div className="notif-bell-wrapper" ref={drawerRef}>
-            <button className="notif-bell-btn" onClick={handleOpen} aria-label="Notifications">
+        <div className="notif-bell-wrapper">
+            <button ref={bellRef} className="notif-bell-btn" onClick={handleOpen} aria-label="Notifications">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -94,8 +115,14 @@ const NotificationBell = () => {
                 )}
             </button>
 
-            {open && (
-                <div className="notif-drawer">
+            {open && createPortal(
+                <div
+                    ref={drawerRef}
+                    className="notif-drawer"
+                    style={{ top: dropPos.top, left: dropPos.left }}
+                    role="dialog"
+                    aria-label="Notifications"
+                >
                     <div className="notif-drawer__header">
                         <span className="notif-drawer__title">Notifications</span>
                         {unread > 0 && (
@@ -121,7 +148,8 @@ const NotificationBell = () => {
                             </div>
                         ))}
                     </div>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

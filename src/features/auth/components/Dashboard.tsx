@@ -52,8 +52,12 @@ interface DashboardData {
     due_followups: FollowUpConsultation[];
 }
 
-function getGreeting(): string {
-    const hour = new Date().getHours();
+function getGreeting(timezone?: string | null): string {
+    const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const hour = parseInt(
+        new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, hourCycle: 'h23', timeZone: tz }).format(new Date()),
+        10,
+    );
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
@@ -118,7 +122,11 @@ function Dashboard() {
     const recentPatients = data?.recent_patients ?? [];
     const followUps = data?.due_followups ?? [];
 
-    const todayStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const timezone = (profile as Record<string, unknown>)?.timezone as string | null ?? null;
+    const todayStr = new Date().toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        ...(timezone ? { timeZone: timezone } : {}),
+    });
     const doctorName = user?.full_name ?? profile?.full_name ?? '';
 
     const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0;
@@ -127,7 +135,7 @@ function Dashboard() {
         <div>
             {/* Greeting */}
             <div className="dashboard-greeting">
-                <h1>{getGreeting()}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.</h1>
+                <h1>{getGreeting(timezone)}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.</h1>
                 <div className="dashboard-date">{todayStr}</div>
             </div>
 
