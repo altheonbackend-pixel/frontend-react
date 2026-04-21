@@ -141,7 +141,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             localStorage.removeItem('user_type');
             localStorage.removeItem('admin_profile');
             setIsAuthenticated(false);
-            if (storedType === 'patient') {
+
+            const { pathname } = window.location;
+            const patientPublicPaths = ['/patient/login', '/patient/claim', '/patient/forgot-password', '/patient/reset-password'];
+            const doctorPublicPaths = ['/login', '/register', '/verify-email', '/complete-profile', '/forgot-password', '/reset-password'];
+
+            if (patientPublicPaths.includes(pathname) || doctorPublicPaths.includes(pathname)) {
+                // Already on the correct public page — do not redirect
+            } else if (pathname.startsWith('/patient/') || storedType === 'patient') {
                 navigate('/patient/login', { replace: true });
             } else if (storedType) {
                 navigate('/login', { replace: true });
