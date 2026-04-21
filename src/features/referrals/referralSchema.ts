@@ -12,7 +12,7 @@ export const referralSchema = z.object({
     'oncology','ophthalmology','orthopedics','pediatrics','psychiatry','pulmonology',
     'radiology','rheumatology','surgery_general','urology','gynecology','ent',
     'emergency_medicine','anesthesiology','pathology','other',
-  ], { errorMap: () => ({ message: 'Select a specialty' }) }),
+  ] as const, { message: 'Select a specialty' }),
   urgency: z.enum(['routine', 'urgent', 'emergency']),
   reason_for_referral: z.string().min(10, 'Reason must be at least 10 characters'),
   comments: z.string(),

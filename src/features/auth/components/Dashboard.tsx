@@ -122,7 +122,7 @@ function Dashboard() {
     const recentPatients = data?.recent_patients ?? [];
     const followUps = data?.due_followups ?? [];
 
-    const timezone = (profile as Record<string, unknown>)?.timezone as string | null ?? null;
+    const timezone = ((profile as unknown) as Record<string, unknown> | null)?.timezone as string | null ?? null;
     const todayStr = new Date().toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         ...(timezone ? { timeZone: timezone } : {}),
