@@ -215,6 +215,10 @@ const PatientDetails = () => {
     const [shareConsultationSummary, setShareConsultationSummary] = useState('');
     const [shareLabId, setShareLabId] = useState<number | null>(null);
     const [shareLabNote, setShareLabNote] = useState('');
+    const [reviewLabId, setReviewLabId] = useState<number | null>(null);
+    const [reviewAction, setReviewAction] = useState<'accept' | 'reject'>('accept');
+    const [reviewRejectionReason, setReviewRejectionReason] = useState('');
+    const [reviewLabLoading, setReviewLabLoading] = useState(false);
     const [rejectRequestId, setRejectRequestId] = useState<number | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [requestActionLoading, setRequestActionLoading] = useState(false);
@@ -302,6 +306,25 @@ const PatientDetails = () => {
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to release lab result.'));
+        }
+    };
+
+    const handleReviewLab = async () => {
+        if (!reviewLabId) return;
+        setReviewLabLoading(true);
+        try {
+            await api.post(`/lab-results/${reviewLabId}/review/`, {
+                action: reviewAction,
+                ...(reviewAction === 'reject' && { rejection_reason: reviewRejectionReason }),
+            });
+            toast.success(reviewAction === 'accept' ? 'Lab document accepted.' : 'Lab document rejected.');
+            setReviewLabId(null);
+            setReviewRejectionReason('');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to review lab document.'));
+        } finally {
+            setReviewLabLoading(false);
         }
     };
 
@@ -1529,37 +1552,90 @@ const PatientDetails = () => {
                                                 <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                                     {new Date(lab.test_date).toLocaleDateString()}
                                                 </span>
+                                                {lab.submitted_by_patient && (
+                                                    <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
+                                                        Patient Upload
+                                                    </span>
+                                                )}
                                             </div>
-                                            <span style={{
-                                                fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
-                                                background: LAB_STATUS_COLORS[lab.status] + '22',
-                                                color: LAB_STATUS_COLORS[lab.status],
-                                                border: `1px solid ${LAB_STATUS_COLORS[lab.status]}`,
-                                            }}>
-                                                {lab.status_display || lab.status}
-                                            </span>
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' }}>
+                                                        Pending Review
+                                                    </span>
+                                                )}
+                                                {lab.submitted_by_patient && lab.review_status === 'accepted' && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' }}>
+                                                        Accepted
+                                                    </span>
+                                                )}
+                                                {lab.submitted_by_patient && lab.review_status === 'rejected' && (
+                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' }}>
+                                                        Rejected
+                                                    </span>
+                                                )}
+                                                {!lab.submitted_by_patient && (
+                                                    <span style={{
+                                                        fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
+                                                        background: LAB_STATUS_COLORS[lab.status] + '22',
+                                                        color: LAB_STATUS_COLORS[lab.status],
+                                                        border: `1px solid ${LAB_STATUS_COLORS[lab.status]}`,
+                                                    }}>
+                                                        {lab.status_display || lab.status}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
-                                        {(lab.result_value || lab.unit) && (
+                                        {!lab.submitted_by_patient && (lab.result_value || lab.unit) && (
                                             <div className="info-item">
                                                 <strong>Result:</strong> {lab.result_value} {lab.unit}
                                                 {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
                                             </div>
                                         )}
                                         {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
+                                        {lab.file_attachments && lab.file_attachments.length > 0 && (
+                                            <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                {lab.file_attachments.map(att => (
+                                                    att.download_url ? (
+                                                        <a key={att.id} href={att.download_url} target="_blank" rel="noopener noreferrer"
+                                                           style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline' }}>
+                                                            {att.original_filename}
+                                                        </a>
+                                                    ) : (
+                                                        <span key={att.id} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                                                            {att.original_filename}
+                                                        </span>
+                                                    )
+                                                ))}
+                                            </div>
+                                        )}
                                         <div className="entry-actions">
-                                            <button onClick={() => {
-                                                setEditingLabId(lab.id);
-                                                setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
-                                                setShowLabForm(true);
-                                            }} className="edit-button action-button">Edit</button>
-                                            <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
-                                            <button
-                                                onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
-                                                className="action-button"
-                                                style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                            >
-                                                {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
-                                            </button>
+                                            {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
+                                                <button
+                                                    onClick={() => { setReviewLabId(lab.id); setReviewAction('accept'); setReviewRejectionReason(''); }}
+                                                    className="action-button"
+                                                    style={{ color: 'var(--accent)', fontWeight: 600 }}
+                                                >
+                                                    Review
+                                                </button>
+                                            )}
+                                            {!lab.submitted_by_patient && (
+                                                <>
+                                                    <button onClick={() => {
+                                                        setEditingLabId(lab.id);
+                                                        setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
+                                                        setShowLabForm(true);
+                                                    }} className="edit-button action-button">Edit</button>
+                                                    <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                                                    <button
+                                                        onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
+                                                        className="action-button"
+                                                        style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                                    >
+                                                        {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </li>
                                 ))}
@@ -1864,6 +1940,57 @@ const PatientDetails = () => {
                         placeholder="Add a plain-language explanation of the result for the patient…"
                     />
                 </div>
+            </div>
+        </Modal>
+
+        {/* Review patient-uploaded lab document modal */}
+        <Modal
+            open={reviewLabId !== null}
+            onClose={() => { setReviewLabId(null); setReviewRejectionReason(''); }}
+            title="Review lab document"
+            size="md"
+            footer={
+                <>
+                    <button type="button" className="cancel-button" onClick={() => { setReviewLabId(null); setReviewRejectionReason(''); }}>Cancel</button>
+                    <button
+                        type="button"
+                        className={reviewAction === 'reject' ? 'btn btn-danger btn-sm' : 'btn btn-primary btn-sm'}
+                        onClick={handleReviewLab}
+                        disabled={reviewLabLoading}
+                    >
+                        {reviewLabLoading ? 'Saving…' : (reviewAction === 'accept' ? 'Accept' : 'Reject')}
+                    </button>
+                </>
+            }
+        >
+            <div className="form">
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                    Review the patient's uploaded document. Accept to confirm it's valid, or reject with a reason the patient will see.
+                </p>
+                <div className="form-group">
+                    <label>Decision</label>
+                    <div style={{ display: 'flex', gap: '1.25rem', marginTop: '0.25rem' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input type="radio" value="accept" checked={reviewAction === 'accept'} onChange={() => setReviewAction('accept')} />
+                            Accept
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                            <input type="radio" value="reject" checked={reviewAction === 'reject'} onChange={() => setReviewAction('reject')} />
+                            Reject
+                        </label>
+                    </div>
+                </div>
+                {reviewAction === 'reject' && (
+                    <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                        <label>Rejection reason <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(shown to patient)</span></label>
+                        <textarea
+                            rows={3}
+                            value={reviewRejectionReason}
+                            onChange={e => setReviewRejectionReason(e.target.value)}
+                            placeholder="Explain why the document cannot be accepted…"
+                        />
+                    </div>
+                )}
             </div>
         </Modal>
 

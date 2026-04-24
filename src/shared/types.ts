@@ -140,6 +140,7 @@ export interface LabResult {
     test_name: string;
     test_date: string;
     result_value: string;
+    result_value_text?: string;
     unit: string;
     reference_range: string;
     status: 'normal' | 'abnormal' | 'critical' | 'pending';
@@ -148,6 +149,19 @@ export interface LabResult {
     patient_note: string | null;
     visible_to_patient: boolean;
     released_to_patient_at: string | null;
+    submitted_by_patient: boolean;
+    review_status: 'not_required' | 'pending_review' | 'accepted' | 'rejected';
+    rejection_reason: string;
+    reviewed_by?: number | null;
+    reviewed_at?: string | null;
+    file_attachments?: Array<{
+        id: number;
+        original_filename: string;
+        file_size: number | null;
+        mime_type: string;
+        download_url: string | null;
+        created_at: string;
+    }>;
     attachment?: string | null;
     created_at: string;
     updated_at: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,6 +52,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     });
 
     const isExternal = watch('is_external');
+    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchDoctors = async (specialty?: string) => {
         if (!isAuthenticated) return;

@@ -125,6 +125,9 @@ export interface PatientLabResult {
     status: 'normal' | 'abnormal' | 'critical' | 'pending';
     patient_note: string;
     released_to_patient_at: string | null;
+    submitted_by_patient: boolean;
+    review_status: 'not_required' | 'pending_review' | 'accepted' | 'rejected';
+    rejection_reason: string;
     file_attachments: PatientAttachment[];
 }
 
@@ -238,6 +241,11 @@ export const patientPortalService = {
 
     getLabResults: () =>
         api.get<PatientLabResult[]>('/patient/lab-results/').then(r => r.data),
+
+    uploadLabResult: (formData: FormData) =>
+        api.post<PatientLabResult>('/patient/lab-results/upload/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        }).then(r => r.data),
 
     getLabResult: (id: number) =>
         api.get<PatientLabResult>(`/patient/lab-results/${id}/`).then(r => r.data),
