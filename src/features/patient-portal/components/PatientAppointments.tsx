@@ -388,31 +388,36 @@ export default function PatientAppointments() {
                                     No open slots on this day — you can still send a request and the doctor will confirm a time.
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
-                                    {availableSlots.map(slot => {
-                                        const isSelected = formData.appointmentDate === slot;
-                                        return (
-                                            <button
-                                                key={slot}
-                                                type="button"
-                                                onClick={() => setFormData(p => ({ ...p, appointmentDate: slot }))}
-                                                style={{
-                                                    padding: '0.35rem 0.85rem',
-                                                    borderRadius: '999px',
-                                                    border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-default)'}`,
-                                                    background: isSelected ? 'var(--accent)' : 'var(--bg-subtle)',
-                                                    color: isSelected ? '#fff' : 'var(--text-primary)',
-                                                    fontWeight: isSelected ? 700 : 400,
-                                                    fontSize: '0.875rem',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s',
-                                                }}
-                                            >
-                                                {formatSlotTime(slot, patientTimezone)}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                        {availableSlots.map(slot => {
+                                            const isSelected = formData.appointmentDate === slot;
+                                            return (
+                                                <button
+                                                    key={slot}
+                                                    type="button"
+                                                    onClick={() => setFormData(p => ({ ...p, appointmentDate: slot }))}
+                                                    style={{
+                                                        padding: '0.35rem 0.85rem',
+                                                        borderRadius: '999px',
+                                                        border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-default)'}`,
+                                                        background: isSelected ? 'var(--accent)' : 'var(--bg-subtle)',
+                                                        color: isSelected ? '#fff' : 'var(--text-primary)',
+                                                        fontWeight: isSelected ? 700 : 400,
+                                                        fontSize: '0.875rem',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {formatSlotTime(slot, patientTimezone)}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                                        Times shown in {patientTimezone ? patientTimezone.replace('_', ' ') : 'your local time'}
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
