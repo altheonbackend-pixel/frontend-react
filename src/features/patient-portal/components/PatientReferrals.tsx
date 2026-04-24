@@ -10,7 +10,7 @@ function formatDate(value: string) {
     return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function PatientReferrals() {
+export default function PatientReferrals({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('My Referrals');
 
     const { data: referrals = [], isLoading, isError } = useQuery({
@@ -22,7 +22,7 @@ export default function PatientReferrals() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="My Referrals" subtitle="" />
+                {!asTab && <PageHeader title="My Referrals" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
             </>
         );
@@ -31,7 +31,7 @@ export default function PatientReferrals() {
     if (isError) {
         return (
             <>
-                <PageHeader title="My Referrals" subtitle="" />
+                {!asTab && <PageHeader title="My Referrals" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load referrals. Please refresh.</div>
             </>
         );
@@ -39,10 +39,12 @@ export default function PatientReferrals() {
 
     return (
         <>
-            <PageHeader
-                title="My Referrals"
-                subtitle="Specialist referrals arranged by your care team."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="My Referrals"
+                    subtitle="Specialist referrals arranged by your care team."
+                />
+            )}
 
             <SectionCard
                 title={`Referrals (${referrals.length})`}

@@ -34,7 +34,7 @@ function ReviewBadge({ lab }: { lab: PatientLabResult }) {
 
 const UPLOAD_FORM_EMPTY = { test_name: '', test_date: '', notes: '' };
 
-export default function PatientLabs() {
+export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Labs');
 
     const queryClient = useQueryClient();
@@ -85,7 +85,7 @@ export default function PatientLabs() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="Lab results" subtitle="" />
+                {!asTab && <PageHeader title="Lab results" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
             </>
         );
@@ -94,7 +94,7 @@ export default function PatientLabs() {
     if (isError) {
         return (
             <>
-                <PageHeader title="Lab results" subtitle="" />
+                {!asTab && <PageHeader title="Lab results" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load lab results. Please refresh.</div>
             </>
         );
@@ -102,15 +102,23 @@ export default function PatientLabs() {
 
     return (
         <>
-            <PageHeader
-                title="Lab results"
-                subtitle="Lab results shared by your doctor, and documents you've uploaded for review."
-                actions={
+            {asTab ? (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                     <button className="btn-primary btn-sm" onClick={() => setUploadOpen(true)}>
                         + Upload Lab Document
                     </button>
-                }
-            />
+                </div>
+            ) : (
+                <PageHeader
+                    title="Lab results"
+                    subtitle="Lab results shared by your doctor, and documents you've uploaded for review."
+                    actions={
+                        <button className="btn-primary btn-sm" onClick={() => setUploadOpen(true)}>
+                            + Upload Lab Document
+                        </button>
+                    }
+                />
+            )}
 
             {labs.length === 0 && (
                 <SectionCard empty={{ title: 'No lab results yet', subtitle: 'Lab results shared by your doctor will appear here. You can also upload your own documents above.' }}>{null}</SectionCard>

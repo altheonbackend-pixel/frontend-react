@@ -81,6 +81,22 @@
     flex: 1;
 }
 
+.notif-drawer__footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+    text-align: center;
+}
+.notif-view-all {
+    background: none;
+    border: none;
+    font-size: var(--text-xs);
+    color: var(--accent);
+    cursor: pointer;
+    font-weight: var(--fw-semibold);
+}
+.notif-view-all:hover { text-decoration: underline; }
+
 .notif-empty {
     padding: 24px 16px;
     text-align: center;

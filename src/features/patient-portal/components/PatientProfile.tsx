@@ -20,7 +20,7 @@ const patientProfileSchema = z.object({
 
 type PatientProfileFormData = z.infer<typeof patientProfileSchema>;
 
-export default function PatientProfile() {
+export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Profile');
     const queryClient = useQueryClient();
 
@@ -68,7 +68,7 @@ export default function PatientProfile() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="Profile" subtitle="Manage your contact details." />
+                {!asTab && <PageHeader title="Profile" subtitle="Manage your contact details." />}
                 <SectionCard title="Loading…"><TabSkeleton rows={5} /></SectionCard>
             </>
         );
@@ -77,7 +77,7 @@ export default function PatientProfile() {
     if (isError || !profile) {
         return (
             <>
-                <PageHeader title="Profile" subtitle="" />
+                {!asTab && <PageHeader title="Profile" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load profile. Please refresh.</div>
             </>
         );
@@ -85,10 +85,12 @@ export default function PatientProfile() {
 
     return (
         <>
-            <PageHeader
-                title="Profile"
-                subtitle="Manage your contact details and the core information used in your portal."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="Profile"
+                    subtitle="Manage your contact details and the core information used in your portal."
+                />
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 360px) minmax(0, 1fr)', gap: '1rem' }}>
                 <SectionCard>

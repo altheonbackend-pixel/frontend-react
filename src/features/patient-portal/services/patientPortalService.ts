@@ -23,6 +23,7 @@ export interface PatientDashboardData {
         status: string;
         test_date: string;
     } | null;
+    conditions_count: number;
 }
 
 export interface PatientAppointment {

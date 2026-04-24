@@ -13,7 +13,7 @@ const REACTION_TYPE_LABELS: Record<string, string> = {
     other: 'Other',
 };
 
-export default function PatientAllergies() {
+export default function PatientAllergies({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('My Allergies');
 
     const { data: allergies = [], isLoading, isError } = useQuery({
@@ -25,7 +25,7 @@ export default function PatientAllergies() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="My Allergies" subtitle="" />
+                {!asTab && <PageHeader title="My Allergies" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
             </>
         );
@@ -34,7 +34,7 @@ export default function PatientAllergies() {
     if (isError) {
         return (
             <>
-                <PageHeader title="My Allergies" subtitle="" />
+                {!asTab && <PageHeader title="My Allergies" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load allergies. Please refresh.</div>
             </>
         );
@@ -42,10 +42,12 @@ export default function PatientAllergies() {
 
     return (
         <>
-            <PageHeader
-                title="My Allergies"
-                subtitle="Known allergies on record with your care team."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="My Allergies"
+                    subtitle="Known allergies on record with your care team."
+                />
+            )}
 
             <SectionCard
                 title={`Allergies (${allergies.length})`}

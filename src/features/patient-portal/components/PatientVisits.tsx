@@ -30,7 +30,7 @@ const FREQ_LABEL: Record<string, string> = {
     other: 'Other',
 };
 
-export default function PatientVisits() {
+export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Visits');
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
     const navigate = useNavigate();
@@ -47,7 +47,7 @@ export default function PatientVisits() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="Visit summaries" subtitle="" />
+                {!asTab && <PageHeader title="Visit summaries" subtitle="" />}
                 <SectionCard title=""><TabSkeleton rows={5} /></SectionCard>
             </>
         );
@@ -56,7 +56,7 @@ export default function PatientVisits() {
     if (isError) {
         return (
             <>
-                <PageHeader title="Visit summaries" subtitle="" />
+                {!asTab && <PageHeader title="Visit summaries" subtitle="" />}
                 <div className="error-message" style={{ margin: '0 0 1rem' }}>Failed to load visits. Please refresh.</div>
             </>
         );
@@ -64,10 +64,12 @@ export default function PatientVisits() {
 
     return (
         <>
-            <PageHeader
-                title="Visit summaries"
-                subtitle="Your doctor's notes and prescriptions from each visit — shared with you for your records."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="Visit summaries"
+                    subtitle="Your doctor's notes and prescriptions from each visit — shared with you for your records."
+                />
+            )}
 
             {visits.length === 0 && (
                 <SectionCard empty={{ title: 'No visit summaries yet', subtitle: 'Your doctor will share summaries after consultations.' }}>{null}</SectionCard>

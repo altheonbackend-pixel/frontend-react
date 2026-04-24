@@ -1,0 +1,36 @@
+.health-record-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border-subtle);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.health-record-tabs::-webkit-scrollbar { display: none; }
+
+.health-tab-btn {
+    padding: 0.625rem 1.125rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+    flex-shrink: 0;
+}
+.health-tab-btn:hover { color: var(--text-primary); }
+.health-tab-btn:focus-visible { outline: none; box-shadow: var(--shadow-focus); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.health-tab-btn--active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+}
+
+.health-record-content {
+    min-height: 200px;
+}

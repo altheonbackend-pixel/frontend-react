@@ -11,7 +11,7 @@ function formatDate(value: string | null) {
     return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export default function PatientConditions() {
+export default function PatientConditions({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('My Conditions');
 
     const { data: conditions = [], isLoading, isError } = useQuery({
@@ -23,7 +23,7 @@ export default function PatientConditions() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="My Conditions" subtitle="" />
+                {!asTab && <PageHeader title="My Conditions" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
             </>
         );
@@ -32,7 +32,7 @@ export default function PatientConditions() {
     if (isError) {
         return (
             <>
-                <PageHeader title="My Conditions" subtitle="" />
+                {!asTab && <PageHeader title="My Conditions" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load conditions. Please refresh.</div>
             </>
         );
@@ -40,10 +40,12 @@ export default function PatientConditions() {
 
     return (
         <>
-            <PageHeader
-                title="My Conditions"
-                subtitle="Medical conditions shared with you by your care team."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="My Conditions"
+                    subtitle="Medical conditions shared with you by your care team."
+                />
+            )}
 
             <SectionCard
                 title={`Conditions (${conditions.length})`}

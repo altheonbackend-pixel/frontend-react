@@ -51,7 +51,7 @@ export default function PatientDashboard() {
         );
     }
 
-    const { pending_appointment_requests, next_appointment, active_medications_count, unread_notifications, latest_visible_consultation, latest_lab_result } = data;
+    const { pending_appointment_requests, next_appointment, active_medications_count, unread_notifications, latest_visible_consultation, latest_lab_result, conditions_count } = data;
 
     return (
         <>
@@ -63,8 +63,8 @@ export default function PatientDashboard() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                 <StatCard icon="📅" label="Next appointment" value={next_appointment ? 1 : 0} href="/patient/appointments" />
-                <StatCard icon="💊" label="Active medications" value={active_medications_count} variant="success" href="/patient/medications" />
-                <StatCard icon="🔔" label="Unread notifications" value={unread_notifications} variant={unread_notifications ? 'warning' : 'default'} href="/patient/notifications" />
+                <StatCard icon="💊" label="Active medications" value={active_medications_count} variant="success" href="/patient/health?tab=medications" />
+                <StatCard icon="🩺" label="Active conditions" value={conditions_count} href="/patient/health?tab=conditions" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
@@ -119,7 +119,7 @@ export default function PatientDashboard() {
                                         <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
                                             {unread_notifications} unread notification{unread_notifications > 1 ? 's' : ''}
                                         </div>
-                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Tap to view your notifications.</div>
+                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Check the notification bell above for details.</div>
                                     </div>
                                 </Link>
                             )}
@@ -134,7 +134,7 @@ export default function PatientDashboard() {
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatDate(latest_visible_consultation.consultation_date)}</div>
-                                <Link to="/patient/visits" style={{ fontSize: '0.85rem' }}>View all</Link>
+                                <Link to="/patient/health?tab=visits" style={{ fontSize: '0.85rem' }}>View all</Link>
                             </div>
                             <div style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>{latest_visible_consultation.patient_summary || 'Visit summary available.'}</div>
                         </div>
@@ -149,7 +149,7 @@ export default function PatientDashboard() {
                                 <StatusBadge status={latest_lab_result.status} />
                             </div>
                             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{formatDate(latest_lab_result.test_date)}</div>
-                            <Link to="/patient/labs" style={{ fontSize: '0.85rem' }}>View all lab results</Link>
+                            <Link to="/patient/health?tab=labs" style={{ fontSize: '0.85rem' }}>View all lab results</Link>
                         </div>
                     ) : null}
                 </SectionCard>

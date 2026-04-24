@@ -7,7 +7,7 @@ import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService, type PatientPortalSettings } from '../services/patientPortalService';
 
-export default function PatientSettings() {
+export default function PatientSettings({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Settings');
     const queryClient = useQueryClient();
     const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
@@ -55,7 +55,7 @@ export default function PatientSettings() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="Settings" subtitle="" />
+                {!asTab && <PageHeader title="Settings" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={4} /></SectionCard>
             </>
         );
@@ -64,7 +64,7 @@ export default function PatientSettings() {
     if (isError || !settings) {
         return (
             <>
-                <PageHeader title="Settings" subtitle="" />
+                {!asTab && <PageHeader title="Settings" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load settings. Please refresh.</div>
             </>
         );
@@ -76,10 +76,12 @@ export default function PatientSettings() {
 
     return (
         <>
-            <PageHeader
-                title="Settings"
-                subtitle="Control how the patient portal communicates with you and how information is displayed."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="Settings"
+                    subtitle="Control how the patient portal communicates with you and how information is displayed."
+                />
+            )}
 
             <div style={{ display: 'grid', gap: '1rem' }}>
                 <SectionCard title="Language & communication">

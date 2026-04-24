@@ -12,7 +12,7 @@ function formatDate(value: string) {
     });
 }
 
-export default function PatientMedications() {
+export default function PatientMedications({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Medications');
 
     const { data: prescriptions = [], isLoading, isError } = useQuery({
@@ -27,7 +27,7 @@ export default function PatientMedications() {
     if (isLoading) {
         return (
             <>
-                <PageHeader title="Medications" subtitle="" />
+                {!asTab && <PageHeader title="Medications" subtitle="" />}
                 <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
             </>
         );
@@ -36,7 +36,7 @@ export default function PatientMedications() {
     if (isError) {
         return (
             <>
-                <PageHeader title="Medications" subtitle="" />
+                {!asTab && <PageHeader title="Medications" subtitle="" />}
                 <div className="error-message" style={{ margin: '1rem' }}>Failed to load medications. Please refresh.</div>
             </>
         );
@@ -44,10 +44,12 @@ export default function PatientMedications() {
 
     return (
         <>
-            <PageHeader
-                title="Medications"
-                subtitle="Review your active medicines, instructions, and previous prescription history."
-            />
+            {!asTab && (
+                <PageHeader
+                    title="Medications"
+                    subtitle="Review your active medicines, instructions, and previous prescription history."
+                />
+            )}
 
             <SectionCard title={`Active medications (${active.length})`} empty={{ title: 'No active medications', subtitle: 'Active prescriptions shared by your doctor will appear here.' }}>
                 <div style={{ display: 'grid', gap: '1rem' }}>

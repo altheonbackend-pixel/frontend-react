@@ -1,0 +1,67 @@
+/* ── Desktop top bar ──────────────────────────────────────────────────────── */
+.patient-topbar {
+    display: none;
+    height: 56px;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background: var(--bg-primary);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+}
+
+.patient-topbar__right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.patient-topbar__avatar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+    color: var(--text-primary);
+}
+.patient-topbar__avatar-link:hover {
+    background: var(--bg-subtle);
+}
+
+.patient-topbar__name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Responsive breakpoints ───────────────────────────────────────────────── */
+@media (min-width: 768px) {
+    .patient-topbar {
+        display: flex;
+    }
+
+    /* Hide mobile topbar on desktop — the global app-mobile-topbar rule already
+       controls this via media queries in the base stylesheet, but we reinforce
+       hiding it from within PatientLayout to be explicit. */
+    .app-main .app-mobile-topbar {
+        display: none;
+    }
+}
+
+/* ── Mobile bottom-nav page padding ──────────────────────────────────────── */
+/* Ensure page content isn't hidden under the fixed bottom nav on mobile. */
+@media (max-width: 767px) {
+    .page-content--with-bottom-nav {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    }
+}

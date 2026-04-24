@@ -44,17 +44,11 @@ const ReferralsList     = lazy(() => import('../features/referrals/components/Re
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
 const AuditLog          = lazy(() => import('../features/audit/AuditLog'));
-const PatientDashboard  = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
-const PatientAppointments = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
-const PatientVisits     = lazy(() => import('../features/patient-portal/components/PatientVisits'));
-const PatientMedications = lazy(() => import('../features/patient-portal/components/PatientMedications'));
-const PatientLabs       = lazy(() => import('../features/patient-portal/components/PatientLabs'));
+const PatientDashboard     = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
+const PatientAppointments  = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
+const PatientHealthRecord  = lazy(() => import('../features/patient-portal/components/PatientHealthRecord'));
+const PatientAccount       = lazy(() => import('../features/patient-portal/components/PatientAccount'));
 const PatientNotifications = lazy(() => import('../features/patient-portal/components/PatientNotifications'));
-const PatientConditions = lazy(() => import('../features/patient-portal/components/PatientConditions'));
-const PatientAllergies  = lazy(() => import('../features/patient-portal/components/PatientAllergies'));
-const PatientReferrals  = lazy(() => import('../features/patient-portal/components/PatientReferrals'));
-const PatientProfile    = lazy(() => import('../features/patient-portal/components/PatientProfile'));
-const PatientSettings   = lazy(() => import('../features/patient-portal/components/PatientSettings'));
 const PatientDoctorProfile = lazy(() => import('../features/patient-portal/components/PatientDoctorProfile'));
 
 import PrivateRoutes from '../shared/components/PrivateRoutes';
@@ -154,18 +148,22 @@ function App() {
                     <Routes>
                         <Route element={<PrivateRoutes />}>
                             <Route element={<PatientLayout />}>
-                                <Route path="/patient/dashboard" element={<ErrorBoundary resetKey={location.pathname}><PatientDashboard /></ErrorBoundary>} />
-                                <Route path="/patient/appointments" element={<ErrorBoundary resetKey={location.pathname}><PatientAppointments /></ErrorBoundary>} />
-                                <Route path="/patient/visits" element={<ErrorBoundary resetKey={location.pathname}><PatientVisits /></ErrorBoundary>} />
-                                <Route path="/patient/medications" element={<ErrorBoundary resetKey={location.pathname}><PatientMedications /></ErrorBoundary>} />
-                                <Route path="/patient/labs" element={<ErrorBoundary resetKey={location.pathname}><PatientLabs /></ErrorBoundary>} />
+                                {/* Primary routes */}
+                                <Route path="/patient/dashboard"     element={<ErrorBoundary resetKey={location.pathname}><PatientDashboard /></ErrorBoundary>} />
+                                <Route path="/patient/appointments"  element={<ErrorBoundary resetKey={location.pathname}><PatientAppointments /></ErrorBoundary>} />
+                                <Route path="/patient/health"        element={<ErrorBoundary resetKey={location.pathname}><PatientHealthRecord /></ErrorBoundary>} />
+                                <Route path="/patient/account"       element={<ErrorBoundary resetKey={location.pathname}><PatientAccount /></ErrorBoundary>} />
                                 <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
-                                <Route path="/patient/conditions" element={<ErrorBoundary resetKey={location.pathname}><PatientConditions /></ErrorBoundary>} />
-                                <Route path="/patient/allergies" element={<ErrorBoundary resetKey={location.pathname}><PatientAllergies /></ErrorBoundary>} />
-                                <Route path="/patient/referrals" element={<ErrorBoundary resetKey={location.pathname}><PatientReferrals /></ErrorBoundary>} />
-                                <Route path="/patient/profile" element={<ErrorBoundary resetKey={location.pathname}><PatientProfile /></ErrorBoundary>} />
-                                <Route path="/patient/settings" element={<ErrorBoundary resetKey={location.pathname}><PatientSettings /></ErrorBoundary>} />
-                                <Route path="/patient/doctor/:id" element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
+                                <Route path="/patient/doctor/:id"    element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
+                                {/* Legacy route redirects — keep for backward compatibility */}
+                                <Route path="/patient/visits"       element={<Navigate to="/patient/health?tab=visits"       replace />} />
+                                <Route path="/patient/medications"  element={<Navigate to="/patient/health?tab=medications"  replace />} />
+                                <Route path="/patient/labs"         element={<Navigate to="/patient/health?tab=labs"         replace />} />
+                                <Route path="/patient/conditions"   element={<Navigate to="/patient/health?tab=conditions"   replace />} />
+                                <Route path="/patient/allergies"    element={<Navigate to="/patient/health?tab=conditions"   replace />} />
+                                <Route path="/patient/referrals"    element={<Navigate to="/patient/health?tab=referrals"    replace />} />
+                                <Route path="/patient/profile"      element={<Navigate to="/patient/account?tab=profile"     replace />} />
+                                <Route path="/patient/settings"     element={<Navigate to="/patient/account?tab=settings"    replace />} />
                             </Route>
                         </Route>
                         {/* Public patient routes (accessible even when logged in as patient) */}
