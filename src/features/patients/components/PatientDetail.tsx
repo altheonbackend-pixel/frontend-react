@@ -107,6 +107,18 @@ const PatientDetails = () => {
     // Consultations tab: list vs charts view
     const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
 
+    // Collapsible consultation entries
+    const [expandedConsultIds, setExpandedConsultIds] = useState<Set<number>>(new Set());
+    const toggleConsult = (consultId: number) =>
+        setExpandedConsultIds(prev => {
+            const next = new Set(prev);
+            next.has(consultId) ? next.delete(consultId) : next.add(consultId);
+            return next;
+        });
+
+    // Medications: active-only vs all toggle
+    const [showAllMeds, setShowAllMeds] = useState(false);
+
     // Vitals charts: toggle per-vital visibility
     const [visibleVitals, setVisibleVitals] = useState({
         bp: true, spo2: true, temperature: true, weight: true,
@@ -163,6 +175,18 @@ const PatientDetails = () => {
         enabled: loadedTabs.has('medications'),
         staleTime: 2 * 60 * 1000,
     });
+
+    const { data: allMedications = [], isLoading: allMedsLoading } = useQuery<Prescription[]>({
+        queryKey: ['patients', id, 'medications', 'all'],
+        queryFn: async () => {
+            const res = await api.get('/prescriptions/', { params: { patient_id: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('medications') && showAllMeds,
+        staleTime: 2 * 60 * 1000,
+    });
+    const displayedMeds = showAllMeds ? allMedications : medications;
+    const medsLoading = showAllMeds ? allMedsLoading : medicationsLoading;
 
     const { data: patientAppointments = [], isLoading: appointmentsLoading } = useQuery<Array<{
         id: number;
@@ -701,17 +725,110 @@ const PatientDetails = () => {
     if (error) return <div className="error-message">Error: {error}</div>;
     if (!patient) return <div className="no-data-message">{t('patient_detail.error.load')}</div>;
 
+    const LAB_STATUS_COLORS_MAP: Record<string, string> = {
+        normal: '#38a169', abnormal: '#d69e2e', critical: '#e53e3e', pending: '#718096',
+    };
+
+    const renderLabRow = (lab: LabResult) => (
+        <li key={lab.id} className="detail-list-item">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div>
+                    <strong>{lab.test_name}</strong>
+                    <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                        {new Date(lab.test_date).toLocaleDateString()}
+                    </span>
+                    {lab.submitted_by_patient && (
+                        <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
+                            Patient Upload
+                        </span>
+                    )}
+                </div>
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' }}>
+                            Pending Review
+                        </span>
+                    )}
+                    {lab.submitted_by_patient && lab.review_status === 'accepted' && (
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' }}>
+                            Accepted
+                        </span>
+                    )}
+                    {lab.submitted_by_patient && lab.review_status === 'rejected' && (
+                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' }}>
+                            Rejected
+                        </span>
+                    )}
+                    {!lab.submitted_by_patient && (
+                        <span style={{
+                            fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
+                            background: LAB_STATUS_COLORS_MAP[lab.status] + '22',
+                            color: LAB_STATUS_COLORS_MAP[lab.status],
+                            border: `1px solid ${LAB_STATUS_COLORS_MAP[lab.status]}`,
+                        }}>
+                            {lab.status_display || lab.status}
+                        </span>
+                    )}
+                </div>
+            </div>
+            {!lab.submitted_by_patient && (lab.result_value || lab.unit) && (
+                <div className="info-item">
+                    <strong>Result:</strong> {lab.result_value} {lab.unit}
+                    {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
+                </div>
+            )}
+            {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
+            {lab.file_attachments && lab.file_attachments.length > 0 && (
+                <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {lab.file_attachments.map(att => (
+                        att.download_url ? (
+                            <a key={att.id} href={att.download_url} target="_blank" rel="noopener noreferrer"
+                               style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline' }}>
+                                {att.original_filename}
+                            </a>
+                        ) : (
+                            <span key={att.id} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                                {att.original_filename}
+                            </span>
+                        )
+                    ))}
+                </div>
+            )}
+            <div className="entry-actions">
+                {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
+                    <button
+                        onClick={() => { setReviewLabId(lab.id); setReviewAction('accept'); setReviewRejectionReason(''); }}
+                        className="action-button"
+                        style={{ color: 'var(--accent)', fontWeight: 600 }}
+                    >
+                        Review
+                    </button>
+                )}
+                {!lab.submitted_by_patient && (
+                    <>
+                        <button onClick={() => {
+                            setEditingLabId(lab.id);
+                            setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
+                            setShowLabForm(true);
+                        }} className="edit-button action-button">Edit</button>
+                        <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                        <button
+                            onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
+                            className="action-button"
+                            style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                        >
+                            {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
+                        </button>
+                    </>
+                )}
+            </div>
+        </li>
+    );
+
     const activeAllergies = patient.allergy_records?.filter(a => a.is_active) || [];
     const lifeThreateningAllergies = activeAllergies.filter(a => a.severity === 'life_threatening');
     const severeAllergies = activeAllergies.filter(a => a.severity === 'severe');
     const hasAllergyAlert = lifeThreateningAllergies.length > 0 || severeAllergies.length > 0;
-
-    const LAB_STATUS_COLORS: Record<string, string> = {
-        normal: '#38a169',
-        abnormal: '#d69e2e',
-        critical: '#e53e3e',
-        pending: '#718096',
-    };
 
     const historyCount = (patient.conditions?.length || 0) + (patient.allergy_records?.length || 0) || undefined;
     const actionsCount = (patient.medical_procedures?.length || 0) + (patient.referrals?.length || 0) || undefined;
@@ -883,6 +1000,51 @@ const PatientDetails = () => {
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                     <div className="tab-panel">
+                        {/* Vital alert banner */}
+                        {(() => {
+                            const latest = patient.consultations?.[0];
+                            if (!latest?.has_vital_alerts) return null;
+                            const reasons = latest.vital_alert_reasons ?? [];
+                            return (
+                                <div className="vital-alert-banner">
+                                    <span className="vital-alert-icon">⚠</span>
+                                    <div>
+                                        <strong>Vital Alert</strong> — {new Date(latest.consultation_date).toLocaleDateString()}
+                                        <div className="vital-alert-chips">
+                                            {reasons.map((r, i) => <span key={i} className="vital-alert-chip">{r}</span>)}
+                                        </div>
+                                    </div>
+                                    <button className="btn-ghost-sm" onClick={() => handleTabChange('consultations')}>View →</button>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Snapshot strip — latest vitals */}
+                        {(() => {
+                            const c = patient.consultations?.[0];
+                            if (!c) return null;
+                            const chips = [
+                                c.blood_pressure_display ? { label: 'BP', value: c.blood_pressure_display, warn: (c.bp_systolic ?? 0) >= 140 } : null,
+                                c.sp2 ? { label: 'SpO₂', value: `${c.sp2}%`, warn: Number(c.sp2) < 94 } : null,
+                                c.temperature ? { label: 'Temp', value: `${c.temperature}°C`, warn: Number(c.temperature) > 38.5 } : null,
+                                c.weight ? { label: 'Wt', value: `${c.weight} kg`, warn: false } : null,
+                            ].filter(Boolean) as { label: string; value: string; warn: boolean }[];
+                            if (!chips.length) return null;
+                            return (
+                                <div className="snapshot-strip">
+                                    <span className="snapshot-label">Latest vitals — {new Date(c.consultation_date).toLocaleDateString()}</span>
+                                    <div className="snapshot-chips">
+                                        {chips.map(chip => (
+                                            <span key={chip.label} className={`snapshot-chip${chip.warn ? ' snapshot-chip--warn' : ''}`}>
+                                                <span className="snapshot-chip-label">{chip.label}</span>
+                                                {chip.value}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <div className="overview-grid">
                             <div className="patient-details-card detail-info-group">
                                 <h3>Personal Information</h3>
@@ -895,10 +1057,8 @@ const PatientDetails = () => {
                                 <div className="info-item"><strong>Emergency Contact:</strong> {patient.emergency_contact_name || 'N/A'} {patient.emergency_contact_number ? `(${patient.emergency_contact_number})` : ''}</div>
                             </div>
 
+                            {/* Medical Background card — conditions + allergies */}
                             <div className="patient-details-card detail-info-group">
-                                <h3>Medical History</h3>
-                                <p>{patient.medical_history || 'No medical history recorded.'}</p>
-                                <hr />
                                 <h3>Active Conditions ({patient.conditions?.filter(c => c.status === 'active' || c.status === 'chronic').length || 0})</h3>
                                 {patient.conditions?.filter(c => c.status !== 'resolved').slice(0, 3).map(c => (
                                     <div key={c.id} className="mini-condition">
@@ -908,6 +1068,23 @@ const PatientDetails = () => {
                                     </div>
                                 ))}
                                 {!patient.conditions?.length && <p className="muted">No conditions recorded.</p>}
+                                {activeAllergies.length > 0 && (
+                                    <>
+                                        <hr style={{ margin: '0.75rem 0', borderColor: 'var(--border-subtle)' }} />
+                                        <h3 style={{ marginTop: 0 }}>Allergies ({activeAllergies.length})</h3>
+                                        {activeAllergies.slice(0, 2).map(a => (
+                                            <div key={a.id} className="mini-allergy">
+                                                <span className="severity-dot" style={{ background: SEVERITY_COLORS[a.severity] }} />
+                                                {a.allergen}
+                                                <span className="allergy-type-label">{a.reaction_type_display || a.reaction_type}</span>
+                                            </div>
+                                        ))}
+                                        {activeAllergies.length > 2 && (
+                                            <p className="muted" style={{ fontSize: 'var(--text-xs)', margin: '4px 0 0' }}>+{activeAllergies.length - 2} more</p>
+                                        )}
+                                    </>
+                                )}
+                                <button className="btn-view-all" onClick={() => handleTabChange('history')}>View Medical History →</button>
                             </div>
 
                             <div className="patient-details-card detail-info-group">
@@ -922,6 +1099,20 @@ const PatientDetails = () => {
                                 {!patient.consultations?.length && <p className="muted">No consultations yet.</p>}
                                 <button className="btn-view-all" onClick={() => handleTabChange('consultations')}>View all consultations →</button>
                             </div>
+
+                            {/* Active Medications card — only shown when medications tab has been loaded */}
+                            {medications.length > 0 && (
+                                <div className="patient-details-card detail-info-group">
+                                    <h3>Active Medications ({medications.length})</h3>
+                                    {medications.slice(0, 3).map(rx => (
+                                        <div key={rx.id} className="mini-medication">
+                                            <span className="med-name">{rx.medication_name}</span>
+                                            <span className="med-detail">{rx.dosage} · {rx.frequency_display || rx.frequency}</span>
+                                        </div>
+                                    ))}
+                                    <button className="btn-view-all" onClick={() => handleTabChange('medications')}>View all →</button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -955,67 +1146,78 @@ const PatientDetails = () => {
                                 <TabSkeleton rows={4} />
                             ) : consultationsData.length > 0 ? (
                                 <ul className="detail-list">
-                                    {consultationsData.map(c => (
-                                        <li key={c.id} className="consultation-entry detail-list-item">
-                                            <div className="consult-header">
-                                                <h4>{new Date(c.consultation_date).toLocaleDateString()}</h4>
-                                                <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
-                                            </div>
-                                            <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
-                                            {c.symptoms?.length > 0 && (
-                                                <div className="info-item">
-                                                    <strong>Symptoms:</strong>
-                                                    <div className="symptoms-display">
-                                                        {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
-                                            {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
-                                            {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
-                                            <div className="vitals-row">
-                                                {c.weight && <span className="vital-chip">Weight: {c.weight}kg</span>}
-                                                {c.height && <span className="vital-chip">Height: {c.height}m</span>}
-                                                {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
-                                                {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
-                                                {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
-                                            </div>
-                                            {c.lab_results && c.lab_results.length > 0 && (
-                                                <div className="consult-linked-section">
-                                                    <div className="consult-linked-title">Lab Tests Ordered</div>
-                                                    <div className="consult-linked-list">
-                                                        {c.lab_results.map(lab => (
-                                                            <span key={lab.id} className="consult-linked-chip">
-                                                                {lab.test_name}
-                                                                <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {c.procedures && c.procedures.length > 0 && (
-                                                <div className="consult-linked-section">
-                                                    <div className="consult-linked-title">Procedures Performed</div>
-                                                    <div className="consult-linked-list">
-                                                        {c.procedures.map(proc => (
-                                                            <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div className="entry-actions">
-                                                <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
-                                                <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
-                                                <button
-                                                    onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
-                                                    className="action-button"
-                                                    style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                                >
-                                                    {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
+                                    {consultationsData.map(c => {
+                                        const isExpanded = expandedConsultIds.has(c.id);
+                                        return (
+                                            <li key={c.id} className="consultation-entry detail-list-item">
+                                                <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
+                                                    <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
+                                                    <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
+                                                    <span className="consult-summary-reason">{c.reason_for_consultation}</span>
+                                                    {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date).toLocaleDateString()}</span>}
+                                                    {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
+                                                    <span className="consult-expand-icon">{isExpanded ? '▲' : '▼'}</span>
                                                 </button>
-                                            </div>
-                                        </li>
-                                    ))}
+                                                {isExpanded && (
+                                                    <div className="consult-expanded">
+                                                        <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
+                                                        {c.symptoms?.length > 0 && (
+                                                            <div className="info-item">
+                                                                <strong>Symptoms:</strong>
+                                                                <div className="symptoms-display">
+                                                                    {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
+                                                        {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
+                                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
+                                                        <div className="vitals-row">
+                                                            {c.weight && <span className="vital-chip">Weight: {c.weight}kg</span>}
+                                                            {c.height && <span className="vital-chip">Height: {c.height}m</span>}
+                                                            {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
+                                                            {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
+                                                            {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
+                                                        </div>
+                                                        {c.lab_results && c.lab_results.length > 0 && (
+                                                            <div className="consult-linked-section">
+                                                                <div className="consult-linked-title">Lab Tests Ordered</div>
+                                                                <div className="consult-linked-list">
+                                                                    {c.lab_results.map(lab => (
+                                                                        <span key={lab.id} className="consult-linked-chip">
+                                                                            {lab.test_name}
+                                                                            <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {c.procedures && c.procedures.length > 0 && (
+                                                            <div className="consult-linked-section">
+                                                                <div className="consult-linked-title">Procedures Performed</div>
+                                                                <div className="consult-linked-list">
+                                                                    {c.procedures.map(proc => (
+                                                                        <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <div className="entry-actions">
+                                                            <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
+                                                            <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
+                                                            <button
+                                                                onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                                className="action-button"
+                                                                style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                                            >
+                                                                {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             ) : <p className="muted">No consultations recorded.</p>
                         ) : (
@@ -1471,6 +1673,12 @@ const PatientDetails = () => {
                         <div className="tab-section">
                             <div className="tab-panel-header">
                                 <h3>Appointments</h3>
+                                <button
+                                    className="btn-add-primary"
+                                    onClick={() => navigate(`/appointments?patient_id=${id}`)}
+                                >
+                                    + Book Appointment
+                                </button>
                             </div>
                             {appointmentsLoading ? (
                                 <TabSkeleton rows={3} />
@@ -1562,103 +1770,27 @@ const PatientDetails = () => {
                         ) : labResults.length === 0 ? (
                             <p className="muted">No lab results recorded.</p>
                         ) : (
-                            <ul className="detail-list">
-                                {labResults.map(lab => (
-                                    <li key={lab.id} className="detail-list-item">
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            <div>
-                                                <strong>{lab.test_name}</strong>
-                                                <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                                    {new Date(lab.test_date).toLocaleDateString()}
-                                                </span>
-                                                {lab.submitted_by_patient && (
-                                                    <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
-                                                        Patient Upload
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
-                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' }}>
-                                                        Pending Review
-                                                    </span>
-                                                )}
-                                                {lab.submitted_by_patient && lab.review_status === 'accepted' && (
-                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' }}>
-                                                        Accepted
-                                                    </span>
-                                                )}
-                                                {lab.submitted_by_patient && lab.review_status === 'rejected' && (
-                                                    <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' }}>
-                                                        Rejected
-                                                    </span>
-                                                )}
-                                                {!lab.submitted_by_patient && (
-                                                    <span style={{
-                                                        fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
-                                                        background: LAB_STATUS_COLORS[lab.status] + '22',
-                                                        color: LAB_STATUS_COLORS[lab.status],
-                                                        border: `1px solid ${LAB_STATUS_COLORS[lab.status]}`,
-                                                    }}>
-                                                        {lab.status_display || lab.status}
-                                                    </span>
-                                                )}
-                                            </div>
+                            <>
+                                {/* Pending review section — pinned at top */}
+                                {(() => {
+                                    const pending = labResults.filter(l => l.submitted_by_patient && l.review_status === 'pending_review');
+                                    if (!pending.length) return null;
+                                    return (
+                                        <div className="pending-review-section">
+                                            <div className="pending-review-header">⏳ Needs Review ({pending.length})</div>
+                                            <ul className="detail-list" style={{ margin: 0 }}>
+                                                {pending.map(lab => renderLabRow(lab))}
+                                            </ul>
                                         </div>
-                                        {!lab.submitted_by_patient && (lab.result_value || lab.unit) && (
-                                            <div className="info-item">
-                                                <strong>Result:</strong> {lab.result_value} {lab.unit}
-                                                {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
-                                            </div>
-                                        )}
-                                        {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
-                                        {lab.file_attachments && lab.file_attachments.length > 0 && (
-                                            <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                {lab.file_attachments.map(att => (
-                                                    att.download_url ? (
-                                                        <a key={att.id} href={att.download_url} target="_blank" rel="noopener noreferrer"
-                                                           style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline' }}>
-                                                            {att.original_filename}
-                                                        </a>
-                                                    ) : (
-                                                        <span key={att.id} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                                                            {att.original_filename}
-                                                        </span>
-                                                    )
-                                                ))}
-                                            </div>
-                                        )}
-                                        <div className="entry-actions">
-                                            {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
-                                                <button
-                                                    onClick={() => { setReviewLabId(lab.id); setReviewAction('accept'); setReviewRejectionReason(''); }}
-                                                    className="action-button"
-                                                    style={{ color: 'var(--accent)', fontWeight: 600 }}
-                                                >
-                                                    Review
-                                                </button>
-                                            )}
-                                            {!lab.submitted_by_patient && (
-                                                <>
-                                                    <button onClick={() => {
-                                                        setEditingLabId(lab.id);
-                                                        setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
-                                                        setShowLabForm(true);
-                                                    }} className="edit-button action-button">Edit</button>
-                                                    <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
-                                                    <button
-                                                        onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
-                                                        className="action-button"
-                                                        style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                                    >
-                                                        {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
+                                    );
+                                })()}
+                                {/* Rest of labs */}
+                                <ul className="detail-list">
+                                    {labResults
+                                        .filter(l => !(l.submitted_by_patient && l.review_status === 'pending_review'))
+                                        .map(lab => renderLabRow(lab))}
+                                </ul>
+                            </>
                         )}
                     </div>
                 )}
@@ -1666,20 +1798,32 @@ const PatientDetails = () => {
                 {/* Medications Tab */}
                 {activeTab === 'medications' && (
                     <div className="tab-panel">
-                        <h3>Active Medications</h3>
-                        {medicationsLoading ? (
+                        <div className="tab-panel-header">
+                            <h3>{showAllMeds ? 'All Medications' : 'Active Medications'}</h3>
+                            <div className="view-toggle">
+                                <button type="button" className={`view-toggle-btn${!showAllMeds ? ' active' : ''}`} onClick={() => setShowAllMeds(false)}>Active</button>
+                                <button type="button" className={`view-toggle-btn${showAllMeds ? ' active' : ''}`} onClick={() => setShowAllMeds(true)}>All</button>
+                            </div>
+                        </div>
+                        {medsLoading ? (
                             <TabSkeleton rows={3} />
-                        ) : medications.length === 0 ? (
-                            <p className="muted">No active medications on record.</p>
+                        ) : displayedMeds.length === 0 ? (
+                            <p className="muted">{showAllMeds ? 'No medications on record.' : 'No active medications on record.'}</p>
                         ) : (
                             <ul className="detail-list">
-                                {medications.map(rx => (
-                                    <li key={rx.id} className="detail-list-item">
+                                {displayedMeds.map(rx => (
+                                    <li key={rx.id} className="detail-list-item" style={{ opacity: rx.is_active ? 1 : 0.55 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                             <strong>{rx.medication_name}</strong>
-                                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)' }}>
-                                                Active
-                                            </span>
+                                            {rx.is_active ? (
+                                                <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)' }}>
+                                                    Active
+                                                </span>
+                                            ) : (
+                                                <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
+                                                    Inactive
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="info-item"><strong>Dosage:</strong> {rx.dosage}</div>
                                         <div className="info-item"><strong>Frequency:</strong> {rx.frequency_display || rx.frequency}</div>
@@ -1688,15 +1832,17 @@ const PatientDetails = () => {
                                         <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                             Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
                                         </div>
-                                        <div className="entry-actions">
-                                            <button
-                                                onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
-                                                className="action-button"
-                                                style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
-                                            >
-                                                {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
-                                            </button>
-                                        </div>
+                                        {rx.is_active && (
+                                            <div className="entry-actions">
+                                                <button
+                                                    onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
+                                                    className="action-button"
+                                                    style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
+                                                >
+                                                    {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
+                                                </button>
+                                            </div>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
