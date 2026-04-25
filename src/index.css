@@ -971,7 +971,8 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  height: 100vh;        /* fallback for browsers without dvh support */
+  height: 100dvh;       /* dynamic viewport height: excludes browser chrome & gesture bar */
   /* z-raised + 1 so the sidebar slides over the sticky topbar on mobile */
   z-index: calc(var(--z-raised) + 1);
   background: #ffffff;
@@ -1177,6 +1178,9 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
 .sidebar-bottom {
   flex-shrink: 0; /* always visible — never pushed off-screen by nav growth */
   padding: 0.75rem;
+  /* On mobile the Android gesture bar / iOS home indicator sits at the bottom.
+     Safe-area-inset-bottom ensures sidebar-bottom content clears it. */
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
