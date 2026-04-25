@@ -13,7 +13,7 @@ export function PatientLayout() {
     const { patientProfile } = useAuth();
 
     return (
-        <div className="app-layout">
+        <div className="app-layout patient-portal">
             <div
                 className={`app-sidebar-overlay${sidebarOpen ? ' active' : ''}`}
                 onClick={() => setSidebarOpen(false)}

@@ -58,6 +58,70 @@
     }
 }
 
+/* ── Patient portal compact scale ────────────────────────────────────────── */
+/* Scoped under .patient-portal so the doctor portal is completely unaffected.
+   Reduces shared component sizes by ~15-20% for a consumer-facing feel. */
+
+/* Page layout */
+.patient-portal .page-content {
+    padding: 1.5rem;
+}
+
+/* Page header */
+.patient-portal .page-header {
+    margin-bottom: 1.25rem;
+}
+.patient-portal .page-header-left h1 {
+    font-size: 1.25rem;
+}
+.patient-portal .page-header-subtitle {
+    font-size: 0.8125rem;
+}
+
+/* Stat cards */
+.patient-portal .stat-card {
+    padding: 1rem 1.125rem;
+    gap: 0.75rem;
+}
+.patient-portal .stat-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+}
+.patient-portal .stat-card-value {
+    font-size: 1.375rem;
+}
+.patient-portal .stat-card-label {
+    font-size: 0.65rem;
+}
+
+/* Section cards */
+.patient-portal .section-card-header {
+    padding: 0.75rem 1rem;
+}
+.patient-portal .section-card-title {
+    font-size: 0.875rem;
+}
+.patient-portal .section-card-body {
+    padding: 1rem;
+}
+
+/* Mobile: tighter still */
+@media (max-width: 767px) {
+    .patient-portal .page-content {
+        padding: 0.875rem;
+    }
+    .patient-portal .page-header-left h1 {
+        font-size: 1.125rem;
+    }
+    .patient-portal .stat-card {
+        padding: 0.875rem 1rem;
+    }
+    .patient-portal .stat-card-value {
+        font-size: 1.25rem;
+    }
+}
+
 /* ── Mobile bottom-nav page padding ──────────────────────────────────────── */
 /* Double-class selector beats the single-class padding:1rem rule in index.css.
    72px = 60px nav height + 12px breathing room above it. */
