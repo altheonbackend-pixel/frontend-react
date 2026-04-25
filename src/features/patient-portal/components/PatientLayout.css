@@ -59,9 +59,10 @@
 }
 
 /* ── Mobile bottom-nav page padding ──────────────────────────────────────── */
-/* Ensure page content isn't hidden under the fixed bottom nav on mobile. */
+/* Double-class selector beats the single-class padding:1rem rule in index.css.
+   72px = 60px nav height + 12px breathing room above it. */
 @media (max-width: 767px) {
-    .page-content--with-bottom-nav {
-        padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    .page-content.page-content--with-bottom-nav {
+        padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
     }
 }
