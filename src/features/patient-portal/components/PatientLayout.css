@@ -122,6 +122,17 @@
     }
 }
 
+/* ── Patient sidebar: extra bottom clearance on mobile ───────────────────── */
+/* The patient bottom-nav is 60px tall + safe-area. When the sidebar is open on
+   mobile the sidebar-bottom (logout) must clear the bottom-nav height.
+   The z-index fix (sidebar 100 > bottom-nav 90) handles stacking; this padding
+   ensures the logout button itself isn't physically behind the bottom-nav bar. */
+@media (max-width: 767px) {
+    .patient-portal .sidebar-bottom {
+        padding-bottom: calc(0.75rem + 60px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 /* ── Mobile bottom-nav page padding ──────────────────────────────────────── */
 /* Double-class selector beats the single-class padding:1rem rule in index.css.
    72px = 60px nav height + 12px breathing room above it. */

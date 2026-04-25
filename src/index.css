@@ -973,8 +973,8 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   left: 0;
   height: 100vh;        /* fallback for browsers without dvh support */
   height: 100dvh;       /* dynamic viewport height: excludes browser chrome & gesture bar */
-  /* z-raised + 1 so the sidebar slides over the sticky topbar on mobile */
-  z-index: calc(var(--z-raised) + 1);
+  /* Must sit above the patient bottom-nav (z-index 90) and its overlay (95) */
+  z-index: 100;
   background: #ffffff;
   border-right: 1px solid var(--border-default);
   display: flex;
@@ -988,8 +988,8 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.35);
-  /* same z as topbar so overlay covers it when sidebar is open */
-  z-index: var(--z-raised);
+  /* Above the bottom-nav (90) so the overlay properly blocks it when sidebar opens */
+  z-index: 95;
 }
 
 .app-main {
