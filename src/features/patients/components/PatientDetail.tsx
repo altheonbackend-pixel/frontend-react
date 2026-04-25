@@ -28,7 +28,7 @@ import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
-type Tab = 'overview' | 'consultations' | 'conditions' | 'allergies' | 'procedures' | 'referrals' | 'vitals' | 'labs' | 'medications' | 'appointments' | 'portal';
+type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -104,7 +104,10 @@ const PatientDetails = () => {
     const [confirmDeleteProcedureId, setConfirmDeleteProcedureId] = useState<number | null>(null);
     const [confirmDeleteReferralId, setConfirmDeleteReferralId] = useState<number | null>(null);
 
-    // Vitals tab: toggle per-vital chart visibility
+    // Consultations tab: list vs charts view
+    const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
+
+    // Vitals charts: toggle per-vital visibility
     const [visibleVitals, setVisibleVitals] = useState({
         bp: true, spo2: true, temperature: true, weight: true,
     });
@@ -137,7 +140,7 @@ const PatientDetails = () => {
             const res = await api.get(`/patients/${id}/vitals-trend/`);
             return res.data.vitals || [];
         },
-        enabled: loadedTabs.has('vitals'),
+        enabled: loadedTabs.has('consultations'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -172,7 +175,7 @@ const PatientDetails = () => {
             const res = await api.get('/appointments/', { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('appointments'),
+        enabled: loadedTabs.has('admin'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -193,7 +196,7 @@ const PatientDetails = () => {
             const res = await api.get(`/medical-procedures/`, { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('procedures'),
+        enabled: loadedTabs.has('actions'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -203,7 +206,7 @@ const PatientDetails = () => {
             const res = await api.get(`/referrals/`, { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('referrals'),
+        enabled: loadedTabs.has('actions'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -236,7 +239,7 @@ const PatientDetails = () => {
                 primary_contact_email: string | null;
             };
         },
-        enabled: loadedTabs.has('portal') && !!id,
+        enabled: loadedTabs.has('admin') && !!id,
         staleTime: 60_000,
     });
 
@@ -247,7 +250,7 @@ const PatientDetails = () => {
             const all = res.data as Array<{ id: number; patient_name: string; patient_id: string; appointment_date: string; reason: string; notes: string }>;
             return all.filter(r => r.patient_id === id);
         },
-        enabled: loadedTabs.has('portal') && !!id,
+        enabled: loadedTabs.has('admin') && !!id,
         staleTime: 60_000,
     });
 
@@ -710,18 +713,16 @@ const PatientDetails = () => {
         pending: '#718096',
     };
 
+    const historyCount = (patient.conditions?.length || 0) + (patient.allergy_records?.length || 0) || undefined;
+    const actionsCount = (patient.medical_procedures?.length || 0) + (patient.referrals?.length || 0) || undefined;
     const TABS: { key: Tab; label: string; count?: number }[] = [
         { key: 'overview', label: 'Overview' },
         { key: 'consultations', label: 'Consultations', count: patient.consultations?.length },
-        { key: 'vitals', label: 'Vitals Trend' },
-        { key: 'conditions', label: 'Conditions', count: patient.conditions?.length },
-        { key: 'allergies', label: 'Allergies', count: activeAllergies.length },
-        { key: 'procedures', label: 'Procedures', count: patient.medical_procedures?.length },
-        { key: 'referrals', label: 'Referrals', count: patient.referrals?.length },
-        { key: 'appointments', label: 'Appointments', count: patientAppointments.length || undefined },
-        { key: 'labs', label: 'Lab Results', count: labResults.length || patient.lab_results?.length },
-        { key: 'medications', label: 'Medications', count: medications.length },
-        { key: 'portal', label: 'Patient Portal', count: pendingRequests.length || undefined },
+        { key: 'labs', label: 'Labs', count: labResults.length || patient.lab_results?.length },
+        { key: 'medications', label: 'Medications', count: medications.length || undefined },
+        { key: 'history', label: 'History', count: historyCount },
+        { key: 'actions', label: 'Actions', count: actionsCount },
+        { key: 'admin', label: 'Admin', count: pendingRequests.length || undefined },
     ];
 
     return (
@@ -764,13 +765,13 @@ const PatientDetails = () => {
                         + Consultation
                     </button>
                     <button
-                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('referrals'); }}
+                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('actions'); }}
                         className="strip-btn"
                     >
                         + Referral
                     </button>
                     <button
-                        onClick={() => { setShowConditionForm(true); handleTabChange('conditions'); }}
+                        onClick={() => { setShowConditionForm(true); handleTabChange('history'); }}
                         className="strip-btn"
                     >
                         + Condition
@@ -793,7 +794,7 @@ const PatientDetails = () => {
                                 {(profile?.access_level ?? 1) >= 2 && (
                                     <li>
                                         <button
-                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('procedures'); }}
+                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('actions'); }}
                                             className="action-button dropdown-item"
                                         >
                                             + Add Procedure
@@ -802,7 +803,7 @@ const PatientDetails = () => {
                                 )}
                                 <li>
                                     <button
-                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('allergies'); }}
+                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('history'); }}
                                         className="action-button dropdown-item"
                                     >
                                         + Add Allergy
@@ -925,90 +926,243 @@ const PatientDetails = () => {
                     </div>
                 )}
 
-                {/* Consultations Tab */}
+                {/* Consultations Tab — List view + Charts (vitals) view */}
                 {activeTab === 'consultations' && (
                     <div className="tab-panel">
                         <div className="tab-panel-header">
-                            <h3>Consultation History</h3>
-                            <button className="btn-add-primary" onClick={() => { setConsultationToEdit(null); setShowConsultationForm(true); }}>+ Add Consultation</button>
+                            <h3>Consultations</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <div className="view-toggle">
+                                    <button
+                                        type="button"
+                                        className={`view-toggle-btn${consultView === 'list' ? ' active' : ''}`}
+                                        onClick={() => setConsultView('list')}
+                                    >List</button>
+                                    <button
+                                        type="button"
+                                        className={`view-toggle-btn${consultView === 'charts' ? ' active' : ''}`}
+                                        onClick={() => setConsultView('charts')}
+                                    >Vitals Charts</button>
+                                </div>
+                                {consultView === 'list' && (
+                                    <button className="btn-add-primary" onClick={() => { setConsultationToEdit(null); setShowConsultationForm(true); }}>+ Add</button>
+                                )}
+                            </div>
                         </div>
-                        {consultationsLoading ? (
-                            <TabSkeleton rows={4} />
-                        ) : consultationsData.length > 0 ? (
-                            <ul className="detail-list">
-                                {consultationsData.map(c => (
-                                    <li key={c.id} className="consultation-entry detail-list-item">
-                                        <div className="consult-header">
-                                            <h4>{new Date(c.consultation_date).toLocaleDateString()}</h4>
-                                            <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
+
+                        {consultView === 'list' ? (
+                            consultationsLoading ? (
+                                <TabSkeleton rows={4} />
+                            ) : consultationsData.length > 0 ? (
+                                <ul className="detail-list">
+                                    {consultationsData.map(c => (
+                                        <li key={c.id} className="consultation-entry detail-list-item">
+                                            <div className="consult-header">
+                                                <h4>{new Date(c.consultation_date).toLocaleDateString()}</h4>
+                                                <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
+                                            </div>
+                                            <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
+                                            {c.symptoms?.length > 0 && (
+                                                <div className="info-item">
+                                                    <strong>Symptoms:</strong>
+                                                    <div className="symptoms-display">
+                                                        {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
+                                            {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
+                                            {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
+                                            <div className="vitals-row">
+                                                {c.weight && <span className="vital-chip">Weight: {c.weight}kg</span>}
+                                                {c.height && <span className="vital-chip">Height: {c.height}m</span>}
+                                                {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
+                                                {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
+                                                {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
+                                            </div>
+                                            {c.lab_results && c.lab_results.length > 0 && (
+                                                <div className="consult-linked-section">
+                                                    <div className="consult-linked-title">Lab Tests Ordered</div>
+                                                    <div className="consult-linked-list">
+                                                        {c.lab_results.map(lab => (
+                                                            <span key={lab.id} className="consult-linked-chip">
+                                                                {lab.test_name}
+                                                                <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {c.procedures && c.procedures.length > 0 && (
+                                                <div className="consult-linked-section">
+                                                    <div className="consult-linked-title">Procedures Performed</div>
+                                                    <div className="consult-linked-list">
+                                                        {c.procedures.map(proc => (
+                                                            <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div className="entry-actions">
+                                                <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
+                                                <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
+                                                <button
+                                                    onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                    className="action-button"
+                                                    style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
+                                                >
+                                                    {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : <p className="muted">No consultations recorded.</p>
+                        ) : (
+                            /* Charts view — vitals trend */
+                            vitalsLoading ? (
+                                <TabSkeleton rows={3} />
+                            ) : vitalsTrend.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">📈</div>
+                                    <div className="empty-state-title">No vitals recorded yet</div>
+                                    <div className="empty-state-subtitle">Vitals are captured during consultations.</div>
+                                </div>
+                            ) : (() => {
+                                const chartData = vitalsTrend.map(v => ({
+                                    ...v,
+                                    label: new Date(v.consultation_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                                }));
+                                const last = vitalsTrend[vitalsTrend.length - 1];
+                                const bpData    = chartData.filter(v => v.bp_systolic !== null || v.bp_diastolic !== null);
+                                const spo2Data  = chartData.filter(v => v.sp2 !== null);
+                                const tempData  = chartData.filter(v => v.temperature !== null);
+                                const weightData = chartData.filter(v => v.weight !== null);
+                                return (
+                                    <div>
+                                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+                                            {([
+                                                { key: 'bp', label: 'Blood Pressure' },
+                                                { key: 'spo2', label: 'SpO₂' },
+                                                { key: 'temperature', label: 'Temperature' },
+                                                { key: 'weight', label: 'Weight' },
+                                            ] as const).map(({ key, label }) => (
+                                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                                                    <input type="checkbox" checked={visibleVitals[key]} onChange={() => toggleVital(key)} />
+                                                    {label}
+                                                </label>
+                                            ))}
                                         </div>
-                                        <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
-                                        {c.symptoms?.length > 0 && (
-                                            <div className="info-item">
-                                                <strong>Symptoms:</strong>
-                                                <div className="symptoms-display">
-                                                    {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
+                                        {visibleVitals.bp && bpData.length > 0 && (
+                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                                <div className="section-card-header">
+                                                    <span className="section-card-title">Blood Pressure (mmHg)</span>
+                                                    {(last.bp_systolic || last.bp_diastolic) && (
+                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg</span>
+                                                    )}
+                                                </div>
+                                                <div className="section-card-body" style={{ height: 220 }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={bpData}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <YAxis domain={[60, 200]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                            <ReferenceLine y={180} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Crisis', fontSize: 10, fill: 'var(--danger)' }} />
+                                                            <ReferenceLine y={90} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Hypotension', fontSize: 10, fill: 'var(--warning)' }} />
+                                                            <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Systolic" connectNulls />
+                                                            <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name="Diastolic" connectNulls />
+                                                            <Legend />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
                                                 </div>
                                             </div>
                                         )}
-                                        {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
-                                        {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
-                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
-                                        <div className="vitals-row">
-                                            {c.weight && <span className="vital-chip">Weight: {c.weight}kg</span>}
-                                            {c.height && <span className="vital-chip">Height: {c.height}m</span>}
-                                            {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
-                                            {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
-                                            {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
-                                        </div>
-                                        {c.lab_results && c.lab_results.length > 0 && (
-                                            <div className="consult-linked-section">
-                                                <div className="consult-linked-title">Lab Tests Ordered</div>
-                                                <div className="consult-linked-list">
-                                                    {c.lab_results.map(lab => (
-                                                        <span key={lab.id} className="consult-linked-chip">
-                                                            {lab.test_name}
-                                                            <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
-                                                        </span>
-                                                    ))}
+                                        {visibleVitals.spo2 && spo2Data.length > 0 && (
+                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                                <div className="section-card-header">
+                                                    <span className="section-card-title">SpO₂ (%)</span>
+                                                    {last.sp2 && (
+                                                        <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.sp2}%</span>
+                                                    )}
+                                                </div>
+                                                <div className="section-card-body" style={{ height: 220 }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={spo2Data}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <YAxis domain={[80, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                            <ReferenceLine y={94} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Low SpO₂', fontSize: 10, fill: 'var(--warning)' }} />
+                                                            <Line type="monotone" dataKey="sp2" stroke="var(--success)" strokeWidth={2} dot={{ r: 3 }} name="SpO₂ %" connectNulls />
+                                                            <Legend />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
                                                 </div>
                                             </div>
                                         )}
-                                        {c.procedures && c.procedures.length > 0 && (
-                                            <div className="consult-linked-section">
-                                                <div className="consult-linked-title">Procedures Performed</div>
-                                                <div className="consult-linked-list">
-                                                    {c.procedures.map(proc => (
-                                                        <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
-                                                    ))}
+                                        {visibleVitals.temperature && tempData.length > 0 && (
+                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                                <div className="section-card-header">
+                                                    <span className="section-card-title">Temperature (°C)</span>
+                                                    {last.temperature && (
+                                                        <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.temperature}°C</span>
+                                                    )}
+                                                </div>
+                                                <div className="section-card-body" style={{ height: 220 }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={tempData}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <YAxis domain={[34, 42]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                            <ReferenceLine y={38.5} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Fever', fontSize: 10, fill: 'var(--danger)' }} />
+                                                            <ReferenceLine y={35.5} stroke="var(--info)" strokeDasharray="4 4" label={{ value: 'Hypothermia', fontSize: 10, fill: 'var(--info)' }} />
+                                                            <Line type="monotone" dataKey="temperature" stroke="var(--warning)" strokeWidth={2} dot={{ r: 3 }} name="Temp °C" connectNulls />
+                                                            <Legend />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="entry-actions">
-                                            <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
-                                            <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
-                                            <button
-                                                onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
-                                                className="action-button"
-                                                style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                            >
-                                                {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="muted">No consultations recorded.</p>}
+                                        {visibleVitals.weight && weightData.length > 0 && (
+                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
+                                                <div className="section-card-header">
+                                                    <span className="section-card-title">Weight (kg)</span>
+                                                    {last.weight && (
+                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.weight} kg</span>
+                                                    )}
+                                                </div>
+                                                <div className="section-card-body" style={{ height: 220 }}>
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <LineChart data={weightData}>
+                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
+                                                            <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Weight kg" connectNulls />
+                                                            <Legend />
+                                                        </LineChart>
+                                                    </ResponsiveContainer>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
                 )}
 
-                {/* Conditions Tab */}
-                {activeTab === 'conditions' && (
+                {/* History Tab — Conditions + Allergies */}
+                {activeTab === 'history' && (
                     <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Medical Conditions</h3>
-                            <button className="btn-add-primary" onClick={() => setShowConditionForm(!showConditionForm)}>+ Add Condition</button>
-                        </div>
+                        {/* ── Conditions section ── */}
+                        <div className="tab-section">
+                            <div className="tab-panel-header">
+                                <h3>Conditions <span className="section-count">({patient.conditions?.length || 0})</span></h3>
+                                <button className="btn-add-primary" onClick={() => setShowConditionForm(!showConditionForm)}>+ Add Condition</button>
+                            </div>
                         {showConditionForm && (
                             <form onSubmit={handleConditionSubmit} className="inline-form">
                                 <div className="form-row">
@@ -1128,16 +1282,14 @@ const PatientDetails = () => {
                                 ))}
                             </div>
                         ) : <p className="muted">No conditions recorded.</p>}
-                    </div>
-                )}
+                        </div>{/* end conditions section */}
 
-                {/* Allergies Tab */}
-                {activeTab === 'allergies' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Allergies</h3>
-                            <button className="btn-add-primary" onClick={() => setShowAllergyForm(!showAllergyForm)}>+ Add Allergy</button>
-                        </div>
+                        {/* ── Allergies section ── */}
+                        <div className="tab-section tab-section--divider">
+                            <div className="tab-panel-header">
+                                <h3>Allergies <span className="section-count">({activeAllergies.length} active)</span></h3>
+                                <button className="btn-add-primary" onClick={() => setShowAllergyForm(!showAllergyForm)}>+ Add Allergy</button>
+                            </div>
                         {showAllergyForm && (
                             <form onSubmit={handleAllergySubmit} className="inline-form">
                                 <div className="form-row">
@@ -1246,261 +1398,105 @@ const PatientDetails = () => {
                                 ))}
                             </div>
                         ) : <p className="muted">No allergies recorded.</p>}
+                        </div>{/* end allergies section */}
                     </div>
                 )}
 
-                {/* Procedures Tab */}
-                {activeTab === 'procedures' && (
+                {/* Actions Tab — Procedures + Referrals */}
+                {activeTab === 'actions' && (
                     <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Medical Procedures</h3>
-                            {(profile?.access_level ?? 1) >= 2 && (
-                                <button className="btn-add-primary" onClick={() => { setProcedureToEdit(null); setShowProcedureForm(true); }}>+ Add Procedure</button>
-                            )}
-                        </div>
-                        {proceduresLoading ? (
-                            <TabSkeleton rows={4} />
-                        ) : proceduresData.length > 0 ? (
-                            <ul className="detail-list">
-                                {proceduresData.map(p => (
-                                    <li key={p.id} className="procedure-entry detail-list-item">
-                                        <h4>{p.procedure_type} — {new Date(p.procedure_date).toLocaleDateString()}</h4>
-                                        {p.result && <div className="info-item"><strong>Result:</strong> {p.result}</div>}
-                                        {p.attachments && (
-                                            <button onClick={() => downloadFile(p.attachments, `procedure_${p.id}`)} className="download-link">Download attachment</button>
-                                        )}
-                                        <div className="entry-actions">
-                                            <button onClick={() => { setProcedureToEdit(p); setShowProcedureForm(true); }} className="edit-button action-button">Edit</button>
-                                            <button onClick={() => setConfirmDeleteProcedureId(p.id)} className="delete-button action-button">Delete</button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="muted">No procedures recorded.</p>}
-                    </div>
-                )}
-
-                {/* Vitals Tab — Recharts LineCharts */}
-                {activeTab === 'vitals' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Vitals History</h3>
-                        </div>
-                        {vitalsLoading ? (
-                            <TabSkeleton rows={3} />
-                        ) : vitalsTrend.length === 0 ? (
-                            <div className="empty-state">
-                                <div className="empty-state-icon">📈</div>
-                                <div className="empty-state-title">No vitals recorded yet</div>
-                                <div className="empty-state-subtitle">Vitals are captured during consultations.</div>
+                        {/* ── Procedures section ── */}
+                        <div className="tab-section">
+                            <div className="tab-panel-header">
+                                <h3>Procedures <span className="section-count">({patient.medical_procedures?.length || 0})</span></h3>
+                                {(profile?.access_level ?? 1) >= 2 && (
+                                    <button className="btn-add-primary" onClick={() => { setProcedureToEdit(null); setShowProcedureForm(true); }}>+ Add Procedure</button>
+                                )}
                             </div>
-                        ) : (() => {
-                            // Format date labels
-                            const chartData = vitalsTrend.map(v => ({
-                                ...v,
-                                label: new Date(v.consultation_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-                            }));
-
-                            // Last readings for StatCards
-                            const last = vitalsTrend[vitalsTrend.length - 1];
-
-                            const bpData = chartData.filter(v => v.bp_systolic !== null || v.bp_diastolic !== null);
-                            const spo2Data = chartData.filter(v => v.sp2 !== null);
-                            const tempData = chartData.filter(v => v.temperature !== null);
-                            const weightData = chartData.filter(v => v.weight !== null);
-
-                            return (
-                                <div>
-                                    {/* Per-vital toggle checkboxes */}
-                                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                                        {([
-                                            { key: 'bp', label: 'Blood Pressure' },
-                                            { key: 'spo2', label: 'SpO₂' },
-                                            { key: 'temperature', label: 'Temperature' },
-                                            { key: 'weight', label: 'Weight' },
-                                        ] as const).map(({ key, label }) => (
-                                            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={visibleVitals[key]}
-                                                    onChange={() => toggleVital(key)}
-                                                />
-                                                {label}
-                                            </label>
-                                        ))}
-                                    </div>
-
-                                    {/* Blood Pressure Chart */}
-                                    {visibleVitals.bp && bpData.length > 0 && (
-                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                            <div className="section-card-header">
-                                                <span className="section-card-title">Blood Pressure (mmHg)</span>
-                                                {(last.bp_systolic || last.bp_diastolic) && (
-                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                                                        Latest: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="section-card-body" style={{ height: 220 }}>
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={bpData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <YAxis domain={[60, 200]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                        <ReferenceLine y={180} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Crisis', fontSize: 10, fill: 'var(--danger)' }} />
-                                                        <ReferenceLine y={90} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Hypotension', fontSize: 10, fill: 'var(--warning)' }} />
-                                                        <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Systolic" connectNulls />
-                                                        <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name="Diastolic" connectNulls />
-                                                        <Legend />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* SpO₂ Chart */}
-                                    {visibleVitals.spo2 && spo2Data.length > 0 && (
-                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                            <div className="section-card-header">
-                                                <span className="section-card-title">SpO₂ (%)</span>
-                                                {last.sp2 && (
-                                                    <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                                                        Latest: {last.sp2}%
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="section-card-body" style={{ height: 220 }}>
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={spo2Data}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <YAxis domain={[80, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                        <ReferenceLine y={94} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Low SpO₂', fontSize: 10, fill: 'var(--warning)' }} />
-                                                        <Line type="monotone" dataKey="sp2" stroke="var(--success)" strokeWidth={2} dot={{ r: 3 }} name="SpO₂ %" connectNulls />
-                                                        <Legend />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Temperature Chart */}
-                                    {visibleVitals.temperature && tempData.length > 0 && (
-                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                            <div className="section-card-header">
-                                                <span className="section-card-title">Temperature (°C)</span>
-                                                {last.temperature && (
-                                                    <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>
-                                                        Latest: {last.temperature}°C
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="section-card-body" style={{ height: 220 }}>
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={tempData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <YAxis domain={[34, 42]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                        <ReferenceLine y={38.5} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Fever', fontSize: 10, fill: 'var(--danger)' }} />
-                                                        <ReferenceLine y={35.5} stroke="var(--info)" strokeDasharray="4 4" label={{ value: 'Hypothermia', fontSize: 10, fill: 'var(--info)' }} />
-                                                        <Line type="monotone" dataKey="temperature" stroke="var(--warning)" strokeWidth={2} dot={{ r: 3 }} name="Temp °C" connectNulls />
-                                                        <Legend />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Weight Chart */}
-                                    {visibleVitals.weight && weightData.length > 0 && (
-                                        <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                            <div className="section-card-header">
-                                                <span className="section-card-title">Weight (kg)</span>
-                                                {last.weight && (
-                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                                                        Latest: {last.weight} kg
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="section-card-body" style={{ height: 220 }}>
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <LineChart data={weightData}>
-                                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                        <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                        <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Weight kg" connectNulls />
-                                                        <Legend />
-                                                    </LineChart>
-                                                </ResponsiveContainer>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
-
-                {activeTab === 'referrals' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Referral History</h3>
-                            <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
-                        </div>
-                        {referralsLoading ? (
-                            <TabSkeleton rows={4} />
-                        ) : referralsData.length > 0 ? (
-                            <ul className="detail-list">
-                                {referralsData.map(r => (
-                                    <li key={r.id} className="referral-entry detail-list-item">
-                                        <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
-                                        <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>
-                                        <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
-                                        <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
-                                        <div className="info-item"><strong>Status:</strong> <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span></div>
-                                        {r.comments && <div className="info-item"><strong>Comments:</strong> {r.comments}</div>}
-                                        <div className="entry-actions">
-                                            <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
-                                            <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : <p className="muted">No referrals recorded.</p>}
-                    </div>
-                )}
-                {/* Lab Results Tab */}
-                {/* Appointments Tab — read-only history; create/edit from /appointments */}
-                {activeTab === 'appointments' && (
-                    <div className="tab-panel">
-                        <h3>Appointment History</h3>
-                        {appointmentsLoading ? (
-                            <TabSkeleton rows={3} />
-                        ) : patientAppointments.length === 0 ? (
-                            <p className="muted">No appointments on record for this patient.</p>
-                        ) : (
-                            <ul className="detail-list">
-                                {patientAppointments
-                                    .slice()
-                                    .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
-                                    .map(appt => (
-                                        <li key={appt.id} className="detail-list-item">
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                <strong>{new Date(appt.appointment_date).toLocaleString()}</strong>
-                                                <span className={`status-badge status-${appt.status}`}>{appt.status}</span>
-                                            </div>
-                                            {appt.reason_for_appointment && (
-                                                <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                            {proceduresLoading ? (
+                                <TabSkeleton rows={4} />
+                            ) : proceduresData.length > 0 ? (
+                                <ul className="detail-list">
+                                    {proceduresData.map(p => (
+                                        <li key={p.id} className="procedure-entry detail-list-item">
+                                            <h4>{p.procedure_type} — {new Date(p.procedure_date).toLocaleDateString()}</h4>
+                                            {p.result && <div className="info-item"><strong>Result:</strong> {p.result}</div>}
+                                            {p.attachments && (
+                                                <button onClick={() => downloadFile(p.attachments, `procedure_${p.id}`)} className="download-link">Download attachment</button>
                                             )}
+                                            <div className="entry-actions">
+                                                <button onClick={() => { setProcedureToEdit(p); setShowProcedureForm(true); }} className="edit-button action-button">Edit</button>
+                                                <button onClick={() => setConfirmDeleteProcedureId(p.id)} className="delete-button action-button">Delete</button>
+                                            </div>
                                         </li>
-                                    ))
-                                }
-                            </ul>
-                        )}
+                                    ))}
+                                </ul>
+                            ) : <p className="muted">No procedures recorded.</p>}
+                        </div>{/* end procedures section */}
+
+                        {/* ── Referrals section ── */}
+                        <div className="tab-section tab-section--divider">
+                            <div className="tab-panel-header">
+                                <h3>Referrals <span className="section-count">({patient.referrals?.length || 0})</span></h3>
+                                <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
+                            </div>
+                            {referralsLoading ? (
+                                <TabSkeleton rows={4} />
+                            ) : referralsData.length > 0 ? (
+                                <ul className="detail-list">
+                                    {referralsData.map(r => (
+                                        <li key={r.id} className="referral-entry detail-list-item">
+                                            <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
+                                            <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>
+                                            <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
+                                            <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
+                                            <div className="info-item"><strong>Status:</strong> <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span></div>
+                                            {r.comments && <div className="info-item"><strong>Comments:</strong> {r.comments}</div>}
+                                            <div className="entry-actions">
+                                                <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
+                                                <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : <p className="muted">No referrals recorded.</p>}
+                        </div>{/* end referrals section */}
+                    </div>
+                )}
+
+                {/* Admin Tab — Appointments + Portal */}
+                {activeTab === 'admin' && (
+                    <div className="tab-panel">
+                        {/* ── Appointments section ── */}
+                        <div className="tab-section">
+                            <div className="tab-panel-header">
+                                <h3>Appointments</h3>
+                            </div>
+                            {appointmentsLoading ? (
+                                <TabSkeleton rows={3} />
+                            ) : patientAppointments.length === 0 ? (
+                                <p className="muted">No appointments on record for this patient.</p>
+                            ) : (
+                                <ul className="detail-list">
+                                    {patientAppointments
+                                        .slice()
+                                        .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+                                        .map(appt => (
+                                            <li key={appt.id} className="detail-list-item">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <strong>{new Date(appt.appointment_date).toLocaleString()}</strong>
+                                                    <span className={`status-badge status-${appt.status}`}>{appt.status}</span>
+                                                </div>
+                                                {appt.reason_for_appointment && (
+                                                    <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                                                )}
+                                            </li>
+                                        ))
+                                    }
+                                </ul>
+                            )}
+                        </div>{/* end appointments section */}
+
                     </div>
                 )}
 
@@ -1708,9 +1704,10 @@ const PatientDetails = () => {
                     </div>
                 )}
 
-                {/* Patient Portal Tab — doctor-side portal management */}
-                {activeTab === 'portal' && (
-                    <div className="tab-panel" style={{ display: 'grid', gap: '1.25rem' }}>
+                {/* Portal section — rendered as second block inside Admin tab */}
+                {activeTab === 'admin' && (
+                    <div className="tab-section tab-section--divider" style={{ display: 'grid', gap: '1.25rem' }}>
+                        <div className="tab-panel-header"><h3>Patient Portal</h3></div>
                         {portalLoading ? (
                             <TabSkeleton rows={4} />
                         ) : (
