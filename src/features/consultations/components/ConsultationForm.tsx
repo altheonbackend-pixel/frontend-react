@@ -145,6 +145,24 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
     const [failedRx, setFailedRx] = useState<RxItem[]>([]);
 
+    // Lab orders for this visit
+    interface LabOrderDraft { id: string; test_name: string; notes: string; }
+    const [labList, setLabList] = useState<LabOrderDraft[]>([]);
+    const [labsOpen, setLabsOpen] = useState(false);
+    const addLab = () => setLabList(l => [...l, { id: crypto.randomUUID(), test_name: '', notes: '' }]);
+    const removeLab = (id: string) => setLabList(l => l.filter(x => x.id !== id));
+    const updateLab = (id: string, field: keyof Omit<LabOrderDraft, 'id'>, value: string) =>
+        setLabList(l => l.map(x => x.id === id ? { ...x, [field]: value } : x));
+
+    // Procedures for this visit
+    interface ProcedureDraft { id: string; procedure_type: string; procedure_category: string; notes: string; }
+    const [procList, setProcList] = useState<ProcedureDraft[]>([]);
+    const [procsOpen, setProcsOpen] = useState(false);
+    const addProc = () => setProcList(p => [...p, { id: crypto.randomUUID(), procedure_type: '', procedure_category: 'diagnostic', notes: '' }]);
+    const removeProc = (id: string) => setProcList(p => p.filter(x => x.id !== id));
+    const updateProc = (id: string, field: keyof Omit<ProcedureDraft, 'id'>, value: string) =>
+        setProcList(p => p.map(x => x.id === id ? { ...x, [field]: value } : x));
+
     const pushRxToList = () => {
         if (!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()) return;
         setRxList(prev => [...prev, { ...rxDraft }]);
@@ -212,11 +230,14 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }
 
             if (response.status === 201 || response.status === 200) {
+                const consultationId = response.data.id;
+                const today = new Date().toISOString().slice(0, 10);
+
                 // Save all queued prescriptions via Promise.allSettled — failures surface in retry panel
                 if (!isEditing && rxList.length > 0) {
                     const rxPayloads: RxItem[] = rxList.map(rx => ({
                         patient: patientId,
-                        consultation: response.data.id,
+                        consultation: consultationId,
                         medication_name: rx.medication_name,
                         dosage: rx.dosage,
                         frequency: rx.frequency,
@@ -234,6 +255,44 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         return;
                     }
                 }
+
+                // Save queued lab orders — non-blocking (consultation already saved)
+                if (!isEditing && labList.length > 0) {
+                    const labPayloads = labList.filter(l => l.test_name.trim()).map(l => ({
+                        patient: patientId,
+                        consultation: consultationId,
+                        test_name: l.test_name.trim(),
+                        test_date: today,
+                        ...(l.notes.trim() ? { notes: l.notes.trim() } : {}),
+                    }));
+                    if (labPayloads.length > 0) {
+                        const labResults = await Promise.allSettled(labPayloads.map(l => api.post('/lab-results/', l)));
+                        const failedCount = labResults.filter(r => r.status === 'rejected').length;
+                        if (failedCount > 0) {
+                            toast.error(`${failedCount} lab order(s) could not be saved — add them manually from the Labs tab.`);
+                        }
+                    }
+                }
+
+                // Save queued procedures — non-blocking
+                if (!isEditing && procList.length > 0) {
+                    const procPayloads = procList.filter(p => p.procedure_type.trim()).map(p => ({
+                        patient: patientId,
+                        consultation: consultationId,
+                        procedure_type: p.procedure_type.trim(),
+                        procedure_category: p.procedure_category,
+                        procedure_date: today,
+                        ...(p.notes.trim() ? { result: p.notes.trim() } : {}),
+                    }));
+                    if (procPayloads.length > 0) {
+                        const procResults = await Promise.allSettled(procPayloads.map(p => api.post('/procedures/', p)));
+                        const failedCount = procResults.filter(r => r.status === 'rejected').length;
+                        if (failedCount > 0) {
+                            toast.error(`${failedCount} procedure(s) could not be saved — add them manually from the Procedures tab.`);
+                        }
+                    }
+                }
+
                 clearDraft();
                 toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
 
@@ -617,6 +676,94 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                             </button>
                         </div>
                         <p className="rx-hint">Prescriptions save automatically when you submit the consultation.</p>
+                    </div>
+                )}
+
+                {/* Lab orders for this visit */}
+                {!consultationToEdit && (
+                    <div className="consult-section">
+                        <button
+                            type="button"
+                            className="consult-section-toggle"
+                            onClick={() => { setLabsOpen(o => !o); if (!labsOpen && labList.length === 0) addLab(); }}
+                        >
+                            {labsOpen ? '−' : '+'} Lab Tests Ordered
+                            {labList.filter(l => l.test_name.trim()).length > 0 && (
+                                <span className="consult-section-badge">{labList.filter(l => l.test_name.trim()).length}</span>
+                            )}
+                        </button>
+                        {labsOpen && (
+                            <div className="consult-section-body">
+                                {labList.map(item => (
+                                    <div key={item.id} className="consult-inline-row">
+                                        <input
+                                            className="input consult-inline-input"
+                                            placeholder="Test name (e.g. HbA1c, CBC, Lipid panel)"
+                                            value={item.test_name}
+                                            onChange={e => updateLab(item.id, 'test_name', e.target.value)}
+                                        />
+                                        <input
+                                            className="input consult-inline-input consult-inline-notes"
+                                            placeholder="Notes (optional)"
+                                            value={item.notes}
+                                            onChange={e => updateLab(item.id, 'notes', e.target.value)}
+                                        />
+                                        <button type="button" className="consult-remove-btn" onClick={() => removeLab(item.id)} aria-label="Remove">×</button>
+                                    </div>
+                                ))}
+                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addLab}>+ Add test</button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Procedures for this visit */}
+                {!consultationToEdit && (
+                    <div className="consult-section">
+                        <button
+                            type="button"
+                            className="consult-section-toggle"
+                            onClick={() => { setProcsOpen(o => !o); if (!procsOpen && procList.length === 0) addProc(); }}
+                        >
+                            {procsOpen ? '−' : '+'} Procedure Performed
+                            {procList.filter(p => p.procedure_type.trim()).length > 0 && (
+                                <span className="consult-section-badge">{procList.filter(p => p.procedure_type.trim()).length}</span>
+                            )}
+                        </button>
+                        {procsOpen && (
+                            <div className="consult-section-body">
+                                {procList.map(item => (
+                                    <div key={item.id} className="consult-inline-row">
+                                        <input
+                                            className="input consult-inline-input"
+                                            placeholder="Procedure (e.g. Blood draw, Wound dressing, Vaccination)"
+                                            value={item.procedure_type}
+                                            onChange={e => updateProc(item.id, 'procedure_type', e.target.value)}
+                                        />
+                                        <select
+                                            className="consult-inline-select"
+                                            value={item.procedure_category}
+                                            onChange={e => updateProc(item.id, 'procedure_category', e.target.value)}
+                                        >
+                                            <option value="diagnostic">Diagnostic</option>
+                                            <option value="therapeutic">Therapeutic</option>
+                                            <option value="surgical">Surgical</option>
+                                            <option value="screening">Screening</option>
+                                            <option value="vaccination">Vaccination</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                        <input
+                                            className="input consult-inline-input consult-inline-notes"
+                                            placeholder="Notes (optional)"
+                                            value={item.notes}
+                                            onChange={e => updateProc(item.id, 'notes', e.target.value)}
+                                        />
+                                        <button type="button" className="consult-remove-btn" onClick={() => removeProc(item.id)} aria-label="Remove">×</button>
+                                    </div>
+                                ))}
+                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addProc}>+ Add procedure</button>
+                            </div>
+                        )}
                     </div>
                 )}
 

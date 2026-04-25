@@ -129,6 +129,8 @@ export interface Consultation {
     visible_to_patient: boolean;
     patient_summary: string | null;
     patient_instructions: string | null;
+    lab_results?: Array<{ id: number; test_name: string; status: string; test_date: string }>;
+    procedures?: Array<{ id: number; procedure_type: string; procedure_date: string }>;
 }
 
 export interface LabResult {

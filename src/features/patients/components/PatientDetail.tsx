@@ -961,6 +961,29 @@ const PatientDetails = () => {
                                             {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
                                             {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
                                         </div>
+                                        {c.lab_results && c.lab_results.length > 0 && (
+                                            <div className="consult-linked-section">
+                                                <div className="consult-linked-title">Lab Tests Ordered</div>
+                                                <div className="consult-linked-list">
+                                                    {c.lab_results.map(lab => (
+                                                        <span key={lab.id} className="consult-linked-chip">
+                                                            {lab.test_name}
+                                                            <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {c.procedures && c.procedures.length > 0 && (
+                                            <div className="consult-linked-section">
+                                                <div className="consult-linked-title">Procedures Performed</div>
+                                                <div className="consult-linked-list">
+                                                    {c.procedures.map(proc => (
+                                                        <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="entry-actions">
                                             <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
                                             <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
