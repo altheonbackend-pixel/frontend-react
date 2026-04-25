@@ -25,7 +25,6 @@ function LandingPage() {
         register,
         handleSubmit,
         setError,
-        setValue,
         formState: { errors, isSubmitting },
     } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
 
@@ -76,25 +75,6 @@ function LandingPage() {
                 <div className="auth-card-v2">
                     <h1 className="auth-card-v2-title">{t('login.title', 'Welcome back')}</h1>
                     <p className="auth-card-v2-subtitle">{t('login.subtitle', 'Sign in to your clinical workspace')}</p>
-
-                    <div style={{ marginBottom: '1rem', padding: '0.9rem 1rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', border: '1px solid var(--accent-light)', textAlign: 'left' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem', fontSize: '0.9rem' }}>Patient portal demo</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', lineHeight: 1.6, marginBottom: '0.65rem' }}>
-                            Use the hardcoded patient credentials below to preview the new patient-side frontend:
-                        </div>
-                        <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', marginBottom: '0.15rem' }}><strong>Email:</strong> patient@altheon.demo</div>
-                        <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', marginBottom: '0.75rem' }}><strong>Password:</strong> Patient123!</div>
-                        <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => {
-                                setValue('email', 'patient@altheon.demo');
-                                setValue('password', 'Patient123!');
-                            }}
-                        >
-                            Fill demo credentials
-                        </button>
-                    </div>
 
                     <form onSubmit={handleSubmit(onSubmit)} noValidate style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {errors.root && (
