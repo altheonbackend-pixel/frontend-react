@@ -28,6 +28,7 @@ import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import AttachmentList from '../../../shared/components/AttachmentList';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { queryKeys } from '../../../shared/queryKeys';
 
 type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin';
 
@@ -138,6 +139,7 @@ const PatientDetails = () => {
     const [showAllergenSuggestions, setShowAllergenSuggestions] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+    const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
 
     // Lab Results
     const [showLabForm, setShowLabForm] = useState(false);
@@ -1002,18 +1004,42 @@ const PatientDetails = () => {
                         {/* Vital alert banner */}
                         {(() => {
                             const latest = patient.consultations?.[0];
-                            if (!latest?.has_vital_alerts) return null;
+                            if (!latest?.has_vital_alerts || latest?.follow_up_notification_sent) return null;
                             const reasons = latest.vital_alert_reasons ?? [];
+                            const handleAcknowledge = async () => {
+                                setVitalAcknowledging(true);
+                                try {
+                                    await api.patch(`/consultations/${latest.id}/`, { follow_up_notification_sent: true });
+                                    setPatient(prev => prev ? {
+                                        ...prev,
+                                        consultations: (prev.consultations ?? []).map(c =>
+                                            c.id === latest.id ? { ...c, follow_up_notification_sent: true } : c
+                                        ),
+                                    } : prev);
+                                    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
+                                    toast.success('Vital alert acknowledged. It will no longer appear on your dashboard.');
+                                } catch {
+                                    toast.error('Failed to acknowledge alert.');
+                                } finally {
+                                    setVitalAcknowledging(false);
+                                }
+                            };
                             return (
                                 <div className="vital-alert-banner">
                                     <span className="vital-alert-icon">⚠</span>
-                                    <div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
                                         <strong>Vital Alert</strong> — {new Date(latest.consultation_date).toLocaleDateString()}
                                         <div className="vital-alert-chips">
                                             {reasons.map((r, i) => <span key={i} className="vital-alert-chip">{r}</span>)}
                                         </div>
                                     </div>
-                                    <button className="btn-ghost-sm" onClick={() => handleTabChange('consultations')}>View →</button>
+                                    <button className="btn-ghost-sm" onClick={() => {
+                                        setExpandedConsultIds(new Set([latest.id]));
+                                        handleTabChange('consultations');
+                                    }}>View →</button>
+                                    <button className="btn-ghost-sm" disabled={vitalAcknowledging} onClick={handleAcknowledge}>
+                                        {vitalAcknowledging ? '…' : 'Acknowledge'}
+                                    </button>
                                 </div>
                             );
                         })()}

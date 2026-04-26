@@ -126,6 +126,7 @@ export interface Consultation {
     blood_pressure_display?: string | null;
     has_vital_alerts?: boolean;
     vital_alert_reasons?: string[];
+    follow_up_notification_sent?: boolean;
     visible_to_patient: boolean;
     patient_summary: string | null;
     patient_instructions: string | null;
