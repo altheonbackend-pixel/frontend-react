@@ -3,6 +3,7 @@
 
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import NotificationBell from './NotificationBell';
 import { Avatar } from './Avatar';
@@ -40,6 +41,17 @@ const NAV_LINKS = [
 export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
     const { t, i18n } = useTranslation();
     const { profile, user, emailVerified, userType, logout } = useAuth();
+
+    const { data: incomingReferralCount = 0 } = useQuery<number>({
+        queryKey: ['referrals', 'incoming-count'],
+        queryFn: async () => {
+            const res = await api.get('/referrals/', { params: { direction: 'received', status: 'pending' } });
+            return (res.data.count as number) ?? (res.data as unknown[]).length ?? 0;
+        },
+        staleTime: 60_000,
+        refetchInterval: 60_000,
+        enabled: userType === 'doctor',
+    });
 
     const handleLogout = () => {
         logout();
@@ -101,6 +113,9 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                     >
                         {link.icon}
                         {t(link.labelKey, link.label)}
+                        {link.to === '/referrals' && incomingReferralCount > 0 && (
+                            <span className="sidebar-badge">{incomingReferralCount}</span>
+                        )}
                     </NavLink>
                 ))}
             </nav>
