@@ -26,6 +26,7 @@ import { type LabResult, type Prescription } from '../../../shared/types';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
+import AttachmentList from '../../../shared/components/AttachmentList';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin';
@@ -636,6 +637,17 @@ const PatientDetails = () => {
         }
     };
 
+    const handleMarkPrescriptionInactive = async (rxId: number) => {
+        try {
+            await api.patch(`/prescriptions/${rxId}/`, { is_active: false });
+            toast.success('Marked as inactive.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications', 'all'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update.'));
+        }
+    };
+
     const handleToggleVisibleToPatient = async (
         resource: 'conditions' | 'allergies' | 'prescriptions',
         itemId: number,
@@ -779,20 +791,7 @@ const PatientDetails = () => {
             )}
             {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
             {lab.file_attachments && lab.file_attachments.length > 0 && (
-                <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {lab.file_attachments.map(att => (
-                        att.download_url ? (
-                            <a key={att.id} href={att.download_url} target="_blank" rel="noopener noreferrer"
-                               style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline' }}>
-                                {att.original_filename}
-                            </a>
-                        ) : (
-                            <span key={att.id} style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                                {att.original_filename}
-                            </span>
-                        )
-                    ))}
-                </div>
+                <AttachmentList attachments={lab.file_attachments} />
             )}
             <div className="entry-actions">
                 {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
@@ -1841,6 +1840,22 @@ const PatientDetails = () => {
                                                 >
                                                     {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
                                                 </button>
+                                                <button
+                                                    onClick={() => handleMarkPrescriptionInactive(rx.id)}
+                                                    className="action-button"
+                                                    style={{ color: 'var(--text-muted)' }}
+                                                >
+                                                    Mark Inactive
+                                                </button>
+                                                {rx.consultation && (
+                                                    <button
+                                                        onClick={() => { handleTabChange('consultations'); }}
+                                                        className="action-button"
+                                                        style={{ color: 'var(--accent)' }}
+                                                    >
+                                                        View Consultation →
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </li>

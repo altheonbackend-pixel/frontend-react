@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AppSidebar from './AppSidebar';
+import DoctorBottomNav from './DoctorBottomNav';
 
 export function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +40,8 @@ export function AppLayout() {
                     <Outlet />
                 </div>
             </main>
+
+            <DoctorBottomNav />
         </div>
     );
 }

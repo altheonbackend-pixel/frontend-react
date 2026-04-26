@@ -29,12 +29,19 @@ interface PatientStat {
     referrals_count: number;
 }
 
+interface AppointmentMonthPoint {
+    month: string;
+    [status: string]: number | string;
+}
+
 interface Stats {
     total_patients: number;
     total_consultations: number;
     total_medical_procedures: number;
     monthly_data: MonthlyPoint[];
     patient_status: Record<string, number>;
+    referral_by_status: Record<string, number>;
+    appointment_monthly: AppointmentMonthPoint[];
     patients: PatientStat[];
 }
 
@@ -76,6 +83,8 @@ const Statistics = () => {
                 total_medical_procedures: statsRes.data.total_medical_procedures,
                 monthly_data: statsRes.data.monthly_data ?? [],
                 patient_status: statsRes.data.patient_status ?? {},
+                referral_by_status: statsRes.data.referral_by_status ?? {},
+                appointment_monthly: statsRes.data.appointment_monthly ?? [],
                 patients: patientsRes.data.results ?? patientsRes.data,
             };
         },
@@ -84,6 +93,29 @@ const Statistics = () => {
 
     // Monthly BarChart data
     const monthlyData: MonthlyPoint[] = stats?.monthly_data ?? [];
+
+    // Appointment monthly stacked bar data
+    const apptMonthlyData: AppointmentMonthPoint[] = stats?.appointment_monthly ?? [];
+
+    // Referral outcomes donut data
+    const REFERRAL_STATUS_LABELS: Record<string, string> = {
+        pending: 'Pending', accepted: 'Accepted', in_progress: 'In Progress',
+        completed: 'Completed', rejected: 'Rejected',
+    };
+    const REFERRAL_STATUS_COLORS: Record<string, string> = {
+        pending: 'var(--color-warning, #d69e2e)',
+        accepted: 'var(--info, #3182ce)',
+        in_progress: 'var(--accent)',
+        completed: 'var(--success, #38a169)',
+        rejected: 'var(--danger, #e53e3e)',
+    };
+    const referralDonutData = Object.entries(stats?.referral_by_status ?? {})
+        .filter(([, count]) => count > 0)
+        .map(([status, count]) => ({
+            name: REFERRAL_STATUS_LABELS[status] ?? status,
+            value: count,
+            key: status,
+        }));
 
     // Patient status PieChart data
     const statusData = Object.entries(stats?.patient_status ?? {})
@@ -193,6 +225,74 @@ const Statistics = () => {
                                 <div className="empty-state">
                                     <div className="empty-state-icon">🥧</div>
                                     <div className="empty-state-title">No patients yet</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Referral outcomes + Appointment status row */}
+            {!isLoading && stats && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,2fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                    {/* Referral Outcomes donut */}
+                    <div className="section-card">
+                        <div className="section-card-header">
+                            <span className="section-card-title">Referral Outcomes</span>
+                        </div>
+                        <div className="section-card-body" style={{ height: 260 }}>
+                            {referralDonutData.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={referralDonutData}
+                                            cx="50%"
+                                            cy="45%"
+                                            innerRadius={55}
+                                            outerRadius={85}
+                                            paddingAngle={3}
+                                            dataKey="value"
+                                        >
+                                            {referralDonutData.map(entry => (
+                                                <Cell key={entry.key} fill={REFERRAL_STATUS_COLORS[entry.key] ?? 'var(--text-muted)'} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                                        <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">📤</div>
+                                    <div className="empty-state-title">No referrals sent yet</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Appointment Status stacked bar */}
+                    <div className="section-card">
+                        <div className="section-card-header">
+                            <span className="section-card-title">Appointment Status (last 6 months)</span>
+                        </div>
+                        <div className="section-card-body" style={{ height: 260 }}>
+                            {apptMonthlyData.some(m => Number(m.completed ?? 0) > 0 || Number(m.cancelled ?? 0) > 0 || Number(m.no_show ?? 0) > 0) ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={apptMonthlyData} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
+                                        <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} allowDecimals={false} />
+                                        <Tooltip contentStyle={TOOLTIP_STYLE} />
+                                        <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                                        <Bar dataKey="completed" stackId="a" fill="var(--success, #38a169)" radius={[0, 0, 0, 0]} name="Completed" />
+                                        <Bar dataKey="cancelled" stackId="a" fill="var(--danger, #e53e3e)"  radius={[0, 0, 0, 0]} name="Cancelled" />
+                                        <Bar dataKey="no_show"   stackId="a" fill="var(--color-warning, #d69e2e)" radius={[4, 4, 0, 0]} name="No Show" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">📅</div>
+                                    <div className="empty-state-title">No appointment data yet</div>
                                 </div>
                             )}
                         </div>
