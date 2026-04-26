@@ -52,9 +52,9 @@ interface RecentPatient {
 interface PendingRequest {
     id: number;
     appointment_date: string;
-    reason_for_appointment: string;
+    reason: string;
     appointment_type: string;
-    patient: string;
+    patient_id: string;
     patient_name: string;
 }
 
@@ -244,7 +244,7 @@ function Dashboard() {
             setActionLoading(true);
             await api.patch(`/consultations/${consultationId}/`, { follow_up_notification_sent: true });
             toast.success('Follow-up acknowledged.');
-            invalidateDashboard();
+            await qc.refetchQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to acknowledge.');
         } finally {
@@ -274,7 +274,7 @@ function Dashboard() {
                         <strong>{stats!.vital_alert_patients} patient{stats!.vital_alert_patients !== 1 ? 's' : ''}</strong>{' '}
                         {stats!.vital_alert_patients !== 1 ? 'have' : 'has'} recent vital alerts in the last 30 days.
                     </div>
-                    <Link to="/patients" className="vital-alerts-link">Review Patients →</Link>
+                    <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review Patients →</Link>
                     <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label="Dismiss">✕</button>
                 </div>
             )}
@@ -432,7 +432,7 @@ function Dashboard() {
                                                     <div className="task-item-title">{req.patient_name}</div>
                                                     <div className="task-item-meta">
                                                         {new Date(req.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ·{' '}
-                                                        {req.reason_for_appointment}
+                                                        {req.reason}
                                                     </div>
                                                 </div>
                                                 <div className="task-item-actions">
@@ -452,7 +452,7 @@ function Dashboard() {
                                                     >
                                                         Decline
                                                     </button>
-                                                    <Link to={`/patients/${req.patient}`} className="btn-task-view">View →</Link>
+                                                    <Link to={`/patients/${req.patient_id}`} className="btn-task-view">View →</Link>
                                                 </div>
                                             </li>
                                         ))}

@@ -328,7 +328,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                         <button
                                                             type="button"
                                                             className="btn btn-primary btn-sm"
-                                                            onClick={() => navigate('/patient/appointments')}
+                                                            onClick={() => navigate(`/patient/appointments?reason=${encodeURIComponent(visit.reason_for_consultation || '')}`)}
                                                         >
                                                             Book a new appointment
                                                         </button>
@@ -341,7 +341,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                             type="button"
                                                             className="btn-ghost"
                                                             style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline', padding: 0 }}
-                                                            onClick={() => navigate('/patient/appointments')}
+                                                            onClick={() => navigate(`/patient/appointments?reason=${encodeURIComponent(visit.reason_for_consultation || '')}`)}
                                                         >
                                                             Book now →
                                                         </button>

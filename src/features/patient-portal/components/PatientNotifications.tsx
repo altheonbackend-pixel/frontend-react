@@ -34,6 +34,7 @@ export default function PatientNotifications() {
         mutationFn: patientPortalService.markNotificationRead,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.notifications() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             invalidateUnreadCount();
         },
         onError: (err) => toast.error(parseApiError(err, 'Failed to mark notification as read.')),
@@ -43,6 +44,7 @@ export default function PatientNotifications() {
         mutationFn: patientPortalService.markAllNotificationsRead,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.notifications() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             invalidateUnreadCount();
             toast.success('All notifications marked as read.');
         },

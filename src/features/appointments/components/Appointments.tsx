@@ -1,7 +1,7 @@
 // src/features/appointments/components/Appointments.tsx
 // Phase 8: Calendar + appointment list side-by-side on desktop
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
@@ -10,7 +10,7 @@ import { type Appointment, type Patient } from '../../../shared/types';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -43,6 +43,17 @@ const Appointments = () => {
     usePageTitle(t('pages.appointments', 'Appointments'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+
+    const patientIdParam = searchParams.get('patient_id') ?? undefined;
+
+    useEffect(() => {
+        if (patientIdParam) {
+            setSelectedAppointment(null);
+            setIsFormVisible(true);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [patientIdParam]);
 
     const [date, setDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState<string>(toYYYYMM(new Date()));
@@ -62,10 +73,11 @@ const Appointments = () => {
     interface PendingRequest {
         id: number;
         appointment_date: string;
-        reason_for_appointment: string;
-        appointment_type: string;
-        patient: string;
+        reason: string;
+        appointment_type?: string;
+        patient_id: string;
         patient_name: string;
+        notes?: string;
     }
 
     const { data: pendingRequests = [], refetch: refetchRequests } = useQuery<PendingRequest[]>({
@@ -204,8 +216,8 @@ const Appointments = () => {
                                         {new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         {' · '}{req.appointment_type?.replace(/_/g, ' ')}
                                     </div>
-                                    {req.reason_for_appointment && (
-                                        <div className="request-card__reason">{req.reason_for_appointment}</div>
+                                    {req.reason && (
+                                        <div className="request-card__reason">{req.reason}</div>
                                     )}
                                 </div>
                                 <div className="request-card__actions">
@@ -386,6 +398,7 @@ const Appointments = () => {
                 <AppointmentForm
                     initialDate={date}
                     appointment={selectedAppointment}
+                    initialPatientId={!selectedAppointment ? patientIdParam : undefined}
                     onSuccess={() => { setIsFormVisible(false); setSelectedAppointment(null); invalidateAll(); }}
                     onCancel={() => { setIsFormVisible(false); setSelectedAppointment(null); }}
                 />

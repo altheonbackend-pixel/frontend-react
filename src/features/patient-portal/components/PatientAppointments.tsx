@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
@@ -31,10 +31,14 @@ const PAST_STATUSES = ['completed', 'cancelled', 'no_show', 'rescheduled'];
 export default function PatientAppointments() {
     usePageTitle('Patient Appointments');
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+
+    const doctorIdParam = Number(searchParams.get('doctor_id') ?? 0);
+    const reasonParam = searchParams.get('reason') ?? '';
 
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [requestOpen, setRequestOpen] = useState(false);
-    const [formData, setFormData] = useState({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
+    const [formData, setFormData] = useState({ doctorId: doctorIdParam, appointmentDate: '', reason: reasonParam, appointmentType: 'in_person', notes: '' });
 
     const [requestDate, setRequestDate] = useState('');
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
@@ -52,6 +56,12 @@ export default function PatientAppointments() {
         queryFn: patientPortalService.getDoctors,
         staleTime: 5 * 60_000,
     });
+
+    useEffect(() => {
+        if (doctorIdParam || reasonParam) {
+            setRequestOpen(true);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const { data: settings } = useQuery({
         queryKey: queryKeys.patientPortal.settings(),
@@ -81,6 +91,7 @@ export default function PatientAppointments() {
         }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setRequestOpen(false);
             setFormData({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
             setRequestDate('');
@@ -94,6 +105,7 @@ export default function PatientAppointments() {
             patientPortalService.rescheduleAppointment(id, date),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setRescheduleTarget(null);
             setRescheduleDate('');
             toast.success('Reschedule request submitted. Awaiting doctor approval.');
@@ -108,6 +120,7 @@ export default function PatientAppointments() {
         mutationFn: (id: number) => patientPortalService.cancelAppointment(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setCancelTarget(null);
             toast.success('Appointment cancelled.');
         },

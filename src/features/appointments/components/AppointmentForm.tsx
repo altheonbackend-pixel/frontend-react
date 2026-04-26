@@ -12,11 +12,12 @@ import '../styles/AppointmentForm.css';
 interface AppointmentFormProps {
     initialDate: Date;
     appointment?: Appointment | null;
+    initialPatientId?: string;
     onSuccess: () => void;
     onCancel: () => void;
 }
 
-const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: AppointmentFormProps) => {
+const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess, onCancel }: AppointmentFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -51,6 +52,9 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
             try {
                 const res = await api.get('/patients/');
                 setPatients(res.data.results ?? res.data);
+                if (initialPatientId) {
+                    reset((prev) => ({ ...prev, patient: initialPatientId }));
+                }
             } catch {
                 setLoadError(t('appointments.form.error_load'));
             } finally {
@@ -58,7 +62,7 @@ const AppointmentForm = ({ initialDate, appointment, onSuccess, onCancel }: Appo
             }
         };
         fetchInitialData();
-    }, [isAuthenticated, t]);
+    }, [isAuthenticated, t, initialPatientId, reset]);
 
     useEffect(() => {
         if (!loading && appointment) {

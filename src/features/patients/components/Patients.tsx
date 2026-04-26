@@ -2,7 +2,7 @@
 // Phase 8: Table on desktop, card grid on mobile, status filter chips, full-row click
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { type Patient } from '../../../shared/types';
@@ -39,6 +39,9 @@ const Patients = () => {
     usePageTitle(t('pages.patients', 'Patients'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const vitalAlertFilter = searchParams.get('vital_alert_recent') === 'true';
 
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -54,14 +57,15 @@ const Patients = () => {
 
     useEffect(() => { setPage(1); }, [statusFilter]);
 
-    const filters = { page, search: debouncedSearch, status: statusFilter };
+    const filters = { page, search: debouncedSearch, status: statusFilter, vital_alert_recent: vitalAlertFilter };
 
     const { data, isLoading, isError } = useQuery({
         queryKey: queryKeys.patients.list(filters),
         queryFn: async () => {
-            const params: Record<string, string | number> = { page, page_size: PAGE_SIZE };
+            const params: Record<string, string | number | boolean> = { page, page_size: PAGE_SIZE };
             if (debouncedSearch) params.search = debouncedSearch;
             if (statusFilter) params.status = statusFilter;
+            if (vitalAlertFilter) params.vital_alert_recent = true;
             const res = await api.get('/doctors/me/patients/', { params });
             return {
                 results: (res.data.results ?? res.data) as Patient[],
@@ -174,6 +178,26 @@ const Patients = () => {
                         {f.label}
                     </button>
                 ))}
+                {vitalAlertFilter && (
+                    <button
+                        onClick={() => { const p = new URLSearchParams(searchParams); p.delete('vital_alert_recent'); setSearchParams(p); setPage(1); }}
+                        style={{
+                            padding: '0.3rem 0.875rem',
+                            borderRadius: '999px',
+                            border: '1.5px solid var(--warning, #f59e0b)',
+                            background: 'var(--warning, #f59e0b)',
+                            color: 'white',
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem',
+                        }}
+                    >
+                        ⚠ Vital Alert Patients <span style={{ opacity: 0.8 }}>×</span>
+                    </button>
+                )}
             </div>
 
             {/* Patient list — table on desktop, cards on mobile */}
@@ -185,14 +209,14 @@ const Patients = () => {
                         <div className="empty-state">
                             <div className="empty-state-icon">👥</div>
                             <div className="empty-state-title">
-                                {debouncedSearch || statusFilter
+                                {debouncedSearch || statusFilter || vitalAlertFilter
                                     ? 'No patients match your filter'
                                     : t('patients.no_patients', 'No patients yet')}
                             </div>
                             <div className="empty-state-subtitle">
-                                {!debouncedSearch && !statusFilter && 'Add your first patient to get started.'}
+                                {!debouncedSearch && !statusFilter && !vitalAlertFilter && 'Add your first patient to get started.'}
                             </div>
-                            {!debouncedSearch && !statusFilter && (
+                            {!debouncedSearch && !statusFilter && !vitalAlertFilter && (
                                 <Link to="/patients/add" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem' }}>
                                     Add Patient
                                 </Link>

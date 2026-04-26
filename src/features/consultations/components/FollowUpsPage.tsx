@@ -51,8 +51,10 @@ function FollowUpsPage() {
             setAcknowledging(id);
             await api.patch(`/consultations/${id}/`, { follow_up_notification_sent: true });
             toast.success('Follow-up acknowledged.');
-            qc.invalidateQueries({ queryKey: ['consultations', 'followUps'] });
-            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+            await Promise.all([
+                qc.refetchQueries({ queryKey: ['consultations', 'followUps'] }),
+                qc.refetchQueries({ queryKey: queryKeys.dashboard() }),
+            ]);
         } catch {
             toast.error('Failed to acknowledge follow-up.');
         } finally {
