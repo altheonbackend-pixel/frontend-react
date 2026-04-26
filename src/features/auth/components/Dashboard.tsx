@@ -143,7 +143,7 @@ function Dashboard() {
         staleTime: 60 * 1000,
     });
 
-    const { data: pendingLabReviews = [], refetch: refetchLabs } = useQuery<LabResult[]>({
+    const { data: pendingLabReviews = [] } = useQuery<LabResult[]>({
         queryKey: ['labs', 'pending-review'],
         queryFn: async () => {
             const res = await api.get('/lab-results/', { params: { review_status: 'pending_review', submitted_by_patient: true } });
@@ -152,7 +152,7 @@ function Dashboard() {
         staleTime: 60_000,
     });
 
-    const { data: appointmentRequests = [], refetch: refetchRequests } = useQuery<PendingRequest[]>({
+    const { data: appointmentRequests = [] } = useQuery<PendingRequest[]>({
         queryKey: ['appointments', 'pending-requests'],
         queryFn: async () => {
             const res = await api.get('/doctor/appointment-requests/');
@@ -174,17 +174,27 @@ function Dashboard() {
     const doctorName = user?.full_name ?? profile?.full_name ?? '';
     const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0;
 
-    const invalidateDashboard = () => qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+    const removeLab = (labId: number) =>
+        qc.setQueryData<LabResult[]>(['labs', 'pending-review'], old => old?.filter(l => l.id !== labId));
+
+    const removeRequest = (apptId: number) =>
+        qc.setQueryData<PendingRequest[]>(['appointments', 'pending-requests'], old => old?.filter(r => r.id !== apptId));
+
+    const removeFollowUp = (consultationId: number) =>
+        qc.setQueryData<DashboardData>(queryKeys.dashboard(), old =>
+            old ? { ...old, due_followups: old.due_followups.filter(f => f.id !== consultationId) } : old
+        );
 
     const handleAcceptLab = async (labId: number) => {
+        removeLab(labId);
         try {
             setActionLoading(true);
             await api.post(`/lab-results/${labId}/review/`, { action: 'accept' });
             toast.success('Lab accepted.');
-            refetchLabs();
-            invalidateDashboard();
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to accept lab.');
+            qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
         } finally {
             setActionLoading(false);
         }
@@ -193,30 +203,33 @@ function Dashboard() {
     const handleRejectLab = async () => {
         if (!rejectLabModal) return;
         if (!rejectLabReason.trim()) { toast.error('Please provide a rejection reason.'); return; }
+        const { id, testName } = rejectLabModal;
+        setRejectLabModal(null);
+        setRejectLabReason('');
+        removeLab(id);
         try {
             setActionLoading(true);
-            await api.post(`/lab-results/${rejectLabModal.id}/review/`, { action: 'reject', rejection_reason: rejectLabReason });
-            toast.success('Lab rejected.');
-            setRejectLabModal(null);
-            setRejectLabReason('');
-            refetchLabs();
-            invalidateDashboard();
+            await api.post(`/lab-results/${id}/review/`, { action: 'reject', rejection_reason: rejectLabReason });
+            toast.success(`Lab "${testName}" rejected.`);
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to reject lab.');
+            qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleApproveAppt = async (apptId: number) => {
+        removeRequest(apptId);
         try {
             setActionLoading(true);
             await api.post(`/appointments/${apptId}/approve/`, {});
             toast.success('Appointment approved.');
-            refetchRequests();
-            invalidateDashboard();
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to approve appointment.');
+            qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
         } finally {
             setActionLoading(false);
         }
@@ -225,29 +238,33 @@ function Dashboard() {
     const handleRejectAppt = async () => {
         if (!rejectApptModal) return;
         if (!rejectApptReason.trim()) { toast.error('Please provide a reason.'); return; }
+        const { id, patientName } = rejectApptModal;
+        setRejectApptModal(null);
+        setRejectApptReason('');
+        removeRequest(id);
         try {
             setActionLoading(true);
-            await api.post(`/appointments/${rejectApptModal.id}/reject/`, { reason: rejectApptReason });
-            toast.success('Request rejected.');
-            setRejectApptModal(null);
-            setRejectApptReason('');
-            refetchRequests();
-            invalidateDashboard();
+            await api.post(`/appointments/${id}/reject/`, { reason: rejectApptReason });
+            toast.success(`Request from ${patientName} rejected.`);
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to reject.');
+            qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
         } finally {
             setActionLoading(false);
         }
     };
 
     const handleAcknowledgeFollowUp = async (consultationId: number) => {
+        removeFollowUp(consultationId);
         try {
             setActionLoading(true);
             await api.patch(`/consultations/${consultationId}/`, { follow_up_notification_sent: true });
             toast.success('Follow-up acknowledged.');
-            await qc.refetchQueries({ queryKey: queryKeys.dashboard() });
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
             toast.error('Failed to acknowledge.');
+            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } finally {
             setActionLoading(false);
         }
