@@ -30,6 +30,7 @@ interface DashboardStats {
     new_consultations_this_week: number;
     pending_lab_reviews: number;
     vital_alert_patients: number;
+    vital_alert_patient_list: { id: string; name: string }[];
 }
 
 interface UpcomingAppt {
@@ -267,17 +268,27 @@ function Dashboard() {
             </div>
 
             {/* Vital alerts banner */}
-            {!vitalAlertDismissed && (stats?.vital_alert_patients ?? 0) > 0 && (
-                <div className="vital-alerts-banner">
-                    <span className="vital-alerts-icon">⚠</span>
-                    <div className="vital-alerts-text">
-                        <strong>{stats!.vital_alert_patients} patient{stats!.vital_alert_patients !== 1 ? 's' : ''}</strong>{' '}
-                        {stats!.vital_alert_patients !== 1 ? 'have' : 'has'} recent vital alerts in the last 30 days.
+            {!vitalAlertDismissed && (stats?.vital_alert_patients ?? 0) > 0 && (() => {
+                const count = stats!.vital_alert_patients;
+                const list = stats!.vital_alert_patient_list ?? [];
+                const single = count === 1 && list[0];
+                return (
+                    <div className="vital-alerts-banner">
+                        <span className="vital-alerts-icon">⚠</span>
+                        <div className="vital-alerts-text">
+                            {single
+                                ? <><strong>{single.name}</strong> has a recent vital alert.</>
+                                : <><strong>{count} patients</strong> have recent vital alerts in the last 30 days.</>
+                            }
+                        </div>
+                        {single
+                            ? <Link to={`/patients/${single.id}`} className="vital-alerts-link">View Patient →</Link>
+                            : <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review Patients →</Link>
+                        }
+                        <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label="Dismiss">✕</button>
                     </div>
-                    <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review Patients →</Link>
-                    <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label="Dismiss">✕</button>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Stats grid */}
             <div className="stats-grid">
@@ -314,13 +325,22 @@ function Dashboard() {
                     value={isLoading ? '…' : stats?.total_procedures ?? 0}
                     variant="default"
                 />
+                {(stats?.follow_up_today ?? 0) > 0 && (
+                    <StatCard
+                        icon={<CalendarIcon />}
+                        label="Follow-ups Due Today"
+                        value={isLoading ? '…' : stats?.follow_up_today ?? 0}
+                        variant="warning"
+                        href="/follow-ups"
+                    />
+                )}
                 {(stats?.pending_patient_requests ?? 0) > 0 && (
                     <StatCard
                         icon={<CalendarIcon />}
                         label="Patient Appointment Requests"
                         value={isLoading ? '…' : stats?.pending_patient_requests ?? 0}
                         variant="warning"
-                        href="/appointments"
+                        href="/appointments?section=requests"
                     />
                 )}
             </div>

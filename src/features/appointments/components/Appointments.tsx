@@ -1,7 +1,7 @@
 // src/features/appointments/components/Appointments.tsx
 // Phase 8: Calendar + appointment list side-by-side on desktop
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
@@ -46,6 +46,8 @@ const Appointments = () => {
     const [searchParams] = useSearchParams();
 
     const patientIdParam = searchParams.get('patient_id') ?? undefined;
+    const sectionParam = searchParams.get('section');
+    const requestsSectionRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (patientIdParam) {
@@ -88,6 +90,12 @@ const Appointments = () => {
         },
         staleTime: 30_000,
     });
+
+    useEffect(() => {
+        if (sectionParam === 'requests' && pendingRequests.length > 0 && requestsSectionRef.current) {
+            setTimeout(() => requestsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+        }
+    }, [sectionParam, pendingRequests.length]);
 
     const handleApprove = async () => {
         if (!approveTarget) return;
@@ -201,7 +209,7 @@ const Appointments = () => {
 
             {/* Pending patient appointment requests */}
             {pendingRequests.length > 0 && (
-                <div className="section-card" style={{ marginBottom: '1.25rem', border: '1px solid var(--color-warning)' }}>
+                <div ref={requestsSectionRef} className="section-card" style={{ marginBottom: '1.25rem', border: '1px solid var(--color-warning)' }}>
                     <div className="section-card-header">
                         <span className="section-card-title" style={{ color: 'var(--color-warning-text)' }}>
                             Patient Appointment Requests ({pendingRequests.length})
