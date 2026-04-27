@@ -127,11 +127,102 @@
   color: var(--text-muted);
 }
 
+/* ── Slot picker ── */
+.slots-loading,
+.slots-day-off {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.slot-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-medium);
+  transition: all var(--transition-fast);
+  min-height: 48px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.slot-free {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.slot-free:hover {
+  background: #bbf7d0;
+  border-color: #4ade80;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(22, 101, 52, 0.15);
+}
+
+.slot-booked {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+  cursor: not-allowed;
+}
+
+.slot-past {
+  background: var(--bg-subtle);
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.slot-selected {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--text-inverse) !important;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.slot-time {
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-sm);
+}
+
+.slot-patient {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  font-weight: var(--fw-medium);
+}
+
+.slot-label {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .appointment-form .form-actions { gap: var(--space-2); }
   .appointment-form .submit-button,
   .appointment-form .cancel-button { flex: 1; }
+  .slot-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 480px) {
