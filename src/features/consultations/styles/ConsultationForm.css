@@ -462,3 +462,51 @@
 .lab-status-dot--ordered  { background: var(--color-warning, #d69e2e); }
 .lab-status-dot--complete { background: var(--color-success, #38a169); }
 .lab-status-dot--reviewed { background: var(--color-success, #38a169); }
+
+/* ── Vital alerts inline banner ── */
+.vital-alerts-banner {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #c53030;
+  font-size: var(--text-sm, 0.875rem);
+}
+.vital-alerts-banner strong { display: block; margin-bottom: 0.35rem; }
+.vital-alerts-banner ul { margin: 0; padding-left: 1.25rem; }
+.vital-alerts-banner li { margin-bottom: 0.15rem; }
+
+/* ── Visible-to-patient toggle ── */
+.visible-to-patient-toggle { border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem 1rem; }
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+.toggle-label { display: flex; flex-direction: column; gap: 0.2rem; font-weight: var(--fw-semibold); }
+.toggle-hint { font-size: var(--text-xs, 0.75rem); font-weight: 400; color: var(--text-muted); }
+input[type="checkbox"][role="switch"] {
+  appearance: none;
+  width: 2.5rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  background: var(--border-subtle, #cbd5e0);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+input[type="checkbox"][role="switch"]:checked { background: var(--color-primary, #3182ce); }
+input[type="checkbox"][role="switch"]::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 1rem; height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s;
+}
+input[type="checkbox"][role="switch"]:checked::after { left: calc(100% - 1.125rem); }

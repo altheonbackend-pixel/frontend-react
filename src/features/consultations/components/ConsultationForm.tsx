@@ -149,6 +149,23 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     // Block in-app navigation (sidebar links, back button) when form has unsaved changes
     useNavigationBlocker(isDirty || failedRx.length > 0);
 
+    // Real-time vital alert computation — mirrors backend compute_vital_alerts()
+    const watchedSp2 = watch('sp2');
+    const watchedTemp = watch('temperature');
+    const watchedSystolic = watch('bp_systolic');
+    const watchedDiastolic = watch('bp_diastolic');
+    const vitalAlerts: string[] = [];
+    if (watchedSp2 != null && watchedSp2 < 94) vitalAlerts.push(`SpO2 ${watchedSp2}% — below normal (≥94%)`);
+    if (watchedTemp != null && watchedTemp > 38.5) vitalAlerts.push(`Fever: ${watchedTemp}°C (normal ≤38.5°C)`);
+    if (watchedTemp != null && watchedTemp < 35.5) vitalAlerts.push(`Hypothermia: ${watchedTemp}°C`);
+    if (watchedSystolic != null && watchedSystolic > 180) vitalAlerts.push(`Hypertensive crisis: systolic ${watchedSystolic} mmHg`);
+    if (watchedSystolic != null && watchedSystolic < 90) vitalAlerts.push(`Hypotension: systolic ${watchedSystolic} mmHg`);
+    if (watchedDiastolic != null && watchedDiastolic > 120) vitalAlerts.push(`Hypertensive urgency: diastolic ${watchedDiastolic} mmHg`);
+    const hasVitalAlerts = vitalAlerts.length > 0;
+
+    const [vitalsConfirmOpen, setVitalsConfirmOpen] = useState(false);
+    const [pendingSubmitData, setPendingSubmitData] = useState<ConsultationFormData | null>(null);
+
     // Lab orders for this visit
     interface LabOrderDraft { id: string; test_name: string; notes: string; }
     const [labList, setLabList] = useState<LabOrderDraft[]>([]);
@@ -211,12 +228,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         }
     };
 
-    const onSubmit = async (data: ConsultationFormData) => {
-        if (!isAuthenticated) {
-            toast.error(t('consultation.error.auth'));
-            return;
-        }
-
+    const doSubmit = async (data: ConsultationFormData) => {
         try {
             const dataToSend = {
                 ...data,
@@ -316,6 +328,20 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         }
     };
 
+    const onSubmit = async (data: ConsultationFormData) => {
+        if (!isAuthenticated) {
+            toast.error(t('consultation.error.auth'));
+            return;
+        }
+        if (hasVitalAlerts && !vitalsConfirmOpen) {
+            setPendingSubmitData(data);
+            setVitalsConfirmOpen(true);
+            return;
+        }
+        setPendingSubmitData(null);
+        await doSubmit(data);
+    };
+
     const isEditing = !!consultationToEdit;
 
     const handleCreateFollowUpAppointment = async () => {
@@ -356,6 +382,27 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
     return (
         <>
+        <Dialog
+            open={vitalsConfirmOpen}
+            tone="danger"
+            title="Critical vitals detected"
+            message={
+                <div>
+                    <p style={{ marginBottom: '0.5rem' }}>This consultation has the following critical readings:</p>
+                    <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                        {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
+                    </ul>
+                    <p style={{ marginTop: '0.75rem' }}>Confirm to proceed with saving.</p>
+                </div>
+            }
+            confirmLabel="Confirm and save"
+            cancelLabel="Go back and review"
+            onConfirm={() => {
+                setVitalsConfirmOpen(false);
+                if (pendingSubmitData) doSubmit(pendingSubmitData);
+            }}
+            onClose={() => { setVitalsConfirmOpen(false); setPendingSubmitData(null); }}
+        />
         <Dialog
             open={!!pendingFollowUp}
             tone="info"
@@ -480,6 +527,32 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                             {...register('bp_diastolic', { setValueAs: numericValueAs })} />
                         {errors.bp_diastolic && <span className="field-error">{errors.bp_diastolic.message}</span>}
                     </div>
+                </div>
+
+                {hasVitalAlerts && (
+                    <div className="vital-alerts-banner" role="alert">
+                        <strong>Clinical alert</strong>
+                        <ul>
+                            {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
+                        </ul>
+                    </div>
+                )}
+
+                <hr />
+
+                {/* Visible to patient toggle */}
+                <div className="form-group visible-to-patient-toggle">
+                    <label className="toggle-row">
+                        <span className="toggle-label">
+                            Share with patient portal
+                            <span className="toggle-hint">Patient can see diagnosis, summary, and prescriptions when enabled</span>
+                        </span>
+                        <input
+                            type="checkbox"
+                            role="switch"
+                            {...register('visible_to_patient')}
+                        />
+                    </label>
                 </div>
 
                 <hr />
