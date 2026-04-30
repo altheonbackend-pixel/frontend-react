@@ -41,6 +41,7 @@ export default function PatientAppointments() {
     const [formData, setFormData] = useState({ doctorId: doctorIdParam, appointmentDate: '', reason: reasonParam, appointmentType: 'in_person', notes: '' });
 
     const [requestDate, setRequestDate] = useState('');
+    const [nextDatesOpen, setNextDatesOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
@@ -78,6 +79,14 @@ export default function PatientAppointments() {
     });
     const availableSlots = slotsData?.slots ?? [];
     const doctorAvailable = slotsData?.doctor_available ?? true;
+
+    const { data: nextDatesData, isFetching: nextDatesLoading } = useQuery({
+        queryKey: ['patient', 'next-available-dates', formData.doctorId],
+        queryFn: () => patientPortalService.getNextAvailableDates(formData.doctorId, 14),
+        enabled: nextDatesOpen && formData.doctorId > 0,
+        staleTime: 60_000,
+    });
+    const nextAvailableDates = nextDatesData?.available_dates ?? [];
 
     const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
         mutationFn: () => patientPortalService.requestAppointment({
@@ -386,6 +395,60 @@ export default function PatientAppointments() {
                                 setFormData(p => ({ ...p, appointmentDate: '' }));
                             }}
                         />
+                        {formData.doctorId > 0 && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() => setNextDatesOpen(o => !o)}
+                                    style={{ fontSize: '0.8rem' }}
+                                >
+                                    {nextDatesOpen ? 'Hide' : 'Find next available dates →'}
+                                </button>
+                                {nextDatesOpen && (
+                                    <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                                        {nextDatesLoading && (
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Checking availability…</div>
+                                        )}
+                                        {!nextDatesLoading && nextAvailableDates.length === 0 && (
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No available dates found in the next 14 days.</div>
+                                        )}
+                                        {!nextDatesLoading && nextAvailableDates.length > 0 && (
+                                            <>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                                                    Next available — tap to select
+                                                </div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                    {nextAvailableDates.map(d => (
+                                                        <button
+                                                            key={d}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setRequestDate(d);
+                                                                setFormData(p => ({ ...p, appointmentDate: '' }));
+                                                                setNextDatesOpen(false);
+                                                            }}
+                                                            style={{
+                                                                padding: '0.3rem 0.75rem',
+                                                                borderRadius: '999px',
+                                                                border: `2px solid ${requestDate === d ? 'var(--accent)' : 'var(--border-default)'}`,
+                                                                background: requestDate === d ? 'var(--accent)' : 'var(--bg-card)',
+                                                                color: requestDate === d ? '#fff' : 'var(--text-primary)',
+                                                                fontWeight: requestDate === d ? 700 : 400,
+                                                                fontSize: '0.8rem',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            {new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     {requestDate && formData.doctorId > 0 && (
                         <div className="form-group">

@@ -57,12 +57,15 @@ const Appointments = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [patientIdParam]);
 
+    const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
     const [date, setDate] = useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = useState<string>(toYYYYMM(new Date()));
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-    const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'cancel' | 'no_show' } | null>(null);
+    const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'no_show' } | null>(null);
+    const [cancelTarget, setCancelTarget] = useState<{ id: number } | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
     const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
@@ -144,6 +147,42 @@ const Appointments = () => {
         staleTime: 60 * 1000,
     });
 
+    // Week view helpers
+    const getWeekStart = (d: Date) => {
+        const day = d.getDay(); // 0=Sun
+        const diff = (day === 0 ? -6 : 1 - day); // shift to Monday
+        const mon = new Date(d);
+        mon.setDate(d.getDate() + diff);
+        mon.setHours(0, 0, 0, 0);
+        return mon;
+    };
+    const weekStart = getWeekStart(date);
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(weekStart.getDate() + i);
+        return d;
+    });
+    const weekMonthParam = toYYYYMM(weekStart);
+    const weekMonthParam2 = toYYYYMM(weekDays[6]); // may span two months
+
+    const { data: weekAppointments = [], isLoading: weekLoading } = useQuery({
+        queryKey: ['appointments', 'week', toYYYYMMDD(weekStart)],
+        queryFn: async () => {
+            const month = weekMonthParam;
+            const res = await api.get('/appointments/', { params: { month } });
+            const list: AppointmentWithDetails[] = res.data.results ?? res.data;
+            // If week spans two months, fetch second month too
+            if (weekMonthParam2 !== weekMonthParam) {
+                const res2 = await api.get('/appointments/', { params: { month: weekMonthParam2 } });
+                const list2: AppointmentWithDetails[] = res2.data.results ?? res2.data;
+                return [...list, ...list2].sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+            }
+            return list.sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+        },
+        enabled: viewMode === 'week',
+        staleTime: 60 * 1000,
+    });
+
     const invalidateAll = () => queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
     const executeReschedule = async () => {
@@ -183,6 +222,19 @@ const Appointments = () => {
         } catch (err) {
             toast.error(parseApiError(err, t('appointments.error.action')));
             setLifecycleConfirm(null);
+        }
+    };
+
+    const executeCancelWithReason = async () => {
+        if (!cancelTarget) return;
+        try {
+            await api.post(`/appointments/${cancelTarget.id}/cancel/`, { reason: cancelReason });
+            toast.success('Appointment cancelled.');
+            setCancelTarget(null);
+            setCancelReason('');
+            invalidateAll();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to cancel appointment.'));
         }
     };
 
@@ -248,8 +300,102 @@ const Appointments = () => {
                 </div>
             )}
 
-            {/* Side-by-side layout on desktop */}
-            <div className="appt-layout">
+            {/* View mode toggle */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <button
+                    className={`btn btn-sm ${viewMode === 'day' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setViewMode('day')}
+                >
+                    Day view
+                </button>
+                <button
+                    className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}`}
+                    onClick={() => setViewMode('week')}
+                >
+                    Week view
+                </button>
+            </div>
+
+            {/* Week view */}
+            {viewMode === 'week' && (
+                <div className="section-card" style={{ marginBottom: '1.25rem' }}>
+                    <div className="section-card-header">
+                        <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setDate(d); }}
+                        >← Prev</button>
+                        <span className="section-card-title" style={{ fontSize: '0.95rem' }}>
+                            {weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            {' — '}
+                            {weekDays[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setDate(d); }}
+                        >Next →</button>
+                    </div>
+                    <div className="section-card-body" style={{ padding: '0.5rem' }}>
+                        {weekLoading && <div style={{ padding: '1rem' }}><TabSkeleton rows={3} /></div>}
+                        {!weekLoading && (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
+                                {weekDays.map(day => {
+                                    const dayStr = toYYYYMMDD(day);
+                                    const isToday = dayStr === toYYYYMMDD(new Date());
+                                    const dayAppts = weekAppointments.filter(a =>
+                                        new Date(a.appointment_date).toLocaleDateString('en-CA') === dayStr
+                                    );
+                                    return (
+                                        <div
+                                            key={dayStr}
+                                            style={{
+                                                border: isToday ? '2px solid var(--accent)' : '1px solid var(--border-default)',
+                                                borderRadius: 'var(--radius-md)',
+                                                padding: '0.5rem',
+                                                minHeight: '120px',
+                                                cursor: 'pointer',
+                                                background: isToday ? 'var(--accent-lighter)' : 'var(--bg-card)',
+                                            }}
+                                            onClick={() => { setDate(day); setViewMode('day'); }}
+                                        >
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: isToday ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                                                {day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}
+                                                <br />
+                                                <span style={{ fontSize: '1rem', color: isToday ? 'var(--accent)' : 'var(--text-primary)' }}>
+                                                    {day.getDate()}
+                                                </span>
+                                            </div>
+                                            {dayAppts.map(appt => {
+                                                const pName = appt.patient_details
+                                                    ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}`
+                                                    : 'Patient';
+                                                return (
+                                                    <div
+                                                        key={appt.id}
+                                                        className={`appt-card appt-card--${appt.status.replace('_', '-')}`}
+                                                        style={{ marginBottom: '0.3rem', padding: '0.3rem 0.45rem', fontSize: '0.72rem' }}
+                                                        onClick={e => { e.stopPropagation(); setDate(day); setViewMode('day'); }}
+                                                    >
+                                                        <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pName}</div>
+                                                        <div style={{ opacity: 0.75 }}>
+                                                            {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {dayAppts.length === 0 && (
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>—</div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Side-by-side layout on desktop (day view) */}
+            {viewMode === 'day' && <div className="appt-layout">
                 {/* Calendar panel */}
                 <div className="section-card">
                     <div className="section-card-body" style={{ padding: '1rem' }}>
@@ -362,7 +508,7 @@ const Appointments = () => {
                                                     Reschedule
                                                 </button>
                                                 <button
-                                                    onClick={() => setLifecycleConfirm({ id: appt.id, action: 'cancel' })}
+                                                    onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
                                                     className="btn-danger-outline btn-sm"
                                                     aria-label="Cancel appointment"
                                                 >
@@ -399,7 +545,7 @@ const Appointments = () => {
                         })}
                     </div>
                 </div>
-            </div>
+            </div>}
 
             {/* Forms & Modals */}
             {isFormVisible && (
@@ -430,7 +576,7 @@ const Appointments = () => {
                 message={lifecycleConfirm
                     ? t(`appointments.lifecycle.${lifecycleConfirm.action}_message`, { defaultValue: 'This action will update the appointment status. Are you sure?' })
                     : ''}
-                tone={lifecycleConfirm?.action === 'cancel' || lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
+                tone={lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
                 confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
             />
 
@@ -483,6 +629,32 @@ const Appointments = () => {
                         <div className="btn-row btn-row--mt">
                             <button className="btn btn-secondary btn-full" onClick={() => setApproveTarget(null)}>Cancel</button>
                             <button className="btn btn-success btn-full" onClick={handleApprove}>Approve</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel appointment reason modal */}
+            {cancelTarget && (
+                <div className="modal-overlay" onClick={() => setCancelTarget(null)}>
+                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
+                        <h3 className="modal-title">Cancel Appointment</h3>
+                        <p className="card-meta" style={{ marginBottom: '1rem' }}>
+                            The patient will be notified. Providing a reason helps them understand what to do next.
+                        </p>
+                        <div className="form-group">
+                            <label htmlFor="cancel-reason">Reason for cancellation (optional)</label>
+                            <textarea
+                                id="cancel-reason"
+                                rows={3}
+                                value={cancelReason}
+                                onChange={e => setCancelReason(e.target.value)}
+                                placeholder="e.g. Doctor unavailable. Please call to reschedule."
+                            />
+                        </div>
+                        <div className="btn-row btn-row--mt">
+                            <button className="btn btn-secondary btn-full" onClick={() => setCancelTarget(null)}>Keep appointment</button>
+                            <button className="btn btn-danger btn-full" onClick={executeCancelWithReason}>Confirm cancellation</button>
                         </div>
                     </div>
                 </div>

@@ -327,6 +327,12 @@ export const patientPortalService = {
             { params: { doctor_id: doctorId, date } },
         ).then(r => r.data),
 
+    getNextAvailableDates: (doctorId: number, days = 14) =>
+        api.get<{ doctor_id: number; available_dates: string[] }>(
+            '/patient/appointments/next-available/',
+            { params: { doctor_id: doctorId, days } },
+        ).then(r => r.data),
+
     changePassword: (data: { current_password: string; new_password: string; confirm_password: string }) =>
         api.post('/patient/change-password/', data).then(r => r.data),
 };

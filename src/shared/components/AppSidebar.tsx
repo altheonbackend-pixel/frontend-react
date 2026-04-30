@@ -31,8 +31,8 @@ const Icons = {
 const NAV_LINKS = [
     { to: '/dashboard',    icon: Icons.dashboard,    labelKey: 'nav.dashboard',    label: 'Dashboard' },
     { to: '/patients',     icon: Icons.patients,     labelKey: 'nav.patients',     label: 'Patients' },
-    { to: '/appointments', icon: Icons.appointments, labelKey: 'nav.appointments', label: 'Appointments' },
-    { to: '/referrals',    icon: Icons.referrals,    labelKey: 'nav.referrals',    label: 'Referrals' },
+    { to: '/appointments', icon: Icons.appointments, labelKey: 'nav.appointments', label: 'Appointments', badgeKey: 'appointments' },
+    { to: '/referrals',    icon: Icons.referrals,    labelKey: 'nav.referrals',    label: 'Referrals',    badgeKey: 'referrals' },
     { to: '/notebook',     icon: Icons.notebook,     labelKey: 'nav.notebook',     label: 'Notebook' },
     { to: '/my-stats',     icon: Icons.stats,        labelKey: 'nav.stats',        label: 'My Stats' },
     { to: '/audit-log',   icon: Icons.audit,        labelKey: 'nav.audit',        label: 'Activity Log' },
@@ -50,6 +50,18 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
         },
         staleTime: 60_000,
         refetchInterval: 60_000,
+        enabled: userType === 'doctor',
+    });
+
+    const { data: pendingRequestCount = 0 } = useQuery<number>({
+        queryKey: ['appointments', 'pending-requests-count'],
+        queryFn: async () => {
+            const res = await api.get('/doctor/appointment-requests/');
+            const list = res.data.results ?? res.data;
+            return Array.isArray(list) ? list.length : 0;
+        },
+        staleTime: 30_000,
+        refetchInterval: 30_000,
         enabled: userType === 'doctor',
     });
 
@@ -104,20 +116,26 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
             {/* Main nav */}
             <nav className="sidebar-nav" role="navigation">
                 <div className="sidebar-nav-section">Main</div>
-                {NAV_LINKS.map(link => (
-                    <NavLink
-                        key={link.to}
-                        to={link.to}
-                        className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}
-                        onClick={onClose}
-                    >
-                        {link.icon}
-                        {t(link.labelKey, link.label)}
-                        {link.to === '/referrals' && incomingReferralCount > 0 && (
-                            <span className="sidebar-badge">{incomingReferralCount}</span>
-                        )}
-                    </NavLink>
-                ))}
+                {NAV_LINKS.map(link => {
+                    const badge =
+                        link.badgeKey === 'referrals' ? incomingReferralCount :
+                        link.badgeKey === 'appointments' ? pendingRequestCount :
+                        0;
+                    return (
+                        <NavLink
+                            key={link.to}
+                            to={link.to}
+                            className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}
+                            onClick={onClose}
+                        >
+                            {link.icon}
+                            {t(link.labelKey, link.label)}
+                            {badge > 0 && (
+                                <span className="sidebar-badge">{badge}</span>
+                            )}
+                        </NavLink>
+                    );
+                })}
             </nav>
 
             {/* Bottom section */}
