@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
+import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import api from '../../../shared/services/api';
 
 const patientSchema = z.object({
@@ -78,6 +79,18 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         }
     }, [patientToEdit, reset]);
 
+    // Draft auto-save for new patient forms only (editing uses server data)
+    const { loadDraft, saveDraft, clearDraft } = useFormDraft<PatientFormData>('patient_new');
+    const draftTimerRef2 = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (patientToEdit) return;
+        const entry = loadDraft();
+        if (entry) {
+            reset(entry.data);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     // Duplicate detection for new patients — watches name + DOB fields
     const firstName = watch('first_name');
     const lastName = watch('last_name');
@@ -102,6 +115,17 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         }
         return () => { if (dupTimerRef.current) clearTimeout(dupTimerRef.current); };
     }, [firstName, lastName, dateOfBirth, patientToEdit]);
+
+    // Debounce-save draft on form changes (new patients only)
+    useEffect(() => {
+        if (patientToEdit) return;
+        if (draftTimerRef2.current) clearTimeout(draftTimerRef2.current);
+        if (isDirty) {
+            draftTimerRef2.current = setTimeout(() => saveDraft(watch()), 1500);
+        }
+        return () => { if (draftTimerRef2.current) clearTimeout(draftTimerRef2.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [firstName, lastName, dateOfBirth, isDirty]);
 
     const onSubmit = async (data: PatientFormData) => {
         if (!isAuthenticated) {
@@ -133,6 +157,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
 
             if (response.status === 201 || response.status === 200) {
                 toast.success(patientToEdit ? t('patient_form.success.edit') : t('patient_form.success.add'));
+                clearDraft();
                 onSuccess(response.data);
                 onCancel();
             }

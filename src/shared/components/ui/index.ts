@@ -9,6 +9,6 @@ export type { DialogProps, DialogTone } from './Dialog';
 
 export { toast, parseApiError } from './toast';
 
-export { Skeleton, DashboardSkeleton, PatientListSkeleton, PatientDetailSkeleton } from './Skeleton';
+export { Skeleton, DashboardSkeleton, PatientListSkeleton, PatientDetailSkeleton, SkeletonCard, SkeletonList } from './Skeleton';
 
 export { ErrorState } from './ErrorState';

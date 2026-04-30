@@ -82,6 +82,43 @@ export function PatientListSkeleton() {
   );
 }
 
+interface SkeletonCardProps {
+  rows?: number;
+  avatar?: boolean;
+}
+
+export function SkeletonCard({ rows = 3, avatar = false }: SkeletonCardProps) {
+  return (
+    <div
+      style={{
+        padding: '1rem',
+        background: 'var(--color-surface)',
+        borderRadius: '10px',
+        display: 'flex',
+        gap: '0.75rem',
+        alignItems: 'flex-start',
+      }}
+    >
+      {avatar && <Skeleton width="40px" height="40px" borderRadius="50%" />}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {Array.from({ length: rows }).map((_, i) => (
+          <Skeleton key={i} height="0.875rem" width={i === 0 ? '45%' : i === rows - 1 ? '30%' : '75%'} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SkeletonList({ count = 5, avatar = false }: { count?: number; avatar?: boolean }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <SkeletonCard key={i} avatar={avatar} />
+      ))}
+    </div>
+  );
+}
+
 export function PatientDetailSkeleton() {
   return (
     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

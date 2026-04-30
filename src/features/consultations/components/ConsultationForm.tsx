@@ -7,6 +7,7 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import api from '../../../shared/services/api';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
+import { useNavigationBlocker } from '../../../shared/hooks/useNavigationBlocker';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
 import { FailedPrescriptionsPanel, type RxItem } from './FailedPrescriptionsPanel';
 import '../styles/ConsultationForm.css';
@@ -144,6 +145,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [rxList, setRxList] = useState<RxDraft[]>([]);
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
     const [failedRx, setFailedRx] = useState<RxItem[]>([]);
+
+    // Block in-app navigation (sidebar links, back button) when form has unsaved changes
+    useNavigationBlocker(isDirty || failedRx.length > 0);
 
     // Lab orders for this visit
     interface LabOrderDraft { id: string; test_name: string; notes: string; }
