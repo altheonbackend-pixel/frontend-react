@@ -244,6 +244,8 @@ const PatientDetails = () => {
     const [portalInviteEmail, setPortalInviteEmail] = useState('');
     const [portalInviteSending, setPortalInviteSending] = useState(false);
     const [portalSettingsSaving, setPortalSettingsSaving] = useState(false);
+    const [sharingPreview, setSharingPreview] = useState<{ total_hidden: number; hidden_counts: Record<string, number> } | null>(null);
+    const [applyingDefaults, setApplyingDefaults] = useState(false);
     const [shareConsultationId, setShareConsultationId] = useState<number | null>(null);
     const [shareConsultationSummary, setShareConsultationSummary] = useState('');
     const [shareLabId, setShareLabId] = useState<number | null>(null);
@@ -305,10 +307,33 @@ const PatientDetails = () => {
         try {
             await api.patch(`/patients/${id}/portal/settings/`, { [field]: !currentValue });
             refetchPortalStatus();
+            setSharingPreview(null);
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to update portal settings.'));
         } finally {
             setPortalSettingsSaving(false);
+        }
+    };
+
+    const checkSharingDefaults = async () => {
+        if (!id) return;
+        try {
+            const res = await api.post(`/patients/${id}/portal/apply-sharing-defaults/`);
+            setSharingPreview(res.data);
+        } catch { /* ignore */ }
+    };
+
+    const applyAllSharingDefaults = async () => {
+        if (!id) return;
+        setApplyingDefaults(true);
+        try {
+            await api.post(`/patients/${id}/portal/apply-sharing-defaults/`, { confirm: true });
+            toast.success('Sharing defaults applied to existing records.');
+            setSharingPreview(null);
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to apply sharing defaults.'));
+        } finally {
+            setApplyingDefaults(false);
         }
     };
 
@@ -2089,6 +2114,31 @@ const PatientDetails = () => {
                                                     </div>
                                                 );
                                             })}
+                                            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
+                                                {sharingPreview === null ? (
+                                                    <button type="button" className="btn btn-sm btn-secondary" onClick={checkSharingDefaults}>
+                                                        Check existing hidden records
+                                                    </button>
+                                                ) : sharingPreview.total_hidden === 0 ? (
+                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                                                        All existing records already match your sharing defaults.
+                                                    </span>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                                                            <strong>{sharingPreview.total_hidden}</strong> existing record(s) are hidden but would be shared under current defaults.
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-sm btn-primary"
+                                                            onClick={applyAllSharingDefaults}
+                                                            disabled={applyingDefaults}
+                                                        >
+                                                            {applyingDefaults ? 'Applying…' : 'Apply to existing records'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 )}
