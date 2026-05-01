@@ -28,6 +28,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     const { isAuthenticated } = useAuth();
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
     const [specialtyFilter, setSpecialtyFilter] = useState('');
+    const [acceptingOnly, setAcceptingOnly] = useState(true);
 
     const {
         register,
@@ -54,11 +55,12 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     const isExternal = watch('is_external');
     const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const fetchDoctors = async (specialty?: string) => {
+    const fetchDoctors = async (specialty?: string, accepting?: boolean) => {
         if (!isAuthenticated) return;
         try {
             const params: Record<string, string> = {};
             if (specialty) params.specialty = specialty;
+            if (accepting) params.accepting_referrals = 'true';
             const response = await api.get('/doctors/', { params });
             setDoctors(response.data.results ?? response.data);
         } catch {
@@ -67,7 +69,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     };
 
     useEffect(() => {
-        fetchDoctors();
+        fetchDoctors(undefined, acceptingOnly);
         return () => {
             if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
         };
@@ -77,7 +79,14 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
         const val = e.target.value;
         setSpecialtyFilter(val);
         setValue('referred_to', null);
-        fetchDoctors(val || undefined);
+        fetchDoctors(val || undefined, acceptingOnly);
+    };
+
+    const handleAcceptingToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const checked = e.target.checked;
+        setAcceptingOnly(checked);
+        setValue('referred_to', null);
+        fetchDoctors(specialtyFilter || undefined, checked);
     };
 
     useEffect(() => {
@@ -172,6 +181,19 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
 
                 {!isExternal ? (
                     <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                            <input
+                                type="checkbox"
+                                id="accepting_only"
+                                checked={acceptingOnly}
+                                onChange={handleAcceptingToggle}
+                                style={{ cursor: 'pointer' }}
+                            />
+                            <label htmlFor="accepting_only" style={{ margin: 0, fontSize: '0.875rem', cursor: 'pointer' }}>
+                                Accepting referrals only
+                            </label>
+                        </div>
+
                         <div className="form-group">
                             <label htmlFor="specialty_filter">Filter by Specialty</label>
                             <select

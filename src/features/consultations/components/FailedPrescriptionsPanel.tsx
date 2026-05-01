@@ -9,6 +9,7 @@ export interface RxItem {
     duration_days: number | null;
     consultation: number;
     patient: string;
+    override_allergy_warning?: boolean;
 }
 
 interface Props {

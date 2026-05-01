@@ -26,6 +26,9 @@ function FollowUpsPage() {
     const qc = useQueryClient();
     const [filter, setFilter] = useState<Filter>('overdue');
     const [acknowledging, setAcknowledging] = useState<number | null>(null);
+    const [dismissTarget, setDismissTarget] = useState<number | null>(null);
+    const [dismissReason, setDismissReason] = useState('');
+    const [dismissing, setDismissing] = useState(false);
 
     const daysAheadMap: Record<Filter, number> = {
         overdue: 0,
@@ -62,6 +65,26 @@ function FollowUpsPage() {
         }
     };
 
+    const handleDismiss = async () => {
+        if (dismissTarget === null) return;
+        setDismissing(true);
+        try {
+            await api.post(`/consultations/${dismissTarget}/dismiss-follow-up/`, { reason: dismissReason });
+            toast.success('Follow-up dismissed.');
+            setDismissTarget(null);
+            setDismissReason('');
+            await Promise.all([
+                qc.refetchQueries({ queryKey: ['consultations', 'followUps'] }),
+                qc.refetchQueries({ queryKey: ['consultations', 'overdue-count'] }),
+                qc.refetchQueries({ queryKey: queryKeys.dashboard() }),
+            ]);
+        } catch {
+            toast.error('Failed to dismiss follow-up.');
+        } finally {
+            setDismissing(false);
+        }
+    };
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const weekFromNow = new Date(today);
@@ -69,6 +92,34 @@ function FollowUpsPage() {
 
     return (
         <>
+            {/* Dismiss reason modal */}
+            {dismissTarget !== null && (
+                <div className="modal-overlay" onClick={() => { setDismissTarget(null); setDismissReason(''); }}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+                        <h3 style={{ marginTop: 0 }}>Dismiss follow-up</h3>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: 0 }}>
+                            This follow-up will be hidden from the list. Optionally provide a reason.
+                        </p>
+                        <textarea
+                            autoFocus
+                            rows={3}
+                            placeholder="Reason for dismissal (optional)"
+                            value={dismissReason}
+                            onChange={e => setDismissReason(e.target.value)}
+                            style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical' }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
+                            <button type="button" className="btn-task-secondary" onClick={() => { setDismissTarget(null); setDismissReason(''); }}>
+                                Cancel
+                            </button>
+                            <button type="button" className="btn-task-accept" disabled={dismissing} onClick={handleDismiss}>
+                                {dismissing ? 'Dismissing…' : 'Confirm dismiss'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <PageHeader
                 title="Follow-up Due"
                 subtitle="Consultations requiring a return visit"
@@ -157,6 +208,13 @@ function FollowUpsPage() {
                                                             onClick={() => handleAcknowledge(f.id)}
                                                         >
                                                             {acknowledging === f.id ? '…' : 'Acknowledge'}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="btn-task-secondary"
+                                                            onClick={() => setDismissTarget(f.id)}
+                                                        >
+                                                            Dismiss
                                                         </button>
                                                     </div>
                                                 </td>

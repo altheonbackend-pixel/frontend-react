@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
@@ -139,12 +140,28 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [symptoms]);
 
+    // Patient drug allergies — used for inline banner and pre-submission conflict check
+    const { data: drugAllergies = [] } = useQuery<Array<{ allergen: string; severity: string }>>({
+        queryKey: ['patients', patientId, 'drug-allergies'],
+        queryFn: async () => {
+            const res = await api.get(`/patients/${patientId}/`);
+            const records: Array<{ allergen: string; reaction_type: string; severity: string; is_active: boolean }> = res.data.allergy_records || [];
+            return records.filter(a => a.reaction_type === 'drug' && a.is_active);
+        },
+        staleTime: 5 * 60_000,
+        enabled: !consultationToEdit,
+    });
+
     // Prescriptions for this visit — compact multi-medicine adder
-    type RxDraft = { medication_name: string; dosage: string; frequency: string; duration_days: string };
+    type RxDraft = { medication_name: string; dosage: string; frequency: string; duration_days: string; overrideAllergy?: boolean };
     const emptyRxDraft = (): RxDraft => ({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '' });
     const [rxList, setRxList] = useState<RxDraft[]>([]);
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
     const [failedRx, setFailedRx] = useState<RxItem[]>([]);
+    const [allergyOverrideDialog, setAllergyOverrideDialog] = useState<{
+        rx: RxDraft;
+        conflicts: Array<{ allergen: string; severity: string }>;
+    } | null>(null);
 
     // Block in-app navigation (sidebar links, back button) when form has unsaved changes
     useNavigationBlocker(isDirty || failedRx.length > 0);
@@ -186,8 +203,23 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
     const pushRxToList = () => {
         if (!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()) return;
+        const medLower = rxDraft.medication_name.trim().toLowerCase();
+        const conflicts = drugAllergies.filter(a =>
+            a.allergen.toLowerCase().includes(medLower) || medLower.includes(a.allergen.toLowerCase())
+        );
+        if (conflicts.length > 0) {
+            setAllergyOverrideDialog({ rx: rxDraft, conflicts });
+            return;
+        }
         setRxList(prev => [...prev, { ...rxDraft }]);
         setRxDraft(emptyRxDraft());
+    };
+
+    const confirmAllergyOverride = () => {
+        if (!allergyOverrideDialog) return;
+        setRxList(prev => [...prev, { ...allergyOverrideDialog.rx, overrideAllergy: true }]);
+        setRxDraft(emptyRxDraft());
+        setAllergyOverrideDialog(null);
     };
 
     // Edit mode: populate form from existing consultation
@@ -258,6 +290,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         dosage: rx.dosage,
                         frequency: rx.frequency,
                         duration_days: rx.duration_days ? parseInt(rx.duration_days, 10) : null,
+                        ...(rx.overrideAllergy ? { override_allergy_warning: true } : {}),
                     }));
                     const results = await Promise.allSettled(
                         rxPayloads.map(rx => api.post('/prescriptions/', rx))
@@ -422,6 +455,20 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             cancelLabel="Go back and save"
             onConfirm={() => { setFailedRx([]); setShowCloseWithFailedRxWarning(false); onCancel(); }}
             onClose={() => setShowCloseWithFailedRxWarning(false)}
+        />
+        <Dialog
+            open={!!allergyOverrideDialog}
+            tone="warning"
+            title="Allergy conflict detected"
+            message={allergyOverrideDialog ? (
+                `${allergyOverrideDialog.rx.medication_name} may conflict with the patient's active drug ${allergyOverrideDialog.conflicts.length === 1 ? 'allergy' : 'allergies'}: ` +
+                allergyOverrideDialog.conflicts.map(c => `${c.allergen} (${c.severity})`).join(', ') +
+                '. Add anyway and document clinical justification in your notes?'
+            ) : undefined}
+            confirmLabel="Add with override"
+            cancelLabel="Cancel"
+            onClose={() => setAllergyOverrideDialog(null)}
+            onConfirm={confirmAllergyOverride}
         />
         <Dialog
             open={!!draftPrompt}
@@ -672,6 +719,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     <input type="date" id="follow_up_date" {...register('follow_up_date')} />
                 </div>
 
+                {/* Drug allergy banner — shown above prescriptions when patient has active drug allergies */}
+                {!consultationToEdit && drugAllergies.length > 0 && (
+                    <div style={{ background: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', fontSize: '0.8125rem', color: 'var(--color-warning-dark)', lineHeight: 1.5 }}>
+                        <strong>Drug allergies:</strong>{' '}
+                        {drugAllergies.map((a, i) => (
+                            <span key={i}>
+                                {i > 0 && ' · '}
+                                <strong>{a.allergen}</strong> ({a.severity})
+                            </span>
+                        ))}
+                    </div>
+                )}
+
                 {/* Prescriptions this visit — compact multi-medicine adder */}
                 {!consultationToEdit && (
                     <div className="rx-section">
@@ -685,6 +745,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                 {rxList.map((rx, i) => (
                                     <div key={i} className="rx-item">
                                         <span className="rx-item-name">{rx.medication_name}</span>
+                                        {rx.overrideAllergy && (
+                                            <span title="Allergy override" style={{ fontSize: '0.7rem', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderRadius: '4px', padding: '1px 5px', border: '1px solid var(--color-warning-border)' }}>⚠ allergy override</span>
+                                        )}
                                         <span className="rx-item-sep">·</span>
                                         <span className="rx-item-detail">{rx.dosage}</span>
                                         <span className="rx-item-sep">·</span>
@@ -734,15 +797,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                 <option value="weekly">Weekly</option>
                                 <option value="other">Other</option>
                             </select>
-                            <input
-                                type="number"
-                                className="rx-adder-input rx-adder-days"
-                                placeholder="Days"
-                                min="1"
-                                value={rxDraft.duration_days}
-                                onChange={e => setRxDraft(p => ({ ...p, duration_days: e.target.value }))}
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
-                            />
+                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                                <input
+                                    type="number"
+                                    className="rx-adder-input rx-adder-days"
+                                    placeholder="Days"
+                                    min="1"
+                                    value={rxDraft.duration_days}
+                                    onChange={e => setRxDraft(p => ({ ...p, duration_days: e.target.value }))}
+                                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
+                                />
+                                {rxDraft.duration_days && parseInt(rxDraft.duration_days, 10) > 0 && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                        until {new Date(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                    </span>
+                                )}
+                            </div>
                             <button
                                 type="button"
                                 className="rx-adder-btn"

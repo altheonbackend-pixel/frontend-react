@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
@@ -38,16 +39,40 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Labs');
 
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
+    const highlightedId = searchParams.get('id') ? Number(searchParams.get('id')) : null;
+    const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadOpen, setUploadOpen] = useState(false);
     const [uploadForm, setUploadForm] = useState(UPLOAD_FORM_EMPTY);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [downloading, setDownloading] = useState<number | null>(null);
 
     const { data: labs = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.labResults(),
         queryFn: patientPortalService.getLabResults,
         staleTime: 2 * 60_000,
     });
+
+    useEffect(() => {
+        if (highlightedId && !isLoading && labs.length > 0) {
+            const el = cardRefs.current[highlightedId];
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, [highlightedId, isLoading, labs.length]);
+
+    async function handleDownload(labId: number, attId: number, currentUrl: string) {
+        setDownloading(attId);
+        try {
+            const freshLab = await patientPortalService.getLabResult(labId);
+            const freshAtt = freshLab.file_attachments?.find((a: { id: number }) => a.id === attId);
+            window.open(freshAtt?.download_url ?? currentUrl, '_blank', 'noopener,noreferrer');
+        } catch {
+            window.open(currentUrl, '_blank', 'noopener,noreferrer');
+        } finally {
+            setDownloading(null);
+        }
+    }
 
     const { mutate: uploadLab, isPending: isUploading } = useMutation({
         mutationFn: () => {
@@ -129,9 +154,11 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                     const resultDisplay = lab.result_value
                         ? `${lab.result_value}${lab.unit ? ` ${lab.unit}` : ''}`
                         : lab.result_value_text ?? '—';
+                    const isHighlighted = lab.id === highlightedId;
 
                     return (
-                        <SectionCard key={lab.id}>
+                        <div key={lab.id} ref={el => { cardRefs.current[lab.id] = el; }} style={isHighlighted ? { outline: '2px solid var(--accent)', borderRadius: 'var(--radius-lg)' } : undefined}>
+                        <SectionCard>
                             <div style={{ display: 'grid', gap: '0.8rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                                     <div>
@@ -182,17 +209,17 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                                     <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Attachments</div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {lab.file_attachments.map(att => (
+                                            {lab.file_attachments.map((att: { id: number; download_url?: string | null; original_filename?: string | null }) => (
                                                 att.download_url ? (
-                                                    <a
+                                                    <button
                                                         key={att.id}
-                                                        href={att.download_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline' }}
+                                                        type="button"
+                                                        disabled={downloading === att.id}
+                                                        onClick={() => handleDownload(lab.id, att.id, att.download_url!)}
+                                                        style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                                                     >
-                                                        {att.original_filename}
-                                                    </a>
+                                                        {downloading === att.id ? 'Opening…' : att.original_filename}
+                                                    </button>
                                                 ) : (
                                                     <span
                                                         key={att.id}
@@ -208,6 +235,7 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                                 )}
                             </div>
                         </SectionCard>
+                        </div>
                     );
                 })}
             </div>

@@ -121,6 +121,9 @@ const PatientDetails = () => {
     // Medications: active-only vs all toggle
     const [showAllMeds, setShowAllMeds] = useState(false);
 
+    // Labs: show unreleased (visible_to_patient=false) filter
+    const [showUnreleasedOnly, setShowUnreleasedOnly] = useState(false);
+
     // Vitals charts: toggle per-vital visibility
     const [visibleVitals, setVisibleVitals] = useState({
         bp: true, spo2: true, temperature: true, weight: true,
@@ -1737,11 +1740,23 @@ const PatientDetails = () => {
                     <div className="tab-panel">
                         <div className="tab-panel-header">
                             <h3>Lab Results</h3>
-                            <button className="btn-add-primary" onClick={() => {
-                                setEditingLabId(null);
-                                setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
-                                setShowLabForm(true);
-                            }}>+ Add Lab Result</button>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <div className="view-toggle">
+                                    <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>All</button>
+                                    <button type="button" className={`view-toggle-btn${showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(true)}>
+                                        Unreleased {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
+                                            <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
+                                                {labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length}
+                                            </span>
+                                        )}
+                                    </button>
+                                </div>
+                                <button className="btn-add-primary" onClick={() => {
+                                    setEditingLabId(null);
+                                    setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+                                    setShowLabForm(true);
+                                }}>+ Add Lab Result</button>
+                            </div>
                         </div>
                         {showLabForm && (
                             <form onSubmit={handleLabSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
@@ -1792,31 +1807,37 @@ const PatientDetails = () => {
                         )}
                         {labsLoading ? (
                             <TabSkeleton rows={3} />
-                        ) : labResults.length === 0 ? (
-                            <p className="muted">No lab results recorded.</p>
-                        ) : (
-                            <>
-                                {/* Pending review section — pinned at top */}
-                                {(() => {
-                                    const pending = labResults.filter(l => l.submitted_by_patient && l.review_status === 'pending_review');
-                                    if (!pending.length) return null;
-                                    return (
-                                        <div className="pending-review-section">
-                                            <div className="pending-review-header">⏳ Needs Review ({pending.length})</div>
-                                            <ul className="detail-list" style={{ margin: 0 }}>
-                                                {pending.map(lab => renderLabRow(lab))}
-                                            </ul>
-                                        </div>
-                                    );
-                                })()}
-                                {/* Rest of labs */}
-                                <ul className="detail-list">
-                                    {labResults
-                                        .filter(l => !(l.submitted_by_patient && l.review_status === 'pending_review'))
-                                        .map(lab => renderLabRow(lab))}
-                                </ul>
-                            </>
-                        )}
+                        ) : (() => {
+                            const filteredLabs = showUnreleasedOnly
+                                ? labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient)
+                                : labResults;
+                            if (filteredLabs.length === 0) {
+                                return <p className="muted">{showUnreleasedOnly ? 'No unreleased lab results.' : 'No lab results recorded.'}</p>;
+                            }
+                            return (
+                                <>
+                                    {/* Pending review section — pinned at top (only in All view) */}
+                                    {!showUnreleasedOnly && (() => {
+                                        const pending = filteredLabs.filter(l => l.submitted_by_patient && l.review_status === 'pending_review');
+                                        if (!pending.length) return null;
+                                        return (
+                                            <div className="pending-review-section">
+                                                <div className="pending-review-header">⏳ Needs Review ({pending.length})</div>
+                                                <ul className="detail-list" style={{ margin: 0 }}>
+                                                    {pending.map(lab => renderLabRow(lab))}
+                                                </ul>
+                                            </div>
+                                        );
+                                    })()}
+                                    {/* Rest of labs */}
+                                    <ul className="detail-list">
+                                        {filteredLabs
+                                            .filter(l => showUnreleasedOnly || !(l.submitted_by_patient && l.review_status === 'pending_review'))
+                                            .map(lab => renderLabRow(lab))}
+                                    </ul>
+                                </>
+                            );
+                        })()}
                     </div>
                 )}
 
