@@ -57,6 +57,7 @@ export default function PatientClaim() {
     // Step 1 — request
     const [email, setEmail] = useState('');
     const [dob, setDob] = useState('');
+    const [last4Phone, setLast4Phone] = useState('');
 
     // Step 2 — verify
     const [token, setToken] = useState(tokenFromUrl);
@@ -90,6 +91,7 @@ export default function PatientClaim() {
             await api.post('/patient/claim/request/', {
                 email: email.trim().toLowerCase(),
                 date_of_birth: dob,
+                ...(last4Phone.trim() ? { last_4_phone: last4Phone.trim() } : {}),
             });
             setStep('sent');
         } catch (err) {
@@ -242,6 +244,26 @@ export default function PatientClaim() {
                                         disabled={loading}
                                         required
                                     />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="last4phone">
+                                        Last 4 digits of your phone number{' '}
+                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(if on file with your doctor)</span>
+                                    </label>
+                                    <input
+                                        id="last4phone"
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={4}
+                                        value={last4Phone}
+                                        onChange={e => setLast4Phone(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                                        placeholder="e.g. 4567"
+                                        disabled={loading}
+                                        autoComplete="off"
+                                    />
+                                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                                        Required if your doctor recorded a phone number for you.
+                                    </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
                                     {loading ? 'Sending…' : 'Send verification link'}

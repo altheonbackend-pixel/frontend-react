@@ -250,6 +250,7 @@ const PatientDetails = () => {
     const [shareConsultationSummary, setShareConsultationSummary] = useState('');
     const [shareLabId, setShareLabId] = useState<number | null>(null);
     const [shareLabNote, setShareLabNote] = useState('');
+    const [previewLabId, setPreviewLabId] = useState<number | null>(null);
     const [reviewLabId, setReviewLabId] = useState<number | null>(null);
     const [reviewAction, setReviewAction] = useState<'accept' | 'reject'>('accept');
     const [reviewRejectionReason, setReviewRejectionReason] = useState('');
@@ -841,6 +842,13 @@ const PatientDetails = () => {
                             setShowLabForm(true);
                         }} className="edit-button action-button">Edit</button>
                         <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                        <button
+                            onClick={() => setPreviewLabId(lab.id)}
+                            className="action-button"
+                            style={{ color: 'var(--text-secondary)' }}
+                        >
+                            Preview as patient
+                        </button>
                         <button
                             onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
                             className="action-button"
@@ -2220,6 +2228,70 @@ const PatientDetails = () => {
                 </div>
             </div>
         </Modal>
+
+        {/* Preview as patient modal */}
+        {(() => {
+            const previewLab = previewLabId !== null ? labResults.find(l => l.id === previewLabId) : null;
+            return (
+                <Modal
+                    open={previewLabId !== null}
+                    onClose={() => setPreviewLabId(null)}
+                    title="Patient view — lab result"
+                    size="md"
+                    footer={
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => setPreviewLabId(null)}>Close</button>
+                    }
+                >
+                    {previewLab && (
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 0 }}>
+                                This is exactly what the patient will see in their portal.
+                                {!previewLab.visible_to_patient && (
+                                    <span style={{ marginLeft: '0.5rem', fontWeight: 600, color: 'var(--color-warning-dark)' }}>
+                                        Not yet released.
+                                    </span>
+                                )}
+                            </p>
+                            <div style={{ padding: '1rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', background: 'var(--bg-base)', display: 'grid', gap: '0.6rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{previewLab.test_name}</div>
+                                    <span style={{
+                                        fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
+                                        background: previewLab.status === 'normal' ? 'var(--color-success-light)' : previewLab.status === 'abnormal' ? 'var(--color-warning-light)' : previewLab.status === 'critical' ? 'var(--color-danger-light)' : 'var(--bg-subtle)',
+                                        color: previewLab.status === 'normal' ? 'var(--color-success-dark)' : previewLab.status === 'abnormal' ? 'var(--color-warning-dark)' : previewLab.status === 'critical' ? 'var(--color-danger-dark)' : 'var(--text-muted)',
+                                    }}>
+                                        {previewLab.status_display || previewLab.status}
+                                    </span>
+                                </div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    {new Date(previewLab.test_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </div>
+                                {(previewLab.result_value || previewLab.result_value_text) && (
+                                    <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                                        <strong>Result: </strong>
+                                        {previewLab.result_value_text || `${previewLab.result_value} ${previewLab.unit}`.trim()}
+                                        {previewLab.reference_range && (
+                                            <span style={{ marginLeft: '0.75rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                Ref: {previewLab.reference_range}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                                {previewLab.patient_note ? (
+                                    <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                        {previewLab.patient_note}
+                                    </div>
+                                ) : (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                        No patient note added.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+            );
+        })()}
 
         {/* Review patient-uploaded lab document modal */}
         <Modal

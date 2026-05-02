@@ -66,5 +66,6 @@ export const queryKeys = {
         allergies: () => ['patient', 'allergies'] as const,
         referrals: () => ['patient', 'referrals'] as const,
         doctorProfile: (id: number) => ['patient', 'doctor', id] as const,
+        profileUpdateRequests: () => ['patient', 'profile-update-requests'] as const,
     },
 } as const;

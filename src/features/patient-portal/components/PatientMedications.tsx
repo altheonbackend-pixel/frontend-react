@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
@@ -23,6 +24,9 @@ export default function PatientMedications({ asTab = false }: { asTab?: boolean 
 
     const active = prescriptions.filter(p => p.is_active);
     const history = prescriptions.filter(p => !p.is_active);
+    const [historyExpanded, setHistoryExpanded] = useState(false);
+    const HISTORY_PREVIEW = 3;
+    const visibleHistory = historyExpanded ? history : history.slice(0, HISTORY_PREVIEW);
 
     if (isLoading) {
         return (
@@ -83,9 +87,9 @@ export default function PatientMedications({ asTab = false }: { asTab?: boolean 
             {history.length > 0 && (
                 <>
                     <div style={{ height: '1rem' }} />
-                    <SectionCard title="Medication history">
+                    <SectionCard title={`Medication history (${history.length})`}>
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            {history.map(item => (
+                            {visibleHistory.map(item => (
                                 <div key={item.id} style={{ padding: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.medication_name}</div>
@@ -95,6 +99,25 @@ export default function PatientMedications({ asTab = false }: { asTab?: boolean 
                                 </div>
                             ))}
                         </div>
+                        {history.length > HISTORY_PREVIEW && (
+                            <button
+                                onClick={() => setHistoryExpanded(e => !e)}
+                                style={{
+                                    marginTop: '0.875rem',
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--accent)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.875rem',
+                                    padding: 0,
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {historyExpanded
+                                    ? 'Show fewer'
+                                    : `Show all ${history.length} medications`}
+                            </button>
+                        )}
                     </SectionCard>
                 </>
             )}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
@@ -8,6 +9,7 @@ import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
+import api from '../../../shared/services/api';
 
 function formatDateTime(value: string) {
     return new Date(value).toLocaleString('en-GB', {
@@ -24,6 +26,24 @@ function formatDate(value: string) {
 export default function PatientDashboard() {
     const { patientProfile } = useAuth();
     usePageTitle('Patient Dashboard');
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadPDF = async () => {
+        setDownloading(true);
+        try {
+            const res = await api.get('/patient/health-summary.pdf/', { responseType: 'blob' });
+            const url = URL.createObjectURL(res.data as Blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'health-summary.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            // fail silently — user can retry
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     const { data, isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.dashboard(),
@@ -58,7 +78,18 @@ export default function PatientDashboard() {
             <PageHeader
                 title={`Welcome, ${firstName}`}
                 subtitle="A calm view of your upcoming care, medications, and recent updates."
-                actions={<Link to="/patient/appointments" className="btn btn-primary btn-sm">Request appointment</Link>}
+                actions={
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                        <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleDownloadPDF}
+                            disabled={downloading}
+                        >
+                            {downloading ? 'Generating…' : 'Download Health Summary'}
+                        </button>
+                        <Link to="/patient/appointments" className="btn btn-primary btn-sm">Request appointment</Link>
+                    </div>
+                }
             />
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>

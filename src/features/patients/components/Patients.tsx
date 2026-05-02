@@ -1,15 +1,15 @@
 // src/features/patients/components/Patients.tsx
 // Phase 8: Table on desktop, card grid on mobile, status filter chips, full-row click
+// Cursor-based "load more" pagination (stable under concurrent inserts).
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { type Patient } from '../../../shared/types';
 import api from '../../../shared/services/api';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import Dialog from '../../../shared/components/ui/Dialog';
-import { Pagination } from '../../../shared/components/Pagination';
 import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -46,44 +46,72 @@ const Patients = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [page, setPage] = useState(1);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [exporting, setExporting] = useState(false);
 
+    // Cursor-based pagination state
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [totalCount, setTotalCount] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isError, setIsError] = useState(false);
+
+    const buildParams = useCallback((extraParams: Record<string, string | number | boolean> = {}) => {
+        const params: Record<string, string | number | boolean> = { page_size: PAGE_SIZE };
+        if (debouncedSearch) params.search = debouncedSearch;
+        if (statusFilter) params.status = statusFilter;
+        if (vitalAlertFilter) params.vital_alert_recent = true;
+        return { ...params, ...extraParams };
+    }, [debouncedSearch, statusFilter, vitalAlertFilter]);
+
+    // Fetch first page whenever filters change
+    const fetchFirst = useCallback(async () => {
+        setIsLoading(true);
+        setIsError(false);
+        try {
+            const res = await api.get('/doctors/me/patients/', { params: buildParams() });
+            setPatients(res.data.results ?? res.data);
+            setNextCursor(res.data.next ?? null);
+            setTotalCount(res.data.count ?? (res.data.results ?? res.data).length);
+        } catch {
+            setIsError(true);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [buildParams]);
+
+    const loadMore = useCallback(async () => {
+        if (!nextCursor || isLoadingMore) return;
+        setIsLoadingMore(true);
+        try {
+            const url = new URL(nextCursor);
+            const res = await api.get(`${url.pathname}${url.search}`);
+            setPatients(prev => [...prev, ...(res.data.results ?? [])]);
+            setNextCursor(res.data.next ?? null);
+        } catch { /* silently fail */ }
+        finally { setIsLoadingMore(false); }
+    }, [nextCursor, isLoadingMore]);
+
+    // Debounce search
     useEffect(() => {
-        const t = setTimeout(() => { setDebouncedSearch(searchTerm); setPage(1); }, 400);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+        return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    useEffect(() => { setPage(1); }, [statusFilter]);
-
-    const filters = { page, search: debouncedSearch, status: statusFilter, vital_alert_recent: vitalAlertFilter };
-
-    const { data, isLoading, isError } = useQuery({
-        queryKey: queryKeys.patients.list(filters),
-        queryFn: async () => {
-            const params: Record<string, string | number | boolean> = { page, page_size: PAGE_SIZE };
-            if (debouncedSearch) params.search = debouncedSearch;
-            if (statusFilter) params.status = statusFilter;
-            if (vitalAlertFilter) params.vital_alert_recent = true;
-            const res = await api.get('/doctors/me/patients/', { params });
-            return {
-                results: (res.data.results ?? res.data) as Patient[],
-                count: res.data.count ?? (res.data.results ?? res.data).length,
-            };
-        },
-        staleTime: 30 * 1000,
-        placeholderData: keepPreviousData,
-    });
-
-    const patients = data?.results ?? [];
-    const totalCount = data?.count ?? 0;
-    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+    // Reset + fetch on filter change
+    useEffect(() => {
+        setPatients([]);
+        setNextCursor(null);
+        fetchFirst();
+    }, [fetchFirst]);
 
     const handleDelete = async (id: string) => {
         try {
             await api.delete(`/patients/${id}/`);
             setConfirmDeleteId(null);
+            setPatients(prev => prev.filter(p => p.unique_id !== id));
+            setTotalCount(prev => Math.max(0, prev - 1));
             queryClient.invalidateQueries({ queryKey: ['patients'] });
             toast.success(t('patients.deleted', 'Patient removed.'));
         } catch {
@@ -180,7 +208,7 @@ const Patients = () => {
                 ))}
                 {vitalAlertFilter && (
                     <button
-                        onClick={() => { const p = new URLSearchParams(searchParams); p.delete('vital_alert_recent'); setSearchParams(p); setPage(1); }}
+                        onClick={() => { const p = new URLSearchParams(searchParams); p.delete('vital_alert_recent'); setSearchParams(p); }}
                         style={{
                             padding: '0.3rem 0.875rem',
                             borderRadius: '999px',
@@ -295,19 +323,21 @@ const Patients = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Load more */}
+                        {nextCursor && (
+                            <div style={{ padding: '1rem', textAlign: 'center', borderTop: '1px solid var(--border-color)' }}>
+                                <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={loadMore}
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? 'Loading…' : `Load more patients`}
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
-            </div>
-
-            {/* Pagination */}
-            <div style={{ marginTop: '1rem' }}>
-                <Pagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    totalCount={totalCount}
-                    onPageChange={setPage}
-                    isLoading={isLoading}
-                />
             </div>
 
             <Dialog

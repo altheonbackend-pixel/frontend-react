@@ -5,13 +5,32 @@ import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
-import { patientPortalService, type PatientPortalSettings } from '../services/patientPortalService';
+import { patientPortalService, type PatientPortalSettings, type ProfileUpdateRequest } from '../services/patientPortalService';
+
+const EDITABLE_FIELDS: { key: string; label: string; placeholder: string }[] = [
+    { key: 'phone_number', label: 'Phone number', placeholder: 'e.g. +1 555 123 4567' },
+    { key: 'email', label: 'Email address', placeholder: 'e.g. you@example.com' },
+    { key: 'address', label: 'Address', placeholder: 'Street, city, country' },
+    { key: 'emergency_contact_name', label: 'Emergency contact name', placeholder: 'Full name' },
+    { key: 'emergency_contact_number', label: 'Emergency contact number', placeholder: 'e.g. +1 555 987 6543' },
+];
+
+const STATUS_BADGE: Record<string, { label: string; style: React.CSSProperties }> = {
+    pending:  { label: 'Pending review', style: { background: 'var(--warning-subtle, #fff3cd)', color: 'var(--warning, #856404)' } },
+    approved: { label: 'Approved',       style: { background: 'var(--success-subtle, #d1e7dd)', color: 'var(--success, #0a3622)' } },
+    rejected: { label: 'Rejected',       style: { background: 'var(--danger-subtle, #f8d7da)',  color: 'var(--danger, #58151c)' } },
+};
 
 export default function PatientSettings({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('Patient Settings');
     const queryClient = useQueryClient();
     const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [pwError, setPwError] = useState('');
+
+    // ── Profile update request state ──────────────────────────────────────────
+    const [updateFields, setUpdateFields] = useState<Record<string, string>>({});
+    const [updateMessage, setUpdateMessage] = useState('');
+    const [showUpdateForm, setShowUpdateForm] = useState(false);
 
     const { mutate: changePassword, isPending: isChangingPw } = useMutation({
         mutationFn: () => patientPortalService.changePassword(pwForm),
@@ -35,6 +54,39 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
         }
         setPwError('');
         changePassword();
+    };
+
+    const { data: updateRequests = [] } = useQuery<ProfileUpdateRequest[]>({
+        queryKey: queryKeys.patientPortal.profileUpdateRequests(),
+        queryFn: patientPortalService.getProfileUpdateRequests,
+        staleTime: 60_000,
+    });
+
+    const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
+        mutationFn: () => patientPortalService.submitProfileUpdateRequest({
+            requested_fields: updateFields,
+            message: updateMessage,
+        }),
+        onSuccess: () => {
+            toast.success('Profile update request submitted. Your doctor will review it shortly.');
+            setShowUpdateForm(false);
+            setUpdateFields({});
+            setUpdateMessage('');
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profileUpdateRequests() });
+        },
+        onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
+    });
+
+    const hasPendingRequest = updateRequests.some(r => r.status === 'pending');
+
+    const handleUpdateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const filled = Object.fromEntries(Object.entries(updateFields).filter(([, v]) => v.trim()));
+        if (Object.keys(filled).length === 0) {
+            toast.error('Please fill in at least one field to update.');
+            return;
+        }
+        submitRequest();
     };
 
     const { data: settings, isLoading, isError } = useQuery({
@@ -201,6 +253,89 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                             </div>
                         ))}
                     </div>
+                </SectionCard>
+
+                <SectionCard title="Request profile update">
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                        Your demographic information is managed by your doctor. Use this form to request a change — your doctor will review and apply it.
+                    </p>
+
+                    {updateRequests.length > 0 && (
+                        <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
+                            {updateRequests.slice(0, 3).map(r => {
+                                const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.pending;
+                                return (
+                                    <div key={r.id} style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                {new Date(r.created_at).toLocaleDateString()}
+                                            </span>
+                                            <span style={{ ...badge.style, padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                {badge.label}
+                                            </span>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem' }}>
+                                            {Object.entries(r.requested_fields).map(([k, v]) => (
+                                                <span key={k} style={{ marginRight: '1rem' }}><strong>{k.replace(/_/g, ' ')}:</strong> {v}</span>
+                                            ))}
+                                        </div>
+                                        {r.doctor_note && (
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                Doctor note: {r.doctor_note}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {hasPendingRequest ? (
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                            You have a pending request. You can submit another once it has been reviewed.
+                        </p>
+                    ) : !showUpdateForm ? (
+                        <button className="btn btn-secondary btn-sm" onClick={() => setShowUpdateForm(true)}>
+                            Request a profile update
+                        </button>
+                    ) : (
+                        <form onSubmit={handleUpdateSubmit} className="form" style={{ maxWidth: 480 }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
+                                Fill in only the fields you want changed.
+                            </p>
+                            {EDITABLE_FIELDS.map(({ key, label, placeholder }) => (
+                                <div className="form-group" key={key}>
+                                    <label htmlFor={`update_${key}`}>{label}</label>
+                                    <input
+                                        id={`update_${key}`}
+                                        type="text"
+                                        placeholder={placeholder}
+                                        value={updateFields[key] ?? ''}
+                                        onChange={e => setUpdateFields(f => ({ ...f, [key]: e.target.value }))}
+                                    />
+                                </div>
+                            ))}
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor="update_message">Message to your doctor (optional)</label>
+                                <textarea
+                                    id="update_message"
+                                    rows={3}
+                                    placeholder="e.g. I moved to a new address last month."
+                                    value={updateMessage}
+                                    onChange={e => setUpdateMessage(e.target.value)}
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
+                                    {isSubmitting ? 'Submitting…' : 'Submit request'}
+                                </button>
+                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowUpdateForm(false); setUpdateFields({}); setUpdateMessage(''); }}>
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </SectionCard>
             </div>
         </>

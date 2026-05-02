@@ -206,6 +206,16 @@ export interface PatientReferral {
     date_of_referral: string;
 }
 
+export interface ProfileUpdateRequest {
+    id: number;
+    requested_fields: Record<string, string>;
+    message: string;
+    status: 'pending' | 'approved' | 'rejected';
+    doctor_note: string;
+    created_at: string;
+    resolved_at: string | null;
+}
+
 export const patientPortalService = {
     getDashboard: () =>
         api.get<PatientDashboardData>('/patient/dashboard/').then(r => r.data),
@@ -335,4 +345,10 @@ export const patientPortalService = {
 
     changePassword: (data: { current_password: string; new_password: string; confirm_password: string }) =>
         api.post('/patient/change-password/', data).then(r => r.data),
+
+    getProfileUpdateRequests: () =>
+        api.get<ProfileUpdateRequest[]>('/patient/profile-update-requests/').then(r => r.data),
+
+    submitProfileUpdateRequest: (data: { requested_fields: Record<string, string>; message?: string }) =>
+        api.post<{ id: number; status: string }>('/patient/profile-update-requests/', data).then(r => r.data),
 };

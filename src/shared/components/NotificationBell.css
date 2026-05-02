@@ -134,6 +134,23 @@
     color: var(--text-muted);
 }
 
+.notif-load-more {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.notif-load-more:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 @media (max-width: 480px) {
     .notif-drawer {
         width: calc(100vw - 16px);

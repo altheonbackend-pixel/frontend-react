@@ -9,6 +9,8 @@ const NotificationBell = () => {
     const [unread, setUnread] = useState(0);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [loading, setLoading] = useState(false);
     const [dropPos, setDropPos] = useState({ top: 0, left: 0 });
     const bellRef = useRef<HTMLButtonElement>(null);
@@ -28,10 +30,25 @@ const NotificationBell = () => {
             const res = await api.get('/notifications/');
             const items: Notification[] = res.data.results ?? res.data;
             setNotifications(items);
+            setNextCursor(res.data.next ?? null);
             setUnread(items.filter((n: Notification) => !n.is_read).length);
         } catch { /* silently fail */ }
         finally { setLoading(false); }
     }, []);
+
+    const loadMore = useCallback(async () => {
+        if (!nextCursor || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            // DRF returns full absolute URLs; extract path+query to stay within the api instance
+            const url = new URL(nextCursor);
+            const res = await api.get(`${url.pathname}${url.search}`);
+            const more: Notification[] = res.data.results ?? [];
+            setNotifications(prev => [...prev, ...more]);
+            setNextCursor(res.data.next ?? null);
+        } catch { /* silently fail */ }
+        finally { setLoadingMore(false); }
+    }, [nextCursor, loadingMore]);
 
     // Poll unread count
     useEffect(() => {
@@ -147,6 +164,15 @@ const NotificationBell = () => {
                                 <div className="notif-item__time">{timeAgo(n.created_at)}</div>
                             </div>
                         ))}
+                        {!loading && nextCursor && (
+                            <button
+                                className="notif-load-more"
+                                onClick={loadMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore ? 'Loading…' : 'Load more'}
+                            </button>
+                        )}
                     </div>
                 </div>,
                 document.body,
