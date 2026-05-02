@@ -55,7 +55,9 @@
     margin: 0 0 5px;
     letter-spacing: -0.3px;
     line-height: 1.2;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .patient-meta {
@@ -778,9 +780,11 @@
         justify-content: space-between;
         align-items: center;
         gap: 20px;
+        flex-wrap: wrap;        /* wrap action strip to next line if viewport is narrow */
     }
 
-    .patient-header-identity { margin-bottom: 0; flex: 1; min-width: 0; }
+    /* Identity must never collapse below 180px — prevents name going vertical */
+    .patient-header-identity { margin-bottom: 0; flex: 1; min-width: 180px; }
     .patient-avatar-lg { width: 52px; height: 52px; font-size: 18px; }
     .patient-header-info .patient-name { font-size: 21px; }
 
