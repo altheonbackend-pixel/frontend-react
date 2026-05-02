@@ -47,9 +47,17 @@ interface Consultation {
     visible_to_patient?: boolean;
 }
 
+export interface SavedRx {
+    id: number;
+    medication_name: string;
+    dosage: string;
+    frequency: string;
+    frequency_display?: string;
+}
+
 interface ConsultationFormProps {
     patientId: string;
-    onSuccess: () => void;
+    onSuccess: (savedRx?: SavedRx[]) => void;
     onCancel: () => void;
     consultationToEdit?: Consultation | null;
 }
@@ -158,6 +166,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [rxList, setRxList] = useState<RxDraft[]>([]);
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
     const [failedRx, setFailedRx] = useState<RxItem[]>([]);
+    // Persists saved Rx across the follow-up dialog path so reconciliation modal always gets them
+    const savedRxRef = useRef<SavedRx[]>([]);
     const [allergyOverrideDialog, setAllergyOverrideDialog] = useState<{
         rx: RxDraft;
         conflicts: Array<{ allergen: string; severity: string }>;
@@ -282,6 +292,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 const today = new Date().toISOString().slice(0, 10);
 
                 // Save all queued prescriptions via Promise.allSettled — failures surface in retry panel
+                let savedRx: SavedRx[] = [];
                 if (!isEditing && rxList.length > 0) {
                     const rxPayloads: RxItem[] = rxList.map(rx => ({
                         patient: patientId,
@@ -303,6 +314,17 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         clearDraft();
                         return;
                     }
+                    // Collect saved prescription data to pass to the medication reconciliation modal
+                    savedRx = results
+                        .filter((r): r is PromiseFulfilledResult<{ data: SavedRx }> => r.status === 'fulfilled')
+                        .map(r => ({
+                            id: r.value.data.id,
+                            medication_name: r.value.data.medication_name,
+                            dosage: r.value.data.dosage,
+                            frequency: r.value.data.frequency,
+                            frequency_display: r.value.data.frequency_display,
+                        }));
+                    savedRxRef.current = savedRx;
                 }
 
                 // Save queued lab orders — non-blocking (consultation already saved)
@@ -353,7 +375,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         consultationId: response.data.id,
                     });
                 } else {
-                    onSuccess();
+                    onSuccess(savedRx.length > 0 ? savedRx : undefined);
                 }
             }
         } catch (err) {
@@ -398,7 +420,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         } finally {
             setCreatingFollowUp(false);
             setPendingFollowUp(null);
-            onSuccess();
+            onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined);
         }
     };
 
@@ -444,7 +466,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             confirmLabel={creatingFollowUp ? 'Creating…' : 'Yes, create appointment'}
             cancelLabel="No, skip"
             onConfirm={handleCreateFollowUpAppointment}
-            onClose={() => { setPendingFollowUp(null); onSuccess(); }}
+            onClose={() => { setPendingFollowUp(null); onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined); }}
         />
         <Dialog
             open={showCloseWithFailedRxWarning}

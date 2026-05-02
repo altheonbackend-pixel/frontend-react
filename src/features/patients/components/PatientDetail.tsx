@@ -23,6 +23,7 @@ import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { Dialog, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { type LabResult, type Prescription } from '../../../shared/types';
+import { type SavedRx } from '../../consultations/components/ConsultationForm';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
@@ -251,6 +252,11 @@ const PatientDetails = () => {
     const [shareLabId, setShareLabId] = useState<number | null>(null);
     const [shareLabNote, setShareLabNote] = useState('');
     const [previewLabId, setPreviewLabId] = useState<number | null>(null);
+    // Medication reconciliation modal — opens after a consultation is saved with prescriptions
+    const [reconcileRx, setReconcileRx] = useState<SavedRx[] | null>(null);
+    const [reconcileCheckedNew, setReconcileCheckedNew] = useState<Set<number>>(new Set());
+    const [reconcileCheckedCurrent, setReconcileCheckedCurrent] = useState<Set<number>>(new Set());
+    const [reconcileLoading, setReconcileLoading] = useState(false);
     const [reviewLabId, setReviewLabId] = useState<number | null>(null);
     const [reviewAction, setReviewAction] = useState<'accept' | 'reject'>('accept');
     const [reviewRejectionReason, setReviewRejectionReason] = useState('');
@@ -463,7 +469,7 @@ const PatientDetails = () => {
         }
     };
 
-    const handleSuccess = () => {
+    const handleSuccess = (savedRx?: SavedRx[]) => {
         setShowConsultationForm(false);
         setShowProcedureForm(false);
         setShowReferralForm(false);
@@ -473,10 +479,20 @@ const PatientDetails = () => {
         setProcedureToEdit(null);
         setReferralToEdit(null);
         fetchPatientDetails();
-        // Invalidate lazy tab caches so next activation fetches fresh data
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
+
+        // If this consultation had prescriptions, open the medication reconciliation modal
+        if (savedRx && savedRx.length > 0) {
+            // Pre-check all new prescriptions
+            setReconcileCheckedNew(new Set(savedRx.map(rx => rx.id)));
+            // Pre-check all currently active medications
+            setReconcileCheckedCurrent(new Set(medications.map(rx => rx.id)));
+            setReconcileRx(savedRx);
+            // Ensure medications tab data is fresh before modal opens
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+        }
     };
 
     const handleCancel = () => {
@@ -2355,6 +2371,124 @@ const PatientDetails = () => {
             tone="danger"
             confirmLabel={pendingStatus === 'deceased' ? 'Mark Deceased' : 'Mark Transferred'}
         />
+
+        {/* ── Medication Reconciliation Modal ──────────────────────────────── */}
+        <Modal
+            open={reconcileRx !== null}
+            onClose={() => setReconcileRx(null)}
+            title="Review active medications"
+            size="md"
+            footer={
+                <>
+                    <button
+                        type="button"
+                        className="cancel-button"
+                        onClick={() => setReconcileRx(null)}
+                        disabled={reconcileLoading}
+                    >
+                        Skip
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={reconcileLoading}
+                        onClick={async () => {
+                            if (!reconcileRx) return;
+                            setReconcileLoading(true);
+                            try {
+                                // Deactivate new Rx that were unchecked
+                                const deactivateNew = reconcileRx
+                                    .filter(rx => !reconcileCheckedNew.has(rx.id))
+                                    .map(rx => rx.id);
+                                // Deactivate existing meds that were unchecked
+                                const deactivateCurrent = medications
+                                    .filter(rx => !reconcileCheckedCurrent.has(rx.id))
+                                    .map(rx => rx.id);
+                                const allDeactivate = [...deactivateNew, ...deactivateCurrent];
+                                if (allDeactivate.length > 0) {
+                                    await api.post(`/patients/${id}/reconcile-medications/`, {
+                                        deactivate: allDeactivate,
+                                    });
+                                }
+                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+                                setReconcileRx(null);
+                            } catch {
+                                toast.error('Could not update medication list. Please adjust manually from the Medications tab.');
+                                setReconcileRx(null);
+                            } finally {
+                                setReconcileLoading(false);
+                            }
+                        }}
+                    >
+                        {reconcileLoading ? 'Updating…' : 'Update active medications'}
+                    </button>
+                </>
+            }
+        >
+            {reconcileRx && (
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Review what this patient is currently taking. Uncheck anything that should be removed from their active medication list.
+                    </p>
+
+                    {/* New prescriptions from this consultation */}
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                            Prescribed in this consultation
+                        </div>
+                        <div style={{ display: 'grid', gap: '0.5rem' }}>
+                            {reconcileRx.map(rx => (
+                                <label key={rx.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={reconcileCheckedNew.has(rx.id)}
+                                        onChange={e => {
+                                            const next = new Set(reconcileCheckedNew);
+                                            e.target.checked ? next.add(rx.id) : next.delete(rx.id);
+                                            setReconcileCheckedNew(next);
+                                        }}
+                                        style={{ width: '16px', height: '16px', flexShrink: 0 }}
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rx.medication_name}</div>
+                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{rx.dosage} · {rx.frequency_display || rx.frequency}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Existing active medications */}
+                    {medications.filter(rx => !reconcileRx.some(n => n.id === rx.id)).length > 0 && (
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                                Currently active medications
+                            </div>
+                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                {medications.filter(rx => !reconcileRx.some(n => n.id === rx.id)).map(rx => (
+                                    <label key={rx.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={reconcileCheckedCurrent.has(rx.id)}
+                                            onChange={e => {
+                                                const next = new Set(reconcileCheckedCurrent);
+                                                e.target.checked ? next.add(rx.id) : next.delete(rx.id);
+                                                setReconcileCheckedCurrent(next);
+                                            }}
+                                            style={{ width: '16px', height: '16px', flexShrink: 0 }}
+                                        />
+                                        <div>
+                                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rx.medication_name}</div>
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{rx.dosage} · {rx.frequency_display || rx.frequency}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </Modal>
         </>
     );
 };
