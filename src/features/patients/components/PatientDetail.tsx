@@ -214,7 +214,7 @@ const PatientDetails = () => {
     const { data: consultationsData = [], isLoading: consultationsLoading } = useQuery<Consultation[]>({
         queryKey: ['patients', id, 'consultations'],
         queryFn: async () => {
-            const res = await api.get(`/consultations/`, { params: { patient_id: id, ordering: '-consultation_date' } });
+            const res = await api.get(`/consultations/`, { params: { patient: id, ordering: '-consultation_date' } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('consultations'),
@@ -224,7 +224,7 @@ const PatientDetails = () => {
     const { data: proceduresData = [], isLoading: proceduresLoading } = useQuery<MedicalProcedure[]>({
         queryKey: ['patients', id, 'procedures'],
         queryFn: async () => {
-            const res = await api.get(`/medical-procedures/`, { params: { patient_id: id } });
+            const res = await api.get(`/medical-procedures/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('actions'),
@@ -234,7 +234,7 @@ const PatientDetails = () => {
     const { data: referralsData = [], isLoading: referralsLoading } = useQuery<Referral[]>({
         queryKey: ['patients', id, 'referrals'],
         queryFn: async () => {
-            const res = await api.get(`/referrals/`, { params: { patient_id: id } });
+            const res = await api.get(`/referrals/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('actions'),
