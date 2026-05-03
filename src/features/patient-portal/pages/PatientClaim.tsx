@@ -84,18 +84,18 @@ export default function PatientClaim() {
 
     const handleRequest = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email.trim() || !dob) return;
+        if (!email.trim()) return;
         clearError();
         setLoading(true);
         try {
             await api.post('/patient/claim/request/', {
                 email: email.trim().toLowerCase(),
-                date_of_birth: dob,
+                ...(dob ? { date_of_birth: dob } : {}),
                 ...(last4Phone.trim() ? { last_4_phone: last4Phone.trim() } : {}),
             });
             setStep('sent');
         } catch (err) {
-            // Backend always returns 200 (anti-enumeration) — only real failures reach here
+            // Backend returns 200 for anti-enumeration; only validation errors reach here
             setError(parseApiError(err, 'Something went wrong. Please try again.'));
         } finally {
             setLoading(false);
@@ -147,7 +147,7 @@ export default function PatientClaim() {
         }
         setLoading(true);
         try {
-            await api.post('/patient/claim/complete/', {
+            const res = await api.post('/patient/claim/complete/', {
                 token,
                 password,
                 terms_accepted: true,
@@ -158,15 +158,18 @@ export default function PatientClaim() {
                 try {
                     await login({ email: preview.email, password });
                 } catch {
-                    // Login failed but account was created — send to login page
                     toast.success('Account created! Please sign in.');
                     navigate('/patient/login', { replace: true });
                     return;
                 }
             }
-            setStep('done');
             toast.success('Welcome to your patient portal!');
-            navigate('/patient/dashboard', { replace: true });
+            const missingFields: string[] = res.data.missing_fields || [];
+            if (missingFields.length > 0) {
+                navigate(`/patient/complete-profile?fields=${missingFields.join(',')}`, { replace: true });
+            } else {
+                navigate('/patient/dashboard', { replace: true });
+            }
         } catch (err) {
             setError(parseApiError(err, 'Failed to complete setup. Your link may have expired.'));
         } finally {
@@ -235,14 +238,16 @@ export default function PatientClaim() {
                                     />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="dob">Date of birth</label>
+                                    <label htmlFor="dob">
+                                        Date of birth{' '}
+                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(if your doctor has this on file)</span>
+                                    </label>
                                     <input
                                         id="dob"
                                         type="date"
                                         value={dob}
                                         onChange={e => setDob(e.target.value)}
                                         disabled={loading}
-                                        required
                                     />
                                 </div>
                                 <div className="form-group">

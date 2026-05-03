@@ -30,6 +30,7 @@ import PatientClaim from '../features/patient-portal/pages/PatientClaim';
 import PatientRegister from '../features/patient-portal/pages/PatientRegister';
 import PatientForgotPassword from '../features/patient-portal/pages/PatientForgotPassword';
 import PatientResetPassword from '../features/patient-portal/pages/PatientResetPassword';
+import PatientCompleteProfile from '../features/patient-portal/pages/PatientCompleteProfile';
 
 // Code-split lazy imports
 const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
@@ -169,11 +170,12 @@ function App() {
                             </Route>
                         </Route>
                         {/* Public patient routes (accessible even when logged in as patient) */}
-                        <Route path="/patient/login"           element={<PatientLoginPage />} />
-                        <Route path="/patient/register"        element={<PatientRegister />} />
-                        <Route path="/patient/claim"           element={<PatientClaim />} />
-                        <Route path="/patient/forgot-password" element={<PatientForgotPassword />} />
-                        <Route path="/patient/reset-password"  element={<PatientResetPassword />} />
+                        <Route path="/patient/login"             element={<PatientLoginPage />} />
+                        <Route path="/patient/register"          element={<PatientRegister />} />
+                        <Route path="/patient/claim"             element={<PatientClaim />} />
+                        <Route path="/patient/complete-profile"  element={<PatientCompleteProfile />} />
+                        <Route path="/patient/forgot-password"   element={<PatientForgotPassword />} />
+                        <Route path="/patient/reset-password"    element={<PatientResetPassword />} />
                         <Route path="/login" element={<PatientLoginPage />} />
                         <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
                         <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
@@ -197,11 +199,12 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password"  element={<ResetPassword />} />
                     {/* Patient-specific public routes */}
-                    <Route path="/patient/login"           element={<PatientLoginPage />} />
-                    <Route path="/patient/register"        element={<PatientRegister />} />
-                    <Route path="/patient/claim"           element={<PatientClaim />} />
-                    <Route path="/patient/forgot-password" element={<PatientForgotPassword />} />
-                    <Route path="/patient/reset-password"  element={<PatientResetPassword />} />
+                    <Route path="/patient/login"             element={<PatientLoginPage />} />
+                    <Route path="/patient/register"          element={<PatientRegister />} />
+                    <Route path="/patient/claim"             element={<PatientClaim />} />
+                    <Route path="/patient/complete-profile"  element={<PatientCompleteProfile />} />
+                    <Route path="/patient/forgot-password"   element={<PatientForgotPassword />} />
+                    <Route path="/patient/reset-password"    element={<PatientResetPassword />} />
 
                     {/* Protected doctor routes wrapped in AppLayout (sidebar) */}
                     <Route element={<PrivateRoutes />}>

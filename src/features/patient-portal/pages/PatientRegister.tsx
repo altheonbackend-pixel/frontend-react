@@ -112,7 +112,11 @@ export default function PatientRegister() {
                 terms_accepted: true,
             });
             setSuccessInfo({ merged: res.data.merged });
-            setTimeout(() => navigate('/patient/dashboard', { replace: true }), 2500);
+            const missingFields: string[] = res.data.missing_fields || [];
+            const dest = missingFields.length > 0
+                ? `/patient/complete-profile?fields=${missingFields.join(',')}`
+                : '/patient/dashboard';
+            setTimeout(() => navigate(dest, { replace: true }), 2500);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response) {
                 const resp = err.response.data;
