@@ -325,10 +325,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 const consultationId = response.data.id;
                 const today = new Date().toISOString().slice(0, 10);
 
+                // Auto-include any pending draft the doctor filled but didn't click + Add
+                const finalRxList = (!isEditing && rxDraft.medication_name.trim() && rxDraft.dosage.trim())
+                    ? [...rxList, { ...rxDraft }]
+                    : rxList;
+
                 // Save all queued prescriptions via Promise.allSettled — failures surface in retry panel
                 let savedRx: SavedRx[] = [];
-                if (!isEditing && rxList.length > 0) {
-                    const rxPayloads: RxItem[] = rxList.map(rx => ({
+                if (!isEditing && finalRxList.length > 0) {
+                    const rxPayloads: RxItem[] = finalRxList.map(rx => ({
                         patient: patientId,
                         consultation: consultationId,
                         medication_name: rx.medication_name,
@@ -858,7 +863,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                 <option value="weekly">Weekly</option>
                                 <option value="other">Other</option>
                             </select>
-                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: '0 0 76px', minWidth: '66px' }}>
                                 <input
                                     type="number"
                                     className="rx-adder-input rx-adder-days"
@@ -867,9 +872,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                                     value={rxDraft.duration_days}
                                     onChange={e => setRxDraft(p => ({ ...p, duration_days: e.target.value }))}
                                     onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
+                                    style={{ width: '100%' }}
                                 />
                                 {rxDraft.duration_days && parseInt(rxDraft.duration_days, 10) > 0 && (
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap' }}>
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                         until {new Date(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                     </span>
                                 )}
