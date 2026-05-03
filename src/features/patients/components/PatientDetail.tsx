@@ -711,6 +711,17 @@ const PatientDetails = () => {
         }
     };
 
+    const handleMarkPrescriptionActive = async (rxId: number) => {
+        try {
+            await api.patch(`/prescriptions/${rxId}/`, { is_active: true });
+            toast.success('Marked as active.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications', 'all'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update.'));
+        }
+    };
+
     const handleToggleVisibleToPatient = async (
         resource: 'conditions' | 'allergies' | 'prescriptions',
         itemId: number,
@@ -1975,33 +1986,43 @@ const PatientDetails = () => {
                                         <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                             Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
                                         </div>
-                                        {rx.is_active && (
-                                            <div className="entry-actions">
-                                                <button
-                                                    onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
-                                                    className="action-button"
-                                                    style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
-                                                >
-                                                    {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleMarkPrescriptionInactive(rx.id)}
-                                                    className="action-button"
-                                                    style={{ color: 'var(--text-muted)' }}
-                                                >
-                                                    Mark Inactive
-                                                </button>
-                                                {rx.consultation && (
+                                        <div className="entry-actions">
+                                            {rx.is_active ? (
+                                                <>
                                                     <button
-                                                        onClick={() => { handleTabChange('consultations'); }}
+                                                        onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
                                                         className="action-button"
-                                                        style={{ color: 'var(--accent)' }}
+                                                        style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
                                                     >
-                                                        View Consultation →
+                                                        {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
                                                     </button>
-                                                )}
-                                            </div>
-                                        )}
+                                                    <button
+                                                        onClick={() => handleMarkPrescriptionInactive(rx.id)}
+                                                        className="action-button"
+                                                        style={{ color: 'var(--text-muted)' }}
+                                                    >
+                                                        Mark Inactive
+                                                    </button>
+                                                    {rx.consultation && (
+                                                        <button
+                                                            onClick={() => { handleTabChange('consultations'); }}
+                                                            className="action-button"
+                                                            style={{ color: 'var(--accent)' }}
+                                                        >
+                                                            View Consultation →
+                                                        </button>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleMarkPrescriptionActive(rx.id)}
+                                                    className="action-button"
+                                                    style={{ color: 'var(--color-success-dark)' }}
+                                                >
+                                                    Mark Active
+                                                </button>
+                                            )}
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
