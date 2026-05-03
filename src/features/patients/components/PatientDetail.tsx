@@ -204,7 +204,7 @@ const PatientDetails = () => {
     }>>({
         queryKey: ['patients', id, 'appointments'],
         queryFn: async () => {
-            const res = await api.get('/appointments/', { params: { patient_id: id } });
+            const res = await api.get('/appointments/', { params: { patient: id } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('admin'),
@@ -289,9 +289,10 @@ const PatientDetails = () => {
     const { data: pendingRequests = [], isLoading: pendingRequestsLoading, refetch: refetchPendingRequests } = useQuery({
         queryKey: ['patients', id, 'pendingRequests'],
         queryFn: async () => {
-            const res = await api.get('/doctor/appointment-requests/');
-            const all = res.data as Array<{ id: number; patient_name: string; patient_id: string; appointment_date: string; reason: string; notes: string }>;
-            return all.filter(r => r.patient_id === id);
+            type PendingReq = { id: number; patient_name: string; patient_id: string; appointment_date: string; reason: string; notes: string };
+            const res = await api.get('/doctor/appointment-requests/', { params: { patient: id } });
+            const raw: PendingReq[] = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
+            return raw.filter(r => r.patient_id === id);
         },
         enabled: loadedTabs.has('admin') && !!id,
         staleTime: 60_000,
@@ -569,7 +570,7 @@ const PatientDetails = () => {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
             pendingScrollConsultIdRef.current = null;
         }
-    });
+    }, [activeTab, consultationsData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchQuickNote = async () => {
         if (!id) return;
@@ -660,6 +661,7 @@ const PatientDetails = () => {
             setConfirmDeleteConsultationId(null);
             toast.success('Consultation deleted.');
             fetchPatientDetails();
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
         } catch (err) {
             toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
@@ -671,6 +673,7 @@ const PatientDetails = () => {
             setConfirmDeleteProcedureId(null);
             toast.success('Procedure deleted.');
             fetchPatientDetails();
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
         } catch (err) {
             toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
@@ -682,6 +685,7 @@ const PatientDetails = () => {
             setConfirmDeleteReferralId(null);
             toast.success('Referral deleted.');
             fetchPatientDetails();
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
         } catch (err) {
             toast.error(parseApiError(err, t('patient_detail.error.delete_general')));
         }
@@ -829,6 +833,8 @@ const PatientDetails = () => {
     if (loading) return <PageLoader message={t('patient_detail.loading')} />;
     if (error) return <div className="error-message">Error: {error}</div>;
     if (!patient) return <div className="no-data-message">{t('patient_detail.error.load')}</div>;
+
+    const canWrite = patient.status === 'active';
 
     const LAB_STATUS_COLORS_MAP: Record<string, string> = {
         normal: '#38a169', abnormal: '#d69e2e', critical: '#e53e3e', pending: '#718096',
@@ -993,7 +999,6 @@ const PatientDetails = () => {
                 )}
                 {/* Action strip — scrollable horizontal row, never makes page wider */}
                 {(() => {
-                    const canWrite = patient.status === 'active';
                     return (
                         <div className="patient-action-strip">
                             <button
@@ -1291,7 +1296,12 @@ const PatientDetails = () => {
                                     >Vitals Charts</button>
                                 </div>
                                 {consultView === 'list' && (
-                                    <button className="btn-add-primary" onClick={() => { setConsultationToEdit(null); setShowConsultationForm(true); }}>+ Add</button>
+                                    <button
+                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                        disabled={!canWrite}
+                                        title={!canWrite ? 'Patient record is read-only' : undefined}
+                                        onClick={() => { if (canWrite) { setConsultationToEdit(null); setShowConsultationForm(true); } }}
+                                    >+ Add</button>
                                 )}
                             </div>
                         </div>
@@ -1599,7 +1609,12 @@ const PatientDetails = () => {
                         <div className="tab-section">
                             <div className="tab-panel-header">
                                 <h3>Conditions <span className="section-count">({patient.conditions?.length || 0})</span></h3>
-                                <button className="btn-add-primary" onClick={() => setShowConditionForm(!showConditionForm)}>+ Add Condition</button>
+                                <button
+                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                    disabled={!canWrite}
+                                    title={!canWrite ? 'Patient record is read-only' : undefined}
+                                    onClick={() => { if (canWrite) setShowConditionForm(!showConditionForm); }}
+                                >+ Add Condition</button>
                             </div>
                         {showConditionForm && (
                             <form onSubmit={handleConditionSubmit} className="inline-form">
@@ -1726,7 +1741,12 @@ const PatientDetails = () => {
                         <div className="tab-section tab-section--divider">
                             <div className="tab-panel-header">
                                 <h3>Allergies <span className="section-count">({activeAllergies.length} active)</span></h3>
-                                <button className="btn-add-primary" onClick={() => setShowAllergyForm(!showAllergyForm)}>+ Add Allergy</button>
+                                <button
+                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                    disabled={!canWrite}
+                                    title={!canWrite ? 'Patient record is read-only' : undefined}
+                                    onClick={() => { if (canWrite) setShowAllergyForm(!showAllergyForm); }}
+                                >+ Add Allergy</button>
                             </div>
                         {showAllergyForm && (
                             <form onSubmit={handleAllergySubmit} className="inline-form">
@@ -1848,7 +1868,12 @@ const PatientDetails = () => {
                             <div className="tab-panel-header">
                                 <h3>Procedures <span className="section-count">({patient.medical_procedures?.length || 0})</span></h3>
                                 {(profile?.access_level ?? 1) >= 2 && (
-                                    <button className="btn-add-primary" onClick={() => { setProcedureToEdit(null); setShowProcedureForm(true); }}>+ Add Procedure</button>
+                                    <button
+                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                        disabled={!canWrite}
+                                        title={!canWrite ? 'Patient record is read-only' : undefined}
+                                        onClick={() => { if (canWrite) { setProcedureToEdit(null); setShowProcedureForm(true); } }}
+                                    >+ Add Procedure</button>
                                 )}
                             </div>
                             {proceduresLoading ? (
@@ -1876,7 +1901,12 @@ const PatientDetails = () => {
                         <div className="tab-section tab-section--divider">
                             <div className="tab-panel-header">
                                 <h3>Referrals <span className="section-count">({patient.referrals?.length || 0})</span></h3>
-                                <button className="btn-add-primary" onClick={() => { setReferralToEdit(null); setShowReferralForm(true); }}>+ Add Referral</button>
+                                <button
+                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                    disabled={!canWrite}
+                                    title={!canWrite ? 'Patient record is read-only' : undefined}
+                                    onClick={() => { if (canWrite) { setReferralToEdit(null); setShowReferralForm(true); } }}
+                                >+ Add Referral</button>
                             </div>
                             {referralsLoading ? (
                                 <TabSkeleton rows={4} />
@@ -1959,11 +1989,17 @@ const PatientDetails = () => {
                                         )}
                                     </button>
                                 </div>
-                                <button className="btn-add-primary" onClick={() => {
-                                    setEditingLabId(null);
-                                    setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
-                                    setShowLabForm(true);
-                                }}>+ Add Lab Result</button>
+                                <button
+                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                    disabled={!canWrite}
+                                    title={!canWrite ? 'Patient record is read-only' : undefined}
+                                    onClick={() => {
+                                        if (!canWrite) return;
+                                        setEditingLabId(null);
+                                        setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+                                        setShowLabForm(true);
+                                    }}
+                                >+ Add Lab Result</button>
                             </div>
                         </div>
                         {showLabForm && (
@@ -2114,13 +2150,24 @@ const PatientDetails = () => {
                                                     )}
                                                 </>
                                             ) : (
-                                                <button
-                                                    onClick={() => handleMarkPrescriptionActive(rx.id)}
-                                                    className="action-button"
-                                                    style={{ color: 'var(--color-success-dark)' }}
-                                                >
-                                                    Mark Active
-                                                </button>
+                                                <>
+                                                    <button
+                                                        onClick={() => handleMarkPrescriptionActive(rx.id)}
+                                                        className="action-button"
+                                                        style={{ color: 'var(--color-success-dark)' }}
+                                                    >
+                                                        Mark Active
+                                                    </button>
+                                                    {rx.consultation && (
+                                                        <button
+                                                            onClick={() => navigateToConsultation(rx.consultation!)}
+                                                            className="action-button"
+                                                            style={{ color: 'var(--accent)' }}
+                                                        >
+                                                            View Consultation →
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </li>
@@ -2130,8 +2177,9 @@ const PatientDetails = () => {
                     </div>
                 )}
 
-                {/* Portal section — rendered as second block inside Admin tab */}
+                {/* Portal section — admin tab, second panel */}
                 {activeTab === 'admin' && (
+                    <div className="tab-panel" style={{ paddingTop: 0 }}>
                     <div className="tab-section tab-section--divider" style={{ display: 'grid', gap: '1.25rem' }}>
                         <div className="tab-panel-header"><h3>Patient Portal</h3></div>
                         {portalLoading ? (
@@ -2349,6 +2397,7 @@ const PatientDetails = () => {
                                 />
                             </>
                         )}
+                    </div>
                     </div>
                 )}
             </div>
