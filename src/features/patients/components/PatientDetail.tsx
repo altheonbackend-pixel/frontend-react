@@ -519,7 +519,7 @@ const PatientDetails = () => {
     useKeyboardShortcut({
         key: 'n',
         modifiers: ['ctrl'],
-        enabled: !anyFormOpen,
+        enabled: !anyFormOpen && patient?.status === 'active',
         onKeyDown: () => { setConsultationToEdit(null); setShowConsultationForm(true); handleTabChange('consultations'); },
     });
     useKeyboardShortcut({
@@ -926,63 +926,95 @@ const PatientDetails = () => {
                         </div>
                     </div>
                 </div>
-                {/* Action strip — scrollable horizontal row, never makes page wider */}
-                <div className="patient-action-strip">
-                    <button
-                        onClick={() => { setShowConsultationForm(true); setConsultationToEdit(null); handleTabChange('consultations'); }}
-                        className="strip-btn strip-btn--primary"
-                    >
-                        + Consultation
-                    </button>
-                    <button
-                        onClick={() => { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('actions'); }}
-                        className="strip-btn"
-                    >
-                        + Referral
-                    </button>
-                    <button
-                        onClick={() => { setShowConditionForm(true); handleTabChange('history'); }}
-                        className="strip-btn"
-                    >
-                        + Condition
-                    </button>
-                    <button onClick={handleExportPdf} className="strip-btn">
-                        PDF
-                    </button>
-                    <div className="strip-dropdown" ref={dropdownRef}>
-                        <button
-                            onClick={() => setShowDropdown(!showDropdown)}
-                            className="strip-btn"
-                            aria-label="More actions"
-                            aria-expanded={showDropdown}
-                            aria-haspopup="menu"
-                        >
-                            More ▾
-                        </button>
-                        {showDropdown && (
-                            <ul className="dropdown-menu">
-                                {(profile?.access_level ?? 1) >= 2 && (
-                                    <li>
-                                        <button
-                                            onClick={() => { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('actions'); }}
-                                            className="action-button dropdown-item"
-                                        >
-                                            + Add Procedure
-                                        </button>
-                                    </li>
-                                )}
-                                <li>
-                                    <button
-                                        onClick={() => { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('history'); }}
-                                        className="action-button dropdown-item"
-                                    >
-                                        + Add Allergy
-                                    </button>
-                                </li>
-                            </ul>
-                        )}
+                {/* Status banner — shown for non-active patients above the action strip */}
+                {patient.status === 'inactive' && (
+                    <div className="patient-status-banner patient-status-banner--inactive">
+                        <span className="patient-status-banner__icon">⚠</span>
+                        <span>Patient is <strong>inactive</strong> — reactivate to add new clinical records.</span>
                     </div>
-                </div>
+                )}
+                {patient.status === 'transferred' && (
+                    <div className="patient-status-banner patient-status-banner--transferred">
+                        <span className="patient-status-banner__icon">↗</span>
+                        <span>Patient has been <strong>transferred</strong> — this record is read-only.</span>
+                    </div>
+                )}
+                {patient.status === 'deceased' && (
+                    <div className="patient-status-banner patient-status-banner--deceased">
+                        <span className="patient-status-banner__icon">✦</span>
+                        <span>Patient is <strong>deceased</strong> — this record is read-only.</span>
+                    </div>
+                )}
+                {/* Action strip — scrollable horizontal row, never makes page wider */}
+                {(() => {
+                    const canWrite = patient.status === 'active';
+                    return (
+                        <div className="patient-action-strip">
+                            <button
+                                onClick={() => { if (canWrite) { setShowConsultationForm(true); setConsultationToEdit(null); handleTabChange('consultations'); } }}
+                                className={`strip-btn strip-btn--primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                disabled={!canWrite}
+                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                            >
+                                + Consultation
+                            </button>
+                            <button
+                                onClick={() => { if (canWrite) { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('actions'); } }}
+                                className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                disabled={!canWrite}
+                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                            >
+                                + Referral
+                            </button>
+                            <button
+                                onClick={() => { if (canWrite) { setShowConditionForm(true); handleTabChange('history'); } }}
+                                className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                disabled={!canWrite}
+                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                            >
+                                + Condition
+                            </button>
+                            <button onClick={handleExportPdf} className="strip-btn">
+                                PDF
+                            </button>
+                            <div className="strip-dropdown" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setShowDropdown(!showDropdown)}
+                                    className="strip-btn"
+                                    aria-label="More actions"
+                                    aria-expanded={showDropdown}
+                                    aria-haspopup="menu"
+                                >
+                                    More ▾
+                                </button>
+                                {showDropdown && (
+                                    <ul className="dropdown-menu">
+                                        {(profile?.access_level ?? 1) >= 2 && (
+                                            <li>
+                                                <button
+                                                    onClick={() => { if (canWrite) { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('actions'); } }}
+                                                    className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
+                                                    disabled={!canWrite}
+                                                >
+                                                    + Add Procedure
+                                                </button>
+                                            </li>
+                                        )}
+                                        <li>
+                                            <button
+                                                onClick={() => { if (canWrite) { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('history'); } }}
+                                                className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
+                                                disabled={!canWrite}
+                                            >
+                                                + Add Allergy
+                                            </button>
+                                        </li>
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Quick Note — pinned, visible only to this doctor */}
