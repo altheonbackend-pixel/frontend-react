@@ -1,5 +1,17 @@
 // src/main.tsx
 import React, { Suspense } from 'react';
+
+// When Vercel deploys a new version, old chunk hashes no longer exist on the CDN.
+// Any user still holding the old index.html will hit 404s on dynamic imports.
+// Vite 4.4+ fires this event — we hard-reload once to pull the fresh index.html.
+window.addEventListener('vite:preloadError', () => {
+    const key = 'vite_chunk_reload_at';
+    const last = Number(sessionStorage.getItem(key) ?? 0);
+    if (Date.now() - last > 15_000) {
+        sessionStorage.setItem(key, String(Date.now()));
+        window.location.reload();
+    }
+});
 import ReactDOM from 'react-dom/client';
 
 // Sentry — error monitoring (only initialised when VITE_SENTRY_DSN is set)
