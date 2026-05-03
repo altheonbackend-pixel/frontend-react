@@ -1315,48 +1315,129 @@ const PatientDetails = () => {
                                                 </button>
                                                 {isExpanded && (
                                                     <div className="consult-expanded">
-                                                        <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
-                                                        {c.symptoms?.length > 0 && (
-                                                            <div className="info-item">
-                                                                <strong>Symptoms:</strong>
-                                                                <div className="symptoms-display">
-                                                                    {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
+
+                                                        {/* Clinical */}
+                                                        <div className="consult-section">
+                                                            <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
+                                                            {c.symptoms?.length > 0 && (
+                                                                <div className="info-item">
+                                                                    <strong>Symptoms:</strong>
+                                                                    <div className="symptoms-display">
+                                                                        {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                        {c.diagnosis && <div className="info-item"><strong>Diagnosis:</strong> {c.diagnosis}</div>}
-                                                        {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
-                                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
-                                                        <div className="vitals-row">
-                                                            {c.weight && <span className="vital-chip">Weight: {c.weight}kg</span>}
-                                                            {c.height && <span className="vital-chip">Height: {c.height}m</span>}
-                                                            {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
-                                                            {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
-                                                            {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`}</span>}
+                                                            )}
+                                                            {c.diagnosis && (
+                                                                <div className="info-item">
+                                                                    <strong>Diagnosis:</strong> {c.diagnosis}
+                                                                    {c.icd_code && <span className="consult-icd-badge">{c.icd_code}</span>}
+                                                                </div>
+                                                            )}
+                                                            {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
                                                         </div>
+
+                                                        {/* Vitals */}
+                                                        {(c.weight || c.height || c.temperature || c.sp2 || c.bp_systolic || c.bp_diastolic) && (
+                                                            <div className="consult-section">
+                                                                <div className="consult-section-title">Vitals</div>
+                                                                <div className="vitals-row">
+                                                                    {c.weight && <span className="vital-chip">Weight: {c.weight} kg</span>}
+                                                                    {c.height && <span className="vital-chip">Height: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
+                                                                    {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
+                                                                    {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
+                                                                    {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`} mmHg</span>}
+                                                                </div>
+                                                                {c.has_vital_alerts && c.vital_alert_reasons && c.vital_alert_reasons.length > 0 && (
+                                                                    <div className="consult-vital-alerts">
+                                                                        {c.vital_alert_reasons.map(r => <span key={r} className="vital-alert-chip">⚠ {r}</span>)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Prescriptions */}
+                                                        {c.prescriptions && c.prescriptions.length > 0 && (
+                                                            <div className="consult-section">
+                                                                <div className="consult-section-title">Medications Prescribed</div>
+                                                                <ul className="consult-rx-list">
+                                                                    {c.prescriptions.map(rx => (
+                                                                        <li key={rx.id} className="consult-rx-item">
+                                                                            <div className="consult-rx-header">
+                                                                                <span className="consult-rx-name">{rx.medication_name}</span>
+                                                                                <span className={`consult-rx-status ${rx.is_active ? 'consult-rx-status--active' : 'consult-rx-status--inactive'}`}>
+                                                                                    {rx.is_active ? 'Active' : 'Inactive'}
+                                                                                </span>
+                                                                            </div>
+                                                                            <div className="consult-rx-detail">
+                                                                                {rx.dosage} · {rx.frequency}
+                                                                                {rx.duration_days ? ` · ${rx.duration_days} days` : ''}
+                                                                            </div>
+                                                                            {rx.instructions && <div className="consult-rx-instructions">{rx.instructions}</div>}
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Lab Tests */}
                                                         {c.lab_results && c.lab_results.length > 0 && (
-                                                            <div className="consult-linked-section">
-                                                                <div className="consult-linked-title">Lab Tests Ordered</div>
-                                                                <div className="consult-linked-list">
+                                                            <div className="consult-section">
+                                                                <div className="consult-section-title">Lab Tests Ordered</div>
+                                                                <ul className="consult-lab-list">
                                                                     {c.lab_results.map(lab => (
-                                                                        <span key={lab.id} className="consult-linked-chip">
-                                                                            {lab.test_name}
-                                                                            <span className={`lab-status-dot lab-status-dot--${lab.status}`} />
-                                                                        </span>
+                                                                        <li key={lab.id} className="consult-lab-item">
+                                                                            <div className="consult-lab-header">
+                                                                                <span className="consult-lab-name">{lab.test_name}</span>
+                                                                                <span className={`consult-lab-status consult-lab-status--${lab.status}`}>{lab.status}</span>
+                                                                            </div>
+                                                                            <div className="consult-lab-meta">
+                                                                                {new Date(lab.test_date).toLocaleDateString()}
+                                                                                {(lab.result_value || lab.result_value_text) && (
+                                                                                    <span className="consult-lab-result">
+                                                                                        {lab.result_value_text || lab.result_value}{lab.unit ? ` ${lab.unit}` : ''}
+                                                                                        {lab.reference_range ? ` (ref: ${lab.reference_range})` : ''}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            {lab.notes && <div className="consult-lab-notes">{lab.notes}</div>}
+                                                                        </li>
                                                                     ))}
-                                                                </div>
+                                                                </ul>
                                                             </div>
                                                         )}
+
+                                                        {/* Procedures */}
                                                         {c.procedures && c.procedures.length > 0 && (
-                                                            <div className="consult-linked-section">
-                                                                <div className="consult-linked-title">Procedures Performed</div>
-                                                                <div className="consult-linked-list">
+                                                            <div className="consult-section">
+                                                                <div className="consult-section-title">Procedures Performed</div>
+                                                                <ul className="consult-proc-list">
                                                                     {c.procedures.map(proc => (
-                                                                        <span key={proc.id} className="consult-linked-chip">{proc.procedure_type}</span>
+                                                                        <li key={proc.id} className="consult-proc-item">
+                                                                            <div className="consult-proc-header">
+                                                                                <span className="consult-proc-name">{proc.procedure_type}</span>
+                                                                                {proc.procedure_category && <span className="consult-proc-category">{proc.procedure_category}</span>}
+                                                                                <span className="consult-proc-date">{new Date(proc.procedure_date).toLocaleDateString()}</span>
+                                                                            </div>
+                                                                            {proc.result && <div className="consult-proc-result">{proc.result}</div>}
+                                                                        </li>
                                                                     ))}
-                                                                </div>
+                                                                </ul>
                                                             </div>
                                                         )}
+
+                                                        {/* Follow-up & Patient Instructions */}
+                                                        {(c.follow_up_date || c.patient_summary || c.patient_instructions) && (
+                                                            <div className="consult-section">
+                                                                {c.follow_up_date && (
+                                                                    <div className="follow-up-chip" style={{ display: 'inline-flex', marginBottom: '6px' }}>
+                                                                        Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}
+                                                                    </div>
+                                                                )}
+                                                                {c.patient_summary && <div className="info-item"><strong>Patient Summary:</strong> {c.patient_summary}</div>}
+                                                                {c.patient_instructions && <div className="info-item"><strong>Instructions:</strong> {c.patient_instructions}</div>}
+                                                            </div>
+                                                        )}
+
                                                         <div className="entry-actions">
                                                             <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
                                                             <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>

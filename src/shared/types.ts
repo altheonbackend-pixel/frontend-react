@@ -130,8 +130,19 @@ export interface Consultation {
     visible_to_patient: boolean;
     patient_summary: string | null;
     patient_instructions: string | null;
-    lab_results?: Array<{ id: number; test_name: string; status: string; test_date: string }>;
-    procedures?: Array<{ id: number; procedure_type: string; procedure_date: string }>;
+    lab_results?: Array<{
+        id: number; test_name: string; status: string; test_date: string;
+        result_value?: string | null; result_value_text?: string | null;
+        unit?: string; reference_range?: string; notes?: string;
+    }>;
+    procedures?: Array<{
+        id: number; procedure_type: string; procedure_category?: string;
+        procedure_date: string; result?: string | null;
+    }>;
+    prescriptions?: Array<{
+        id: number; medication_name: string; dosage: string; frequency: string;
+        duration_days: number | null; instructions: string; is_active: boolean;
+    }>;
 }
 
 export interface LabResult {
