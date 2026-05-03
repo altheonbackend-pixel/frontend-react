@@ -112,6 +112,7 @@ const PatientDetails = () => {
 
     // Collapsible consultation entries
     const [expandedConsultIds, setExpandedConsultIds] = useState<Set<number>>(new Set());
+    const pendingScrollConsultIdRef = useRef<number | null>(null);
     const toggleConsult = (consultId: number) =>
         setExpandedConsultIds(prev => {
             const next = new Set(prev);
@@ -530,6 +531,13 @@ const PatientDetails = () => {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     };
 
+    // Navigate to a specific consultation: switch to consultations tab, expand it, then scroll to it
+    const navigateToConsultation = (consultId: number) => {
+        pendingScrollConsultIdRef.current = consultId;
+        setExpandedConsultIds(prev => new Set([...prev, consultId]));
+        handleTabChange('consultations');
+    };
+
     // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
     const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm;
     useKeyboardShortcut({
@@ -551,6 +559,17 @@ const PatientDetails = () => {
         setQuickNoteLoaded(false);
         setLoadedTabs(new Set(['overview']));
     }, [id]);
+
+    // Scroll to a specific consultation once the tab is active and data is loaded
+    useEffect(() => {
+        const targetId = pendingScrollConsultIdRef.current;
+        if (!targetId || activeTab !== 'consultations' || consultationsData.length === 0) return;
+        const el = document.getElementById(`consult-entry-${targetId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            pendingScrollConsultIdRef.current = null;
+        }
+    });
 
     const fetchQuickNote = async () => {
         if (!id) return;
@@ -1285,7 +1304,7 @@ const PatientDetails = () => {
                                     {consultationsData.map(c => {
                                         const isExpanded = expandedConsultIds.has(c.id);
                                         return (
-                                            <li key={c.id} className="consultation-entry detail-list-item">
+                                            <li key={c.id} id={`consult-entry-${c.id}`} className="consultation-entry detail-list-item">
                                                 <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
                                                     <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
                                                     <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
@@ -2005,7 +2024,7 @@ const PatientDetails = () => {
                                                     </button>
                                                     {rx.consultation && (
                                                         <button
-                                                            onClick={() => { handleTabChange('consultations'); }}
+                                                            onClick={() => navigateToConsultation(rx.consultation!)}
                                                             className="action-button"
                                                             style={{ color: 'var(--accent)' }}
                                                         >
