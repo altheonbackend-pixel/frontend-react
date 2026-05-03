@@ -176,7 +176,7 @@ const PatientDetails = () => {
     const { data: medications = [], isLoading: medicationsLoading } = useQuery<Prescription[]>({
         queryKey: ['patients', id, 'medications'],
         queryFn: async () => {
-            const res = await api.get('/prescriptions/', { params: { patient_id: id, is_active: true } });
+            const res = await api.get('/prescriptions/', { params: { patient: id, active: true } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('medications'),
@@ -186,7 +186,7 @@ const PatientDetails = () => {
     const { data: allMedications = [], isLoading: allMedsLoading } = useQuery<Prescription[]>({
         queryKey: ['patients', id, 'medications', 'all'],
         queryFn: async () => {
-            const res = await api.get('/prescriptions/', { params: { patient_id: id } });
+            const res = await api.get('/prescriptions/', { params: { patient: id } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('medications') && showAllMeds,
