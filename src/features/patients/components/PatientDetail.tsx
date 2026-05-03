@@ -438,6 +438,19 @@ const PatientDetails = () => {
         }
     }, [id, isAuthenticated]);
 
+    // When medications load (or reload) while the reconcile modal is open,
+    // add any freshly fetched meds to the pre-checked set without clearing
+    // any the doctor has already manually unchecked.
+    useEffect(() => {
+        if (reconcileRx !== null && medications.length > 0) {
+            setReconcileCheckedCurrent(prev => {
+                const next = new Set(prev);
+                medications.forEach(rx => next.add(rx.id));
+                return next;
+            });
+        }
+    }, [medications]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -483,14 +496,15 @@ const PatientDetails = () => {
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
 
-        // If this consultation had prescriptions, open the medication reconciliation modal
-        if (savedRx && savedRx.length > 0) {
-            // Pre-check all new prescriptions
+        // For every new consultation (savedRx defined, even if empty), open the
+        // medication reconciliation modal so the doctor can review the active list.
+        if (savedRx !== undefined) {
             setReconcileCheckedNew(new Set(savedRx.map(rx => rx.id)));
-            // Pre-check all currently active medications
+            // Pre-check whatever active meds are already in cache
             setReconcileCheckedCurrent(new Set(medications.map(rx => rx.id)));
             setReconcileRx(savedRx);
-            // Ensure medications tab data is fresh before modal opens
+            // Ensure medications query is enabled and fresh (tab may not be loaded yet)
+            setLoadedTabs(prev => new Set([...prev, 'medications']));
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
         }
     };
@@ -2460,42 +2474,52 @@ const PatientDetails = () => {
             {reconcileRx && (
                 <div style={{ display: 'grid', gap: '1.25rem' }}>
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                        Review what this patient is currently taking. Uncheck anything that should be removed from their active medication list.
+                        Review what this patient is currently taking. Check prescriptions to keep them active; uncheck anything that should be removed.
                     </p>
 
-                    {/* New prescriptions from this consultation */}
-                    <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                            Prescribed in this consultation
-                        </div>
-                        <div style={{ display: 'grid', gap: '0.5rem' }}>
-                            {reconcileRx.map(rx => (
-                                <label key={rx.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={reconcileCheckedNew.has(rx.id)}
-                                        onChange={e => {
-                                            const next = new Set(reconcileCheckedNew);
-                                            e.target.checked ? next.add(rx.id) : next.delete(rx.id);
-                                            setReconcileCheckedNew(next);
-                                        }}
-                                        style={{ width: '16px', height: '16px', flexShrink: 0 }}
-                                    />
-                                    <div>
-                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rx.medication_name}</div>
-                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{rx.dosage} · {rx.frequency_display || rx.frequency}</div>
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Existing active medications */}
-                    {medications.filter(rx => !reconcileRx.some(n => n.id === rx.id)).length > 0 && (
+                    {/* New prescriptions from this consultation — only if any were added */}
+                    {reconcileRx.length > 0 ? (
                         <div>
                             <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                                Currently active medications
+                                Prescribed in this consultation
                             </div>
+                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                {reconcileRx.map(rx => (
+                                    <label key={rx.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--accent-lighter)', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={reconcileCheckedNew.has(rx.id)}
+                                            onChange={e => {
+                                                const next = new Set(reconcileCheckedNew);
+                                                e.target.checked ? next.add(rx.id) : next.delete(rx.id);
+                                                setReconcileCheckedNew(next);
+                                            }}
+                                            style={{ width: '16px', height: '16px', flexShrink: 0 }}
+                                        />
+                                        <div>
+                                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rx.medication_name}</div>
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{rx.dosage} · {rx.frequency_display || rx.frequency}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            No prescriptions were added in this consultation.
+                        </div>
+                    )}
+
+                    {/* Currently active medications */}
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                            Currently active medications
+                        </div>
+                        {medicationsLoading ? (
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>Loading…</div>
+                        ) : medications.filter(rx => !reconcileRx.some(n => n.id === rx.id)).length === 0 ? (
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No other active medications on file.</div>
+                        ) : (
                             <div style={{ display: 'grid', gap: '0.5rem' }}>
                                 {medications.filter(rx => !reconcileRx.some(n => n.id === rx.id)).map(rx => (
                                     <label key={rx.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', cursor: 'pointer' }}>
@@ -2516,8 +2540,8 @@ const PatientDetails = () => {
                                     </label>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             )}
         </Modal>

@@ -379,7 +379,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         consultationId: response.data.id,
                     });
                 } else {
-                    onSuccess(savedRx.length > 0 ? savedRx : undefined);
+                    // Pass savedRx (even if empty []) for new consultations — triggers the
+                    // medication reconciliation modal. For edits pass undefined to skip it.
+                    onSuccess(!consultationToEdit?.id ? savedRx : undefined);
                 }
             }
         } catch (err) {
@@ -424,7 +426,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         } finally {
             setCreatingFollowUp(false);
             setPendingFollowUp(null);
-            onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined);
+            onSuccess(savedRxRef.current);
         }
     };
 
