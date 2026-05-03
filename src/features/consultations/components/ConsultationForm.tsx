@@ -7,6 +7,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import api from '../../../shared/services/api';
+import type { AxiosResponse } from 'axios';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import { useNavigationBlocker } from '../../../shared/hooks/useNavigationBlocker';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
@@ -316,14 +317,17 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                     }
                     // Collect saved prescription data to pass to the medication reconciliation modal
                     savedRx = results
-                        .filter((r): r is PromiseFulfilledResult<{ data: SavedRx }> => r.status === 'fulfilled')
-                        .map(r => ({
-                            id: r.value.data.id,
-                            medication_name: r.value.data.medication_name,
-                            dosage: r.value.data.dosage,
-                            frequency: r.value.data.frequency,
-                            frequency_display: r.value.data.frequency_display,
-                        }));
+                        .filter((r): r is PromiseFulfilledResult<AxiosResponse> => r.status === 'fulfilled')
+                        .map(r => {
+                            const d = r.value.data as SavedRx;
+                            return {
+                                id: d.id,
+                                medication_name: d.medication_name,
+                                dosage: d.dosage,
+                                frequency: d.frequency,
+                                frequency_display: d.frequency_display,
+                            };
+                        });
                     savedRxRef.current = savedRx;
                 }
 
