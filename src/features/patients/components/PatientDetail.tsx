@@ -257,6 +257,9 @@ const PatientDetails = () => {
     const [reconcileCheckedNew, setReconcileCheckedNew] = useState<Set<number>>(new Set());
     const [reconcileCheckedCurrent, setReconcileCheckedCurrent] = useState<Set<number>>(new Set());
     const [reconcileLoading, setReconcileLoading] = useState(false);
+    // Tracks whether the initial pre-check for the current modal opening has been done.
+    // Prevents refetches from overwriting the doctor's manual unchecks.
+    const reconcilePreCheckedRef = useRef(false);
     const [reviewLabId, setReviewLabId] = useState<number | null>(null);
     const [reviewAction, setReviewAction] = useState<'accept' | 'reject'>('accept');
     const [reviewRejectionReason, setReviewRejectionReason] = useState('');
@@ -438,18 +441,16 @@ const PatientDetails = () => {
         }
     }, [id, isAuthenticated]);
 
-    // When medications load (or reload) while the reconcile modal is open,
-    // add any freshly fetched meds to the pre-checked set without clearing
-    // any the doctor has already manually unchecked.
+    // Pre-check all active medications exactly once when the modal first opens.
+    // We guard with a ref so that subsequent refetches of the medications query
+    // (which happen right after the consultation is saved) do NOT reset any
+    // manual unchecks the doctor has already made.
     useEffect(() => {
-        if (reconcileRx !== null && medications.length > 0) {
-            setReconcileCheckedCurrent(prev => {
-                const next = new Set(prev);
-                medications.forEach(rx => next.add(rx.id));
-                return next;
-            });
+        if (reconcileRx !== null && medications.length > 0 && !reconcilePreCheckedRef.current) {
+            reconcilePreCheckedRef.current = true;
+            setReconcileCheckedCurrent(new Set(medications.map(rx => rx.id)));
         }
-    }, [medications]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [medications, reconcileRx]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -499,9 +500,10 @@ const PatientDetails = () => {
         // For every new consultation (savedRx defined, even if empty), open the
         // medication reconciliation modal so the doctor can review the active list.
         if (savedRx !== undefined) {
+            // Reset the pre-check guard for this new modal session
+            reconcilePreCheckedRef.current = false;
             setReconcileCheckedNew(new Set(savedRx.map(rx => rx.id)));
-            // Pre-check whatever active meds are already in cache
-            setReconcileCheckedCurrent(new Set(medications.map(rx => rx.id)));
+            setReconcileCheckedCurrent(new Set()); // useEffect will fill once query loads
             setReconcileRx(savedRx);
             // Ensure medications query is enabled and fresh (tab may not be loaded yet)
             setLoadedTabs(prev => new Set([...prev, 'medications']));
@@ -2421,7 +2423,7 @@ const PatientDetails = () => {
         {/* ── Medication Reconciliation Modal ──────────────────────────────── */}
         <Modal
             open={reconcileRx !== null}
-            onClose={() => setReconcileRx(null)}
+            onClose={() => { reconcilePreCheckedRef.current = false; setReconcileRx(null); }}
             title="Review active medications"
             size="md"
             footer={
@@ -2429,7 +2431,7 @@ const PatientDetails = () => {
                     <button
                         type="button"
                         className="cancel-button"
-                        onClick={() => setReconcileRx(null)}
+                        onClick={() => { reconcilePreCheckedRef.current = false; setReconcileRx(null); }}
                         disabled={reconcileLoading}
                     >
                         Skip
@@ -2457,9 +2459,12 @@ const PatientDetails = () => {
                                     });
                                 }
                                 queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications', 'all'] });
+                                reconcilePreCheckedRef.current = false;
                                 setReconcileRx(null);
                             } catch {
                                 toast.error('Could not update medication list. Please adjust manually from the Medications tab.');
+                                reconcilePreCheckedRef.current = false;
                                 setReconcileRx(null);
                             } finally {
                                 setReconcileLoading(false);
