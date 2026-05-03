@@ -149,6 +149,39 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [symptoms]);
 
+    // Last consultation vitals — pre-fill weight/height on new consultations
+    const { data: lastConsultVitals } = useQuery<{
+        weight: number | null; height: number | null; height_unit: string;
+    } | null>({
+        queryKey: ['patients', patientId, 'lastConsultVitals'],
+        queryFn: async () => {
+            const res = await api.get('/consultations/', {
+                params: { patient_id: patientId, ordering: '-consultation_date', limit: 1 },
+            });
+            const results = res.data.results ?? res.data;
+            if (!results.length) return null;
+            const c = results[0];
+            return { weight: c.weight ?? null, height: c.height ?? null, height_unit: c.height_unit || 'cm' };
+        },
+        staleTime: 5 * 60_000,
+        enabled: !consultationToEdit,
+    });
+
+    // Pre-fill weight/height from last consultation once data arrives, but only
+    // when the field is still empty (don't overwrite user input or a restored draft).
+    useEffect(() => {
+        if (!lastConsultVitals) return;
+        if (draftRestoredRef.current) return;
+        if (lastConsultVitals.weight != null && getValues('weight') == null) {
+            setValue('weight', lastConsultVitals.weight, { shouldDirty: false });
+        }
+        if (lastConsultVitals.height != null && getValues('height') == null) {
+            setValue('height', lastConsultVitals.height, { shouldDirty: false });
+            setValue('height_unit', lastConsultVitals.height_unit as 'cm' | 'm', { shouldDirty: false });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lastConsultVitals]);
+
     // Patient drug allergies — used for inline banner and pre-submission conflict check
     const { data: drugAllergies = [] } = useQuery<Array<{ allergen: string; severity: string }>>({
         queryKey: ['patients', patientId, 'drug-allergies'],
