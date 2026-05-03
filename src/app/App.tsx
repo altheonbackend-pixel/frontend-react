@@ -27,6 +27,7 @@ import AdminActivePatientList from '../features/admin/components/AdminActivePati
 import PatientLayout from '../features/patient-portal/components/PatientLayout';
 import PatientLoginPage from '../features/patient-portal/pages/PatientLoginPage';
 import PatientClaim from '../features/patient-portal/pages/PatientClaim';
+import PatientRegister from '../features/patient-portal/pages/PatientRegister';
 import PatientForgotPassword from '../features/patient-portal/pages/PatientForgotPassword';
 import PatientResetPassword from '../features/patient-portal/pages/PatientResetPassword';
 
@@ -168,10 +169,11 @@ function App() {
                             </Route>
                         </Route>
                         {/* Public patient routes (accessible even when logged in as patient) */}
-                        <Route path="/patient/login" element={<PatientLoginPage />} />
-                        <Route path="/patient/claim" element={<PatientClaim />} />
+                        <Route path="/patient/login"           element={<PatientLoginPage />} />
+                        <Route path="/patient/register"        element={<PatientRegister />} />
+                        <Route path="/patient/claim"           element={<PatientClaim />} />
                         <Route path="/patient/forgot-password" element={<PatientForgotPassword />} />
-                        <Route path="/patient/reset-password" element={<PatientResetPassword />} />
+                        <Route path="/patient/reset-password"  element={<PatientResetPassword />} />
                         <Route path="/login" element={<PatientLoginPage />} />
                         <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
                         <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
@@ -195,8 +197,9 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password"  element={<ResetPassword />} />
                     {/* Patient-specific public routes */}
-                    <Route path="/patient/login"          element={<PatientLoginPage />} />
-                    <Route path="/patient/claim"          element={<PatientClaim />} />
+                    <Route path="/patient/login"           element={<PatientLoginPage />} />
+                    <Route path="/patient/register"        element={<PatientRegister />} />
+                    <Route path="/patient/claim"           element={<PatientClaim />} />
                     <Route path="/patient/forgot-password" element={<PatientForgotPassword />} />
                     <Route path="/patient/reset-password"  element={<PatientResetPassword />} />
 

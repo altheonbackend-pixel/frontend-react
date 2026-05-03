@@ -78,9 +78,13 @@ export default function PatientLoginPage() {
                     <div className="patient-auth-card-header">
                         <div className="patient-auth-card-title">Sign in to your portal</div>
                         <div className="patient-auth-card-sub">
-                            Don't have an account?{' '}
+                            New patient?{' '}
+                            <Link to="/patient/register" className="patient-auth-link">
+                                Create an account
+                            </Link>
+                            {' '}or{' '}
                             <Link to="/patient/claim" className="patient-auth-link">
-                                Claim your patient record
+                                claim an existing record
                             </Link>
                         </div>
                     </div>
@@ -147,9 +151,12 @@ export default function PatientLoginPage() {
                         <span>New to the portal?</span>
                     </div>
 
-                    <div style={{ textAlign: 'center' }}>
-                        <Link to="/patient/claim" className="btn btn-secondary" style={{ width: '100%', justifyContent: 'center', display: 'flex' }}>
-                            Claim your patient record
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <Link to="/patient/register" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+                            Create account
+                        </Link>
+                        <Link to="/patient/claim" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
+                            Claim record
                         </Link>
                     </div>
 
