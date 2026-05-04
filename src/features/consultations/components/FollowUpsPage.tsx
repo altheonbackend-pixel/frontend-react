@@ -178,7 +178,9 @@ function FollowUpsPage() {
                                                     </Link>
                                                 </td>
                                                 <td style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
-                                                    —
+                                                    {f.consultation_date
+                                                        ? new Date(f.consultation_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                                                        : '—'}
                                                 </td>
                                                 <td style={{ whiteSpace: 'nowrap' }}>
                                                     <span className={`follow-up-date-tag${isOverdue ? ' overdue' : isDueSoon ? ' soon' : ''}`}>
@@ -191,28 +193,52 @@ function FollowUpsPage() {
                                                         {f.reason_for_consultation}
                                                     </span>
                                                 </td>
-                                                <td style={{ textAlign: 'center' }}>—</td>
+                                                <td style={{ textAlign: 'center' }}>
+                                                    {f.has_vital_alerts && f.vital_alert_reasons?.length
+                                                        ? <span title={f.vital_alert_reasons.join(', ')} style={{ color: 'var(--color-danger)', fontWeight: 600, cursor: 'help' }}>⚠ {f.vital_alert_reasons.length}</span>
+                                                        : <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                                    }
+                                                </td>
                                                 <td>
-                                                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-task-accept"
-                                                            onClick={() => navigate(`/appointments?patient_id=${f.patient}`)}
+                                                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        {f.follow_up_appointment ? (
+                                                            <span style={{
+                                                                fontSize: '0.78rem', background: 'var(--color-success-light)',
+                                                                color: 'var(--color-success-dark)', borderRadius: '4px',
+                                                                padding: '2px 8px', fontWeight: 500,
+                                                            }}>
+                                                                ✓ Appt booked
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                className="btn-task-accept"
+                                                                onClick={() => navigate(`/appointments?patient_id=${f.patient}`)}
+                                                            >
+                                                                Book Appt
+                                                            </button>
+                                                        )}
+                                                        <Link
+                                                            to={`/patients/${f.patient}?tab=consultations`}
+                                                            className="btn-task-secondary"
+                                                            style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                                                         >
-                                                            Book Appt
-                                                        </button>
+                                                            View Visit
+                                                        </Link>
                                                         <button
                                                             type="button"
                                                             className="btn-task-secondary"
                                                             disabled={acknowledging === f.id}
                                                             onClick={() => handleAcknowledge(f.id)}
+                                                            title="Mark that the follow-up reminder has been noted"
                                                         >
-                                                            {acknowledging === f.id ? '…' : 'Acknowledge'}
+                                                            {acknowledging === f.id ? '…' : 'Mark Noted'}
                                                         </button>
                                                         <button
                                                             type="button"
                                                             className="btn-task-secondary"
                                                             onClick={() => setDismissTarget(f.id)}
+                                                            title="Remove from this list (no follow-up needed)"
                                                         >
                                                             Dismiss
                                                         </button>

@@ -1316,6 +1316,9 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
 .status-no_show,
 .status-no-show     { background: var(--color-warning-light); color: var(--color-warning-dark); }
 .status-rescheduled { background: var(--accent-lighter);      color: #5b21b6; }
+.status-rejected    { background: #fee2e2;                    color: #991b1b; }
+.status-in_progress,
+.status-in-progress { background: #dbeafe;                    color: #1e40af; }
 /* clinical statuses */
 .status-routine     { background: var(--accent-light);        color: #3730a3; }
 .status-urgent      { background: var(--color-warning-light); color: var(--color-warning-dark); }
@@ -2097,9 +2100,12 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
 .appt-card--confirmed   { border-left-color: var(--status-confirmed); }
 .appt-card--completed   { border-left-color: var(--status-completed); }
 .appt-card--cancelled   { border-left-color: var(--status-cancelled); }
+.appt-card--rejected    { border-left-color: #ef4444; }
 .appt-card--no_show,
 .appt-card--no-show     { border-left-color: var(--status-no-show); }
 .appt-card--rescheduled { border-left-color: var(--status-rescheduled); }
+.appt-card--in_progress,
+.appt-card--in-progress { border-left-color: #3b82f6; }
 
 /* ── Referral card ── */
 .referral-card {

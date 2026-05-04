@@ -145,6 +145,8 @@ const PatientDetails = () => {
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
     const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
+    // Session-scoped vital alert dismissals — decoupled from follow_up_notification_sent
+    const [dismissedVitalAlerts, setDismissedVitalAlerts] = useState<Set<number>>(new Set());
 
     // Lab Results
     const [showLabForm, setShowLabForm] = useState(false);
@@ -200,11 +202,15 @@ const PatientDetails = () => {
         id: number;
         appointment_date: string;
         status: string;
+        status_display?: string;
         reason_for_appointment: string;
+        appointment_type?: string;
+        rescheduled_from_date?: string | null;
+        cancellation_reason?: string;
     }>>({
         queryKey: ['patients', id, 'appointments'],
         queryFn: async () => {
-            const res = await api.get('/appointments/', { params: { patient: id } });
+            const res = await api.get('/appointments/', { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
         enabled: loadedTabs.has('admin'),
@@ -267,6 +273,7 @@ const PatientDetails = () => {
     const [reviewLabLoading, setReviewLabLoading] = useState(false);
     const [rejectRequestId, setRejectRequestId] = useState<number | null>(null);
     const [rejectReason, setRejectReason] = useState('');
+    const [approveInstructions, setApproveInstructions] = useState<Record<number, string>>({});
     const [requestActionLoading, setRequestActionLoading] = useState(false);
 
     const { data: portalStatus, isLoading: portalLoading, refetch: refetchPortalStatus } = useQuery({
@@ -398,12 +405,15 @@ const PatientDetails = () => {
         }
     };
 
-    const handleApproveRequest = async (apptId: number, instructions?: string) => {
+    const handleApproveRequest = async (apptId: number) => {
         setRequestActionLoading(true);
         try {
-            await api.post(`/appointments/${apptId}/approve/`, { portal_instructions: instructions || '' });
+            const instructions = approveInstructions[apptId] || '';
+            await api.post(`/appointments/${apptId}/approve/`, { portal_instructions: instructions });
             toast.success('Appointment request approved.');
+            setApproveInstructions(prev => { const n = { ...prev }; delete n[apptId]; return n; });
             refetchPendingRequests();
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'appointments'] });
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to approve request.'));
         } finally {
@@ -1139,20 +1149,17 @@ const PatientDetails = () => {
                         {/* Vital alert banner */}
                         {(() => {
                             const latest = patient.consultations?.[0];
-                            if (!latest?.has_vital_alerts || latest?.follow_up_notification_sent) return null;
+                            if (!latest?.has_vital_alerts || dismissedVitalAlerts.has(latest.id)) return null;
                             const reasons = latest.vital_alert_reasons ?? [];
                             const handleAcknowledge = async () => {
                                 setVitalAcknowledging(true);
                                 try {
+                                    // follow_up_notification_sent suppresses daily Celery emails — keep setting it
                                     await api.patch(`/consultations/${latest.id}/`, { follow_up_notification_sent: true });
-                                    setPatient(prev => prev ? {
-                                        ...prev,
-                                        consultations: (prev.consultations ?? []).map(c =>
-                                            c.id === latest.id ? { ...c, follow_up_notification_sent: true } : c
-                                        ),
-                                    } : prev);
+                                    // Use local state for banner dismissal (decoupled from email suppression field)
+                                    setDismissedVitalAlerts(prev => new Set([...prev, latest.id]));
                                     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
-                                    toast.success('Vital alert acknowledged. It will no longer appear on your dashboard.');
+                                    toast.success('Vital alert acknowledged.');
                                 } catch {
                                     toast.error('Failed to acknowledge alert.');
                                 } finally {
@@ -1253,7 +1260,7 @@ const PatientDetails = () => {
                                     <div key={c.id} className="mini-consultation">
                                         <div className="mini-consult-date">{new Date(c.consultation_date).toLocaleDateString()}</div>
                                         <div className="mini-consult-reason">{c.reason_for_consultation}</div>
-                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}</div>}
+                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</div>}
                                     </div>
                                 ))}
                                 {!patient.consultations?.length && <p className="muted">No consultations yet.</p>}
@@ -1319,7 +1326,7 @@ const PatientDetails = () => {
                                                     <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
                                                     <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
                                                     <span className="consult-summary-reason">{c.reason_for_consultation}</span>
-                                                    {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date).toLocaleDateString()}</span>}
+                                                    {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</span>}
                                                     {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
                                                     <span className="consult-expand-icon">{isExpanded ? '▲' : '▼'}</span>
                                                 </button>
@@ -1439,8 +1446,18 @@ const PatientDetails = () => {
                                                         {(c.follow_up_date || c.patient_summary || c.patient_instructions) && (
                                                             <div className="consult-section">
                                                                 {c.follow_up_date && (
-                                                                    <div className="follow-up-chip" style={{ display: 'inline-flex', marginBottom: '6px' }}>
-                                                                        Follow-up: {new Date(c.follow_up_date).toLocaleDateString()}
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                                                        <div className="follow-up-chip" style={{ display: 'inline-flex' }}>
+                                                                            Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="btn btn-ghost btn-sm"
+                                                                            style={{ fontSize: '0.78rem', padding: '2px 8px' }}
+                                                                            onClick={() => navigate(`/appointments?patient_id=${id}`)}
+                                                                        >
+                                                                            Book appointment →
+                                                                        </button>
                                                                     </div>
                                                                 )}
                                                                 {c.patient_summary && <div className="info-item"><strong>Patient Summary:</strong> {c.patient_summary}</div>}
@@ -1958,11 +1975,26 @@ const PatientDetails = () => {
                                         .map(appt => (
                                             <li key={appt.id} className="detail-list-item">
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <strong>{new Date(appt.appointment_date).toLocaleString()}</strong>
-                                                    <span className={`status-badge status-${appt.status}`}>{appt.status}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <strong>{new Date(appt.appointment_date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                                                        {appt.appointment_type && (
+                                                            <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
+                                                                {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
+                                                            </span>
+                                                        )}
+                                                        {appt.rescheduled_from_date && (
+                                                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+                                                                ↩ Rescheduled
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span className={`status-badge status-${appt.status}`}>{appt.status_display || appt.status}</span>
                                                 </div>
                                                 {appt.reason_for_appointment && (
                                                     <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                                                )}
+                                                {appt.cancellation_reason && (
+                                                    <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>Cancellation note:</strong> {appt.cancellation_reason}</div>
                                                 )}
                                             </li>
                                         ))
@@ -2294,6 +2326,11 @@ const PatientDetails = () => {
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                                             <div>
                                                                 <div style={{ fontWeight: 700 }}>{new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                                                {req.appointment_type && (
+                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                                                                        {req.appointment_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
+                                                                    </div>
+                                                                )}
                                                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason}</div>
                                                                 {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Note: {req.notes}</div>}
                                                             </div>
@@ -2315,6 +2352,19 @@ const PatientDetails = () => {
                                                                     Decline
                                                                 </button>
                                                             </div>
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
+                                                                Instructions for patient (optional)
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                className="input-field"
+                                                                style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
+                                                                placeholder="e.g. Please fast for 2 hours before the visit"
+                                                                value={approveInstructions[req.id] ?? ''}
+                                                                onChange={e => setApproveInstructions(prev => ({ ...prev, [req.id]: e.target.value }))}
+                                                            />
                                                         </div>
                                                     </div>
                                                 ))}
@@ -2389,7 +2439,20 @@ const PatientDetails = () => {
                                     open={rejectRequestId !== null}
                                     tone="danger"
                                     title="Decline appointment request"
-                                    message="Optionally provide a reason. The patient will be notified."
+                                    message={
+                                        <div>
+                                            <p style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                                The patient will be notified. Optionally provide a reason.
+                                            </p>
+                                            <textarea
+                                                rows={3}
+                                                value={rejectReason}
+                                                onChange={e => setRejectReason(e.target.value)}
+                                                placeholder="e.g. Doctor unavailable on that date — please request another time."
+                                                style={{ width: '100%', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.875rem' }}
+                                            />
+                                        </div>
+                                    }
                                     confirmLabel="Decline request"
                                     cancelLabel="Keep pending"
                                     onConfirm={() => { if (rejectRequestId) handleRejectRequest(rejectRequestId, rejectReason); }}

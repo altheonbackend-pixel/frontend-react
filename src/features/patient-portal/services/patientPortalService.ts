@@ -34,11 +34,12 @@ export interface PatientAppointment {
     clinic: string | null;
     appointment_date: string;
     reason_for_appointment: string;
-    status: 'pending' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled';
+    status: 'pending' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled';
     notes: string;
     portal_instructions: string;
     patient_can_cancel: boolean;
     patient_can_reschedule: boolean;
+    cancellation_reason: string;
 }
 
 export interface PatientDoctorOption {
@@ -273,8 +274,8 @@ export const patientPortalService = {
     markAllNotificationsRead: () =>
         api.post('/patient/notifications/mark-all-read/').then(r => r.data),
 
-    cancelAppointment: (id: number) =>
-        api.post(`/patient/appointments/${id}/cancel/`).then(r => r.data),
+    cancelAppointment: (id: number, reason?: string) =>
+        api.post(`/patient/appointments/${id}/cancel/`, reason ? { reason } : {}).then(r => r.data),
 
     // ── Doctor-side portal management (called from PatientDetail) ──────────────
 

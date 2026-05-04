@@ -69,13 +69,9 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
 
         try {
             if (procedureToEdit?.id) {
-                await api.patch(`/medical-procedures/${procedureToEdit.id}/`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
+                await api.patch(`/medical-procedures/${procedureToEdit.id}/`, formData);
             } else {
-                await api.post('/medical-procedures/', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
+                await api.post('/medical-procedures/', formData);
             }
             toast.success(isEditing ? t('medical_procedure.submit_edit') : t('medical_procedure.submit_add'));
             onSuccess();

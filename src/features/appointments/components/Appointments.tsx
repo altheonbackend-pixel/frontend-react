@@ -20,7 +20,8 @@ import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import '../styles/Appointments.css';
 
-const CONSULTATION_STARTABLE = ['scheduled', 'confirmed', 'in_progress'];
+const CONSULTATION_STARTABLE = ['scheduled', 'confirmed'];
+const TERMINAL_STATUSES = ['cancelled', 'rejected', 'completed', 'no_show', 'rescheduled'];
 
 interface AppointmentWithDetails extends Appointment {
     patient_details: Patient;
@@ -271,7 +272,17 @@ const Appointments = () => {
                         {pendingRequests.map(req => (
                             <div key={req.id} className="request-card">
                                 <div className="request-card__info">
-                                    <div className="request-card__name">{req.patient_name}</div>
+                                    <div className="request-card__name">
+                                        {req.patient_name}
+                                        {req.patient_id && (
+                                            <Link
+                                                to={`/patients/${req.patient_id}`}
+                                                style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 400 }}
+                                            >
+                                                View record →
+                                            </Link>
+                                        )}
+                                    </div>
                                     <div className="request-card__meta">
                                         {new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         {' · '}{req.appointment_type?.replace(/_/g, ' ')}
@@ -442,6 +453,27 @@ const Appointments = () => {
 
                             return (
                                 <div key={appt.id} className={apptStatusClass(appt.status)} style={{ margin: '0.75rem' }}>
+                                    {/* Pending request banner */}
+                                    {appt.status === 'pending' && (
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                            background: 'var(--color-warning-bg, #fffbeb)',
+                                            border: '1px solid var(--color-warning-border, #fcd34d)',
+                                            borderRadius: '6px', padding: '0.3rem 0.6rem',
+                                            marginBottom: '0.5rem', fontSize: '0.78rem',
+                                            color: 'var(--color-warning-text, #92400e)', fontWeight: 500,
+                                        }}>
+                                            ⏳ Patient request — awaiting your approval
+                                            {appt.patient_details && (
+                                                <Link
+                                                    to={`/patients/${appt.patient_details.unique_id}`}
+                                                    style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-primary, #6366f1)', textDecoration: 'none' }}
+                                                >
+                                                    View record →
+                                                </Link>
+                                            )}
+                                        </div>
+                                    )}
                                     {/* Card header row */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                                         <Avatar name={patientName} size="sm" />
@@ -454,8 +486,18 @@ const Appointments = () => {
                                                 </span>
                                                 <StatusBadge status={appt.status} label={appt.status_display} />
                                             </div>
-                                            <div className="card-meta">
-                                                🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            <div className="card-meta" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                                <span>🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                {appt.appointment_type === 'telemedicine'
+                                                    ? <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1e40af', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
+                                                    : <span style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
+                                                }
+                                                {appt.rescheduled_from_date && (
+                                                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
+                                                        title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}>
+                                                        ↩ Rescheduled
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -464,18 +506,45 @@ const Appointments = () => {
                                         <p className="card-reason">{appt.reason_for_appointment}</p>
                                     )}
 
-                                    {/* Action buttons */}
+                                    {/* Primary actions — what to do right now */}
                                     <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                                        {appt.status === 'pending' && (
+                                            <>
+                                                <button
+                                                    onClick={() => { setApproveTarget({ id: appt.id, patientName }); setApproveInstructions(''); }}
+                                                    className="btn btn-success btn-sm"
+                                                    aria-label="Approve patient request"
+                                                >
+                                                    ✓ Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => { setRejectTarget({ id: appt.id, patientName }); setRejectReason(''); }}
+                                                    className="btn-danger-outline btn-sm"
+                                                    aria-label="Reject patient request"
+                                                >
+                                                    ✕ Reject
+                                                </button>
+                                            </>
+                                        )}
                                         {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
                                             <button
                                                 onClick={() => handleStartConsultation(appt)}
                                                 className="btn btn-primary btn-sm"
                                                 aria-label="Start consultation"
                                             >
-                                                + Consult
+                                                + Start Consultation
                                             </button>
                                         )}
-                                        {(appt.status === 'scheduled' || appt.status === 'pending') && (
+                                        {appt.status === 'in_progress' && appt.patient_details && (
+                                            <button
+                                                onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations`)}
+                                                className="btn btn-primary btn-sm"
+                                                aria-label="Resume in-progress consultation"
+                                            >
+                                                Resume Consultation →
+                                            </button>
+                                        )}
+                                        {appt.status === 'scheduled' && (
                                             <button
                                                 onClick={() => setLifecycleConfirm({ id: appt.id, action: 'confirm' })}
                                                 className="btn btn-success btn-sm"
@@ -493,7 +562,10 @@ const Appointments = () => {
                                                 Complete
                                             </button>
                                         )}
-                                        {!['cancelled', 'completed', 'no_show'].includes(appt.status) && (
+                                    </div>
+                                    {/* Secondary actions — management + record keeping */}
+                                    <div className="btn-row" style={{ marginTop: '0.35rem' }}>
+                                        {!TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'pending' && (
                                             <>
                                                 <button
                                                     onClick={() => {
@@ -512,7 +584,7 @@ const Appointments = () => {
                                                     className="btn-danger-outline btn-sm"
                                                     aria-label="Cancel appointment"
                                                 >
-                                                    Cancel
+                                                    Cancel Visit
                                                 </button>
                                             </>
                                         )}
@@ -525,19 +597,22 @@ const Appointments = () => {
                                                 No Show
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); }}
-                                            className="btn btn-ghost btn-sm"
-                                            aria-label="Edit appointment"
-                                        >
-                                            Edit
-                                        </button>
+                                        {appt.status !== 'pending' && (
+                                            <button
+                                                onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); }}
+                                                className="btn btn-ghost btn-sm"
+                                                aria-label="Edit appointment"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => { setSelectedAppointment(appt); setIsDeleteModalVisible(true); }}
                                             className="btn-danger-outline btn-sm"
-                                            aria-label="Delete appointment"
+                                            aria-label="Delete appointment record"
+                                            title="Permanently removes this record. Use 'Cancel Visit' to cancel the appointment instead."
                                         >
-                                            Delete
+                                            Delete Record
                                         </button>
                                     </div>
                                 </div>

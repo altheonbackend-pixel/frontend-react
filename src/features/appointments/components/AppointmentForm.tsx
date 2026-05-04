@@ -103,9 +103,11 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                 appointment_date: appointment.appointment_date,
                 patient: appointment.patient,
                 reason_for_appointment: appointment.reason_for_appointment,
-                status: 'scheduled',
-                notes: '',
+                appointment_type: (appointment.appointment_type === 'telemedicine' ? 'telemedicine' : 'in_person'),
+                status: appointment.status === 'confirmed' ? 'confirmed' : 'scheduled',
+                notes: appointment.notes ?? '',
             });
+            setSelectedSlot(appointment.appointment_date.slice(11, 16));
         }
     }, [loading, appointment, reset]);
 
@@ -266,8 +268,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                         <label htmlFor="appointment_type">{t('appointments.form.type_label', { defaultValue: 'Appointment type' })}</label>
                         <select id="appointment_type" className="select-input" {...register('appointment_type')}>
                             <option value="in_person">In person</option>
-                            <option value="telemedicine">Telemedicine</option>
-                            <option value="phone">Phone</option>
+                            <option value="telemedicine">Telemedicine (video)</option>
                         </select>
                     </div>
 

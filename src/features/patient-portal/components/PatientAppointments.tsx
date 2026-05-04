@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
-import { Modal, Dialog, toast } from '../../../shared/components/ui';
+import { Modal, toast } from '../../../shared/components/ui';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
@@ -26,7 +26,7 @@ function formatSlotTime(isoUtc: string, timeZone?: string) {
 }
 
 const UPCOMING_STATUSES = ['pending', 'scheduled', 'confirmed', 'in_progress'];
-const PAST_STATUSES = ['completed', 'cancelled', 'no_show', 'rescheduled'];
+const PAST_STATUSES = ['completed', 'cancelled', 'rejected', 'no_show', 'rescheduled'];
 
 export default function PatientAppointments() {
     usePageTitle('Patient Appointments');
@@ -37,12 +37,14 @@ export default function PatientAppointments() {
     const reasonParam = searchParams.get('reason') ?? '';
 
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
+    const [showHowItWorks, setShowHowItWorks] = useState(() => localStorage.getItem('appt_how_it_works_collapsed') !== '1');
     const [requestOpen, setRequestOpen] = useState(false);
     const [formData, setFormData] = useState({ doctorId: doctorIdParam, appointmentDate: '', reason: reasonParam, appointmentType: 'in_person', notes: '' });
 
     const [requestDate, setRequestDate] = useState('');
     const [nextDatesOpen, setNextDatesOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
 
@@ -91,9 +93,8 @@ export default function PatientAppointments() {
     const { mutate: submitRequest, isPending: isSubmitting } = useMutation({
         mutationFn: () => patientPortalService.requestAppointment({
             doctor_id: formData.doctorId,
-            // Fall back to 09:00 on the chosen date when no slots were available.
-            // Doctor confirms exact time on approval.
-            appointment_date: formData.appointmentDate || `${requestDate}T09:00:00`,
+            // Fall back to midday when no slots exist on the chosen date (doctor confirms time on approval).
+            appointment_date: formData.appointmentDate || `${requestDate}T12:00:00`,
             reason: formData.reason,
             appointment_type: formData.appointmentType,
             notes: formData.notes || undefined,
@@ -126,11 +127,13 @@ export default function PatientAppointments() {
     });
 
     const { mutate: cancelAppointment, isPending: isCancelling } = useMutation({
-        mutationFn: (id: number) => patientPortalService.cancelAppointment(id),
+        mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
+            patientPortalService.cancelAppointment(id, reason),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setCancelTarget(null);
+            setCancelReason('');
             toast.success('Appointment cancelled.');
         },
         onError: (err) => {
@@ -149,6 +152,10 @@ export default function PatientAppointments() {
             toast.error('Please choose a doctor, a date, and a reason for the visit.');
             return;
         }
+        if (!formData.appointmentDate && availableSlots.length > 0) {
+            toast.error('Please select an available time slot.');
+            return;
+        }
         submitRequest();
     };
 
@@ -161,7 +168,7 @@ export default function PatientAppointments() {
                     <button
                         className="btn btn-primary btn-sm"
                         onClick={() => {
-                            setFormData(f => ({ ...f, doctorId: doctors[0]?.id ?? 0 }));
+                            setFormData(f => ({ ...f, doctorId: 0 }));
                             setRequestOpen(true);
                         }}
                     >
@@ -170,20 +177,38 @@ export default function PatientAppointments() {
                 }
             />
 
-            {/* Request flow explainer */}
-            <SectionCard title="How it works">
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                    {([
-                        ['1. Select a doctor', 'Choose the doctor, preferred date, and visit reason.', 'var(--bg-subtle)'],
-                        ['2. Request stays pending', 'New requests show as pending until the doctor reviews and approves.', 'var(--accent-lighter)'],
-                        ['3. You get notified', 'Once approved, the appointment status updates and you get a notification.', 'var(--color-info-light)'],
-                    ] as [string, string, string][]).map(([title, body, bg]) => (
-                        <div key={title} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
-                            <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{title}</div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{body}</div>
-                        </div>
-                    ))}
-                </div>
+            {/* Request flow explainer — collapsible */}
+            <SectionCard
+                title="How it works"
+                action={
+                    <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: '0.8rem' }}
+                        onClick={() => {
+                            const next = !showHowItWorks;
+                            setShowHowItWorks(next);
+                            localStorage.setItem('appt_how_it_works_collapsed', next ? '0' : '1');
+                        }}
+                    >
+                        {showHowItWorks ? 'Hide' : 'Show'}
+                    </button>
+                }
+            >
+                {showHowItWorks && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                        {([
+                            ['1. Select a doctor', 'Choose the doctor, preferred date, and visit reason.', 'var(--bg-subtle)'],
+                            ['2. Request stays pending', 'New requests show as pending until the doctor reviews and approves.', 'var(--accent-lighter)'],
+                            ['3. You get notified', 'Once approved, the appointment status updates and you get a notification.', 'var(--color-info-light)'],
+                        ] as [string, string, string][]).map(([title, body, bg]) => (
+                            <div key={title} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
+                                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{title}</div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{body}</div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </SectionCard>
 
             {/* Tab toggle */}
@@ -220,7 +245,13 @@ export default function PatientAppointments() {
                                     </div>
                                     <StatusBadge
                                         status={item.status}
-                                        label={item.status === 'pending' ? 'Pending approval' : undefined}
+                                        label={
+                                            item.status === 'pending' ? 'Pending approval' :
+                                            item.status === 'rejected' ? 'Not approved' :
+                                            item.status === 'in_progress' ? 'In consultation' :
+                                            item.status === 'rescheduled' ? 'Rescheduled' :
+                                            undefined
+                                        }
                                     />
                                 </div>
 
@@ -233,22 +264,36 @@ export default function PatientAppointments() {
                                         <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(item.appointment_date, patientTimezone)}</div>
                                     </div>
                                     <div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Visit type</div>
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                                            {item.appointment_type === 'telemedicine' ? '📹 Telemedicine (video)' : '🏥 In person'}
+                                        </div>
+                                    </div>
+                                    <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Reason</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.reason_for_appointment}</div>
                                     </div>
                                 </div>
 
                                 {/* Instructions / status note */}
-                                {(item.status === 'pending' || item.portal_instructions || item.notes) && (
+                                {(item.status === 'pending' || item.status === 'rejected' || item.portal_instructions || item.notes) && (
                                     <div style={{
                                         padding: '0.875rem',
                                         borderRadius: 'var(--radius-md)',
-                                        background: item.status === 'pending' ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
+                                        background: item.status === 'pending'
+                                            ? 'var(--color-warning-light)'
+                                            : item.status === 'rejected'
+                                            ? 'var(--color-danger-light)'
+                                            : 'var(--bg-subtle)',
                                         color: 'var(--text-secondary)',
                                         fontSize: '0.875rem',
                                     }}>
                                         {item.status === 'pending'
-                                            ? 'This request has been submitted and is waiting for the doctor to approve it.'
+                                            ? 'Your request has been submitted and is waiting for the doctor to review it.'
+                                            : item.status === 'rejected'
+                                            ? (item.cancellation_reason
+                                                ? `This request was not approved. Reason: ${item.cancellation_reason}`
+                                                : 'This request was not approved. You may submit a new request for a different time.')
                                             : item.portal_instructions || item.notes}
                                     </div>
                                 )}
@@ -329,18 +374,45 @@ export default function PatientAppointments() {
             </Modal>
 
             {/* ── Cancel confirmation dialog ── */}
-            <Dialog
+            <Modal
                 open={!!cancelTarget}
-                tone="danger"
+                onClose={() => { setCancelTarget(null); setCancelReason(''); }}
                 title="Cancel appointment"
-                message={cancelTarget
-                    ? `Are you sure you want to cancel your appointment with ${cancelTarget.doctorName}? The doctor will be notified.`
-                    : undefined}
-                confirmLabel="Yes, cancel"
-                cancelLabel="Keep it"
-                onConfirm={() => { if (cancelTarget) cancelAppointment(cancelTarget.id); }}
-                onClose={() => setCancelTarget(null)}
-            />
+                size="sm"
+                footer={
+                    <>
+                        <button type="button" className="cancel-button" onClick={() => { setCancelTarget(null); setCancelReason(''); }}>Keep it</button>
+                        <button
+                            type="button"
+                            className="btn btn-danger"
+                            disabled={isCancelling}
+                            onClick={() => { if (cancelTarget) cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }); }}
+                        >
+                            {isCancelling ? 'Cancelling…' : 'Yes, cancel'}
+                        </button>
+                    </>
+                }
+            >
+                {cancelTarget && (
+                    <div className="form">
+                        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                            Are you sure you want to cancel your appointment with {cancelTarget.doctorName}? The doctor will be notified.
+                        </p>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="cancel-reason-patient">
+                                Reason <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                            </label>
+                            <textarea
+                                id="cancel-reason-patient"
+                                rows={2}
+                                value={cancelReason}
+                                onChange={e => setCancelReason(e.target.value)}
+                                placeholder="e.g. I'm feeling better, no longer needed."
+                            />
+                        </div>
+                    </div>
+                )}
+            </Modal>
 
             {/* ── Request appointment modal ── */}
             <Modal
@@ -380,7 +452,6 @@ export default function PatientAppointments() {
                         >
                             <option value="in_person">In person</option>
                             <option value="telemedicine">Telemedicine (video)</option>
-                            <option value="phone">Phone call</option>
                         </select>
                     </div>
                     <div className="form-group">

@@ -60,13 +60,20 @@ export interface Appointment {
     doctor: number;
     appointment_date: string;
     reason_for_appointment: string;
-    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show' | 'rescheduled' | 'pending';
+    appointment_type?: 'in_person' | 'telemedicine';
+    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled' | 'pending';
     status_display?: string;
     notes?: string | null;
     cancellation_reason?: string | null;
     confirmed_at?: string | null;
     completed_at?: string | null;
     rescheduled_from?: number | null;
+    rescheduled_from_date?: string | null;
+    portal_instructions?: string;
+    patient_can_cancel?: boolean;
+    patient_can_reschedule?: boolean;
+    created_by_role?: 'doctor' | 'patient';
+    duration_minutes?: number | null;
     patient_details?: {
         unique_id: string;
         first_name: string;
@@ -80,9 +87,13 @@ export interface FollowUpConsultation {
     id: number;
     patient: string;
     patient_name?: string;
+    consultation_date?: string;
     follow_up_date: string;
     reason_for_consultation: string;
     diagnosis?: string | null;
+    has_vital_alerts?: boolean;
+    vital_alert_reasons?: string[];
+    follow_up_appointment?: number | null;
 }
 
 export interface Prescription {

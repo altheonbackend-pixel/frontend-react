@@ -1,7 +1,7 @@
 // src/app/App.tsx
 
 import { useState, lazy, Suspense, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useKeyboardShortcut } from '../shared/hooks/useKeyboardShortcut';
 
@@ -20,6 +20,7 @@ import ResetPassword from '../features/auth/components/ResetPassword';
 
 // Admin components
 import AdminSidebar from '../features/admin/components/AdminSidebar';
+import { useAdmin } from '../features/admin/context/AdminContext';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
 import AdminPatientList from '../features/admin/components/AdminPatientList';
@@ -61,12 +62,20 @@ import './App.css';
 
 // ── Admin route guard ─────────────────────────────────────────────────────────
 const PrivateAdminRoutes = () => {
-    const { isAuthenticated, userType, adminProfile } = useAuth();
+    const { isAuthenticated, userType, adminProfile, logout: authLogout } = useAuth();
+    const { logout: adminLogout } = useAdmin();
+    const navigate = useNavigate();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     if (!isAuthenticated || userType !== 'admin' || !adminProfile) {
         return <Navigate to="/login" replace />;
     }
+
+    const handleLogout = () => {
+        adminLogout();
+        authLogout();
+        navigate('/login');
+    };
 
     return (
         <div className="admin-layout">
@@ -84,6 +93,13 @@ const PrivateAdminRoutes = () => {
                         <span /><span /><span />
                     </button>
                     <span className="admin-mobile-title">Altheon Admin</span>
+                    <button className="admin-mobile-logout" onClick={handleLogout} aria-label="Logout">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
                 </div>
                 <Routes>
                     <Route path="/dashboard"         element={<AdminDashboard />} />

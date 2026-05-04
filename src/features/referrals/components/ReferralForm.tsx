@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +29,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
     const [specialtyFilter, setSpecialtyFilter] = useState('');
     const [acceptingOnly, setAcceptingOnly] = useState(true);
+    const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
 
     const {
         register,
@@ -54,6 +55,10 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
 
     const isExternal = watch('is_external');
     const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setAttachmentFile(e.target.files?.[0] ?? null);
+    }, []);
 
     const fetchDoctors = async (specialty?: string, accepting?: boolean) => {
         if (!isAuthenticated) return;
@@ -126,12 +131,18 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
             return;
         }
         try {
-            const payload = { ...data, patient: patientId };
+            const formData = new FormData();
+            formData.append('patient', patientId);
+            Object.entries(data).forEach(([key, value]) => {
+                if (value != null && value !== '') formData.append(key, String(value));
+            });
+            if (attachmentFile) formData.append('attached_documents', attachmentFile);
+
             if (referralToEdit?.id) {
-                await api.put(`/referrals/${referralToEdit.id}/`, payload);
+                await api.put(`/referrals/${referralToEdit.id}/`, formData);
                 toast.success(t('referrals.form.submit_edit'));
             } else {
-                await api.post('/referrals/', payload);
+                await api.post('/referrals/', formData);
                 toast.success(t('referrals.form.submit_add'));
             }
             onSuccess();
@@ -345,6 +356,20 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                         rows={4}
                         {...register('comments')}
                     />
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="attached_documents">{t('referrals.form.attachment_label', 'Attachment')} <span className="form-hint" style={{ display: 'inline' }}>(optional)</span></label>
+                    <input
+                        type="file"
+                        id="attached_documents"
+                        className="input"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={handleFileChange}
+                    />
+                    {attachmentFile && (
+                        <small className="form-hint">{attachmentFile.name}</small>
+                    )}
                 </div>
             </form>
         </Drawer>

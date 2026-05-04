@@ -81,6 +81,7 @@ const DAYS = [
 
 const TIMEZONES = [
     { value: 'UTC',                 label: 'UTC (Coordinated Universal Time)' },
+    { value: 'Africa/Dakar',        label: 'Senegal / West Africa (UTC+0)' },
     { value: 'Asia/Karachi',        label: 'Pakistan (UTC+5)' },
     { value: 'Asia/Kolkata',        label: 'India (UTC+5:30)' },
     { value: 'Asia/Dhaka',          label: 'Bangladesh (UTC+6)' },
@@ -103,7 +104,7 @@ const TIMEZONES = [
 const COUNTRIES = [
     'Pakistan', 'India', 'Bangladesh', 'United Arab Emirates', 'Saudi Arabia',
     'Iraq', 'Turkey', 'United Kingdom', 'France', 'Germany', 'Egypt',
-    'Nigeria', 'Kenya', 'United States', 'Canada', 'Australia', 'Other',
+    'Nigeria', 'Kenya', 'Senegal', 'United States', 'Canada', 'Australia', 'Other',
 ];
 
 const EyeOn = () => (

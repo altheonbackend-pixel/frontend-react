@@ -782,7 +782,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 {/* Follow-up date */}
                 <div className="form-group">
                     <label htmlFor="follow_up_date">Follow-up Date</label>
-                    <input type="date" id="follow_up_date" {...register('follow_up_date')} />
+                    <input type="date" id="follow_up_date" min={new Date().toISOString().slice(0, 10)} {...register('follow_up_date')} />
                 </div>
 
                 {/* Drug allergy banner — shown above prescriptions when patient has active drug allergies */}

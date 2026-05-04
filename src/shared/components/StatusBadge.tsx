@@ -3,8 +3,8 @@
 
 type StatusType =
     | 'active' | 'inactive' | 'transferred' | 'deceased'
-    | 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
-    | 'no_show' | 'rescheduled' | 'pending'
+    | 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'rejected'
+    | 'no_show' | 'rescheduled' | 'pending' | 'in_progress'
     | 'routine' | 'urgent' | 'emergency'
     | 'normal' | 'abnormal' | 'critical'
     | 'open' | 'request' | 'invite_only' | 'member';
@@ -18,6 +18,8 @@ const LABELS: Record<StatusType, string> = {
     confirmed: 'Confirmed',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    rejected: 'Not Approved',
+    in_progress: 'In Progress',
     no_show: 'No Show',
     rescheduled: 'Rescheduled',
     pending: 'Pending',
