@@ -35,6 +35,7 @@ export interface PatientAppointment {
     appointment_date: string;
     reason_for_appointment: string;
     status: 'pending' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled';
+    appointment_type: 'in_person' | 'telemedicine';
     notes: string;
     portal_instructions: string;
     patient_can_cancel: boolean;

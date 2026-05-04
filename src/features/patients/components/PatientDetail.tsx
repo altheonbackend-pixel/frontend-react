@@ -296,7 +296,7 @@ const PatientDetails = () => {
     const { data: pendingRequests = [], isLoading: pendingRequestsLoading, refetch: refetchPendingRequests } = useQuery({
         queryKey: ['patients', id, 'pendingRequests'],
         queryFn: async () => {
-            type PendingReq = { id: number; patient_name: string; patient_id: string; appointment_date: string; reason: string; notes: string };
+            type PendingReq = { id: number; patient_name: string; patient_id: string; appointment_date: string; appointment_type: 'in_person' | 'telemedicine'; reason: string; notes: string };
             const res = await api.get('/doctor/appointment-requests/', { params: { patient: id } });
             const raw: PendingReq[] = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
             return raw.filter(r => r.patient_id === id);
