@@ -21,8 +21,9 @@ import { TabSkeleton } from '../../../shared/components/SectionCard';
 import '../styles/Appointments.css';
 import '../styles/AppointmentForm.css';
 
-const CONSULTATION_STARTABLE = ['scheduled', 'confirmed'];
+// Start consultation only from confirmed — scheduled needs explicit confirm first
 const TERMINAL_STATUSES = ['cancelled', 'rejected', 'completed', 'no_show', 'rescheduled'];
+const ACTIVE_STATUSES   = ['scheduled', 'confirmed', 'in_progress'];
 
 interface AppointmentWithDetails extends Appointment {
     patient_details: Patient;
@@ -35,9 +36,11 @@ function toYYYYMMDD(d: Date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Status → CSS class suffix for left border color
+// Status → CSS class suffix for left border color + muted for terminal states
 function apptStatusClass(status: string) {
-    return `appt-card appt-card--${status.replace('_', '-')}`;
+    const base = `appt-card appt-card--${status.replace('_', '-')}`;
+    if (['cancelled', 'rejected', 'no_show', 'rescheduled'].includes(status)) return `${base} appt-card--archived`;
+    return base;
 }
 
 const Appointments = () => {
@@ -191,6 +194,14 @@ const Appointments = () => {
     });
 
     const invalidateAll = () => queryClient.invalidateQueries({ queryKey: ['appointments'] });
+
+    // Close 3-dot menu on any outside click (document listener — avoids z-index battles with overlay divs)
+    useEffect(() => {
+        if (openMenuId === null) return;
+        const handler = () => setOpenMenuId(null);
+        document.addEventListener('click', handler);
+        return () => document.removeEventListener('click', handler);
+    }, [openMenuId]);
 
     const fetchRsSlots = useCallback(async (date: string, apptId: number) => {
         if (!date) return;
@@ -460,7 +471,7 @@ const Appointments = () => {
                             className="btn btn-primary btn-sm"
                             onClick={() => { setSelectedAppointment(null); setIsFormVisible(true); }}
                         >
-                            + {t('appointments.create_button', 'New Appointment')}
+                            + Create Appointment
                         </button>
                     </div>
 
@@ -531,7 +542,8 @@ const Appointments = () => {
                                                 )}
                                             </div>
                                         </div>
-                                        {/* 3-dot overflow menu for Edit / Delete */}
+                                        {/* 3-dot overflow menu for Edit / Delete — toggle stops propagation so the document listener doesn't immediately close */}
+                                        {!TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'pending' && (
                                         <div className="appt-menu-wrap">
                                             <button
                                                 className="appt-menu-btn"
@@ -540,110 +552,115 @@ const Appointments = () => {
                                             >⋯</button>
                                             {openMenuId === appt.id && (
                                                 <div className="appt-menu-dropdown">
-                                                    {appt.status !== 'pending' && (
-                                                        <button onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); setOpenMenuId(null); }}>
-                                                            Edit
-                                                        </button>
-                                                    )}
+                                                    <button onClick={e => { e.stopPropagation(); setSelectedAppointment(appt); setIsFormVisible(true); setOpenMenuId(null); }}>
+                                                        Edit
+                                                    </button>
                                                     <button
                                                         className="danger"
-                                                        onClick={() => { setSelectedAppointment(appt); setIsDeleteModalVisible(true); setOpenMenuId(null); }}
+                                                        onClick={e => { e.stopPropagation(); setSelectedAppointment(appt); setIsDeleteModalVisible(true); setOpenMenuId(null); }}
                                                     >
                                                         Delete Record
                                                     </button>
                                                 </div>
                                             )}
                                         </div>
+                                        )}
                                     </div>
 
                                     {appt.reason_for_appointment && (
                                         <p className="card-reason">{appt.reason_for_appointment}</p>
                                     )}
 
-                                    {/* Primary actions — what to do right now */}
-                                    <div className="btn-row" style={{ marginTop: '0.5rem' }}>
-                                        {appt.status === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => { setApproveTarget({ id: appt.id, patientName }); setApproveInstructions(''); }}
-                                                    className="btn btn-success btn-sm"
-                                                    aria-label="Approve patient request"
-                                                >
-                                                    ✓ Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => { setRejectTarget({ id: appt.id, patientName }); setRejectReason(''); }}
-                                                    className="btn-danger-outline btn-sm"
-                                                    aria-label="Reject patient request"
-                                                >
-                                                    ✕ Reject
-                                                </button>
-                                            </>
-                                        )}
-                                        {CONSULTATION_STARTABLE.includes(appt.status) && appt.patient_details && (
-                                            <button
-                                                onClick={() => handleStartConsultation(appt)}
-                                                className="btn btn-primary btn-sm"
-                                                aria-label="Start consultation"
-                                            >
-                                                + Start Consultation
+                                    {/* ── Lifecycle actions ── */}
+
+                                    {/* PENDING: approve or reject */}
+                                    {appt.status === 'pending' && (
+                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                                            <button onClick={() => { setApproveTarget({ id: appt.id, patientName }); setApproveInstructions(''); }} className="btn btn-success btn-sm">
+                                                ✓ Approve
                                             </button>
-                                        )}
-                                        {appt.status === 'in_progress' && appt.patient_details && (
+                                            <button onClick={() => { setRejectTarget({ id: appt.id, patientName }); setRejectReason(''); }} className="btn-danger-outline btn-sm">
+                                                ✕ Reject
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* SCHEDULED: confirm is the primary next step */}
+                                    {appt.status === 'scheduled' && (
+                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                                            <button onClick={() => setLifecycleConfirm({ id: appt.id, action: 'confirm' })} className="btn btn-success btn-sm">
+                                                Confirm
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* CONFIRMED: start the consultation */}
+                                    {appt.status === 'confirmed' && appt.patient_details && (
+                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
+                                            <button onClick={() => handleStartConsultation(appt)} className="btn btn-primary btn-sm">
+                                                ▶ Start Consultation
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* IN_PROGRESS: resume the consultation */}
+                                    {appt.status === 'in_progress' && appt.patient_details && (
+                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                             <button
-                                                onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations`)}
+                                                onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations${appt.consultation_id ? `&open_consultation=${appt.consultation_id}` : ''}`)}
                                                 className="btn btn-primary btn-sm"
-                                                aria-label="Resume in-progress consultation"
                                             >
                                                 Resume Consultation →
                                             </button>
-                                        )}
-                                        {appt.status === 'scheduled' && (
+                                        </div>
+                                    )}
+
+                                    {/* COMPLETED: view the linked consultation */}
+                                    {appt.status === 'completed' && appt.patient_details && (
+                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                             <button
-                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'confirm' })}
-                                                className="btn btn-success btn-sm"
-                                                aria-label="Confirm appointment"
-                                            >
-                                                Confirm
-                                            </button>
-                                        )}
-                                        {(appt.status === 'confirmed' || appt.status === 'in_progress') && (
-                                            <button
-                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'complete' })}
+                                                onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations${appt.consultation_id ? `&open_consultation=${appt.consultation_id}` : ''}`)}
                                                 className="btn btn-secondary btn-sm"
-                                                aria-label="Mark as completed"
                                             >
-                                                Complete
+                                                View Consultation →
                                             </button>
-                                        )}
-                                    </div>
-                                    {/* Secondary actions */}
-                                    {(!TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'pending') && (
+                                        </div>
+                                    )}
+
+                                    {/* Cancellation reason shown on cancelled cards */}
+                                    {appt.status === 'cancelled' && appt.cancellation_reason && (
+                                        <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                            Reason: {appt.cancellation_reason}
+                                        </p>
+                                    )}
+
+                                    {/* Secondary row: reschedule / cancel / no-show for active appointments */}
+                                    {ACTIVE_STATUSES.includes(appt.status) && (
                                         <div className="btn-row" style={{ marginTop: '0.35rem' }}>
-                                            <button
-                                                onClick={() => {
-                                                    const dateStr = appt.appointment_date.slice(0, 10);
-                                                    setRsDate(dateStr);
-                                                    setRescheduleTarget({ id: appt.id, patientName });
-                                                    fetchRsSlots(dateStr, appt.id);
-                                                }}
-                                                className="btn btn-muted btn-sm"
-                                                aria-label="Reschedule appointment"
-                                            >
-                                                Reschedule
-                                            </button>
+                                            {/* Reschedule not available mid-consultation */}
+                                            {appt.status !== 'in_progress' && (
+                                                <button
+                                                    onClick={() => {
+                                                        const dateStr = appt.appointment_date.slice(0, 10);
+                                                        setRsDate(dateStr);
+                                                        setRescheduleTarget({ id: appt.id, patientName });
+                                                        fetchRsSlots(dateStr, appt.id);
+                                                    }}
+                                                    className="btn btn-muted btn-sm"
+                                                >
+                                                    Reschedule
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
                                                 className="btn-danger-outline btn-sm"
-                                                aria-label="Cancel appointment"
                                             >
                                                 Cancel Visit
                                             </button>
-                                            {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                            {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
                                                 <button
                                                     onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
                                                     className="btn btn-muted btn-sm"
-                                                    aria-label="Mark as no-show"
                                                 >
                                                     No Show
                                                 </button>
@@ -681,13 +698,17 @@ const Appointments = () => {
                 onClose={() => setLifecycleConfirm(null)}
                 onConfirm={executeLifecycleAction}
                 title={lifecycleConfirm
-                    ? t(`appointments.lifecycle.${lifecycleConfirm.action}_title`, { defaultValue: `${lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ')} appointment?` })
+                    ? (lifecycleConfirm.action === 'confirm' ? 'Confirm appointment?'
+                       : lifecycleConfirm.action === 'no_show' ? 'Mark as no-show?'
+                       : 'Update appointment?')
                     : ''}
                 message={lifecycleConfirm
-                    ? t(`appointments.lifecycle.${lifecycleConfirm.action}_message`, { defaultValue: 'This action will update the appointment status. Are you sure?' })
+                    ? (lifecycleConfirm.action === 'confirm' ? 'This will confirm the appointment and notify the patient.'
+                       : lifecycleConfirm.action === 'no_show' ? 'Mark this appointment as a no-show. The patient was not present.'
+                       : 'Are you sure?')
                     : ''}
                 tone={lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
-                confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
+                confirmLabel={lifecycleConfirm?.action === 'confirm' ? 'Confirm' : lifecycleConfirm?.action === 'no_show' ? 'Mark No-Show' : 'Update'}
             />
 
             {/* Reschedule modal — slot picker */}
@@ -742,11 +763,6 @@ const Appointments = () => {
                     </div>
                 </div>
             )}
-            {/* Close overflow menu on outside click */}
-            {openMenuId !== null && (
-                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpenMenuId(null)} />
-            )}
-
             {/* Approve modal */}
             {approveTarget && (
                 <div className="modal-overlay" onClick={() => setApproveTarget(null)}>

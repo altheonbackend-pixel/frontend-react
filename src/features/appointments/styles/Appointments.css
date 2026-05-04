@@ -454,3 +454,22 @@
 .appt-menu-dropdown button:hover { background: var(--bg-hover); }
 .appt-menu-dropdown button.danger { color: var(--color-danger, #dc2626); }
 .appt-menu-dropdown button.danger:hover { background: #fef2f2; }
+
+/* ── Archived / terminal appointment cards ── */
+.appt-card--archived {
+  opacity: 0.55;
+  background: var(--bg-subtle, #f9fafb);
+}
+.appt-card--archived:hover { opacity: 0.75; }
+
+/* ── Reschedule slot grid improvements — booked slots show patient tooltip ── */
+.slot-booked {
+  cursor: not-allowed;
+  position: relative;
+}
+.slot-booked .slot-label {
+  display: block;
+  font-size: 0.65rem;
+  margin-top: 1px;
+  color: inherit;
+}

@@ -75,6 +75,7 @@ export interface Appointment {
     patient_can_reschedule?: boolean;
     created_by_role?: 'doctor' | 'patient';
     duration_minutes?: number | null;
+    consultation_id?: number | null;
     patient_details?: {
         unique_id: string;
         first_name: string;
