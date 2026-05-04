@@ -51,8 +51,14 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
     const [slots, setSlots] = useState<Slot[]>([]);
     const [slotsLoading, setSlotsLoading] = useState(false);
     const [dayOff, setDayOff] = useState(false);
+    // Snap raw appointment time to nearest 30-min slot boundary (e.g. "16:46" → "16:30")
+    const snapToSlot = (hhmm: string) => {
+        const [h, m] = hhmm.split(':').map(Number);
+        return `${String(h).padStart(2, '0')}:${m < 30 ? '00' : '30'}`;
+    };
+
     const [selectedSlot, setSelectedSlot] = useState<string | null>(
-        appointment ? appointment.appointment_date.slice(11, 16) : null
+        appointment ? snapToSlot(appointment.appointment_date.slice(11, 16)) : null
     );
 
     const {
@@ -107,7 +113,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                 status: appointment.status === 'confirmed' ? 'confirmed' : 'scheduled',
                 notes: appointment.notes ?? '',
             });
-            setSelectedSlot(appointment.appointment_date.slice(11, 16));
+            setSelectedSlot(snapToSlot(appointment.appointment_date.slice(11, 16)));
         }
     }, [loading, appointment, reset]);
 
@@ -118,7 +124,8 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
         setSlots([]);
         setDayOff(false);
         try {
-            const res = await api.get<SlotsResponse>(`/appointments/day-slots/?date=${date}`);
+            const excludeParam = appointment?.id ? `&exclude_id=${appointment.id}` : '';
+            const res = await api.get<SlotsResponse>(`/appointments/day-slots/?date=${date}${excludeParam}`);
             if (res.data.day_off) {
                 setDayOff(true);
             } else {

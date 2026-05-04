@@ -45,8 +45,9 @@ export default function PatientAppointments() {
     const [nextDatesOpen, setNextDatesOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState<{ id: number; doctorName: string } | null>(null);
     const [cancelReason, setCancelReason] = useState('');
-    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string } | null>(null);
+    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string; doctorId: number } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
+    const [rsPickDate, setRsPickDate] = useState('');
 
     const { data: appointments = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.appointments(),
@@ -81,6 +82,15 @@ export default function PatientAppointments() {
     });
     const availableSlots = slotsData?.slots ?? [];
     const doctorAvailable = slotsData?.doctor_available ?? true;
+
+    const { data: rsSlotsData, isFetching: rsSlotsLoading } = useQuery({
+        queryKey: ['patient', 'rs-slots', rescheduleTarget?.doctorId, rsPickDate],
+        queryFn: () => patientPortalService.getAvailableSlots(rescheduleTarget!.doctorId, rsPickDate),
+        enabled: !!rescheduleTarget && rsPickDate.length === 10,
+        staleTime: 60_000,
+    });
+    const rsAvailableSlots = rsSlotsData?.slots ?? [];
+    const rsDoctorAvailable = rsSlotsData?.doctor_available ?? true;
 
     const { data: nextDatesData, isFetching: nextDatesLoading } = useQuery({
         queryKey: ['patient', 'next-available-dates', formData.doctorId],
@@ -118,6 +128,7 @@ export default function PatientAppointments() {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setRescheduleTarget(null);
             setRescheduleDate('');
+            setRsPickDate('');
             toast.success('Reschedule request submitted. Awaiting doctor approval.');
         },
         onError: (err) => {
@@ -304,7 +315,7 @@ export default function PatientAppointments() {
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-secondary"
-                                                onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name }); setRescheduleDate(''); }}
+                                                onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name, doctorId: item.doctor_id }); setRescheduleDate(''); setRsPickDate(''); }}
                                                 disabled={isRescheduling}
                                             >
                                                 Reschedule
@@ -334,12 +345,12 @@ export default function PatientAppointments() {
                 </div>
             )}
 
-            {/* ── Reschedule modal ── */}
+            {/* ── Reschedule modal — slot picker ── */}
             <Modal
                 open={!!rescheduleTarget}
-                onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); }}
-                title="Reschedule appointment"
-                size="sm"
+                onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRsPickDate(''); }}
+                title={`Reschedule with ${rescheduleTarget?.doctorName ?? ''}`}
+                size="md"
                 footer={
                     <>
                         <button type="button" className="cancel-button" onClick={() => setRescheduleTarget(null)}>Keep it</button>
@@ -356,19 +367,57 @@ export default function PatientAppointments() {
             >
                 {rescheduleTarget && (
                     <div className="form">
-                        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                            Choose a new date for your appointment with {rescheduleTarget.doctorName}. The doctor will need to approve the reschedule.
+                        <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            Pick a new date and available slot. The doctor will confirm the reschedule.
                         </p>
                         <div className="form-group">
-                            <label htmlFor="reschedule-date">New date &amp; time</label>
+                            <label htmlFor="rs-pick-date">New date</label>
                             <input
-                                id="reschedule-date"
-                                type="datetime-local"
-                                min={new Date().toISOString().slice(0, 16)}
-                                value={rescheduleDate}
-                                onChange={e => setRescheduleDate(e.target.value)}
+                                id="rs-pick-date"
+                                type="date"
+                                className="input"
+                                min={new Date().toISOString().slice(0, 10)}
+                                value={rsPickDate}
+                                onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
                             />
                         </div>
+                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading slots…</p>}
+                        {rsPickDate && !rsSlotsLoading && !rsDoctorAvailable && (
+                            <p style={{ color: 'var(--color-warning, #b45309)', fontSize: '0.875rem' }}>Doctor is not available on this day.</p>
+                        )}
+                        {rsPickDate && !rsSlotsLoading && rsDoctorAvailable && rsAvailableSlots.length === 0 && (
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No slots available on this day.</p>
+                        )}
+                        {rsPickDate && !rsSlotsLoading && rsAvailableSlots.length > 0 && (
+                            <div className="form-group">
+                                <label>Available slots</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
+                                    {rsAvailableSlots.map((slotIso: string) => {
+                                        const label = formatSlotTime(slotIso, patientTimezone);
+                                        const isSelected = rescheduleDate === slotIso;
+                                        return (
+                                            <button
+                                                key={slotIso}
+                                                type="button"
+                                                onClick={() => setRescheduleDate(slotIso)}
+                                                style={{
+                                                    padding: '0.5rem',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    border: isSelected ? '2px solid var(--accent)' : '1.5px solid #86efac',
+                                                    background: isSelected ? 'var(--accent)' : '#dcfce7',
+                                                    color: isSelected ? '#fff' : '#166534',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.8rem',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                {label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </Modal>

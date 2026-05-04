@@ -1,7 +1,7 @@
 // src/features/appointments/components/Appointments.tsx
 // Phase 8: Calendar + appointment list side-by-side on desktop
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Calendar from 'react-calendar';
 import { useTranslation } from 'react-i18next';
 import 'react-calendar/dist/Calendar.css';
@@ -19,6 +19,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import '../styles/Appointments.css';
+import '../styles/AppointmentForm.css';
 
 const CONSULTATION_STARTABLE = ['scheduled', 'confirmed'];
 const TERMINAL_STATUSES = ['cancelled', 'rejected', 'completed', 'no_show', 'rescheduled'];
@@ -67,8 +68,13 @@ const Appointments = () => {
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'no_show' } | null>(null);
     const [cancelTarget, setCancelTarget] = useState<{ id: number } | null>(null);
     const [cancelReason, setCancelReason] = useState('');
-    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number } | null>(null);
-    const [rescheduleDate, setRescheduleDate] = useState('');
+    const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; patientName: string } | null>(null);
+    const [rsDate, setRsDate] = useState('');
+    const [rsSlots, setRsSlots] = useState<{ time: string; datetime: string; status: string; patient_name?: string }[]>([]);
+    const [rsDayOff, setRsDayOff] = useState(false);
+    const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
+    const [rsSelected, setRsSelected] = useState<string | null>(null);
+    const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
     const [approveInstructions, setApproveInstructions] = useState('');
     const [rejectTarget, setRejectTarget] = useState<{ id: number; patientName: string } | null>(null);
@@ -186,20 +192,45 @@ const Appointments = () => {
 
     const invalidateAll = () => queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
+    const fetchRsSlots = useCallback(async (date: string, apptId: number) => {
+        if (!date) return;
+        setRsSlotsLoading(true);
+        setRsSlots([]);
+        setRsDayOff(false);
+        setRsSelected(null);
+        try {
+            const res = await api.get<{ slots: { time: string; datetime: string; status: string; patient_name?: string }[]; day_off: boolean }>(
+                `/appointments/day-slots/?date=${date}&exclude_id=${apptId}`
+            );
+            if (res.data.day_off) {
+                setRsDayOff(true);
+            } else {
+                setRsSlots(res.data.slots);
+            }
+        } catch {
+            toast.error('Could not load available slots.');
+        } finally {
+            setRsSlotsLoading(false);
+        }
+    }, []);
+
+    const closeReschedule = () => { setRescheduleTarget(null); setRsDate(''); setRsSlots([]); setRsDayOff(false); setRsSelected(null); };
+
     const executeReschedule = async () => {
-        if (!rescheduleTarget || !rescheduleDate) return;
+        if (!rescheduleTarget || !rsSelected) return;
         try {
             await api.post(`/appointments/${rescheduleTarget.id}/reschedule/`, {
-                appointment_date: new Date(rescheduleDate).toISOString(),
+                appointment_date: new Date(rsSelected).toISOString(),
             });
             toast.success('Appointment rescheduled. A new scheduled appointment has been created.');
-            setRescheduleTarget(null);
-            setRescheduleDate('');
+            closeReschedule();
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
         }
     };
+
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     const handleStartConsultation = async (appt: AppointmentWithDetails) => {
         try {
@@ -500,6 +531,29 @@ const Appointments = () => {
                                                 )}
                                             </div>
                                         </div>
+                                        {/* 3-dot overflow menu for Edit / Delete */}
+                                        <div className="appt-menu-wrap">
+                                            <button
+                                                className="appt-menu-btn"
+                                                onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === appt.id ? null : appt.id); }}
+                                                aria-label="More options"
+                                            >⋯</button>
+                                            {openMenuId === appt.id && (
+                                                <div className="appt-menu-dropdown">
+                                                    {appt.status !== 'pending' && (
+                                                        <button onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); setOpenMenuId(null); }}>
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        className="danger"
+                                                        onClick={() => { setSelectedAppointment(appt); setIsDeleteModalVisible(true); setOpenMenuId(null); }}
+                                                    >
+                                                        Delete Record
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {appt.reason_for_appointment && (
@@ -563,58 +617,39 @@ const Appointments = () => {
                                             </button>
                                         )}
                                     </div>
-                                    {/* Secondary actions — management + record keeping */}
-                                    <div className="btn-row" style={{ marginTop: '0.35rem' }}>
-                                        {!TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => {
-                                                        const dt = new Date(appt.appointment_date);
-                                                        const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                                                        setRescheduleDate(local);
-                                                        setRescheduleTarget({ id: appt.id });
-                                                    }}
-                                                    className="btn btn-muted btn-sm"
-                                                    aria-label="Reschedule appointment"
-                                                >
-                                                    Reschedule
-                                                </button>
-                                                <button
-                                                    onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
-                                                    className="btn-danger-outline btn-sm"
-                                                    aria-label="Cancel appointment"
-                                                >
-                                                    Cancel Visit
-                                                </button>
-                                            </>
-                                        )}
-                                        {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                    {/* Secondary actions */}
+                                    {(!TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'pending') && (
+                                        <div className="btn-row" style={{ marginTop: '0.35rem' }}>
                                             <button
-                                                onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
+                                                onClick={() => {
+                                                    const dateStr = appt.appointment_date.slice(0, 10);
+                                                    setRsDate(dateStr);
+                                                    setRescheduleTarget({ id: appt.id, patientName });
+                                                    fetchRsSlots(dateStr, appt.id);
+                                                }}
                                                 className="btn btn-muted btn-sm"
-                                                aria-label="Mark as no-show"
+                                                aria-label="Reschedule appointment"
                                             >
-                                                No Show
+                                                Reschedule
                                             </button>
-                                        )}
-                                        {appt.status !== 'pending' && (
                                             <button
-                                                onClick={() => { setSelectedAppointment(appt); setIsFormVisible(true); }}
-                                                className="btn btn-ghost btn-sm"
-                                                aria-label="Edit appointment"
+                                                onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
+                                                className="btn-danger-outline btn-sm"
+                                                aria-label="Cancel appointment"
                                             >
-                                                Edit
+                                                Cancel Visit
                                             </button>
-                                        )}
-                                        <button
-                                            onClick={() => { setSelectedAppointment(appt); setIsDeleteModalVisible(true); }}
-                                            className="btn-danger-outline btn-sm"
-                                            aria-label="Delete appointment record"
-                                            title="Permanently removes this record. Use 'Cancel Visit' to cancel the appointment instead."
-                                        >
-                                            Delete Record
-                                        </button>
-                                    </div>
+                                            {(appt.status === 'confirmed' || appt.status === 'scheduled') && (
+                                                <button
+                                                    onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
+                                                    className="btn btn-muted btn-sm"
+                                                    aria-label="Mark as no-show"
+                                                >
+                                                    No Show
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -655,32 +690,61 @@ const Appointments = () => {
                 confirmLabel={lifecycleConfirm ? lifecycleConfirm.action.charAt(0).toUpperCase() + lifecycleConfirm.action.slice(1).replace('_', ' ') : ''}
             />
 
-            {/* BUG-07 fix: Reschedule now uses shared Modal pattern */}
+            {/* Reschedule modal — slot picker */}
             {rescheduleTarget && (
-                <div className="modal-overlay" onClick={() => setRescheduleTarget(null)}>
-                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
-                        <h3 className="modal-title">Reschedule Appointment</h3>
+                <div className="modal-overlay" onClick={closeReschedule}>
+                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                        <h3 className="modal-title">Reschedule — {rescheduleTarget.patientName}</h3>
                         <p className="modal-desc" style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            Select a new date and time. The current appointment will be marked as rescheduled.
+                            Pick a new date and an available slot. The current appointment will be marked as rescheduled.
                         </p>
-                        <div className="form-field">
-                            <label htmlFor="reschedule-date">New Date &amp; Time</label>
+                        <div className="form-group">
+                            <label htmlFor="rs-date">New Date</label>
                             <input
-                                id="reschedule-date"
-                                type="datetime-local"
+                                id="rs-date"
+                                type="date"
                                 className="input"
-                                value={rescheduleDate}
-                                onChange={e => setRescheduleDate(e.target.value)}
+                                min={todayStr}
+                                value={rsDate}
+                                onChange={e => { setRsDate(e.target.value); fetchRsSlots(e.target.value, rescheduleTarget.id); }}
                             />
                         </div>
+                        {rsDate && rsSlotsLoading && <div className="slots-loading">Loading slots…</div>}
+                        {rsDate && !rsSlotsLoading && rsDayOff && <div className="slots-day-off">Doctor is not available on this day.</div>}
+                        {rsDate && !rsSlotsLoading && !rsDayOff && rsSlots.length === 0 && rsDate && <div className="slots-day-off">No working hours configured for this day.</div>}
+                        {rsDate && !rsSlotsLoading && rsSlots.length > 0 && (
+                            <div className="form-group">
+                                <label>Available slots</label>
+                                <div className="slot-grid">
+                                    {rsSlots.map(slot => (
+                                        <button
+                                            key={slot.time}
+                                            type="button"
+                                            className={['slot-btn', `slot-${slot.status}`, rsSelected === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
+                                            disabled={slot.status !== 'free'}
+                                            title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
+                                            onClick={() => setRsSelected(slot.datetime)}
+                                        >
+                                            <span className="slot-time">{slot.time}</span>
+                                            {slot.status === 'booked' && <span className="slot-label">Booked</span>}
+                                            {slot.status === 'past' && <span className="slot-label">Past</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="btn-row btn-row--mt">
-                            <button className="btn btn-secondary btn-full" onClick={() => setRescheduleTarget(null)}>Cancel</button>
-                            <button className="btn btn-primary btn-full" onClick={executeReschedule} disabled={!rescheduleDate}>
-                                Reschedule
+                            <button className="btn btn-secondary btn-full" onClick={closeReschedule}>Cancel</button>
+                            <button className="btn btn-primary btn-full" onClick={executeReschedule} disabled={!rsSelected}>
+                                Confirm reschedule
                             </button>
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Close overflow menu on outside click */}
+            {openMenuId !== null && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpenMenuId(null)} />
             )}
 
             {/* Approve modal */}
