@@ -22,7 +22,7 @@ import '../styles/Appointments.css';
 import '../styles/AppointmentForm.css';
 
 // Start consultation only from confirmed — scheduled needs explicit confirm first
-const TERMINAL_STATUSES = ['cancelled', 'rejected', 'completed', 'no_show', 'rescheduled'];
+const TERMINAL_STATUSES = ['cancelled', 'rejected', 'completed', 'no_show', 'rescheduled', 'expired'];
 const ACTIVE_STATUSES   = ['scheduled', 'confirmed', 'in_progress'];
 
 interface AppointmentWithDetails extends Appointment {
@@ -39,7 +39,7 @@ function toYYYYMMDD(d: Date) {
 // Status → CSS class suffix for left border color + muted for terminal states
 function apptStatusClass(status: string) {
     const base = `appt-card appt-card--${status.replace('_', '-')}`;
-    if (['cancelled', 'rejected', 'no_show', 'rescheduled'].includes(status)) return `${base} appt-card--archived`;
+    if (['cancelled', 'rejected', 'no_show', 'rescheduled', 'expired'].includes(status)) return `${base} appt-card--archived`;
     return base;
 }
 
@@ -627,46 +627,57 @@ const Appointments = () => {
                                         </div>
                                     )}
 
-                                    {/* Cancellation reason shown on cancelled cards */}
-                                    {appt.status === 'cancelled' && appt.cancellation_reason && (
-                                        <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                            Reason: {appt.cancellation_reason}
-                                        </p>
+                                    {/* Cancelled cards: show rescheduled badge or cancellation reason */}
+                                    {appt.status === 'cancelled' && (
+                                        appt.cancel_reason_code === 'rescheduled'
+                                            ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>↩ This slot was rescheduled — see new appointment below.</p>
+                                            : appt.cancellation_reason
+                                                ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Reason: {appt.cancellation_reason}</p>
+                                                : null
+                                    )}
+                                    {/* Expired: patient request was never approved before slot passed */}
+                                    {appt.status === 'expired' && (
+                                        <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Slot expired — patient request was not approved in time.</p>
                                     )}
 
                                     {/* Secondary row: reschedule / cancel / no-show for active appointments */}
-                                    {ACTIVE_STATUSES.includes(appt.status) && (
-                                        <div className="btn-row" style={{ marginTop: '0.35rem' }}>
-                                            {/* Reschedule not available mid-consultation */}
-                                            {appt.status !== 'in_progress' && (
+                                    {ACTIVE_STATUSES.includes(appt.status) && (() => {
+                                        const apptTime = new Date(appt.appointment_date);
+                                        const apptHasPassed = new Date() >= apptTime;
+                                        return (
+                                            <div className="btn-row" style={{ marginTop: '0.35rem' }}>
+                                                {/* Reschedule not available mid-consultation */}
+                                                {appt.status !== 'in_progress' && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const dateStr = appt.appointment_date.slice(0, 10);
+                                                            setRsDate(dateStr);
+                                                            setRescheduleTarget({ id: appt.id, patientName });
+                                                            fetchRsSlots(dateStr, appt.id);
+                                                        }}
+                                                        className="btn btn-muted btn-sm"
+                                                    >
+                                                        Reschedule
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => {
-                                                        const dateStr = appt.appointment_date.slice(0, 10);
-                                                        setRsDate(dateStr);
-                                                        setRescheduleTarget({ id: appt.id, patientName });
-                                                        fetchRsSlots(dateStr, appt.id);
-                                                    }}
-                                                    className="btn btn-muted btn-sm"
+                                                    onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
+                                                    className="btn-danger-outline btn-sm"
                                                 >
-                                                    Reschedule
+                                                    Cancel Visit
                                                 </button>
-                                            )}
-                                            <button
-                                                onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
-                                                className="btn-danger-outline btn-sm"
-                                            >
-                                                Cancel Visit
-                                            </button>
-                                            {(appt.status === 'scheduled' || appt.status === 'confirmed') && (
-                                                <button
-                                                    onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
-                                                    className="btn btn-muted btn-sm"
-                                                >
-                                                    No Show
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
+                                                {/* No Show: time-gated — only after appointment time has passed */}
+                                                {(appt.status === 'scheduled' || appt.status === 'confirmed') && apptHasPassed && (
+                                                    <button
+                                                        onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
+                                                        className="btn btn-muted btn-sm"
+                                                    >
+                                                        No Show
+                                                    </button>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}

@@ -62,7 +62,7 @@ export interface Appointment {
     appointment_date: string;
     reason_for_appointment: string;
     appointment_type?: 'in_person' | 'telemedicine';
-    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled' | 'pending';
+    status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled' | 'pending' | 'expired';
     status_display?: string;
     notes?: string | null;
     cancellation_reason?: string | null;
@@ -76,6 +76,7 @@ export interface Appointment {
     created_by_role?: 'doctor' | 'patient';
     duration_minutes?: number | null;
     consultation_id?: number | null;
+    cancel_reason_code?: string | null;
     patient_details?: {
         unique_id: string;
         first_name: string;

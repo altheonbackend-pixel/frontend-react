@@ -2106,6 +2106,7 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
 .appt-card--rescheduled { border-left-color: var(--status-rescheduled); }
 .appt-card--in_progress,
 .appt-card--in-progress { border-left-color: #3b82f6; }
+.appt-card--expired     { border-left-color: #9ca3af; }
 
 /* ── Referral card ── */
 .referral-card {
