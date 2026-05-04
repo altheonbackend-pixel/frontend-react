@@ -37,7 +37,6 @@ const NAV_LINKS = [
     { to: '/follow-ups',   icon: Icons.followups,    labelKey: 'nav.followups',    label: 'Follow-Ups',   badgeKey: 'followups' },
     { to: '/notebook',     icon: Icons.notebook,     labelKey: 'nav.notebook',     label: 'Notebook' },
     { to: '/my-stats',     icon: Icons.stats,        labelKey: 'nav.stats',        label: 'My Stats' },
-    { to: '/audit-log',   icon: Icons.audit,        labelKey: 'nav.audit',        label: 'Activity Log' },
 ];
 
 export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {

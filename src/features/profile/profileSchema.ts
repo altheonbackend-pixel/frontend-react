@@ -10,6 +10,7 @@ export const profileSchema = z.object({
   address: z.union([z.string().min(5, 'Address must be at least 5 characters'), z.literal('')]),
   next_available: z.string().optional(),
   timezone: z.string().optional(),
+  accepting_referrals: z.boolean().optional(),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;

@@ -57,6 +57,12 @@ const AdminSidebar = ({ isOpen = true, onClose }: AdminSidebarProps) => {
                     Rejected
                 </NavLink>
 
+                <div className="admin-sidebar__section-label">Reports</div>
+                <NavLink to="/admin/audit" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
+                    <span className="admin-sidebar__link-icon">📋</span>
+                    Audit Log
+                </NavLink>
+
                 <div className="admin-sidebar__section-label">Patient Management</div>
                 <NavLink to="/admin/patients/active" onClick={handleNavClick} className={({ isActive }) => `admin-sidebar__link${isActive ? ' active' : ''}`}>
                     <span className="admin-sidebar__link-icon">👥</span>

@@ -20,6 +20,7 @@ import ResetPassword from '../features/auth/components/ResetPassword';
 
 // Admin components
 import AdminSidebar from '../features/admin/components/AdminSidebar';
+import AdminAuditLog from '../features/admin/components/AdminAuditLog';
 import { useAdmin } from '../features/admin/context/AdminContext';
 import AdminDashboard from '../features/admin/components/AdminDashboard';
 import AdminDoctorList from '../features/admin/components/AdminDoctorList';
@@ -46,7 +47,6 @@ const EditProfile       = lazy(() => import('../features/profile/components/Edit
 const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
-const AuditLog          = lazy(() => import('../features/audit/AuditLog'));
 const FollowUpsPage     = lazy(() => import('../features/consultations/components/FollowUpsPage'));
 const PatientDashboard     = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
 const PatientAppointments  = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
@@ -108,6 +108,7 @@ const PrivateAdminRoutes = () => {
                     <Route path="/doctors/rejected"  element={<AdminDoctorList initialTab="rejected" />} />
                     <Route path="/patients"          element={<AdminPatientList />} />
                     <Route path="/patients/active"   element={<AdminActivePatientList />} />
+                    <Route path="/audit"             element={<AdminAuditLog />} />
                     <Route path="*"                  element={<Navigate to="/admin/dashboard" replace />} />
                 </Routes>
             </main>
@@ -237,7 +238,6 @@ function App() {
                             <Route path="/profile"             element={<ErrorBoundary resetKey={location.pathname}><Profile /></ErrorBoundary>} />
                             <Route path="/edit-profile"        element={<ErrorBoundary resetKey={location.pathname}><EditProfile /></ErrorBoundary>} />
                             <Route path="/my-stats"            element={<ErrorBoundary resetKey={location.pathname}><Statistics /></ErrorBoundary>} />
-                            <Route path="/audit-log"           element={<ErrorBoundary resetKey={location.pathname}><AuditLog /></ErrorBoundary>} />
                             <Route path="/follow-ups"          element={<ErrorBoundary resetKey={location.pathname}><FollowUpsPage /></ErrorBoundary>} />
                         </Route>
                     </Route>

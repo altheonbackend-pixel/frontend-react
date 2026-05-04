@@ -105,7 +105,6 @@ export function DoctorBottomNav() {
                 <div className="doctor-more-drawer" role="dialog" aria-label="More options">
                     <NavLink to="/my-stats"  className="more-drawer-item" onClick={closeAll}>{Icons.stats}   My Stats</NavLink>
                     <NavLink to="/notebook"  className="more-drawer-item" onClick={closeAll}>{Icons.notebook} Notebook</NavLink>
-                    <NavLink to="/audit-log" className="more-drawer-item" onClick={closeAll}>{Icons.audit}   Activity Log</NavLink>
                     <NavLink to="/profile"   className="more-drawer-item" onClick={closeAll}>{Icons.profile}  Profile</NavLink>
                 </div>
             )}

@@ -35,6 +35,7 @@ export interface DoctorScheduleDay {
     is_available: boolean;
     start_time: string;
     end_time: string;
+    slot_duration: number;
 }
 
 export interface Patient {
