@@ -680,8 +680,8 @@ const Appointments = () => {
                                                 >
                                                     Cancel Visit
                                                 </button>
-                                                {/* No Show: time-gated — only after appointment time has passed */}
-                                                {(appt.status === 'scheduled' || appt.status === 'confirmed') && apptHasPassed && (
+                                                {/* No Show: confirmed only (patient was notified) + 15-min grace */}
+                                                {appt.status === 'confirmed' && apptHasPassed && (
                                                     <button
                                                         onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
                                                         className="btn btn-muted btn-sm"
