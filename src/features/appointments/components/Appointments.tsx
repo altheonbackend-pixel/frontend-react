@@ -78,6 +78,7 @@ const Appointments = () => {
     const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
     const [rsSelected, setRsSelected] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+    const [rebookPatientId, setRebookPatientId] = useState<string | undefined>(undefined);
     const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
     const [approveInstructions, setApproveInstructions] = useState('');
     const [rejectTarget, setRejectTarget] = useState<{ id: number; patientName: string } | null>(null);
@@ -640,10 +641,23 @@ const Appointments = () => {
                                         <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Slot expired — patient request was not approved in time.</p>
                                     )}
 
+                                    {/* Rebook shortcut on dead cards (not for rescheduled — they already have a new appointment) */}
+                                    {TERMINAL_STATUSES.includes(appt.status) && appt.status !== 'completed' && !(appt.status === 'cancelled' && appt.cancel_reason_code === 'rescheduled') && appt.patient_details && (
+                                        <div style={{ marginTop: '0.5rem' }}>
+                                            <button
+                                                className="btn btn-ghost btn-sm"
+                                                onClick={() => { setRebookPatientId(appt.patient_details!.unique_id); setSelectedAppointment(null); setIsFormVisible(true); }}
+                                            >
+                                                + Rebook patient
+                                            </button>
+                                        </div>
+                                    )}
+
                                     {/* Secondary row: reschedule / cancel / no-show for active appointments */}
                                     {ACTIVE_STATUSES.includes(appt.status) && (() => {
                                         const apptTime = new Date(appt.appointment_date);
-                                        const apptHasPassed = new Date() >= apptTime;
+                                        // 15-minute grace period — patient may still arrive; backend enforces same rule
+                                        const apptHasPassed = Date.now() >= apptTime.getTime() + 15 * 60 * 1000;
                                         return (
                                             <div className="btn-row" style={{ marginTop: '0.35rem' }}>
                                                 {/* Reschedule not available mid-consultation */}
@@ -690,9 +704,9 @@ const Appointments = () => {
                 <AppointmentForm
                     initialDate={date}
                     appointment={selectedAppointment}
-                    initialPatientId={!selectedAppointment ? patientIdParam : undefined}
-                    onSuccess={() => { setIsFormVisible(false); setSelectedAppointment(null); invalidateAll(); }}
-                    onCancel={() => { setIsFormVisible(false); setSelectedAppointment(null); }}
+                    initialPatientId={!selectedAppointment ? (rebookPatientId ?? patientIdParam) : undefined}
+                    onSuccess={() => { setIsFormVisible(false); setSelectedAppointment(null); setRebookPatientId(undefined); invalidateAll(); }}
+                    onCancel={() => { setIsFormVisible(false); setSelectedAppointment(null); setRebookPatientId(undefined); }}
                 />
             )}
 
