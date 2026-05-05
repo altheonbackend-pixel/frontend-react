@@ -98,6 +98,7 @@ const PatientDetails = () => {
     const [showAllergyForm, setShowAllergyForm] = useState(false);
 
     const [consultationToEdit, setConsultationToEdit] = useState<Consultation | null>(null);
+    const [consultationFormIsDraft, setConsultationFormIsDraft] = useState(false);
     const [procedureToEdit, setProcedureToEdit] = useState<MedicalProcedure | null>(null);
     const [referralToEdit, setReferralToEdit] = useState<Referral | null>(null);
 
@@ -503,6 +504,7 @@ const PatientDetails = () => {
         setShowConditionForm(false);
         setShowAllergyForm(false);
         setConsultationToEdit(null);
+        setConsultationFormIsDraft(false);
         setProcedureToEdit(null);
         setReferralToEdit(null);
         fetchPatientDetails();
@@ -531,6 +533,7 @@ const PatientDetails = () => {
         setShowConditionForm(false);
         setShowAllergyForm(false);
         setConsultationToEdit(null);
+        setConsultationFormIsDraft(false);
         setProcedureToEdit(null);
         setReferralToEdit(null);
     };
@@ -567,6 +570,7 @@ const PatientDetails = () => {
             handleTabChange('consultations');
             api.get(`/consultations/${openConsultId}/`).then(res => {
                 setConsultationToEdit(res.data);
+                setConsultationFormIsDraft(true);
                 setShowConsultationForm(true);
             }).catch(() => {
                 // Consultation not found or no longer accessible — tab already switched
@@ -1130,7 +1134,7 @@ const PatientDetails = () => {
             )}
 
             {/* Forms (modal overlays) */}
-            {showConsultationForm && <ConsultationForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} consultationToEdit={consultationToEdit} />}
+            {showConsultationForm && <ConsultationForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} consultationToEdit={consultationToEdit} isDraft={consultationFormIsDraft} />}
             {showProcedureForm && <MedicalProcedureForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} procedureToEdit={procedureToEdit} />}
             {showReferralForm && <ReferralForm patientId={id!} onSuccess={handleSuccess} onClose={handleCancel} referralToEdit={referralToEdit ? { ...referralToEdit, comments: referralToEdit.comments ?? undefined } : null} />}
 

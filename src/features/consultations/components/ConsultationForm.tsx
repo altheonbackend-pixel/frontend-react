@@ -61,9 +61,11 @@ interface ConsultationFormProps {
     onSuccess: (savedRx?: SavedRx[]) => void;
     onCancel: () => void;
     consultationToEdit?: Consultation | null;
+    /** True when opened from start_consultation — treat as new but PUT to existing draft id */
+    isDraft?: boolean;
 }
 
-const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }: ConsultationFormProps) => {
+const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false }: ConsultationFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
 
@@ -357,13 +359,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 const today = new Date().toISOString().slice(0, 10);
 
                 // Auto-include any pending draft the doctor filled but didn't click + Add
-                const finalRxList = (!isEditing && rxDraft.medication_name.trim() && rxDraft.dosage.trim())
+                const finalRxList = (rxDraft.medication_name.trim() && rxDraft.dosage.trim())
                     ? [...rxList, { ...rxDraft }]
                     : rxList;
 
                 // Save all queued prescriptions via Promise.allSettled — failures surface in retry panel
                 let savedRx: SavedRx[] = [];
-                if (!isEditing && finalRxList.length > 0) {
+                if (finalRxList.length > 0) {
                     const rxPayloads: RxItem[] = finalRxList.map(rx => ({
                         patient: patientId,
                         consultation: consultationId,
@@ -401,7 +403,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 }
 
                 // Save queued lab orders — non-blocking (consultation already saved)
-                if (!isEditing && labList.length > 0) {
+                if (labList.length > 0) {
                     const labPayloads = labList.filter(l => l.test_name.trim()).map(l => ({
                         patient: patientId,
                         consultation: consultationId,
@@ -419,7 +421,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 }
 
                 // Save queued procedures — non-blocking
-                if (!isEditing && procList.length > 0) {
+                if (procList.length > 0) {
                     const procPayloads = procList.filter(p => p.procedure_type.trim()).map(p => ({
                         patient: patientId,
                         consultation: consultationId,
@@ -438,10 +440,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 }
 
                 clearDraft();
-                toast.success(isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'));
+                toast.success(isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'));
 
-                // If new consultation with follow-up date, prompt to create follow-up appointment
-                if (!isEditing && data.follow_up_date) {
+                // Prompt follow-up appointment for new or draft consultations (not true edits)
+                if ((!isEditing || isDraft) && data.follow_up_date) {
                     const apptType = data.consultation_type === 'telemedicine' ? 'telemedicine' : 'in_person';
                     setFollowUpType(apptType);
                     setPendingFollowUp({
@@ -451,9 +453,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         appointmentType: apptType,
                     });
                 } else {
-                    // Pass savedRx (even if empty []) for new consultations — triggers the
-                    // medication reconciliation modal. For edits pass undefined to skip it.
-                    onSuccess(!consultationToEdit?.id ? savedRx : undefined);
+                    // Pass savedRx for new/draft consultations to trigger medication reconciliation.
+                    // For true edits pass undefined to skip it.
+                    onSuccess(!isEditing || isDraft ? savedRx : undefined);
                 }
             }
         } catch (err) {
@@ -658,7 +660,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         <Drawer
             open
             onClose={handleCancel}
-            title={isEditing ? t('consultation.title_edit') : t('consultation.title_add')}
+            title={isEditing && !isDraft ? t('consultation.title_edit') : t('consultation.title_add')}
             size="lg"
             dirty={isDirty || failedRx.length > 0}
             footer={
@@ -667,7 +669,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                         {t('consultation.cancel')}
                     </button>
                     <button type="submit" form="consultation-form" className="btn btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
+                        {isSubmitting ? t('consultation.loading') : (isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'))}
                     </button>
                 </>
             }
