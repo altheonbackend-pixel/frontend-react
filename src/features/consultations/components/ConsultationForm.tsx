@@ -899,7 +899,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Prescriptions this visit — compact multi-medicine adder */}
-                {!consultationToEdit && (
+                {(!consultationToEdit || isDraft) && (
                     <div className="rx-section">
                         <div className="rx-section-header">
                             <span className="rx-section-label">Prescriptions this visit</span>
@@ -994,7 +994,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Lab orders for this visit */}
-                {!consultationToEdit && (
+                {(!consultationToEdit || isDraft) && (
                     <div className="consult-section">
                         <button
                             type="button"
@@ -1032,7 +1032,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Procedures for this visit */}
-                {!consultationToEdit && (
+                {(!consultationToEdit || isDraft) && (
                     <div className="consult-section">
                         <button
                             type="button"
