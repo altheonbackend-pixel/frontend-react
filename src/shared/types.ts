@@ -122,6 +122,7 @@ export interface Consultation {
     id: number;
     patient: string;
     doctor: number;
+    doctor_name?: string | null;
     appointment?: number | null;
     consultation_date: string;
     consultation_type: 'in_person' | 'telemedicine' | 'home_visit';

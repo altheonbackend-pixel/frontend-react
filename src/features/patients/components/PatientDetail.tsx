@@ -1352,12 +1352,18 @@ const PatientDetails = () => {
                                 <ul className="detail-list">
                                     {consultationsData.map(c => {
                                         const isExpanded = expandedConsultIds.has(c.id);
+                                        const isOwnConsultation = c.doctor === profile?.id;
                                         return (
                                             <li key={c.id} id={`consult-entry-${c.id}`} className="consultation-entry detail-list-item">
                                                 <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
                                                     <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
                                                     <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
                                                     <span className="consult-summary-reason">{c.reason_for_consultation}</span>
+                                                    {!isOwnConsultation && c.doctor_name && (
+                                                        <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
+                                                            Dr. {c.doctor_name}
+                                                        </span>
+                                                    )}
                                                     {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</span>}
                                                     {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
                                                     <span className="consult-expand-icon">{isExpanded ? '▲' : '▼'}</span>
@@ -1498,6 +1504,7 @@ const PatientDetails = () => {
                                                         )}
 
                                                         <div className="entry-actions">
+                                                            {isOwnConsultation && (<>
                                                             <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
                                                             <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
                                                             <button
@@ -1507,6 +1514,7 @@ const PatientDetails = () => {
                                                             >
                                                                 {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
                                                             </button>
+                                                            </>)}
                                                         </div>
                                                     </div>
                                                 )}
