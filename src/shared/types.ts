@@ -299,6 +299,8 @@ export interface Referral {
     urgency_display?: string;
     response_notes: string;
     responded_at: string | null;
+    result: string;
+    result_submitted_at: string | null;
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };
     patient_details?: { unique_id: string; first_name: string; last_name: string };

@@ -109,6 +109,10 @@ const PatientDetails = () => {
     const [confirmDeleteConsultationId, setConfirmDeleteConsultationId] = useState<number | null>(null);
     const [confirmDeleteProcedureId, setConfirmDeleteProcedureId] = useState<number | null>(null);
     const [confirmDeleteReferralId, setConfirmDeleteReferralId] = useState<number | null>(null);
+    const [resultFormReferralId, setResultFormReferralId] = useState<number | null>(null);
+    const [resultText, setResultText] = useState('');
+    const [resultMarkComplete, setResultMarkComplete] = useState(false);
+    const [resultSubmitting, setResultSubmitting] = useState(false);
 
     // Consultations tab: list vs charts view
     const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
@@ -1957,20 +1961,122 @@ const PatientDetails = () => {
                                 <TabSkeleton rows={4} />
                             ) : referralsData.length > 0 ? (
                                 <ul className="detail-list">
-                                    {referralsData.map(r => (
-                                        <li key={r.id} className="referral-entry detail-list-item">
-                                            <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
-                                            <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>
-                                            <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
-                                            <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
-                                            <div className="info-item"><strong>Status:</strong> <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span></div>
-                                            {r.comments && <div className="info-item"><strong>Comments:</strong> {r.comments}</div>}
-                                            <div className="entry-actions">
-                                                <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
-                                                <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
-                                            </div>
-                                        </li>
-                                    ))}
+                                    {referralsData.map(r => {
+                                        const isReceivingDoctor = profile?.id === r.referred_to;
+                                        const canSubmitResult = isReceivingDoctor && !['pending', 'rejected'].includes(r.status);
+                                        const showResultForm = resultFormReferralId === r.id;
+                                        return (
+                                            <li key={r.id} className="referral-entry detail-list-item">
+                                                <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
+                                                <div className="info-item"><strong>Referred by:</strong> {r.referred_by_details?.full_name || 'You'}</div>
+                                                <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>
+                                                <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
+                                                <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
+                                                <div className="info-item">
+                                                    <strong>Status:</strong>{' '}
+                                                    <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span>
+                                                    {r.responded_at && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 8 }}>· {new Date(r.responded_at).toLocaleDateString()}</span>}
+                                                </div>
+                                                {r.comments && <div className="info-item"><strong>Referral note:</strong> {r.comments}</div>}
+                                                {r.response_notes && (
+                                                    <div className="info-item"><strong>Response note:</strong> {r.response_notes}</div>
+                                                )}
+
+                                                {/* Clinical result from the referred-to doctor */}
+                                                {r.result ? (
+                                                    <div className="info-item" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', marginTop: '0.5rem' }}>
+                                                        <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                                                            Specialist Result
+                                                            {r.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {new Date(r.result_submitted_at).toLocaleDateString()}</span>}
+                                                        </div>
+                                                        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{r.result}</div>
+                                                    </div>
+                                                ) : (
+                                                    canSubmitResult && !showResultForm && (
+                                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.5rem 0 0' }}>No result submitted yet.</p>
+                                                    )
+                                                )}
+
+                                                {/* Inline result form for the referred-to doctor */}
+                                                {canSubmitResult && (
+                                                    <div style={{ marginTop: '0.75rem' }}>
+                                                        {showResultForm ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                                <textarea
+                                                                    className="textarea"
+                                                                    rows={4}
+                                                                    placeholder="Clinical findings, diagnosis, recommendations…"
+                                                                    value={resultText}
+                                                                    onChange={e => setResultText(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={resultMarkComplete}
+                                                                        onChange={e => setResultMarkComplete(e.target.checked)}
+                                                                    />
+                                                                    Mark referral as completed
+                                                                </label>
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    <button
+                                                                        className="btn btn-primary btn-sm"
+                                                                        disabled={!resultText.trim() || resultSubmitting}
+                                                                        onClick={async () => {
+                                                                            setResultSubmitting(true);
+                                                                            try {
+                                                                                await api.post(`/referrals/${r.id}/result/`, {
+                                                                                    result: resultText.trim(),
+                                                                                    mark_completed: resultMarkComplete,
+                                                                                });
+                                                                                toast.success('Result submitted.');
+                                                                                setResultFormReferralId(null);
+                                                                                setResultText('');
+                                                                                setResultMarkComplete(false);
+                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
+                                                                            } catch (err) {
+                                                                                toast.error(parseApiError(err, 'Could not submit result.'));
+                                                                            } finally {
+                                                                                setResultSubmitting(false);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {resultSubmitting ? 'Saving…' : 'Submit Result'}
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-ghost btn-sm"
+                                                                        onClick={() => { setResultFormReferralId(null); setResultText(''); setResultMarkComplete(false); }}
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                className="btn btn-ghost btn-sm"
+                                                                onClick={() => {
+                                                                    setResultText(r.result || '');
+                                                                    setResultMarkComplete(false);
+                                                                    setResultFormReferralId(r.id);
+                                                                }}
+                                                            >
+                                                                {r.result ? '✎ Update Result' : '+ Submit Result'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div className="entry-actions">
+                                                    {!isReceivingDoctor && (
+                                                        <>
+                                                            <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
+                                                            <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             ) : <p className="muted">No referrals recorded.</p>}
                         </div>{/* end referrals section */}
