@@ -181,7 +181,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                         <button type="button" onClick={onCancel} className="cancel-button" disabled={isSubmitting}>
                             {t('appointments.form.cancel')}
                         </button>
-                        <button type="submit" form="appointment-form" className="btn btn-primary" disabled={isSubmitting || !selectedSlot}>
+                        <button type="submit" form="appointment-form" className="btn btn-primary" disabled={isSubmitting || (!appointment && !selectedSlot)}>
                             {appointment ? t('appointments.form.submit_edit') : t('appointments.form.submit_create')}
                         </button>
                     </>
@@ -192,83 +192,111 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
             {!loading && loadError && <div className="error-message">{loadError}</div>}
             {!loading && !loadError && (
                 <form id="appointment-form" onSubmit={handleSubmit(onSubmit)} className="appointment-form">
-                    {/* Patient selector */}
+                    {/* Patient selector — locked in edit mode */}
                     <div className="form-group">
                         <label htmlFor="patient">{t('appointments.patient_label')}</label>
-                        <select id="patient" className="select-input" {...register('patient')}>
-                            <option value="">{t('appointments.form.select_patient')}</option>
-                            {patients.map(patient => (
-                                <option key={patient.unique_id} value={patient.unique_id}>
-                                    {patient.first_name} {patient.last_name}
-                                </option>
-                            ))}
-                        </select>
+                        {appointment ? (
+                            <div className="input" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
+                                {patients.find(p => p.unique_id === appointment.patient)
+                                    ? (() => { const p = patients.find(pt => pt.unique_id === appointment.patient)!; return `${p.first_name} ${p.last_name}`; })()
+                                    : appointment.patient_details
+                                        ? `${appointment.patient_details.first_name} ${appointment.patient_details.last_name}`
+                                        : appointment.patient}
+                            </div>
+                        ) : (
+                            <select id="patient" className="select-input" {...register('patient')}>
+                                <option value="">{t('appointments.form.select_patient')}</option>
+                                {patients.map(patient => (
+                                    <option key={patient.unique_id} value={patient.unique_id}>
+                                        {patient.first_name} {patient.last_name}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                         {errors.patient && <span className="field-error">{errors.patient.message}</span>}
                     </div>
 
-                    {/* Date picker */}
-                    <div className="form-group">
-                        <label htmlFor="slot-date">Date</label>
-                        <input
-                            type="date"
-                            id="slot-date"
-                            className="input"
-                            min={today}
-                            value={selectedDate}
-                            onChange={e => {
-                                setSelectedDate(e.target.value);
-                                setSelectedSlot(null);
-                                setValue('appointment_date', '', { shouldValidate: false });
-                            }}
-                        />
-                    </div>
-
-                    {/* Slot grid */}
-                    <div className="form-group">
-                        <label>Time slot</label>
-                        {slotsLoading && <div className="slots-loading">Loading available slots…</div>}
-                        {!slotsLoading && dayOff && (
-                            <div className="slots-day-off">Doctor is not available on this day.</div>
-                        )}
-                        {!slotsLoading && !dayOff && slots.length === 0 && selectedDate && (
-                            <div className="slots-day-off">No slots configured for this day.</div>
-                        )}
-                        {!slotsLoading && slots.length > 0 && (
-                            <div className="slot-grid">
-                                {slots.map(slot => (
-                                    <button
-                                        key={slot.time}
-                                        type="button"
-                                        className={[
-                                            'slot-btn',
-                                            `slot-${slot.status}`,
-                                            selectedSlot === slot.time ? 'slot-selected' : '',
-                                        ].join(' ').trim()}
-                                        disabled={slot.status !== 'free'}
-                                        onClick={() => handleSlotClick(slot)}
-                                        title={
-                                            slot.status === 'booked'
-                                                ? `${slot.patient_name} — ${slot.reason}`
-                                                : slot.status === 'past'
-                                                ? 'Past'
-                                                : slot.time
-                                        }
-                                    >
-                                        <span className="slot-time">{slot.time}</span>
-                                        {slot.status === 'booked' && (
-                                            <span className="slot-patient">{slot.patient_name}</span>
-                                        )}
-                                        {slot.status === 'past' && (
-                                            <span className="slot-label">Past</span>
-                                        )}
-                                    </button>
-                                ))}
+                    {/* Date + slot — locked in edit mode; use Reschedule to change */}
+                    {appointment ? (
+                        <div className="form-group">
+                            <label>Date &amp; Time</label>
+                            <div className="input" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
+                                {new Date(appointment.appointment_date).toLocaleString('en-GB', {
+                                    weekday: 'short', day: 'numeric', month: 'short',
+                                    year: 'numeric', hour: '2-digit', minute: '2-digit',
+                                })}
                             </div>
-                        )}
-                        {errors.appointment_date && !selectedSlot && (
-                            <span className="field-error">Please select a time slot</span>
-                        )}
-                    </div>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                To change the date or time, use the <strong>Reschedule</strong> option.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Date picker */}
+                            <div className="form-group">
+                                <label htmlFor="slot-date">Date</label>
+                                <input
+                                    type="date"
+                                    id="slot-date"
+                                    className="input"
+                                    min={today}
+                                    value={selectedDate}
+                                    onChange={e => {
+                                        setSelectedDate(e.target.value);
+                                        setSelectedSlot(null);
+                                        setValue('appointment_date', '', { shouldValidate: false });
+                                    }}
+                                />
+                            </div>
+
+                            {/* Slot grid */}
+                            <div className="form-group">
+                                <label>Time slot</label>
+                                {slotsLoading && <div className="slots-loading">Loading available slots…</div>}
+                                {!slotsLoading && dayOff && (
+                                    <div className="slots-day-off">Doctor is not available on this day.</div>
+                                )}
+                                {!slotsLoading && !dayOff && slots.length === 0 && selectedDate && (
+                                    <div className="slots-day-off">No slots configured for this day.</div>
+                                )}
+                                {!slotsLoading && slots.length > 0 && (
+                                    <div className="slot-grid">
+                                        {slots.map(slot => (
+                                            <button
+                                                key={slot.time}
+                                                type="button"
+                                                className={[
+                                                    'slot-btn',
+                                                    `slot-${slot.status}`,
+                                                    selectedSlot === slot.time ? 'slot-selected' : '',
+                                                ].join(' ').trim()}
+                                                disabled={slot.status !== 'free'}
+                                                onClick={() => handleSlotClick(slot)}
+                                                title={
+                                                    slot.status === 'booked'
+                                                        ? `${slot.patient_name} — ${slot.reason}`
+                                                        : slot.status === 'past'
+                                                        ? 'Past'
+                                                        : slot.time
+                                                }
+                                            >
+                                                <span className="slot-time">{slot.time}</span>
+                                                {slot.status === 'booked' && (
+                                                    <span className="slot-patient">{slot.patient_name}</span>
+                                                )}
+                                                {slot.status === 'past' && (
+                                                    <span className="slot-label">Past</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {errors.appointment_date && !selectedSlot && (
+                                    <span className="field-error">Please select a time slot</span>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     {/* Appointment type */}
                     <div className="form-group">
