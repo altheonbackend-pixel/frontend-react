@@ -172,7 +172,8 @@ function Dashboard() {
         ...(timezone ? { timeZone: timezone } : {}),
     });
     const doctorName = user?.full_name ?? profile?.full_name ?? '';
-    const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0;
+    const hasAnyTasks = pendingLabReviews.length > 0 || appointmentRequests.length > 0 || followUps.length > 0;
+    const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0 && !hasAnyTasks;
 
     const removeLab = (labId: number) =>
         qc.setQueryData<LabResult[]>(['labs', 'pending-review'], old => old?.filter(l => l.id !== labId));

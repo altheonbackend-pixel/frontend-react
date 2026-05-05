@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
+import { Drawer, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import api from '../../../shared/services/api';
 import type { AxiosResponse } from 'axios';
@@ -74,6 +74,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [showIcdSuggestions, setShowIcdSuggestions] = useState(false);
     const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string; consultationId: number; appointmentType: 'in_person' | 'telemedicine' } | null>(null);
     const [followUpType, setFollowUpType] = useState<'in_person' | 'telemedicine'>('in_person');
+    const [followUpDate, setFollowUpDate] = useState('');
+    const [followUpSlots, setFollowUpSlots] = useState<Array<{ time: string; datetime: string; status: string; patient_name?: string }>>([]);
+    const [followUpSlotsLoading, setFollowUpSlotsLoading] = useState(false);
+    const [followUpDayOff, setFollowUpDayOff] = useState(false);
+    const [followUpSelectedSlot, setFollowUpSelectedSlot] = useState<string | null>(null);
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
     const [showCloseWithFailedRxWarning, setShowCloseWithFailedRxWarning] = useState(false);
 
@@ -291,6 +296,31 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         }
     }, [consultationToEdit, reset]);
 
+    // When follow-up dialog opens, seed the date and clear prior slot selection
+    useEffect(() => {
+        if (pendingFollowUp?.date) {
+            setFollowUpDate(pendingFollowUp.date);
+            setFollowUpSelectedSlot(null);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pendingFollowUp?.date]);
+
+    // Fetch slots whenever followUpDate changes (only while dialog is open)
+    useEffect(() => {
+        if (!followUpDate || !pendingFollowUp) { setFollowUpSlots([]); return; }
+        setFollowUpSlotsLoading(true);
+        setFollowUpSlots([]);
+        setFollowUpDayOff(false);
+        setFollowUpSelectedSlot(null);
+        api.get<{ slots: Array<{ time: string; datetime: string; status: string; patient_name?: string }>; day_off: boolean }>(
+            `/appointments/day-slots/?date=${followUpDate}`
+        ).then(res => {
+            if (res.data.day_off) setFollowUpDayOff(true);
+            else setFollowUpSlots(res.data.slots ?? []);
+        }).catch(() => {}).finally(() => setFollowUpSlotsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [followUpDate]);
+
     const toggleSymptom = (symptom: string) => {
         setSymptoms(prev =>
             prev.includes(symptom) ? prev.filter(s => s !== symptom) : [...prev, symptom]
@@ -448,21 +478,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const isEditing = !!consultationToEdit;
 
     const handleCreateFollowUpAppointment = async () => {
-        if (!pendingFollowUp) return;
+        if (!pendingFollowUp || !followUpSelectedSlot) return;
         setCreatingFollowUp(true);
         try {
             const apptRes = await api.post('/appointments/', {
                 patient: patientId,
-                appointment_date: `${pendingFollowUp.date}T09:00:00`,
+                appointment_date: followUpSelectedSlot,
                 reason_for_appointment: pendingFollowUp.reason,
                 appointment_type: followUpType,
             });
-            // Link the appointment back to the consultation so the patient portal
-            // can reflect live status changes (reschedule / cancel).
             await api.patch(`/consultations/${pendingFollowUp.consultationId}/`, {
                 follow_up_appointment: apptRes.data.id,
             }).catch(() => {});
-            toast.success('Follow-up appointment created and scheduled.');
+            toast.success('Follow-up appointment scheduled. Patient notified to confirm.');
         } catch {
             toast.error('Could not create follow-up appointment. You can create it manually from the Appointments page.');
         } finally {
@@ -506,36 +534,82 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
             }}
             onClose={() => { setVitalsConfirmOpen(false); setPendingSubmitData(null); }}
         />
-        <Dialog
+        <Modal
             open={!!pendingFollowUp}
-            tone="info"
-            title="Schedule Follow-up Appointment?"
-            message={pendingFollowUp ? (
-                <div>
-                    <p style={{ marginBottom: '0.75rem' }}>
-                        Create a follow-up appointment for{' '}
-                        <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>?
-                        The patient will receive a notification to confirm the slot.
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appointment type</label>
-                        <select
-                            className="input"
-                            value={followUpType}
-                            onChange={e => setFollowUpType(e.target.value as 'in_person' | 'telemedicine')}
-                            style={{ fontSize: '0.875rem' }}
-                        >
-                            <option value="in_person">In Person</option>
-                            <option value="telemedicine">Telemedicine (Video)</option>
-                        </select>
-                    </div>
-                </div>
-            ) : undefined}
-            confirmLabel={creatingFollowUp ? 'Creating…' : 'Yes, create appointment'}
-            cancelLabel="No, skip"
-            onConfirm={handleCreateFollowUpAppointment}
             onClose={() => { setPendingFollowUp(null); onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined); }}
-        />
+            title="Schedule Follow-up Appointment"
+            size="sm"
+            footer={
+                <>
+                    <button type="button" className="cancel-button" onClick={() => { setPendingFollowUp(null); onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined); }}>
+                        Skip for now
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={!followUpSelectedSlot || creatingFollowUp}
+                        onClick={handleCreateFollowUpAppointment}
+                    >
+                        {creatingFollowUp ? 'Creating…' : 'Create Appointment'}
+                    </button>
+                </>
+            }
+        >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Pick a date and available slot. The patient will be notified to confirm.
+                </p>
+
+                {/* Date */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Date</label>
+                    <input
+                        type="date"
+                        className="input"
+                        min={new Date().toISOString().slice(0, 10)}
+                        value={followUpDate}
+                        onChange={e => setFollowUpDate(e.target.value)}
+                    />
+                </div>
+
+                {/* Appointment type */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Type</label>
+                    <select
+                        className="input"
+                        value={followUpType}
+                        onChange={e => setFollowUpType(e.target.value as 'in_person' | 'telemedicine')}
+                    >
+                        <option value="in_person">In Person</option>
+                        <option value="telemedicine">Telemedicine (Video)</option>
+                    </select>
+                </div>
+
+                {/* Slot grid */}
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Available Slots</label>
+                    {followUpSlotsLoading && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Loading slots…</div>}
+                    {!followUpSlotsLoading && followUpDayOff && <div style={{ fontSize: '0.85rem', color: 'var(--danger)' }}>Day off — choose a different date.</div>}
+                    {!followUpSlotsLoading && !followUpDayOff && followUpSlots.length === 0 && followUpDate && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No slots available for this date.</div>}
+                    {!followUpSlotsLoading && !followUpDayOff && followUpSlots.length > 0 && (
+                        <div className="slot-grid">
+                            {followUpSlots.map(slot => (
+                                <button
+                                    key={slot.time}
+                                    type="button"
+                                    className={['slot-btn', `slot-${slot.status}`, followUpSelectedSlot === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
+                                    disabled={slot.status !== 'free'}
+                                    title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
+                                    onClick={() => setFollowUpSelectedSlot(slot.datetime)}
+                                >
+                                    <span className="slot-time">{slot.time}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </Modal>
         <Dialog
             open={showCloseWithFailedRxWarning}
             tone="danger"
