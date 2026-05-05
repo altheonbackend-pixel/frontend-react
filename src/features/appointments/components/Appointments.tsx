@@ -250,7 +250,8 @@ const Appointments = () => {
             const res = await api.post(`/appointments/${appt.id}/start-consultation/`);
             const { consultation_id } = res.data;
             const patientId = appt.patient_details?.unique_id ?? appt.patient;
-            toast.success('Consultation started.');
+            const isResume = res.status === 200;
+            if (!isResume) toast.success('Consultation started.');
             navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}`);
         } catch (err) {
             toast.error(parseApiError(err, 'Could not start consultation.'));
@@ -631,7 +632,7 @@ const Appointments = () => {
                                     {appt.status === 'in_progress' && appt.patient_details && (
                                         <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                             <button
-                                                onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations${appt.consultation_id ? `&open_consultation=${appt.consultation_id}` : ''}`)}
+                                                onClick={() => handleStartConsultation(appt)}
                                                 className="btn btn-primary btn-sm"
                                             >
                                                 Resume Consultation →

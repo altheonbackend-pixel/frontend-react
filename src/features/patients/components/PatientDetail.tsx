@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -81,6 +81,7 @@ const PatientDetails = () => {
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { isAuthenticated, profile, logout } = useAuth();
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
@@ -102,6 +103,7 @@ const PatientDetails = () => {
 
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const openConsultHandledRef = useRef<string | null>(null);
 
     const [confirmDeleteConsultationId, setConfirmDeleteConsultationId] = useState<number | null>(null);
     const [confirmDeleteProcedureId, setConfirmDeleteProcedureId] = useState<number | null>(null);
@@ -547,6 +549,31 @@ const PatientDetails = () => {
         setExpandedConsultIds(prev => new Set([...prev, consultId]));
         handleTabChange('consultations');
     };
+
+    // Deep-link handler: ?tab=<name>&open_consultation=<id>
+    // Fired from the Appointments page when the doctor clicks Start/Resume/View Consultation.
+    // The ref guard prevents re-opening the form if the doctor closes it while the URL hasn't changed.
+    useEffect(() => {
+        const tabParam = searchParams.get('tab') as Tab | null;
+        const openConsultId = searchParams.get('open_consultation');
+
+        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'actions', 'admin'];
+        if (tabParam && validTabs.includes(tabParam)) {
+            handleTabChange(tabParam);
+        }
+
+        if (openConsultId && openConsultHandledRef.current !== openConsultId) {
+            openConsultHandledRef.current = openConsultId;
+            handleTabChange('consultations');
+            api.get(`/consultations/${openConsultId}/`).then(res => {
+                setConsultationToEdit(res.data);
+                setShowConsultationForm(true);
+            }).catch(() => {
+                // Consultation not found or no longer accessible — tab already switched
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams]);
 
     // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
     const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm;
