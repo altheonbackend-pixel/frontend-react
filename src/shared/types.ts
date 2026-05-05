@@ -294,7 +294,7 @@ export interface Referral {
     date_of_referral: string;
     comments: string | null;
     // Phase 3 lifecycle fields
-    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected';
+    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled';
     status_display?: string;
     urgency: 'routine' | 'urgent' | 'emergency';
     urgency_display?: string;
@@ -302,6 +302,12 @@ export interface Referral {
     responded_at: string | null;
     result: string;
     result_submitted_at: string | null;
+    accepted_at?: string | null;
+    in_progress_at?: string | null;
+    completed_at?: string | null;
+    rejected_at?: string | null;
+    cancelled_at?: string | null;
+    cancellation_reason?: string;
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };
     patient_details?: { unique_id: string; first_name: string; last_name: string };

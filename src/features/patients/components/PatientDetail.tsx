@@ -111,8 +111,10 @@ const PatientDetails = () => {
     const [confirmDeleteReferralId, setConfirmDeleteReferralId] = useState<number | null>(null);
     const [resultFormReferralId, setResultFormReferralId] = useState<number | null>(null);
     const [resultText, setResultText] = useState('');
-    const [resultMarkComplete, setResultMarkComplete] = useState(false);
     const [resultSubmitting, setResultSubmitting] = useState(false);
+    const [cancelFormReferralId, setCancelFormReferralId] = useState<number | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
     // Consultations tab: list vs charts view
     const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
@@ -1970,27 +1972,43 @@ const PatientDetails = () => {
                             ) : referralsData.length > 0 ? (
                                 <ul className="detail-list">
                                     {referralsData.map(r => {
+                                        const isReferringDoctor = profile?.id === r.referred_by;
                                         const isReceivingDoctor = profile?.id === r.referred_to;
-                                        const canSubmitResult = isReceivingDoctor && !['pending', 'rejected'].includes(r.status);
+                                        const isActive = ['pending', 'accepted', 'in_progress'].includes(r.status);
+                                        const canSubmitResult = isReceivingDoctor && ['accepted', 'in_progress'].includes(r.status);
+                                        const canCancel = isReferringDoctor && ['pending', 'accepted'].includes(r.status);
                                         const showResultForm = resultFormReferralId === r.id;
+                                        const showCancelForm = cancelFormReferralId === r.id;
                                         return (
                                             <li key={r.id} className="referral-entry detail-list-item">
-                                                <h4>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
-                                                <div className="info-item"><strong>Referred by:</strong> {r.referred_by_details?.full_name || 'You'}</div>
-                                                <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || 'Unknown'}</div>
-                                                <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
-                                                <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
-                                                <div className="info-item">
-                                                    <strong>Status:</strong>{' '}
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.25rem' }}>
+                                                    <h4 style={{ margin: 0 }}>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
                                                     <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span>
-                                                    {r.responded_at && <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 8 }}>· {new Date(r.responded_at).toLocaleDateString()}</span>}
                                                 </div>
+                                                <div className="info-item"><strong>Referred by:</strong> {r.referred_by_details?.full_name || '—'}</div>
+                                                <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || (r.is_external ? `${r.external_doctor_name || 'External'} · ${r.external_hospital}` : '—')}</div>
+                                                <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
+                                                <div className="info-item"><strong>Urgency:</strong> {r.urgency_display || r.urgency}</div>
+                                                <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
                                                 {r.comments && <div className="info-item"><strong>Referral note:</strong> {r.comments}</div>}
+
+                                                {/* Lifecycle timeline */}
+                                                <div className="info-item" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
+                                                    {r.accepted_at && <span>Accepted {new Date(r.accepted_at).toLocaleDateString()}</span>}
+                                                    {r.in_progress_at && <span>In Progress {new Date(r.in_progress_at).toLocaleDateString()}</span>}
+                                                    {r.completed_at && <span>Completed {new Date(r.completed_at).toLocaleDateString()}</span>}
+                                                    {r.rejected_at && <span>Rejected {new Date(r.rejected_at).toLocaleDateString()}</span>}
+                                                    {r.cancelled_at && <span>Cancelled {new Date(r.cancelled_at).toLocaleDateString()}</span>}
+                                                </div>
+
                                                 {r.response_notes && (
                                                     <div className="info-item"><strong>Response note:</strong> {r.response_notes}</div>
                                                 )}
+                                                {r.cancellation_reason && (
+                                                    <div className="info-item" style={{ color: 'var(--text-muted)' }}><strong>Cancellation reason:</strong> {r.cancellation_reason}</div>
+                                                )}
 
-                                                {/* Clinical result from the referred-to doctor */}
+                                                {/* Clinical result */}
                                                 {r.result ? (
                                                     <div className="info-item" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', marginTop: '0.5rem' }}>
                                                         <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
@@ -2005,7 +2023,7 @@ const PatientDetails = () => {
                                                     )
                                                 )}
 
-                                                {/* Inline result form for the referred-to doctor */}
+                                                {/* Inline result form — submitting always completes the referral */}
                                                 {canSubmitResult && (
                                                     <div style={{ marginTop: '0.75rem' }}>
                                                         {showResultForm ? (
@@ -2018,14 +2036,9 @@ const PatientDetails = () => {
                                                                     onChange={e => setResultText(e.target.value)}
                                                                     autoFocus
                                                                 />
-                                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={resultMarkComplete}
-                                                                        onChange={e => setResultMarkComplete(e.target.checked)}
-                                                                    />
-                                                                    Mark referral as completed
-                                                                </label>
+                                                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                                                                    Submitting a result marks this referral as completed.
+                                                                </p>
                                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                                     <button
                                                                         className="btn btn-primary btn-sm"
@@ -2033,14 +2046,10 @@ const PatientDetails = () => {
                                                                         onClick={async () => {
                                                                             setResultSubmitting(true);
                                                                             try {
-                                                                                await api.post(`/referrals/${r.id}/result/`, {
-                                                                                    result: resultText.trim(),
-                                                                                    mark_completed: resultMarkComplete,
-                                                                                });
-                                                                                toast.success('Result submitted.');
+                                                                                await api.post(`/referrals/${r.id}/result/`, { result: resultText.trim() });
+                                                                                toast.success('Result submitted. Referral marked as completed.');
                                                                                 setResultFormReferralId(null);
                                                                                 setResultText('');
-                                                                                setResultMarkComplete(false);
                                                                                 queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
                                                                             } catch (err) {
                                                                                 toast.error(parseApiError(err, 'Could not submit result.'));
@@ -2049,12 +2058,9 @@ const PatientDetails = () => {
                                                                             }
                                                                         }}
                                                                     >
-                                                                        {resultSubmitting ? 'Saving…' : 'Submit Result'}
+                                                                        {resultSubmitting ? 'Saving…' : 'Submit & Complete'}
                                                                     </button>
-                                                                    <button
-                                                                        className="btn btn-ghost btn-sm"
-                                                                        onClick={() => { setResultFormReferralId(null); setResultText(''); setResultMarkComplete(false); }}
-                                                                    >
+                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setResultFormReferralId(null); setResultText(''); }}>
                                                                         Cancel
                                                                     </button>
                                                                 </div>
@@ -2062,11 +2068,7 @@ const PatientDetails = () => {
                                                         ) : (
                                                             <button
                                                                 className="btn btn-ghost btn-sm"
-                                                                onClick={() => {
-                                                                    setResultText(r.result || '');
-                                                                    setResultMarkComplete(false);
-                                                                    setResultFormReferralId(r.id);
-                                                                }}
+                                                                onClick={() => { setResultText(r.result || ''); setResultFormReferralId(r.id); }}
                                                             >
                                                                 {r.result ? '✎ Update Result' : '+ Submit Result'}
                                                             </button>
@@ -2074,12 +2076,64 @@ const PatientDetails = () => {
                                                     </div>
                                                 )}
 
+                                                {/* Cancel form — referring doctor only, pending/accepted */}
+                                                {canCancel && (
+                                                    <div style={{ marginTop: '0.75rem' }}>
+                                                        {showCancelForm ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                                <textarea
+                                                                    className="textarea"
+                                                                    rows={2}
+                                                                    placeholder="Cancellation reason (optional)…"
+                                                                    value={cancelReason}
+                                                                    onChange={e => setCancelReason(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    <button
+                                                                        className="btn btn-sm"
+                                                                        style={{ background: 'var(--error)', color: '#fff', border: 'none' }}
+                                                                        disabled={cancelSubmitting}
+                                                                        onClick={async () => {
+                                                                            setCancelSubmitting(true);
+                                                                            try {
+                                                                                await api.post(`/referrals/${r.id}/cancel/`, { reason: cancelReason.trim() });
+                                                                                toast.success('Referral cancelled.');
+                                                                                setCancelFormReferralId(null);
+                                                                                setCancelReason('');
+                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
+                                                                            } catch (err) {
+                                                                                toast.error(parseApiError(err, 'Could not cancel referral.'));
+                                                                            } finally {
+                                                                                setCancelSubmitting(false);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {cancelSubmitting ? 'Cancelling…' : 'Confirm Cancel'}
+                                                                    </button>
+                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setCancelFormReferralId(null); setCancelReason(''); }}>
+                                                                        Keep Referral
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                className="btn btn-ghost btn-sm"
+                                                                style={{ color: 'var(--error)' }}
+                                                                onClick={() => setCancelFormReferralId(r.id)}
+                                                            >
+                                                                Cancel Referral
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+
                                                 <div className="entry-actions">
-                                                    {!isReceivingDoctor && (
-                                                        <>
-                                                            <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
-                                                            <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
-                                                        </>
+                                                    {isReferringDoctor && r.status === 'pending' && (
+                                                        <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
+                                                    )}
+                                                    {isReferringDoctor && ['pending', 'rejected', 'cancelled'].includes(r.status) && (
+                                                        <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
                                                     )}
                                                 </div>
                                             </li>
