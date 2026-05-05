@@ -567,10 +567,11 @@ const PatientDetails = () => {
 
         if (openConsultId && openConsultHandledRef.current !== openConsultId) {
             openConsultHandledRef.current = openConsultId;
+            const isDraftParam = searchParams.get('draft') === 'true';
             handleTabChange('consultations');
             api.get(`/consultations/${openConsultId}/`).then(res => {
                 setConsultationToEdit(res.data);
-                setConsultationFormIsDraft(true);
+                setConsultationFormIsDraft(isDraftParam);
                 setShowConsultationForm(true);
             }).catch(() => {
                 // Consultation not found or no longer accessible — tab already switched

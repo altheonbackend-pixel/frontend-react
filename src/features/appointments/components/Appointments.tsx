@@ -252,7 +252,7 @@ const Appointments = () => {
             const patientId = appt.patient_details?.unique_id ?? appt.patient;
             const isResume = res.status === 200;
             if (!isResume) toast.success('Consultation started.');
-            navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}`);
+            navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}&draft=true`);
         } catch (err) {
             toast.error(parseApiError(err, 'Could not start consultation.'));
         }
