@@ -145,7 +145,6 @@ const PatientDetails = () => {
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
     const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
-    // Session-scoped vital alert dismissals — decoupled from follow_up_notification_sent
     const [dismissedVitalAlerts, setDismissedVitalAlerts] = useState<Set<number>>(new Set());
 
     // Lab Results
@@ -1154,9 +1153,6 @@ const PatientDetails = () => {
                             const handleAcknowledge = async () => {
                                 setVitalAcknowledging(true);
                                 try {
-                                    // follow_up_notification_sent suppresses daily Celery emails — keep setting it
-                                    await api.patch(`/consultations/${latest.id}/`, { follow_up_notification_sent: true });
-                                    // Use local state for banner dismissal (decoupled from email suppression field)
                                     setDismissedVitalAlerts(prev => new Set([...prev, latest.id]));
                                     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
                                     toast.success('Vital alert acknowledged.');

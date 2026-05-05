@@ -180,11 +180,6 @@ function Dashboard() {
     const removeRequest = (apptId: number) =>
         qc.setQueryData<PendingRequest[]>(['appointments', 'pending-requests'], old => old?.filter(r => r.id !== apptId));
 
-    const removeFollowUp = (consultationId: number) =>
-        qc.setQueryData<DashboardData>(queryKeys.dashboard(), old =>
-            old ? { ...old, due_followups: old.due_followups.filter(f => f.id !== consultationId) } : old
-        );
-
     const handleAcceptLab = async (labId: number) => {
         removeLab(labId);
         try {
@@ -250,21 +245,6 @@ function Dashboard() {
         } catch {
             toast.error('Failed to reject.');
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleAcknowledgeFollowUp = async (consultationId: number) => {
-        removeFollowUp(consultationId);
-        try {
-            setActionLoading(true);
-            await api.patch(`/consultations/${consultationId}/`, { follow_up_notification_sent: true });
-            toast.success('Follow-up acknowledged.');
-            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
-        } catch {
-            toast.error('Failed to acknowledge.');
-            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } finally {
             setActionLoading(false);
         }
@@ -342,15 +322,6 @@ function Dashboard() {
                     value={isLoading ? '…' : stats?.total_procedures ?? 0}
                     variant="default"
                 />
-                {(stats?.follow_up_today ?? 0) > 0 && (
-                    <StatCard
-                        icon={<CalendarIcon />}
-                        label="Follow-ups Due Today"
-                        value={isLoading ? '…' : stats?.follow_up_today ?? 0}
-                        variant="warning"
-                        href="/follow-ups"
-                    />
-                )}
                 {(stats?.pending_patient_requests ?? 0) > 0 && (
                     <StatCard
                         icon={<CalendarIcon />}
@@ -528,14 +499,6 @@ function Dashboard() {
                                                         >
                                                             Book Appt
                                                         </button>
-                                                        <button
-                                                            type="button"
-                                                            className="btn-task-secondary"
-                                                            disabled={actionLoading}
-                                                            onClick={() => handleAcknowledgeFollowUp(f.id)}
-                                                        >
-                                                            Acknowledge
-                                                        </button>
                                                     </div>
                                                 </li>
                                             );
@@ -547,7 +510,7 @@ function Dashboard() {
 
                         {activeTaskTab === 'followups' && followUps.length > 0 && (
                             <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
-                                <Link to="/follow-ups" style={{ fontSize: '0.8125rem', color: 'var(--accent)' }}>View all follow-ups →</Link>
+                                <Link to="/appointments?is_follow_up=true" style={{ fontSize: '0.8125rem', color: 'var(--accent)' }}>View follow-up appointments →</Link>
                             </div>
                         )}
                     </div>

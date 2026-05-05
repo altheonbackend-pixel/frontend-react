@@ -72,7 +72,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
     const [customSymptom, setCustomSymptom] = useState('');
     const [icdSuggestions, setIcdSuggestions] = useState<{ code: string; label: string }[]>([]);
     const [showIcdSuggestions, setShowIcdSuggestions] = useState(false);
-    const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string; consultationId: number } | null>(null);
+    const [pendingFollowUp, setPendingFollowUp] = useState<{ date: string; reason: string; consultationId: number; appointmentType: 'in_person' | 'telemedicine' } | null>(null);
+    const [followUpType, setFollowUpType] = useState<'in_person' | 'telemedicine'>('in_person');
     const [creatingFollowUp, setCreatingFollowUp] = useState(false);
     const [showCloseWithFailedRxWarning, setShowCloseWithFailedRxWarning] = useState(false);
 
@@ -411,10 +412,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
 
                 // If new consultation with follow-up date, prompt to create follow-up appointment
                 if (!isEditing && data.follow_up_date) {
+                    const apptType = data.consultation_type === 'telemedicine' ? 'telemedicine' : 'in_person';
+                    setFollowUpType(apptType);
                     setPendingFollowUp({
                         date: data.follow_up_date,
                         reason: `Follow-up: ${data.reason_for_consultation}`,
                         consultationId: response.data.id,
+                        appointmentType: apptType,
                     });
                 } else {
                     // Pass savedRx (even if empty []) for new consultations — triggers the
@@ -451,7 +455,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
                 patient: patientId,
                 appointment_date: `${pendingFollowUp.date}T09:00:00`,
                 reason_for_appointment: pendingFollowUp.reason,
-                status: 'scheduled',
+                appointment_type: followUpType,
             });
             // Link the appointment back to the consultation so the patient portal
             // can reflect live status changes (reschedule / cancel).
@@ -505,8 +509,28 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit }
         <Dialog
             open={!!pendingFollowUp}
             tone="info"
-            title="Create Follow-up Appointment?"
-            message={pendingFollowUp ? <>You set a follow-up date of <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>. Would you like to create a scheduled appointment for that date?</> : undefined}
+            title="Schedule Follow-up Appointment?"
+            message={pendingFollowUp ? (
+                <div>
+                    <p style={{ marginBottom: '0.75rem' }}>
+                        Create a follow-up appointment for{' '}
+                        <strong>{new Date(pendingFollowUp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>?
+                        The patient will receive a notification to confirm the slot.
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Appointment type</label>
+                        <select
+                            className="input"
+                            value={followUpType}
+                            onChange={e => setFollowUpType(e.target.value as 'in_person' | 'telemedicine')}
+                            style={{ fontSize: '0.875rem' }}
+                        >
+                            <option value="in_person">In Person</option>
+                            <option value="telemedicine">Telemedicine (Video)</option>
+                        </select>
+                    </div>
+                </div>
+            ) : undefined}
             confirmLabel={creatingFollowUp ? 'Creating…' : 'Yes, create appointment'}
             cancelLabel="No, skip"
             onConfirm={handleCreateFollowUpAppointment}

@@ -77,6 +77,8 @@ export interface Appointment {
     duration_minutes?: number | null;
     consultation_id?: number | null;
     cancel_reason_code?: string | null;
+    is_follow_up?: boolean;
+    follow_up_source_info?: { consultation_id: number; consultation_date: string } | null;
     patient_details?: {
         unique_id: string;
         first_name: string;
@@ -140,7 +142,6 @@ export interface Consultation {
     blood_pressure_display?: string | null;
     has_vital_alerts?: boolean;
     vital_alert_reasons?: string[];
-    follow_up_notification_sent?: boolean;
     visible_to_patient: boolean;
     patient_summary: string | null;
     patient_instructions: string | null;

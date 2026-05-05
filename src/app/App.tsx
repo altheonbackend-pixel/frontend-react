@@ -47,7 +47,6 @@ const EditProfile       = lazy(() => import('../features/profile/components/Edit
 const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
-const FollowUpsPage     = lazy(() => import('../features/consultations/components/FollowUpsPage'));
 const PatientDashboard     = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
 const PatientAppointments  = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
 const PatientHealthRecord  = lazy(() => import('../features/patient-portal/components/PatientHealthRecord'));
@@ -238,7 +237,6 @@ function App() {
                             <Route path="/profile"             element={<ErrorBoundary resetKey={location.pathname}><Profile /></ErrorBoundary>} />
                             <Route path="/edit-profile"        element={<ErrorBoundary resetKey={location.pathname}><EditProfile /></ErrorBoundary>} />
                             <Route path="/my-stats"            element={<ErrorBoundary resetKey={location.pathname}><Statistics /></ErrorBoundary>} />
-                            <Route path="/follow-ups"          element={<ErrorBoundary resetKey={location.pathname}><FollowUpsPage /></ErrorBoundary>} />
                         </Route>
                     </Route>
 

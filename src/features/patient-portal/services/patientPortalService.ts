@@ -275,6 +275,9 @@ export const patientPortalService = {
     markAllNotificationsRead: () =>
         api.post('/patient/notifications/mark-all-read/').then(r => r.data),
 
+    confirmAppointment: (id: number) =>
+        api.post(`/patient/appointments/${id}/confirm/`).then(r => r.data),
+
     cancelAppointment: (id: number, reason?: string) =>
         api.post(`/patient/appointments/${id}/cancel/`, reason ? { reason } : {}).then(r => r.data),
 

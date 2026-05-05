@@ -137,6 +137,16 @@ export default function PatientAppointments() {
         },
     });
 
+    const { mutate: confirmAppointment, isPending: isConfirming } = useMutation({
+        mutationFn: (id: number) => patientPortalService.confirmAppointment(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
+            toast.success('Appointment confirmed. See you there!');
+        },
+        onError: (err) => toast.error(parseApiError(err, 'Failed to confirm appointment.')),
+    });
+
     const { mutate: cancelAppointment, isPending: isCancelling } = useMutation({
         mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
             patientPortalService.cancelAppointment(id, reason),
@@ -209,9 +219,9 @@ export default function PatientAppointments() {
                 {showHowItWorks && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                         {([
-                            ['1. Select a doctor', 'Choose the doctor, preferred date, and visit reason.', 'var(--bg-subtle)'],
-                            ['2. Request stays pending', 'New requests show as pending until the doctor reviews and approves.', 'var(--accent-lighter)'],
-                            ['3. You get notified', 'Once approved, the appointment status updates and you get a notification.', 'var(--color-info-light)'],
+                            ['1. Request an appointment', 'Choose the doctor, preferred date, and visit reason. Your request stays pending until the doctor reviews it.', 'var(--bg-subtle)'],
+                            ['2. Doctor schedules — you confirm', 'Once approved, you receive a notification to confirm the slot. Unconfirmed slots expire automatically.', 'var(--accent-lighter)'],
+                            ['3. Both parties notified', 'After you confirm, both you and your doctor receive a confirmation notification.', 'var(--color-info-light)'],
                         ] as [string, string, string][]).map(([title, body, bg]) => (
                             <div key={title} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
                                 <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{title}</div>
@@ -258,6 +268,7 @@ export default function PatientAppointments() {
                                         status={item.status}
                                         label={
                                             item.status === 'pending' ? 'Pending approval' :
+                                            item.status === 'scheduled' ? 'Please confirm' :
                                             item.status === 'rejected' ? 'Not approved' :
                                             item.status === 'in_progress' ? 'In consultation' :
                                             item.status === 'rescheduled' ? 'Rescheduled' :
@@ -287,12 +298,14 @@ export default function PatientAppointments() {
                                 </div>
 
                                 {/* Instructions / status note */}
-                                {(item.status === 'pending' || item.status === 'rejected' || item.portal_instructions || item.notes) && (
+                                {(item.status === 'pending' || item.status === 'scheduled' || item.status === 'rejected' || item.portal_instructions || item.notes) && (
                                     <div style={{
                                         padding: '0.875rem',
                                         borderRadius: 'var(--radius-md)',
                                         background: item.status === 'pending'
                                             ? 'var(--color-warning-light)'
+                                            : item.status === 'scheduled'
+                                            ? 'var(--accent-lighter)'
                                             : item.status === 'rejected'
                                             ? 'var(--color-danger-light)'
                                             : 'var(--bg-subtle)',
@@ -301,6 +314,8 @@ export default function PatientAppointments() {
                                     }}>
                                         {item.status === 'pending'
                                             ? 'Your request has been submitted and is waiting for the doctor to review it.'
+                                            : item.status === 'scheduled'
+                                            ? 'Your appointment has been scheduled. Please confirm to hold this slot — unconfirmed slots expire automatically.'
                                             : item.status === 'rejected'
                                             ? (item.cancellation_reason
                                                 ? `This request was not approved. Reason: ${item.cancellation_reason}`
@@ -309,8 +324,18 @@ export default function PatientAppointments() {
                                     </div>
                                 )}
 
-                                {UPCOMING_STATUSES.includes(item.status) && (item.patient_can_cancel || item.patient_can_reschedule) && (
+                                {UPCOMING_STATUSES.includes(item.status) && (item.status === 'scheduled' || item.patient_can_cancel || item.patient_can_reschedule) && (
                                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                        {item.status === 'scheduled' && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-sm btn-success"
+                                                onClick={() => confirmAppointment(item.id)}
+                                                disabled={isConfirming}
+                                            >
+                                                {isConfirming ? 'Confirming…' : 'Confirm appointment'}
+                                            </button>
+                                        )}
                                         {item.patient_can_reschedule && (
                                             <button
                                                 type="button"

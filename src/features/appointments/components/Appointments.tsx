@@ -79,6 +79,7 @@ const Appointments = () => {
     const [rsSelected, setRsSelected] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<number | null>(null);
     const [rebookPatientId, setRebookPatientId] = useState<string | undefined>(undefined);
+    const [filterFollowUpOnly, setFilterFollowUpOnly] = useState(false);
     const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
     const [approveInstructions, setApproveInstructions] = useState('');
     const [rejectTarget, setRejectTarget] = useState<{ id: number; patientName: string } | null>(null);
@@ -468,12 +469,22 @@ const Appointments = () => {
                 <div className="section-card">
                     <div className="section-card-header">
                         <span className="section-card-title">{dateHeading}</span>
-                        <button
-                            className="btn btn-primary btn-sm"
-                            onClick={() => { setSelectedAppointment(null); setIsFormVisible(true); }}
-                        >
-                            + Create Appointment
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                                type="button"
+                                className={`btn btn-sm ${filterFollowUpOnly ? 'btn-primary' : 'btn-secondary'}`}
+                                onClick={() => setFilterFollowUpOnly(f => !f)}
+                                title="Show follow-up appointments only"
+                            >
+                                Follow-ups{filterFollowUpOnly ? ' ✕' : ''}
+                            </button>
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => { setSelectedAppointment(null); setIsFormVisible(true); }}
+                            >
+                                + Create Appointment
+                            </button>
+                        </div>
                     </div>
 
                     <div className="section-card-body section-card-body--flush">
@@ -487,8 +498,14 @@ const Appointments = () => {
                                 <div className="empty-state-subtitle">Click "New Appointment" to schedule one.</div>
                             </div>
                         )}
+                        {!isLoading && !isError && filterFollowUpOnly && appointments.length > 0 && appointments.filter(a => a.is_follow_up).length === 0 && (
+                            <div className="empty-state">
+                                <div className="empty-state-title">No follow-up appointments today</div>
+                                <div className="empty-state-subtitle">Follow-ups are appointments created from consultation follow-up prompts.</div>
+                            </div>
+                        )}
 
-                        {appointments.map(appt => {
+                        {(filterFollowUpOnly ? appointments.filter(a => a.is_follow_up) : appointments).map(appt => {
                             const apptDate = new Date(appt.appointment_date);
                             const patientName = appt.patient_details
                                 ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}`
@@ -535,6 +552,14 @@ const Appointments = () => {
                                                     ? <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1e40af', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
                                                     : <span style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
                                                 }
+                                                {appt.is_follow_up && (
+                                                    <span
+                                                        style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#065f46', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
+                                                        title={appt.follow_up_source_info ? `Follow-up from consultation on ${new Date(appt.follow_up_source_info.consultation_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Follow-up appointment'}
+                                                    >
+                                                        ↩ Follow-up
+                                                    </span>
+                                                )}
                                                 {appt.rescheduled_from_date && (
                                                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
                                                         title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}>
@@ -586,12 +611,10 @@ const Appointments = () => {
                                         </div>
                                     )}
 
-                                    {/* SCHEDULED: confirm is the primary next step */}
+                                    {/* SCHEDULED: patient must confirm — show status hint only */}
                                     {appt.status === 'scheduled' && (
-                                        <div className="btn-row" style={{ marginTop: '0.5rem' }}>
-                                            <button onClick={() => setLifecycleConfirm({ id: appt.id, action: 'confirm' })} className="btn btn-success btn-sm">
-                                                Confirm
-                                            </button>
+                                        <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                            Awaiting patient confirmation
                                         </div>
                                     )}
 
