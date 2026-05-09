@@ -29,7 +29,7 @@ interface ReferralRecord {
     referred_to?: number | { id: number };
     specialty_requested?: string;
     reason_for_referral?: string;
-    comments?: string;
+    comments?: string | null;
     urgency?: string;
     referral_type?: string;
     care_relationship_type?: string;
