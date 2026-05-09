@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
-import { StatCard } from '../../../shared/components/StatCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { useAuth } from '../../auth/hooks/useAuth';
@@ -71,15 +70,26 @@ export default function PatientDashboard() {
         );
     }
 
-    const { pending_appointment_requests, next_appointment, active_medications_count, unread_notifications, latest_visible_consultation, latest_lab_result, conditions_count } = data;
+    const {
+        pending_appointment_requests,
+        next_appointment,
+        active_medications_count,
+        active_medications,
+        unread_notifications,
+        latest_visible_consultation,
+        latest_lab_result,
+        conditions_count,
+    } = data;
+
+    const hasActions = pending_appointment_requests > 0 || unread_notifications > 0;
 
     return (
         <>
             <PageHeader
                 title={`Welcome, ${firstName}`}
-                subtitle="A calm view of your upcoming care, medications, and recent updates."
+                subtitle="Your care at a glance."
                 actions={
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <button
                             className="btn btn-secondary btn-sm"
                             onClick={handleDownloadPDF}
@@ -92,13 +102,36 @@ export default function PatientDashboard() {
                 }
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-                <StatCard icon="📅" label="Next appointment" value={next_appointment ? 1 : 0} href="/patient/appointments" />
-                <StatCard icon="💊" label="Active medications" value={active_medications_count} variant="success" href="/patient/health?tab=medications" />
-                <StatCard icon="🩺" label="Active conditions" value={conditions_count} href="/patient/health?tab=conditions" />
+            {/* Compact summary strip */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                {[
+                    { label: `${active_medications_count} medication${active_medications_count !== 1 ? 's' : ''}`, href: '/patient/health?tab=medications', color: 'var(--color-info-light)', text: 'var(--color-info, #0369a1)' },
+                    { label: `${conditions_count} condition${conditions_count !== 1 ? 's' : ''}`, href: '/patient/health?tab=conditions', color: 'var(--bg-subtle)', text: 'var(--text-secondary)' },
+                    ...(next_appointment ? [{ label: 'Appointment upcoming', href: '/patient/appointments', color: 'var(--accent-lighter)', text: 'var(--accent)' }] : []),
+                    ...(hasActions ? [{ label: `${pending_appointment_requests + (unread_notifications || 0)} action${pending_appointment_requests + (unread_notifications || 0) !== 1 ? 's' : ''} pending`, href: '/patient/notifications', color: 'var(--color-warning-light)', text: 'var(--color-warning, #92400e)' }] : []),
+                ].map(chip => (
+                    <Link
+                        key={chip.label}
+                        to={chip.href}
+                        style={{
+                            display: 'inline-block',
+                            padding: '0.3rem 0.75rem',
+                            borderRadius: '999px',
+                            background: chip.color,
+                            color: chip.text,
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                        }}
+                    >
+                        {chip.label}
+                    </Link>
+                ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1rem' }}>
+            {/* Next appointment + Outstanding actions */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 <SectionCard title="Next appointment" empty={{ title: 'No upcoming appointment', subtitle: 'Request a new visit when you need one.' }}>
                     {next_appointment ? (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
@@ -110,47 +143,44 @@ export default function PatientDashboard() {
                                 <StatusBadge status={next_appointment.status} />
                             </div>
                             <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(next_appointment.appointment_date)}</div>
-                            <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                            <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                                 {next_appointment.status === 'pending'
-                                    ? 'This appointment request is waiting for doctor approval.'
+                                    ? 'Waiting for doctor approval.'
                                     : next_appointment.portal_instructions || 'Appointment confirmed.'}
                             </div>
+                            <Link to="/patient/appointments" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>View all appointments →</Link>
                         </div>
                     ) : null}
                 </SectionCard>
 
                 <SectionCard title="Outstanding actions">
-                    {pending_appointment_requests === 0 && !unread_notifications ? (
-                        <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                            No outstanding actions — you're all caught up.
+                    {!hasActions ? (
+                        <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            You're all caught up — no actions needed.
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gap: '0.75rem' }}>
+                        <div style={{ display: 'grid', gap: '0.625rem' }}>
                             {pending_appointment_requests > 0 && (
-                                <Link
-                                    to="/patient/appointments"
-                                    style={{ textDecoration: 'none' }}
-                                >
-                                    <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-warning-light)', cursor: 'pointer' }}>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                                            {pending_appointment_requests} appointment request{pending_appointment_requests > 1 ? 's' : ''} pending
+                                <Link to="/patient/appointments" style={{ textDecoration: 'none' }}>
+                                    <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--color-warning-light)' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                                            {pending_appointment_requests} appointment {pending_appointment_requests > 1 ? 'requests' : 'request'} pending
                                         </div>
-                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                            Awaiting doctor approval — tap to view.
+                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                                            Awaiting doctor approval
                                         </div>
                                     </div>
                                 </Link>
                             )}
                             {unread_notifications > 0 && (
-                                <Link
-                                    to="/patient/notifications"
-                                    style={{ textDecoration: 'none' }}
-                                >
-                                    <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-info-light)', cursor: 'pointer' }}>
-                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                <Link to="/patient/notifications" style={{ textDecoration: 'none' }}>
+                                    <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--color-info-light)' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
                                             {unread_notifications} unread notification{unread_notifications > 1 ? 's' : ''}
                                         </div>
-                                        <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Check the notification bell above for details.</div>
+                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
+                                            Tap to view in notifications
+                                        </div>
                                     </div>
                                 </Link>
                             )}
@@ -159,15 +189,60 @@ export default function PatientDashboard() {
                 </SectionCard>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+            {/* Active medications */}
+            <SectionCard
+                title="Active medications"
+                action={
+                    <Link to="/patient/health?tab=medications" style={{ fontSize: '0.82rem', color: 'var(--accent)', textDecoration: 'none' }}>
+                        See all ({active_medications_count}) →
+                    </Link>
+                }
+            >
+                {active_medications_count === 0 ? (
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No active medications on record.</div>
+                ) : (
+                    <div style={{ display: 'grid', gap: '0.4rem' }}>
+                        {(active_medications ?? []).map((med, i) => (
+                            <div
+                                key={i}
+                                style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    padding: '0.5rem 0.75rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    background: 'var(--bg-subtle)',
+                                    gap: '0.5rem',
+                                }}
+                            >
+                                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{med.name}</span>
+                                {med.note && (
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', flexShrink: 0 }}>{med.note}</span>
+                                )}
+                            </div>
+                        ))}
+                        {active_medications_count > 5 && (
+                            <Link
+                                to="/patient/health?tab=medications"
+                                style={{ fontSize: '0.82rem', color: 'var(--accent)', padding: '0.25rem 0.75rem' }}
+                            >
+                                + {active_medications_count - 5} more →
+                            </Link>
+                        )}
+                    </div>
+                )}
+            </SectionCard>
+
+            {/* Recent visit + Latest lab */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
                 <SectionCard title="Recent visit summary" empty={{ title: 'No visit summaries yet', subtitle: 'Your doctor will share summaries after consultations.' }}>
                     {latest_visible_consultation ? (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatDate(latest_visible_consultation.consultation_date)}</div>
-                                <Link to="/patient/health?tab=visits" style={{ fontSize: '0.85rem' }}>View all</Link>
+                                <Link to="/patient/health?tab=visits" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>View all</Link>
                             </div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>{latest_visible_consultation.patient_summary || 'Visit summary available.'}</div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>{latest_visible_consultation.patient_summary || 'Visit summary available.'}</div>
                         </div>
                     ) : null}
                 </SectionCard>
@@ -180,7 +255,7 @@ export default function PatientDashboard() {
                                 <StatusBadge status={latest_lab_result.status} />
                             </div>
                             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{formatDate(latest_lab_result.test_date)}</div>
-                            <Link to="/patient/health?tab=labs" style={{ fontSize: '0.85rem' }}>View all lab results</Link>
+                            <Link to="/patient/health?tab=labs" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>View all lab results →</Link>
                         </div>
                     ) : null}
                 </SectionCard>

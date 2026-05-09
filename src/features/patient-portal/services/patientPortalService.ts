@@ -11,6 +11,7 @@ export interface PatientDashboardData {
         portal_instructions: string;
     } | null;
     active_medications_count: number;
+    active_medications: { name: string; note: string }[];
     unread_notifications: number;
     latest_visible_consultation: {
         id: number;
