@@ -22,15 +22,15 @@ export const referralSchema = z.object({
         'transfer_of_care',
         'procedure_request',
         'diagnostic_request',
-    ]).default('consultation_required'),
+    ]),
     care_relationship_type: z.enum([
         'consultation_only',
         'shared_care',
         'transfer_of_care',
-    ]).default('consultation_only'),
+    ]),
     reason_for_referral: z.string().min(10, 'Reason must be at least 10 characters'),
     comments: z.string(),
-    is_draft: z.boolean().default(false),
+    is_draft: z.boolean(),
 }).superRefine((data, ctx) => {
     if (!data.is_external && !data.referred_to) {
         ctx.addIssue({ code: 'custom', message: 'Select a receiving doctor', path: ['referred_to'] });
