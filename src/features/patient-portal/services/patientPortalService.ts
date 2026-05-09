@@ -200,12 +200,24 @@ export interface PatientReferral {
     id: number;
     reason_for_referral: string;
     urgency: 'routine' | 'urgent' | 'emergency';
-    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected';
+    urgency_display?: string;
+    status: 'draft' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled' | 'returned' | 'recalled' | 'expired';
+    status_display?: string;
     specialty_requested: string;
-    referred_by: string | null;
-    referred_to: string | null;
+    specialty_display?: string;
+    referred_by_name: string | null;
+    referred_to_name: string | null;
     is_external: boolean;
+    external_doctor_name?: string;
+    external_hospital?: string;
     date_of_referral: string;
+    referral_type?: string;
+    referral_type_display?: string;
+    patient_summary?: string | null;
+    result?: string;
+    result_submitted_at?: string | null;
+    sla_due_at?: string | null;
+    response_notes?: string;
 }
 
 export interface ProfileUpdateRequest {

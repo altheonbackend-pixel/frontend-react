@@ -116,6 +116,15 @@ export interface Prescription {
     is_active: boolean;
     prescribed_at: string;
     visible_to_patient: boolean;
+    prescription_status?: 'active' | 'stopped' | 'completed' | 'entered_in_error';
+    stopped_at?: string | null;
+    stop_reason_code?: string | null;
+    stop_reason_text?: string | null;
+    start_date?: string | null;
+    end_date?: string | null;
+    patient_medication_note?: string | null;
+    source_encounter?: number | null;
+    record_status?: 'active' | 'voided' | 'entered_in_error';
 }
 
 export interface Consultation {
@@ -124,6 +133,7 @@ export interface Consultation {
     doctor: number;
     doctor_name?: string | null;
     appointment?: number | null;
+    encounter?: number | null;
     consultation_date: string;
     consultation_type: 'in_person' | 'telemedicine' | 'home_visit';
     consultation_type_display?: string;
@@ -146,6 +156,13 @@ export interface Consultation {
     visible_to_patient: boolean;
     patient_summary: string | null;
     patient_instructions: string | null;
+    consultation_status?: 'draft' | 'in_progress' | 'signed' | 'amended' | 'voided' | 'entered_in_error';
+    signed_at?: string | null;
+    signed_by?: number | null;
+    amendment_reason?: string | null;
+    record_status?: 'active' | 'voided' | 'entered_in_error';
+    voided_at?: string | null;
+    void_reason?: string | null;
     lab_results?: Array<{
         id: number; test_name: string; status: string; test_date: string;
         result_value?: string | null; result_value_text?: string | null;
@@ -226,6 +243,10 @@ export interface PatientCondition {
     created_at: string;
     updated_at: string;
     visible_to_patient: boolean;
+    patient_friendly_name?: string | null;
+    record_status?: 'active' | 'voided' | 'entered_in_error';
+    voided_at?: string | null;
+    void_reason?: string | null;
 }
 
 export interface PatientAllergy {
@@ -242,6 +263,9 @@ export interface PatientAllergy {
     recorded_by: number | null;
     recorded_by_name?: string;
     created_at: string;
+    record_status?: 'active' | 'voided' | 'entered_in_error';
+    voided_at?: string | null;
+    void_reason?: string | null;
 }
 
 export interface PatientNote {
@@ -267,6 +291,10 @@ export interface MedicalProcedure {
     procedure_date: string;
     result: string | null;
     attachments: string | null;
+    visible_to_patient?: boolean;
+    record_status?: 'active' | 'voided' | 'entered_in_error';
+    source_encounter?: number | null;
+    consultation?: number | null;
 }
 
 export interface DeletedAppointment {
@@ -293,8 +321,13 @@ export interface Referral {
     attached_documents: string | null;
     date_of_referral: string;
     comments: string | null;
-    // Phase 3 lifecycle fields
-    status: 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled';
+    // Classification
+    referral_type?: 'consultation_required' | 'second_opinion_only' | 'transfer_of_care' | 'procedure_request' | 'diagnostic_request';
+    referral_type_display?: string;
+    care_relationship_type?: string;
+    care_owner_after_completion?: string;
+    // Lifecycle status
+    status: 'draft' | 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected' | 'cancelled' | 'returned' | 'recalled' | 'expired';
     status_display?: string;
     urgency: 'routine' | 'urgent' | 'emergency';
     urgency_display?: string;
@@ -302,15 +335,108 @@ export interface Referral {
     responded_at: string | null;
     result: string;
     result_submitted_at: string | null;
+    // Lifecycle timestamps
     accepted_at?: string | null;
     in_progress_at?: string | null;
     completed_at?: string | null;
     rejected_at?: string | null;
     cancelled_at?: string | null;
+    returned_at?: string | null;
+    recalled_at?: string | null;
+    expired_at?: string | null;
+    // Reason fields
     cancellation_reason?: string;
+    recall_reason?: string;
+    return_reason?: string;
+    return_requested_info?: string;
+    // SLA
+    sla_due_at?: string | null;
+    sla_breached?: boolean;
+    // Draft / lineage
+    is_draft?: boolean;
+    parent_referral?: number | null;
+    root_referral?: number | null;
+    // Linkage
+    linked_appointment?: number | null;
+    source_encounter?: number | null;
+    receiving_encounter?: number | null;
+    // Consent
+    patient_consent_obtained?: boolean;
+    consent_timestamp?: string | null;
+    // External
+    is_external?: boolean;
+    external_doctor_name?: string;
+    external_hospital?: string;
+    // Patient portal
+    visible_to_patient?: boolean;
+    patient_summary?: string | null;
+    // Nested details
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };
     patient_details?: { unique_id: string; first_name: string; last_name: string };
+}
+
+export interface ReferralMessage {
+    id: number;
+    referral: number;
+    sender: number;
+    sender_details: { id: number; full_name: string };
+    body: string;
+    is_read_by_recipient: boolean;
+    read_at: string | null;
+    created_at: string;
+    is_deleted: boolean;
+}
+
+export interface ReferralEvent {
+    id: number;
+    from_status: string;
+    to_status: string;
+    actor_label: string;
+    timestamp: string;
+    metadata: Record<string, unknown>;
+}
+
+export interface ReferralSnapshot {
+    captured_at: string;
+    captured_by?: number | null;
+    active_medications: Array<{ name: string; dosage?: string; notes?: string }>;
+    active_conditions: Array<{ name: string; status: string; icd_code?: string }>;
+    active_allergies: Array<{ allergen: string; severity: string; reaction?: string; type?: string }>;
+    recent_vitals: Record<string, string | number | null>;
+    recent_lab_results: Array<{ test_name: string; result: string; date: string; units?: string }>;
+    referring_doctor_notes: string;
+    icd_codes_at_referral: string[];
+}
+
+export interface LabOrder {
+    id: number;
+    patient: string;
+    consultation?: number | null;
+    encounter?: number | null;
+    test_name: string;
+    order_date: string;
+    order_status: 'ordered' | 'collected' | 'processing' | 'resulted' | 'cancelled';
+    order_status_display?: string;
+    priority: 'routine' | 'urgent' | 'stat';
+    priority_display?: string;
+    notes: string;
+    ordered_by?: number | null;
+    result?: number | null;
+    created_at: string;
+}
+
+export interface ClinicalAlert {
+    id: number;
+    patient: string;
+    title: string;
+    body: string | null;
+    severity: 'info' | 'warning' | 'critical';
+    alert_type: string;
+    is_open: boolean;
+    created_at: string;
+    acknowledged_at?: string | null;
+    acknowledged_by?: number | null;
 }
 
 export interface Notification {

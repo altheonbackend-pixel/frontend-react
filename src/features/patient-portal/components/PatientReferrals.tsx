@@ -10,6 +10,8 @@ function formatDate(value: string) {
     return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+const ACTIVE_STATUSES = new Set(['pending', 'accepted', 'in_progress', 'returned']);
+
 export default function PatientReferrals({ asTab = false }: { asTab?: boolean }) {
     usePageTitle('My Referrals');
 
@@ -37,6 +39,78 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
         );
     }
 
+    const active   = referrals.filter(r => ACTIVE_STATUSES.has(r.status));
+    const inactive = referrals.filter(r => !ACTIVE_STATUSES.has(r.status));
+
+    const ReferralCard = ({ item }: { item: typeof referrals[0] }) => {
+        const specialtyLabel = item.specialty_display
+            ?? item.specialty_requested.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        const doctorLine = item.is_external
+            ? `${item.external_doctor_name ?? 'External doctor'} · ${item.external_hospital ?? ''}`.trim()
+            : [
+                item.referred_by_name && `From Dr. ${item.referred_by_name}`,
+                item.referred_to_name && `→ Dr. ${item.referred_to_name}`,
+              ].filter(Boolean).join(' ');
+
+        return (
+            <div style={{ padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', background: 'var(--bg-base)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                    <div>
+                        <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {specialtyLabel}
+                            {item.referral_type_display && (
+                                <span style={{ fontWeight: 400, fontSize: '0.75rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
+                                    {item.referral_type_display}
+                                </span>
+                            )}
+                        </div>
+                        {doctorLine && (
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.15rem' }}>
+                                {doctorLine}{item.is_external ? ' (External)' : ''}
+                            </div>
+                        )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column', alignItems: 'flex-end' }}>
+                        <StatusBadge status={item.status} label={item.status_display} />
+                        <StatusBadge status={item.urgency} label={item.urgency_display} />
+                    </div>
+                </div>
+
+                {/* Patient summary (doctor-written) */}
+                {item.patient_summary ? (
+                    <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', padding: '0.6rem 0.8rem', marginBottom: '0.5rem', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                        {item.patient_summary}
+                    </div>
+                ) : (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                        {item.reason_for_referral}
+                    </div>
+                )}
+
+                {/* SLA hint for urgent/emergency */}
+                {item.sla_due_at && ACTIVE_STATUSES.has(item.status) && item.urgency !== 'routine' && (
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+                        Response expected by {formatDate(item.sla_due_at)}
+                    </div>
+                )}
+
+                {/* Specialist result */}
+                {item.result && (
+                    <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', padding: '0.6rem 0.8rem', marginTop: '0.5rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                            Specialist's Findings
+                            {item.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {formatDate(item.result_submitted_at)}</span>}
+                        </div>
+                        <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{item.result}</div>
+                    </div>
+                )}
+
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.5rem' }}>Referred {formatDate(item.date_of_referral)}</div>
+            </div>
+        );
+    };
+
     return (
         <>
             {!asTab && (
@@ -46,35 +120,20 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
                 />
             )}
 
+            {active.length > 0 && (
+                <SectionCard title={`Active (${active.length})`}>
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                        {active.map(item => <ReferralCard key={item.id} item={item} />)}
+                    </div>
+                </SectionCard>
+            )}
+
             <SectionCard
-                title={`Referrals (${referrals.length})`}
+                title={inactive.length > 0 ? `Past Referrals (${inactive.length})` : `Referrals (${referrals.length})`}
                 empty={{ title: 'No referrals on record', subtitle: 'Specialist referrals will appear here when your doctor arranges one.' }}
             >
                 <div style={{ display: 'grid', gap: '1rem' }}>
-                    {referrals.map(item => (
-                        <div key={item.id} style={{ padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', background: 'var(--bg-base)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginBottom: '0.5rem' }}>
-                                <div>
-                                    <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>
-                                        {item.specialty_requested.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                                    </div>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                                        {item.referred_by && `From ${item.referred_by}`}
-                                        {item.referred_to && ` → ${item.referred_to}`}
-                                        {item.is_external && ' (External)'}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column', alignItems: 'flex-end' }}>
-                                    <StatusBadge status={item.status} />
-                                    <StatusBadge status={item.urgency} />
-                                </div>
-                            </div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-                                {item.reason_for_referral}
-                            </div>
-                            <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{formatDate(item.date_of_referral)}</div>
-                        </div>
-                    ))}
+                    {inactive.map(item => <ReferralCard key={item.id} item={item} />)}
                 </div>
             </SectionCard>
         </>

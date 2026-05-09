@@ -5,15 +5,38 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type DoctorProfile } from '../../../shared/types';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
-import api from '../../../shared/services/api';
-import { referralSchema, type ReferralFormData } from '../referralSchema';
+import { createReferral, updateReferral, submitDraft } from '../services/referralService';
+import { referralSchema, type ReferralFormData, SPECIALTY_VALUES } from '../referralSchema';
+
+const SPECIALTY_LABELS: Record<string, string> = {
+    general_practice: 'General Practice', cardiology: 'Cardiology',
+    dermatology: 'Dermatology', endocrinology: 'Endocrinology',
+    gastroenterology: 'Gastroenterology', hematology: 'Hematology',
+    infectious_disease: 'Infectious Disease', internal_medicine: 'Internal Medicine',
+    nephrology: 'Nephrology', neurology: 'Neurology', oncology: 'Oncology',
+    ophthalmology: 'Ophthalmology', orthopedics: 'Orthopedics',
+    pediatrics: 'Pediatrics', psychiatry: 'Psychiatry', pulmonology: 'Pulmonology',
+    radiology: 'Radiology', rheumatology: 'Rheumatology',
+    surgery_general: 'General Surgery', urology: 'Urology',
+    gynecology: 'Gynecology & Obstetrics', ent: 'ENT (Ear, Nose & Throat)',
+    emergency_medicine: 'Emergency Medicine', anesthesiology: 'Anesthesiology',
+    pathology: 'Pathology', other: 'Other',
+};
 
 interface ReferralRecord {
     id?: number;
+    status?: string;
     referred_to?: number | { id: number };
     specialty_requested?: string;
     reason_for_referral?: string;
     comments?: string;
+    urgency?: string;
+    referral_type?: string;
+    care_relationship_type?: string;
+    is_external?: boolean;
+    external_doctor_name?: string;
+    external_doctor_email?: string;
+    external_hospital?: string;
 }
 
 interface ReferralFormProps {
@@ -21,40 +44,45 @@ interface ReferralFormProps {
     onSuccess: () => void;
     onClose: () => void;
     referralToEdit?: ReferralRecord | null;
+    sourceEncounterId?: string;
 }
 
-const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: ReferralFormProps) => {
+const ReferralForm = ({
+    patientId, onSuccess, onClose, referralToEdit, sourceEncounterId,
+}: ReferralFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated } = useAuth();
     const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
     const [specialtyFilter, setSpecialtyFilter] = useState('');
     const [acceptingOnly, setAcceptingOnly] = useState(true);
     const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+    const [specialtyAutoFilled, setSpecialtyAutoFilled] = useState(false);
+
+    const isEditing     = !!referralToEdit;
+    const isDraftEdit   = referralToEdit?.status === 'draft';
+    const isReturnedEdit = referralToEdit?.status === 'returned';
+    // Can edit destination only while draft (or new)
+    const canChangeDestination = !isEditing || isDraftEdit;
 
     const {
-        register,
-        handleSubmit,
-        reset,
-        watch,
-        setValue,
+        register, handleSubmit, reset, watch, setValue,
         formState: { errors, isDirty, isSubmitting },
     } = useForm<ReferralFormData>({
         resolver: zodResolver(referralSchema),
         defaultValues: {
-            is_external: false,
-            referred_to: null,
-            external_doctor_name: '',
-            external_doctor_email: '',
-            external_hospital: '',
+            is_external: false, referred_to: null,
+            external_doctor_name: '', external_doctor_email: '', external_hospital: '',
             specialty_requested: undefined,
             urgency: 'routine',
-            reason_for_referral: '',
-            comments: '',
+            referral_type: 'consultation_required',
+            care_relationship_type: 'consultation_only',
+            reason_for_referral: '', comments: '', is_draft: false,
         },
     });
 
-    const isExternal = watch('is_external');
-    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isExternal       = watch('is_external');
+    const watchedReferredTo = watch('referred_to');
+    const filterTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         setAttachmentFile(e.target.files?.[0] ?? null);
@@ -66,6 +94,7 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
             const params: Record<string, string> = {};
             if (specialty) params.specialty = specialty;
             if (accepting) params.accepting_referrals = 'true';
+            const { default: api } = await import('../../../shared/services/api');
             const response = await api.get('/doctors/', { params });
             setDoctors(response.data.results ?? response.data);
         } catch {
@@ -75,15 +104,35 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
 
     useEffect(() => {
         fetchDoctors(undefined, acceptingOnly);
-        return () => {
-            if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
-        };
+        return () => { if (filterTimerRef.current) clearTimeout(filterTimerRef.current); };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Auto-fill specialty when doctor is selected
+    useEffect(() => {
+        if (!watchedReferredTo || !doctors.length) return;
+        const selected = doctors.find(d => d.id === watchedReferredTo);
+        if (selected?.specialty) {
+            const sp = selected.specialty as typeof SPECIALTY_VALUES[number];
+            if (SPECIALTY_VALUES.includes(sp)) {
+                setValue('specialty_requested', sp, { shouldDirty: false });
+                setSpecialtyAutoFilled(true);
+            }
+        }
+    }, [watchedReferredTo, doctors, setValue]);
+
+    // Clear auto-fill indicator when user manually changes specialty
+    const handleSpecialtyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSpecialtyAutoFilled(false);
+        setValue('specialty_requested', e.target.value as ReferralFormData['specialty_requested'], {
+            shouldDirty: true,
+        });
+    };
 
     const handleSpecialtyFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
         setSpecialtyFilter(val);
         setValue('referred_to', null);
+        setSpecialtyAutoFilled(false);
         fetchDoctors(val || undefined, acceptingOnly);
     };
 
@@ -91,58 +140,75 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
         const checked = e.target.checked;
         setAcceptingOnly(checked);
         setValue('referred_to', null);
+        setSpecialtyAutoFilled(false);
         fetchDoctors(specialtyFilter || undefined, checked);
     };
 
     useEffect(() => {
         if (referralToEdit) {
-            const ref = referralToEdit.referred_to;
-            const refId = typeof ref === 'object' && ref !== null
-                ? ref.id
-                : ref != null ? Number(ref) : null;
+            const ref   = referralToEdit.referred_to;
+            const refId = typeof ref === 'object' && ref !== null ? ref.id : ref != null ? Number(ref) : null;
             reset({
-                is_external: false,
-                referred_to: refId,
-                specialty_requested: (referralToEdit.specialty_requested as ReferralFormData['specialty_requested']) || undefined,
-                urgency: 'routine',
-                reason_for_referral: referralToEdit.reason_for_referral || '',
-                comments: referralToEdit.comments || '',
-                external_doctor_name: '',
-                external_doctor_email: '',
-                external_hospital: '',
+                is_external:          referralToEdit.is_external ?? false,
+                referred_to:          refId,
+                specialty_requested:  (referralToEdit.specialty_requested as ReferralFormData['specialty_requested']) || undefined,
+                urgency:              (referralToEdit.urgency as ReferralFormData['urgency']) ?? 'routine',
+                referral_type:        (referralToEdit.referral_type as ReferralFormData['referral_type']) ?? 'consultation_required',
+                care_relationship_type: (referralToEdit.care_relationship_type as ReferralFormData['care_relationship_type']) ?? 'consultation_only',
+                reason_for_referral:  referralToEdit.reason_for_referral || '',
+                comments:             referralToEdit.comments || '',
+                external_doctor_name: referralToEdit.external_doctor_name || '',
+                external_doctor_email: referralToEdit.external_doctor_email || '',
+                external_hospital:    referralToEdit.external_hospital || '',
+                is_draft: false,
             });
         } else {
             reset({
-                is_external: false,
-                referred_to: null,
-                external_doctor_name: '',
-                external_hospital: '',
+                is_external: false, referred_to: null,
+                external_doctor_name: '', external_hospital: '',
                 specialty_requested: undefined,
                 urgency: 'routine',
-                reason_for_referral: '',
-                comments: '',
+                referral_type: 'consultation_required',
+                care_relationship_type: 'consultation_only',
+                reason_for_referral: '', comments: '', is_draft: false,
             });
         }
     }, [referralToEdit, reset]);
 
-    const onSubmit = async (data: ReferralFormData) => {
-        if (!isAuthenticated) {
-            toast.error(t('referrals.form.error.auth'));
-            return;
-        }
-        try {
-            const formData = new FormData();
-            formData.append('patient', patientId);
-            Object.entries(data).forEach(([key, value]) => {
-                if (value != null && value !== '') formData.append(key, String(value));
-            });
-            if (attachmentFile) formData.append('attached_documents', attachmentFile);
+    const buildFormData = (data: ReferralFormData): FormData => {
+        const fd = new FormData();
+        fd.append('patient', patientId);
+        if (sourceEncounterId) fd.append('source_encounter', sourceEncounterId);
+        Object.entries(data).forEach(([key, value]) => {
+            if (key === 'is_draft') return; // handled separately
+            if (value != null && value !== '') fd.append(key, String(value));
+        });
+        if (attachmentFile) fd.append('attached_documents', attachmentFile);
+        return fd;
+    };
 
-            if (referralToEdit?.id) {
-                await api.put(`/referrals/${referralToEdit.id}/`, formData);
+    const onSubmit = async (data: ReferralFormData, { isDraftSave = false } = {}) => {
+        if (!isAuthenticated) { toast.error(t('referrals.form.error.auth')); return; }
+        try {
+            const fd = buildFormData(data);
+
+            if (isDraftEdit && !isDraftSave) {
+                // Submitting an existing draft → PATCH then call /submit/
+                await updateReferral(referralToEdit!.id!, fd);
+                await submitDraft(referralToEdit!.id!);
+                toast.success('Referral submitted successfully.');
+            } else if (isEditing && !isDraftEdit) {
+                await updateReferral(referralToEdit!.id!, fd);
                 toast.success(t('referrals.form.submit_edit'));
+            } else if (isEditing && isDraftSave) {
+                await updateReferral(referralToEdit!.id!, fd);
+                toast.success('Draft saved.');
+            } else if (isDraftSave) {
+                fd.append('status', 'draft');
+                await createReferral(fd);
+                toast.success('Draft saved.');
             } else {
-                await api.post('/referrals/', formData);
+                await createReferral(fd);
                 toast.success(t('referrals.form.submit_add'));
             }
             onSuccess();
@@ -151,13 +217,22 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
         }
     };
 
-    const isEditing = !!referralToEdit;
+    const urgencyHint: Record<string, string> = {
+        urgent:    'Specialist will be flagged as high priority.',
+        emergency: 'Emergency — SLA is 1 hour. Specialist is notified immediately.',
+    };
+    const watchedUrgency = watch('urgency');
 
     return (
         <Drawer
             open
             onClose={onClose}
-            title={isEditing ? t('referrals.form.title_edit') : t('referrals.form.title_add')}
+            title={
+                isDraftEdit ? 'Submit Referral' :
+                isReturnedEdit ? 'Edit & Resubmit Referral' :
+                isEditing ? t('referrals.form.title_edit') :
+                t('referrals.form.title_add')
+            }
             size="md"
             dirty={isDirty}
             footer={
@@ -165,212 +240,209 @@ const ReferralForm = ({ patientId, onSuccess, onClose, referralToEdit }: Referra
                     <button type="button" onClick={onClose} className="cancel-button" disabled={isSubmitting}>
                         {t('referrals.form.cancel')}
                     </button>
-                    <button type="submit" form="referral-form" className="btn btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? t('referrals.form.loading') : (isEditing ? t('referrals.form.submit_edit') : t('referrals.form.submit_add'))}
+                    {/* Save as draft — only for new or draft-edit */}
+                    {(!isEditing || isDraftEdit) && (
+                        <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={isSubmitting}
+                            onClick={handleSubmit(data => onSubmit(data, { isDraftSave: true }))}
+                        >
+                            {isSubmitting ? 'Saving…' : 'Save Draft'}
+                        </button>
+                    )}
+                    <button
+                        type="submit"
+                        form="referral-form"
+                        className="btn btn-primary"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? t('referrals.form.loading') :
+                            isDraftEdit ? 'Send Referral' :
+                            isReturnedEdit ? 'Resubmit Referral' :
+                            isEditing ? t('referrals.form.submit_edit') :
+                            t('referrals.form.submit_add')}
                     </button>
                 </>
             }
         >
-            <form id="referral-form" onSubmit={handleSubmit(onSubmit)}>
-                {/* Referral mode toggle */}
-                <div className="referral-mode-toggle">
-                    <button
-                        type="button"
-                        className={!isExternal ? 'active' : ''}
-                        onClick={() => setValue('is_external', false, { shouldDirty: true })}
-                    >
-                        Refer to Altheon doctor
-                    </button>
-                    <button
-                        type="button"
-                        className={isExternal ? 'active' : ''}
-                        onClick={() => setValue('is_external', true, { shouldDirty: true })}
-                    >
-                        External specialist
-                    </button>
-                </div>
+            <form id="referral-form" onSubmit={handleSubmit(data => onSubmit(data))}>
+
+                {/* Referral mode toggle — only available when destination can change */}
+                {canChangeDestination && (
+                    <div className="referral-mode-toggle">
+                        <button
+                            type="button"
+                            className={!isExternal ? 'active' : ''}
+                            onClick={() => setValue('is_external', false, { shouldDirty: true })}
+                        >Refer to Altheon doctor</button>
+                        <button
+                            type="button"
+                            className={isExternal ? 'active' : ''}
+                            onClick={() => setValue('is_external', true, { shouldDirty: true })}
+                        >External specialist</button>
+                    </div>
+                )}
 
                 {!isExternal ? (
-                    <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                            <input
-                                type="checkbox"
-                                id="accepting_only"
-                                checked={acceptingOnly}
-                                onChange={handleAcceptingToggle}
-                                style={{ cursor: 'pointer' }}
-                            />
-                            <label htmlFor="accepting_only" style={{ margin: 0, fontSize: '0.875rem', cursor: 'pointer' }}>
-                                Accepting referrals only
-                            </label>
-                        </div>
+                    canChangeDestination ? (
+                        <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <input
+                                    type="checkbox" id="accepting_only"
+                                    checked={acceptingOnly} onChange={handleAcceptingToggle}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                <label htmlFor="accepting_only" style={{ margin: 0, fontSize: '0.875rem', cursor: 'pointer' }}>
+                                    Accepting referrals only
+                                </label>
+                            </div>
 
-                        <div className="form-group">
-                            <label htmlFor="specialty_filter">Filter by Specialty</label>
-                            <select
-                                id="specialty_filter"
-                                className="select-input"
-                                value={specialtyFilter}
-                                onChange={handleSpecialtyFilter}
-                            >
-                                <option value="">All specialties</option>
-                                <option value="general_practice">General Practice</option>
-                                <option value="cardiology">Cardiology</option>
-                                <option value="dermatology">Dermatology</option>
-                                <option value="endocrinology">Endocrinology</option>
-                                <option value="gastroenterology">Gastroenterology</option>
-                                <option value="neurology">Neurology</option>
-                                <option value="oncology">Oncology</option>
-                                <option value="ophthalmology">Ophthalmology</option>
-                                <option value="orthopaedics">Orthopaedics</option>
-                                <option value="paediatrics">Paediatrics</option>
-                                <option value="psychiatry">Psychiatry</option>
-                                <option value="pulmonology">Pulmonology</option>
-                                <option value="radiology">Radiology</option>
-                                <option value="rheumatology">Rheumatology</option>
-                                <option value="urology">Urology</option>
-                                <option value="nephrology">Nephrology</option>
-                                <option value="haematology">Haematology</option>
-                                <option value="infectious_disease">Infectious Disease</option>
-                                <option value="emergency_medicine">Emergency Medicine</option>
-                                <option value="anaesthesiology">Anaesthesiology</option>
-                                <option value="pathology">Pathology</option>
-                                <option value="other">Other</option>
-                            </select>
-                            {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) in this specialty</small>}
-                        </div>
+                            <div className="form-group">
+                                <label htmlFor="specialty_filter">Filter by Specialty</label>
+                                <select id="specialty_filter" className="select-input" value={specialtyFilter} onChange={handleSpecialtyFilter}>
+                                    <option value="">All specialties</option>
+                                    {SPECIALTY_VALUES.map(v => (
+                                        <option key={v} value={v}>{SPECIALTY_LABELS[v] ?? v}</option>
+                                    ))}
+                                </select>
+                                {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) in this specialty</small>}
+                            </div>
 
+                            <div className="form-group">
+                                <label htmlFor="referred_to">{t('referrals.form.doctor_label')}</label>
+                                <select
+                                    id="referred_to"
+                                    className="select-input"
+                                    {...register('referred_to', { setValueAs: (v: string) => v === '' ? null : Number(v) })}
+                                >
+                                    <option value="">{t('referrals.form.select_doctor')}</option>
+                                    {doctors.map(doctor => (
+                                        <option key={doctor.id} value={doctor.id}>
+                                            Dr. {doctor.full_name} — {SPECIALTY_LABELS[doctor.specialty ?? ''] ?? doctor.specialty ?? 'General'}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.referred_to && <span className="field-error">{errors.referred_to.message}</span>}
+                            </div>
+                        </>
+                    ) : (
                         <div className="form-group">
-                            <label htmlFor="referred_to">{t('referrals.form.doctor_label')}</label>
-                            <select
-                                id="referred_to"
-                                className="select-input"
-                                {...register('referred_to', { setValueAs: (v: string) => v === '' ? null : Number(v) })}
-                            >
-                                <option value="">{t('referrals.form.select_doctor')}</option>
-                                {doctors.map(doctor => (
-                                    <option key={doctor.id} value={doctor.id}>
-                                        Dr. {doctor.full_name} - {doctor.specialty || 'General'}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.referred_to && <span className="field-error">{errors.referred_to.message}</span>}
+                            <label>Referred to</label>
+                            <p style={{ padding: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                                {/* Show doctor name from edit data — destination locked */}
+                                Dr. {typeof referralToEdit?.referred_to === 'object'
+                                    ? (referralToEdit.referred_to as {id: number}).id
+                                    : referralToEdit?.referred_to ?? '—'}
+                                <span className="form-hint" style={{ marginLeft: 8 }}>(cannot change after sending)</span>
+                            </p>
                         </div>
-                    </>
+                    )
                 ) : (
                     <>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_name">
-                                Doctor Name <span className="form-hint" style={{ display: 'inline' }}>(optional)</span>
-                            </label>
-                            <input
-                                type="text"
-                                id="external_doctor_name"
-                                className="input"
-                                placeholder="e.g. Dr. Ahmed Khan"
-                                {...register('external_doctor_name')}
-                            />
+                            <label htmlFor="external_doctor_name">Doctor Name <span className="form-hint" style={{ display: 'inline' }}>(optional)</span></label>
+                            <input type="text" id="external_doctor_name" className="input" placeholder="e.g. Dr. Ahmed Khan" {...register('external_doctor_name')} />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_email">
-                                Doctor's Email{' '}
-                                <span className="form-hint" style={{ display: 'inline' }}>
-                                    — sends a platform invite to this doctor
-                                </span>
-                            </label>
-                            <input
-                                type="email"
-                                id="external_doctor_email"
-                                className="input"
-                                placeholder="e.g. dr.specialist@hospital.com"
-                                {...register('external_doctor_email')}
-                            />
-                            {errors.external_doctor_email && (
-                                <span className="field-error">{errors.external_doctor_email.message}</span>
-                            )}
+                            <label htmlFor="external_doctor_email">Doctor's Email <span className="form-hint" style={{ display: 'inline' }}>— sends a platform invite</span></label>
+                            <input type="email" id="external_doctor_email" className="input" placeholder="e.g. dr.specialist@hospital.com" {...register('external_doctor_email')} />
+                            {errors.external_doctor_email && <span className="field-error">{errors.external_doctor_email.message}</span>}
                         </div>
                         <div className="form-group">
                             <label htmlFor="external_hospital">Hospital / Clinic <span className="required">*</span></label>
-                            <input
-                                type="text"
-                                id="external_hospital"
-                                className="input"
-                                placeholder="e.g. Aga Khan Hospital"
-                                {...register('external_hospital')}
-                            />
+                            <input type="text" id="external_hospital" className="input" placeholder="e.g. Aga Khan Hospital" {...register('external_hospital')} />
                             {errors.external_hospital && <span className="field-error">{errors.external_hospital.message}</span>}
                         </div>
                     </>
                 )}
 
+                {/* Referral Type */}
+                <div className="form-group">
+                    <label htmlFor="referral_type">Referral Type <span className="required">*</span></label>
+                    <select id="referral_type" className="select-input" {...register('referral_type')}>
+                        <option value="consultation_required">Consultation Required</option>
+                        <option value="second_opinion_only">Second Opinion Only</option>
+                        <option value="transfer_of_care">Transfer of Care</option>
+                        <option value="procedure_request">Procedure Request</option>
+                        <option value="diagnostic_request">Diagnostic Request</option>
+                    </select>
+                </div>
+
+                {/* Urgency */}
+                <div className="form-group">
+                    <label htmlFor="urgency">Urgency <span className="required">*</span></label>
+                    <select id="urgency" className="select-input" {...register('urgency')}>
+                        <option value="routine">Routine</option>
+                        <option value="urgent">Urgent</option>
+                        <option value="emergency">Emergency</option>
+                    </select>
+                    {urgencyHint[watchedUrgency] && (
+                        <small className="form-hint" style={{ color: watchedUrgency === 'emergency' ? 'var(--color-danger)' : undefined }}>
+                            {urgencyHint[watchedUrgency]}
+                        </small>
+                    )}
+                </div>
+
+                {/* Specialty */}
                 <div className="form-group">
                     <label htmlFor="specialty_requested">{t('referrals.form.specialty_label')} <span className="required">*</span></label>
-                    <select id="specialty_requested" className="select-input" {...register('specialty_requested')}>
+                    <select
+                        id="specialty_requested"
+                        className="select-input"
+                        value={watch('specialty_requested') ?? ''}
+                        onChange={handleSpecialtyChange}
+                    >
                         <option value="">Select specialty…</option>
-                        <option value="general_practice">General Practice</option>
-                        <option value="cardiology">Cardiology</option>
-                        <option value="dermatology">Dermatology</option>
-                        <option value="endocrinology">Endocrinology</option>
-                        <option value="gastroenterology">Gastroenterology</option>
-                        <option value="hematology">Hematology</option>
-                        <option value="infectious_disease">Infectious Disease</option>
-                        <option value="internal_medicine">Internal Medicine</option>
-                        <option value="nephrology">Nephrology</option>
-                        <option value="neurology">Neurology</option>
-                        <option value="oncology">Oncology</option>
-                        <option value="ophthalmology">Ophthalmology</option>
-                        <option value="orthopedics">Orthopedics</option>
-                        <option value="pediatrics">Pediatrics</option>
-                        <option value="psychiatry">Psychiatry</option>
-                        <option value="pulmonology">Pulmonology</option>
-                        <option value="radiology">Radiology</option>
-                        <option value="rheumatology">Rheumatology</option>
-                        <option value="surgery_general">General Surgery</option>
-                        <option value="urology">Urology</option>
-                        <option value="gynecology">Gynecology &amp; Obstetrics</option>
-                        <option value="ent">ENT (Ear, Nose &amp; Throat)</option>
-                        <option value="emergency_medicine">Emergency Medicine</option>
-                        <option value="anesthesiology">Anesthesiology</option>
-                        <option value="pathology">Pathology</option>
-                        <option value="other">Other</option>
+                        {SPECIALTY_VALUES.map(v => (
+                            <option key={v} value={v}>{SPECIALTY_LABELS[v] ?? v}</option>
+                        ))}
                     </select>
+                    {specialtyAutoFilled && (
+                        <small className="form-hint">Auto-filled from selected doctor's profile. You can change it.</small>
+                    )}
                     {errors.specialty_requested && <span className="field-error">{errors.specialty_requested.message}</span>}
                 </div>
 
+                {/* Reason */}
                 <div className="form-group">
                     <label htmlFor="reason_for_referral">{t('referrals.form.reason_label')}</label>
-                    <textarea
-                        id="reason_for_referral"
-                        className="textarea"
-                        rows={4}
-                        {...register('reason_for_referral')}
-                    />
+                    <textarea id="reason_for_referral" className="textarea" rows={4} {...register('reason_for_referral')} />
                     {errors.reason_for_referral && <span className="field-error">{errors.reason_for_referral.message}</span>}
                 </div>
 
+                {/* Comments */}
                 <div className="form-group">
                     <label htmlFor="comments">{t('referrals.form.comments_label')}</label>
-                    <textarea
-                        id="comments"
-                        className="textarea"
-                        rows={4}
-                        {...register('comments')}
-                    />
+                    <textarea id="comments" className="textarea" rows={3} {...register('comments')} />
                 </div>
 
+                {/* Attachment */}
                 <div className="form-group">
-                    <label htmlFor="attached_documents">{t('referrals.form.attachment_label', 'Attachment')} <span className="form-hint" style={{ display: 'inline' }}>(optional)</span></label>
+                    <label htmlFor="attached_documents">
+                        {t('referrals.form.attachment_label', 'Attachment')}{' '}
+                        <span className="form-hint" style={{ display: 'inline' }}>(optional)</span>
+                    </label>
                     <input
-                        type="file"
-                        id="attached_documents"
-                        className="input"
+                        type="file" id="attached_documents" className="input"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={handleFileChange}
                     />
-                    {attachmentFile && (
-                        <small className="form-hint">{attachmentFile.name}</small>
-                    )}
+                    {attachmentFile && <small className="form-hint">{attachmentFile.name}</small>}
                 </div>
+
+                {/* Returned banner — show what specialist asked for */}
+                {isReturnedEdit && referralToEdit && (referralToEdit as { return_requested_info?: string }).return_requested_info && (
+                    <div style={{ background: 'var(--color-warning-bg, #fffbeb)', border: '1px solid var(--color-warning, #f59e0b)', borderRadius: 'var(--radius-md)', padding: '0.75rem', marginBottom: '1rem' }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: '0.25rem', color: 'var(--color-warning-text, #b45309)' }}>
+                            Specialist requests:
+                        </div>
+                        <div style={{ fontSize: '0.875rem' }}>
+                            {(referralToEdit as { return_requested_info?: string }).return_requested_info}
+                        </div>
+                    </div>
+                )}
+
             </form>
         </Drawer>
     );

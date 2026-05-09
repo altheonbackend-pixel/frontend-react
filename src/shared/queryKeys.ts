@@ -33,7 +33,13 @@ export const queryKeys = {
     },
 
     referrals: {
-        list: (filters?: object) => ['referrals', 'list', filters] as const,
+        list:          (filters?: object) => ['referrals', 'list', filters] as const,
+        detail:        (id: number) => ['referrals', id] as const,
+        messages:      (id: number) => ['referrals', id, 'messages'] as const,
+        events:        (id: number) => ['referrals', id, 'events'] as const,
+        snapshot:      (id: number) => ['referrals', id, 'snapshot'] as const,
+        incomingCount: () => ['referrals', 'incoming-count'] as const,
+        returnedCount: () => ['referrals', 'returned-count'] as const,
     },
 
     notifications: {

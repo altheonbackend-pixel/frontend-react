@@ -52,6 +52,19 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
         enabled: userType === 'doctor',
     });
 
+    const { data: returnedReferralCount = 0 } = useQuery<number>({
+        queryKey: ['referrals', 'returned-count'],
+        queryFn: async () => {
+            const res = await api.get('/referrals/', { params: { direction: 'sent', status: 'returned' } });
+            return (res.data.count as number) ?? (res.data as unknown[]).length ?? 0;
+        },
+        staleTime: 60_000,
+        refetchInterval: 60_000,
+        enabled: userType === 'doctor',
+    });
+
+    const referralBadgeCount = incomingReferralCount + returnedReferralCount;
+
     const { data: pendingRequestCount = 0 } = useQuery<number>({
         queryKey: ['appointments', 'pending-requests-count'],
         queryFn: async () => {
@@ -118,7 +131,7 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                 <div className="sidebar-nav-section">Main</div>
                 {NAV_LINKS.map(link => {
                     const badge =
-                        link.badgeKey === 'referrals' ? incomingReferralCount :
+                        link.badgeKey === 'referrals' ? referralBadgeCount :
                         link.badgeKey === 'appointments' ? pendingRequestCount :
                         0;
                     return (

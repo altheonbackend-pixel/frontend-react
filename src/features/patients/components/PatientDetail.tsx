@@ -18,6 +18,11 @@ import './PatientDetail.css';
 import ConsultationForm from '../../consultations/components/ConsultationForm';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
+import ReferralMessageThread from '../../referrals/components/ReferralMessageThread';
+import ReferralSnapshotView from '../../referrals/components/ReferralSnapshotView';
+import ReferralEventTimeline from '../../referrals/components/ReferralEventTimeline';
+import ReferralSLABadge from '../../referrals/components/ReferralSLABadge';
+import { recallReferral } from '../../referrals/services/referralService';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
@@ -115,6 +120,10 @@ const PatientDetails = () => {
     const [cancelFormReferralId, setCancelFormReferralId] = useState<number | null>(null);
     const [cancelReason, setCancelReason] = useState('');
     const [cancelSubmitting, setCancelSubmitting] = useState(false);
+    const [recallFormReferralId, setRecallFormReferralId] = useState<number | null>(null);
+    const [recallReason, setRecallReason] = useState('');
+    const [recallSubmitting, setRecallSubmitting] = useState(false);
+    const [openThreadReferralId, setOpenThreadReferralId] = useState<number | null>(null);
 
     // Consultations tab: list vs charts view
     const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
@@ -153,6 +162,10 @@ const PatientDetails = () => {
     const [showAllergenSuggestions, setShowAllergenSuggestions] = useState(false);
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+    const [statusTransitionReasonCode, setStatusTransitionReasonCode] = useState('');
+    const [statusTransitionDeathDate, setStatusTransitionDeathDate] = useState('');
+    const [statusTransitionDestination, setStatusTransitionDestination] = useState('');
+    const [voidReason, setVoidReason] = useState('');
     const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
     const [dismissedVitalAlerts, setDismissedVitalAlerts] = useState<Set<number>>(new Set());
 
@@ -772,22 +785,30 @@ const PatientDetails = () => {
 
     const handleStatusSelect = (newStatus: string) => {
         if (!patient || newStatus === patient.status) return;
-        if (newStatus === 'deceased' || newStatus === 'transferred') {
-            setPendingStatus(newStatus);
-        } else {
-            executeStatusChange(newStatus);
-        }
+        setStatusTransitionReasonCode('');
+        setStatusTransitionDeathDate('');
+        setStatusTransitionDestination('');
+        setPendingStatus(newStatus);
     };
 
-    const executeStatusChange = async (status?: string) => {
-        const newStatus = status || pendingStatus;
-        if (!patient || !newStatus) return;
+    const executeStatusChange = async () => {
+        if (!patient || !pendingStatus) return;
+        if (!statusTransitionReasonCode.trim()) {
+            toast.error('Please select a reason for this status change.');
+            return;
+        }
+        const targetStatus = pendingStatus;
         setPendingStatus(null);
         setStatusUpdating(true);
         try {
-            await api.patch(`/patients/${patient.unique_id}/set-status/`, { status: newStatus });
-            setPatient(prev => prev ? { ...prev, status: newStatus as PatientWithHistory['status'] } : null);
-            toast.success(`Patient status updated to ${newStatus}.`);
+            await api.post(`/patients/${patient.unique_id}/status-transitions/`, {
+                to_status: targetStatus,
+                reason_code: statusTransitionReasonCode,
+                ...(statusTransitionDeathDate ? { death_date: statusTransitionDeathDate } : {}),
+                ...(statusTransitionDestination ? { destination_facility: statusTransitionDestination } : {}),
+            });
+            setPatient(prev => prev ? { ...prev, status: targetStatus as PatientWithHistory['status'] } : null);
+            toast.success(`Patient status updated to ${targetStatus}.`);
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to update patient status.'));
         } finally {
@@ -797,9 +818,12 @@ const PatientDetails = () => {
 
     const handleDeleteConsultation = async (consultationId: number) => {
         try {
-            await api.delete(`/consultations/${consultationId}/`);
+            await api.post(`/consultations/${consultationId}/void/`, {
+                void_reason: voidReason.trim() || 'Voided by doctor',
+            });
             setConfirmDeleteConsultationId(null);
-            toast.success('Consultation deleted.');
+            setVoidReason('');
+            toast.success('Consultation voided.');
             fetchPatientDetails();
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
         } catch (err) {
@@ -809,9 +833,12 @@ const PatientDetails = () => {
 
     const handleDeleteProcedure = async (procedureId: number) => {
         try {
-            await api.delete(`/medical-procedures/${procedureId}/`);
+            await api.post(`/medical-procedures/${procedureId}/void/`, {
+                void_reason: voidReason.trim() || 'Voided by doctor',
+            });
             setConfirmDeleteProcedureId(null);
-            toast.success('Procedure deleted.');
+            setVoidReason('');
+            toast.success('Procedure voided.');
             fetchPatientDetails();
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
         } catch (err) {
@@ -833,23 +860,29 @@ const PatientDetails = () => {
 
     const handleDeleteCondition = async (conditionId: number) => {
         try {
-            await api.delete(`/conditions/${conditionId}/`);
+            await api.post(`/conditions/${conditionId}/void/`, {
+                void_reason: voidReason.trim() || 'Voided by doctor',
+            });
             setConfirmDeleteConditionId(null);
-            toast.success('Condition deleted.');
+            setVoidReason('');
+            toast.success('Condition voided.');
             fetchPatientDetails();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to delete condition.'));
+            toast.error(parseApiError(err, 'Failed to void condition.'));
         }
     };
 
     const handleDeleteAllergy = async (allergyId: number) => {
         try {
-            await api.delete(`/allergies/${allergyId}/`);
+            await api.post(`/allergies/${allergyId}/void/`, {
+                void_reason: voidReason.trim() || 'Voided by doctor',
+            });
             setConfirmDeleteAllergyId(null);
-            toast.success('Allergy deleted.');
+            setVoidReason('');
+            toast.success('Allergy voided.');
             fetchPatientDetails();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to delete allergy.'));
+            toast.error(parseApiError(err, 'Failed to void allergy.'));
         }
     };
 
@@ -1467,6 +1500,15 @@ const PatientDetails = () => {
                                                 <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
                                                     <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
                                                     <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
+                                                    {c.consultation_status && c.consultation_status !== 'signed' && (
+                                                        <span className="consult-type-badge" style={{
+                                                            background: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
+                                                            color: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-dark)' : 'var(--text-muted)',
+                                                            border: '1px solid currentColor',
+                                                        }}>
+                                                            {c.consultation_status === 'draft' ? 'Draft' : c.consultation_status === 'in_progress' ? 'In Progress' : c.consultation_status}
+                                                        </span>
+                                                    )}
                                                     <span className="consult-summary-reason">{c.reason_for_consultation}</span>
                                                     {!isOwnConsultation && c.doctor_name && (
                                                         <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
@@ -2081,17 +2123,53 @@ const PatientDetails = () => {
                                     {referralsData.map(r => {
                                         const isReferringDoctor = profile?.id === r.referred_by;
                                         const isReceivingDoctor = profile?.id === r.referred_to;
-                                        const isActive = ['pending', 'accepted', 'in_progress'].includes(r.status);
                                         const canSubmitResult = isReceivingDoctor && ['accepted', 'in_progress'].includes(r.status);
                                         const canCancel = isReferringDoctor && ['pending', 'accepted'].includes(r.status);
+                                        const canRecall = isReferringDoctor && ['pending', 'accepted', 'in_progress', 'returned'].includes(r.status);
+                                        const canEdit = isReferringDoctor && ['draft', 'pending', 'returned'].includes(r.status);
+                                        const canDelete = isReferringDoctor && ['draft', 'pending', 'rejected', 'cancelled', 'recalled', 'expired'].includes(r.status);
+                                        const isReturnedToMe = isReferringDoctor && r.status === 'returned';
                                         const showResultForm = resultFormReferralId === r.id;
                                         const showCancelForm = cancelFormReferralId === r.id;
+                                        const showRecallForm = recallFormReferralId === r.id;
                                         return (
                                             <li key={r.id} className="referral-entry detail-list-item">
+                                                {/* SLA breached banner */}
+                                                {r.sla_breached && (
+                                                    <div style={{ background: 'var(--color-danger-bg, #fef2f2)', color: 'var(--color-danger, #dc2626)', fontSize: '0.78rem', fontWeight: 600, padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.5rem' }}>
+                                                        ⚠ SLA breached — response overdue
+                                                    </div>
+                                                )}
+                                                {/* Returned banner */}
+                                                {isReturnedToMe && (
+                                                    <div style={{ background: 'var(--color-warning-bg, #fffbeb)', border: '1px solid var(--color-warning, #f59e0b)', borderRadius: 'var(--radius-sm)', padding: '0.45rem 0.65rem', marginBottom: '0.5rem', fontSize: '0.82rem' }}>
+                                                        <strong>Specialist returned for more information.</strong>
+                                                        {r.return_reason && <span> "{r.return_reason}"</span>}
+                                                        {r.return_requested_info && (
+                                                            <div style={{ marginTop: '0.25rem' }}><strong>Needs:</strong> {r.return_requested_info}</div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Header row */}
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.25rem' }}>
-                                                    <h4 style={{ margin: 0 }}>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
-                                                    <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        <h4 style={{ margin: 0 }}>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
+                                                        {r.is_draft && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Draft</span>}
+                                                        {r.referral_type_display && (
+                                                            <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
+                                                                {r.referral_type_display}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        {r.sla_due_at && !r.sla_breached && r.urgency !== 'routine' && (
+                                                            <ReferralSLABadge sla_due_at={r.sla_due_at} sla_breached={false} urgency={r.urgency} />
+                                                        )}
+                                                        <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span>
+                                                    </div>
                                                 </div>
+
                                                 <div className="info-item"><strong>Referred by:</strong> {r.referred_by_details?.full_name || '—'}</div>
                                                 <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || (r.is_external ? `${r.external_doctor_name || 'External'} · ${r.external_hospital}` : '—')}</div>
                                                 <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
@@ -2099,13 +2177,16 @@ const PatientDetails = () => {
                                                 <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
                                                 {r.comments && <div className="info-item"><strong>Referral note:</strong> {r.comments}</div>}
 
-                                                {/* Lifecycle timeline */}
+                                                {/* Lifecycle timestamps */}
                                                 <div className="info-item" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
                                                     {r.accepted_at && <span>Accepted {new Date(r.accepted_at).toLocaleDateString()}</span>}
                                                     {r.in_progress_at && <span>In Progress {new Date(r.in_progress_at).toLocaleDateString()}</span>}
+                                                    {r.returned_at && <span>Returned {new Date(r.returned_at).toLocaleDateString()}</span>}
                                                     {r.completed_at && <span>Completed {new Date(r.completed_at).toLocaleDateString()}</span>}
                                                     {r.rejected_at && <span>Rejected {new Date(r.rejected_at).toLocaleDateString()}</span>}
                                                     {r.cancelled_at && <span>Cancelled {new Date(r.cancelled_at).toLocaleDateString()}</span>}
+                                                    {r.recalled_at && <span>Recalled {new Date(r.recalled_at).toLocaleDateString()}</span>}
+                                                    {r.expired_at && <span>Expired {new Date(r.expired_at).toLocaleDateString()}</span>}
                                                 </div>
 
                                                 {r.response_notes && (
@@ -2113,6 +2194,9 @@ const PatientDetails = () => {
                                                 )}
                                                 {r.cancellation_reason && (
                                                     <div className="info-item" style={{ color: 'var(--text-muted)' }}><strong>Cancellation reason:</strong> {r.cancellation_reason}</div>
+                                                )}
+                                                {r.recall_reason && (
+                                                    <div className="info-item" style={{ color: 'var(--text-muted)' }}><strong>Recall reason:</strong> {r.recall_reason}</div>
                                                 )}
 
                                                 {/* Clinical result */}
@@ -2130,7 +2214,7 @@ const PatientDetails = () => {
                                                     )
                                                 )}
 
-                                                {/* Inline result form — submitting always completes the referral */}
+                                                {/* Inline result form */}
                                                 {canSubmitResult && (
                                                     <div style={{ marginTop: '0.75rem' }}>
                                                         {showResultForm ? (
@@ -2183,7 +2267,7 @@ const PatientDetails = () => {
                                                     </div>
                                                 )}
 
-                                                {/* Cancel form — referring doctor only, pending/accepted */}
+                                                {/* Cancel form */}
                                                 {canCancel && (
                                                     <div style={{ marginTop: '0.75rem' }}>
                                                         {showCancelForm ? (
@@ -2235,11 +2319,88 @@ const PatientDetails = () => {
                                                     </div>
                                                 )}
 
+                                                {/* Recall form */}
+                                                {canRecall && !showCancelForm && (
+                                                    <div style={{ marginTop: '0.5rem' }}>
+                                                        {showRecallForm ? (
+                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                                <textarea
+                                                                    className="textarea"
+                                                                    rows={2}
+                                                                    placeholder="Recall reason (optional)…"
+                                                                    value={recallReason}
+                                                                    onChange={e => setRecallReason(e.target.value)}
+                                                                    autoFocus
+                                                                />
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    <button
+                                                                        className="btn btn-sm"
+                                                                        style={{ background: 'var(--color-warning, #f59e0b)', color: '#fff', border: 'none' }}
+                                                                        disabled={recallSubmitting}
+                                                                        onClick={async () => {
+                                                                            setRecallSubmitting(true);
+                                                                            try {
+                                                                                await recallReferral(r.id, recallReason.trim() || undefined);
+                                                                                toast.success('Referral recalled.');
+                                                                                setRecallFormReferralId(null);
+                                                                                setRecallReason('');
+                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
+                                                                            } catch (err) {
+                                                                                toast.error(parseApiError(err, 'Could not recall referral.'));
+                                                                            } finally {
+                                                                                setRecallSubmitting(false);
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {recallSubmitting ? 'Recalling…' : 'Confirm Recall'}
+                                                                    </button>
+                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setRecallFormReferralId(null); setRecallReason(''); }}>
+                                                                        Keep Referral
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                className="btn btn-ghost btn-sm"
+                                                                style={{ color: 'var(--color-warning, #b45309)' }}
+                                                                onClick={() => setRecallFormReferralId(r.id)}
+                                                            >
+                                                                Recall Referral
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* Snapshot + Timeline (lazy) */}
+                                                {!r.is_draft && (
+                                                    <ReferralSnapshotView referralId={r.id} />
+                                                )}
+                                                <ReferralEventTimeline referralId={r.id} />
+
+                                                {/* Message thread */}
+                                                {!r.is_draft && !r.is_external && (
+                                                    <div style={{ marginTop: '0.5rem' }}>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-ghost btn-sm"
+                                                            style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}
+                                                            onClick={() => setOpenThreadReferralId(openThreadReferralId === r.id ? null : r.id)}
+                                                        >
+                                                            {openThreadReferralId === r.id ? '▾ Hide Messages' : '▸ Messages'}
+                                                        </button>
+                                                        {openThreadReferralId === r.id && profile?.id !== undefined && (
+                                                            <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
+                                                                <ReferralMessageThread referralId={r.id} currentDoctorId={profile.id} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
                                                 <div className="entry-actions">
-                                                    {isReferringDoctor && r.status === 'pending' && (
+                                                    {canEdit && (
                                                         <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
                                                     )}
-                                                    {isReferringDoctor && ['pending', 'rejected', 'cancelled'].includes(r.status) && (
+                                                    {canDelete && (
                                                         <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
                                                     )}
                                                 </div>
@@ -2940,12 +3101,65 @@ const PatientDetails = () => {
             </div>
         </div>
 
-        <Dialog open={confirmDeleteConsultationId !== null} onClose={() => setConfirmDeleteConsultationId(null)} onConfirm={() => { if (confirmDeleteConsultationId !== null) handleDeleteConsultation(confirmDeleteConsultationId); }} title={t('patient_detail.error.delete_consultation')} tone="danger" />
-        <Dialog open={confirmDeleteProcedureId !== null} onClose={() => setConfirmDeleteProcedureId(null)} onConfirm={() => { if (confirmDeleteProcedureId !== null) handleDeleteProcedure(confirmDeleteProcedureId); }} title={t('patient_detail.error.delete_procedure')} tone="danger" />
-        <Dialog open={confirmDeleteReferralId !== null} onClose={() => setConfirmDeleteReferralId(null)} onConfirm={() => { if (confirmDeleteReferralId !== null) handleDeleteReferral(confirmDeleteReferralId); }} title={t('patient_detail.error.delete_referral')} tone="danger" />
-        <Dialog open={confirmDeleteConditionId !== null} onClose={() => setConfirmDeleteConditionId(null)} onConfirm={() => { if (confirmDeleteConditionId !== null) handleDeleteCondition(confirmDeleteConditionId); }} title="Delete this condition?" tone="danger" />
-        <Dialog open={confirmDeleteAllergyId !== null} onClose={() => setConfirmDeleteAllergyId(null)} onConfirm={() => { if (confirmDeleteAllergyId !== null) handleDeleteAllergy(confirmDeleteAllergyId); }} title="Delete this allergy?" tone="danger" />
-        <Dialog open={confirmDeleteLabId !== null} onClose={() => setConfirmDeleteLabId(null)} onConfirm={() => { if (confirmDeleteLabId !== null) handleDeleteLab(confirmDeleteLabId); }} title="Delete this lab result?" tone="danger" />
+        {/* Void reason textarea — shared across void dialogs */}
+        {(() => {
+            const voidReasonInput = (
+                <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                        Reason <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional — defaults to "Voided by doctor")</span>
+                    </label>
+                    <textarea
+                        rows={2}
+                        value={voidReason}
+                        onChange={e => setVoidReason(e.target.value)}
+                        placeholder="Clinical reason for voiding this record…"
+                        style={{ width: '100%', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.875rem' }}
+                    />
+                </div>
+            );
+            return (
+                <>
+                <Dialog
+                    open={confirmDeleteConsultationId !== null}
+                    onClose={() => { setConfirmDeleteConsultationId(null); setVoidReason(''); }}
+                    onConfirm={() => { if (confirmDeleteConsultationId !== null) handleDeleteConsultation(confirmDeleteConsultationId); }}
+                    title="Void this consultation?"
+                    message={<div><p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>This record will be soft-voided and hidden from the active view. It cannot be undone.</p>{voidReasonInput}</div>}
+                    tone="danger"
+                    confirmLabel="Void consultation"
+                />
+                <Dialog
+                    open={confirmDeleteProcedureId !== null}
+                    onClose={() => { setConfirmDeleteProcedureId(null); setVoidReason(''); }}
+                    onConfirm={() => { if (confirmDeleteProcedureId !== null) handleDeleteProcedure(confirmDeleteProcedureId); }}
+                    title="Void this procedure?"
+                    message={<div><p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>This record will be soft-voided. It cannot be undone.</p>{voidReasonInput}</div>}
+                    tone="danger"
+                    confirmLabel="Void procedure"
+                />
+                <Dialog open={confirmDeleteReferralId !== null} onClose={() => setConfirmDeleteReferralId(null)} onConfirm={() => { if (confirmDeleteReferralId !== null) handleDeleteReferral(confirmDeleteReferralId); }} title={t('patient_detail.error.delete_referral')} tone="danger" />
+                <Dialog
+                    open={confirmDeleteConditionId !== null}
+                    onClose={() => { setConfirmDeleteConditionId(null); setVoidReason(''); }}
+                    onConfirm={() => { if (confirmDeleteConditionId !== null) handleDeleteCondition(confirmDeleteConditionId); }}
+                    title="Void this condition?"
+                    message={<div><p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>This record will be soft-voided. It cannot be undone.</p>{voidReasonInput}</div>}
+                    tone="danger"
+                    confirmLabel="Void condition"
+                />
+                <Dialog
+                    open={confirmDeleteAllergyId !== null}
+                    onClose={() => { setConfirmDeleteAllergyId(null); setVoidReason(''); }}
+                    onConfirm={() => { if (confirmDeleteAllergyId !== null) handleDeleteAllergy(confirmDeleteAllergyId); }}
+                    title="Void this allergy?"
+                    message={<div><p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>This record will be soft-voided. It cannot be undone.</p>{voidReasonInput}</div>}
+                    tone="danger"
+                    confirmLabel="Void allergy"
+                />
+                <Dialog open={confirmDeleteLabId !== null} onClose={() => setConfirmDeleteLabId(null)} onConfirm={() => { if (confirmDeleteLabId !== null) handleDeleteLab(confirmDeleteLabId); }} title="Delete this lab result?" tone="danger" />
+                </>
+            );
+        })()}
 
         {/* Share consultation with patient modal */}
         <Modal
@@ -3115,17 +3329,79 @@ const PatientDetails = () => {
             </div>
         </Modal>
 
-        <Dialog
+        <Modal
             open={pendingStatus !== null}
-            onClose={() => setPendingStatus(null)}
-            onConfirm={() => executeStatusChange()}
-            title={`Mark patient as ${pendingStatus}?`}
-            message={pendingStatus === 'deceased'
-                ? 'This will mark the patient as deceased. This action is significant and should be confirmed.'
-                : 'This will mark the patient as transferred. The patient record will remain accessible.'}
-            tone="danger"
-            confirmLabel={pendingStatus === 'deceased' ? 'Mark Deceased' : 'Mark Transferred'}
-        />
+            onClose={() => { setPendingStatus(null); setStatusTransitionReasonCode(''); setStatusTransitionDeathDate(''); setStatusTransitionDestination(''); }}
+            title={`Change patient status to ${pendingStatus ?? ''}?`}
+            size="sm"
+            footer={
+                <>
+                    <button type="button" className="cancel-button" onClick={() => { setPendingStatus(null); setStatusTransitionReasonCode(''); setStatusTransitionDeathDate(''); setStatusTransitionDestination(''); }}>Cancel</button>
+                    <button type="button" className="btn btn-danger" disabled={statusUpdating} onClick={executeStatusChange}>
+                        {statusUpdating ? 'Updating…' : `Mark ${pendingStatus ?? ''}`}
+                    </button>
+                </>
+            }
+        >
+            <div style={{ display: 'grid', gap: '0.875rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    {pendingStatus === 'deceased' && 'This will mark the patient as deceased. All active appointments will be cancelled.'}
+                    {pendingStatus === 'transferred' && 'This will mark the patient as transferred. The record will become read-only.'}
+                    {pendingStatus === 'inactive' && 'This will mark the patient as inactive. New clinical records cannot be added.'}
+                    {pendingStatus === 'active' && 'This will reactivate the patient record.'}
+                </p>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Reason <span style={{ color: 'var(--danger)' }}>*</span></label>
+                    <select
+                        className="input"
+                        value={statusTransitionReasonCode}
+                        onChange={e => setStatusTransitionReasonCode(e.target.value)}
+                    >
+                        <option value="">Select reason…</option>
+                        {pendingStatus === 'deceased' && <>
+                            <option value="natural_causes">Natural causes</option>
+                            <option value="accident">Accident / injury</option>
+                            <option value="clinical_decision">Clinical decision / DNR</option>
+                        </>}
+                        {pendingStatus === 'transferred' && <>
+                            <option value="specialist_referral">Specialist referral</option>
+                            <option value="higher_level_care">Higher level of care required</option>
+                            <option value="patient_preference">Patient preference</option>
+                        </>}
+                        {(pendingStatus === 'inactive' || pendingStatus === 'active') && <>
+                            <option value="clinical_decision">Clinical decision</option>
+                            <option value="patient_request">Patient request</option>
+                            <option value="administrative">Administrative</option>
+                        </>}
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                {pendingStatus === 'deceased' && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Date of death <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
+                        <input
+                            type="date"
+                            className="input"
+                            value={statusTransitionDeathDate}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={e => setStatusTransitionDeathDate(e.target.value)}
+                        />
+                    </div>
+                )}
+                {pendingStatus === 'transferred' && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>Destination facility <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span></label>
+                        <input
+                            type="text"
+                            className="input"
+                            value={statusTransitionDestination}
+                            onChange={e => setStatusTransitionDestination(e.target.value)}
+                            placeholder="Hospital or clinic name…"
+                        />
+                    </div>
+                )}
+            </div>
+        </Modal>
 
         {/* ── Medication Reconciliation Modal ──────────────────────────────── */}
         <Modal
