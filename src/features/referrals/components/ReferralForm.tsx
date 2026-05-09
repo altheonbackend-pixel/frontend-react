@@ -26,7 +26,8 @@ const SPECIALTY_LABELS: Record<string, string> = {
 interface ReferralRecord {
     id?: number;
     status?: string;
-    referred_to?: number | { id: number };
+    referred_to?: number | null;
+    referred_to_details?: { id: number; full_name: string; specialty?: string } | null;
     specialty_requested?: string;
     reason_for_referral?: string;
     comments?: string | null;
@@ -146,8 +147,7 @@ const ReferralForm = ({
 
     useEffect(() => {
         if (referralToEdit) {
-            const ref   = referralToEdit.referred_to;
-            const refId = typeof ref === 'object' && ref !== null ? ref.id : ref != null ? Number(ref) : null;
+            const refId = referralToEdit.referred_to != null ? Number(referralToEdit.referred_to) : null;
             reset({
                 is_external:          referralToEdit.is_external ?? false,
                 referred_to:          refId,
@@ -192,12 +192,12 @@ const ReferralForm = ({
         try {
             const fd = buildFormData(data);
 
-            if (isDraftEdit && !isDraftSave) {
-                // Submitting an existing draft → PATCH then call /submit/
+            if ((isDraftEdit || isReturnedEdit) && !isDraftSave) {
+                // Draft submit OR returned resubmit → PATCH content then /submit/ to transition to pending
                 await updateReferral(referralToEdit!.id!, fd);
                 await submitDraft(referralToEdit!.id!);
-                toast.success('Referral submitted successfully.');
-            } else if (isEditing && !isDraftEdit) {
+                toast.success(isReturnedEdit ? 'Referral resubmitted to specialist.' : 'Referral submitted successfully.');
+            } else if (isEditing && !isDraftSave) {
                 await updateReferral(referralToEdit!.id!, fd);
                 toast.success(t('referrals.form.submit_edit'));
             } else if (isEditing && isDraftSave) {
@@ -330,10 +330,7 @@ const ReferralForm = ({
                         <div className="form-group">
                             <label>Referred to</label>
                             <p style={{ padding: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                                {/* Show doctor name from edit data — destination locked */}
-                                Dr. {typeof referralToEdit?.referred_to === 'object'
-                                    ? (referralToEdit.referred_to as {id: number}).id
-                                    : referralToEdit?.referred_to ?? '—'}
+                                Dr. {referralToEdit?.referred_to_details?.full_name ?? referralToEdit?.referred_to ?? '—'}
                                 <span className="form-hint" style={{ marginLeft: 8 }}>(cannot change after sending)</span>
                             </p>
                         </div>
