@@ -402,17 +402,18 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     savedRxRef.current = savedRx;
                 }
 
-                // Save queued lab orders — non-blocking (consultation already saved)
+                // Save queued lab orders — POST to /lab-orders/ (Wave 6 split)
                 if (labList.length > 0) {
                     const labPayloads = labList.filter(l => l.test_name.trim()).map(l => ({
                         patient: patientId,
                         consultation: consultationId,
                         test_name: l.test_name.trim(),
-                        test_date: today,
+                        order_date: today,
+                        priority: 'routine',
                         ...(l.notes.trim() ? { notes: l.notes.trim() } : {}),
                     }));
                     if (labPayloads.length > 0) {
-                        const labResults = await Promise.allSettled(labPayloads.map(l => api.post('/lab-results/', l)));
+                        const labResults = await Promise.allSettled(labPayloads.map(l => api.post('/lab-orders/', l)));
                         const failedCount = labResults.filter(r => r.status === 'rejected').length;
                         if (failedCount > 0) {
                             toast.error(`${failedCount} lab order(s) could not be saved — add them manually from the Labs tab.`);

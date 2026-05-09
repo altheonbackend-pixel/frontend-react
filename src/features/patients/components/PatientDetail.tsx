@@ -31,7 +31,7 @@ import AttachmentList from '../../../shared/components/AttachmentList';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 
-type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin';
+type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin' | 'workqueue';
 
 const COMMON_ALLERGENS = [
     'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
@@ -156,12 +156,20 @@ const PatientDetails = () => {
     const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
     const [dismissedVitalAlerts, setDismissedVitalAlerts] = useState<Set<number>>(new Set());
 
+    // Lab sub-tabs (Orders vs Results)
+    const [labSubTab, setLabSubTab] = useState<'orders' | 'results'>('results');
+
     // Lab Results
     const [showLabForm, setShowLabForm] = useState(false);
     const [editingLabId, setEditingLabId] = useState<number | null>(null);
     const [labForm, setLabForm] = useState({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
     const [labFormLoading, setLabFormLoading] = useState(false);
     const [confirmDeleteLabId, setConfirmDeleteLabId] = useState<number | null>(null);
+
+    // Lab Orders (Wave 6)
+    const [showLabOrderForm, setShowLabOrderForm] = useState(false);
+    const [labOrderForm, setLabOrderForm] = useState({ test_name: '', order_date: '', priority: 'routine', notes: '' });
+    const [labOrderFormLoading, setLabOrderFormLoading] = useState(false);
 
     // Lazy-loaded tab data via TanStack Query (fetched only when tab is first activated)
     const { data: vitalsTrend = [], isLoading: vitalsLoading } = useQuery<VitalsPoint[]>({
@@ -182,6 +190,27 @@ const PatientDetails = () => {
         },
         enabled: loadedTabs.has('labs'),
         staleTime: 2 * 60 * 1000,
+    });
+
+    const { data: labOrders = [], isLoading: labOrdersLoading } = useQuery<any[]>({
+        queryKey: ['patients', id, 'lab-orders'],
+        queryFn: async () => {
+            const res = await api.get('/lab-orders/', { params: { patient: id } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('labs'),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    // Clinical Alerts (Wave 7A)
+    const { data: clinicalAlerts = [], isLoading: alertsLoading } = useQuery<any[]>({
+        queryKey: ['patients', id, 'clinical-alerts'],
+        queryFn: async () => {
+            const res = await api.get('/clinical-alerts/', { params: { patient: id, open: 'true' } });
+            return res.data.results ?? res.data;
+        },
+        enabled: loadedTabs.has('overview'),
+        staleTime: 60 * 1000,
     });
 
     const { data: medications = [], isLoading: medicationsLoading } = useQuery<Prescription[]>({
@@ -566,7 +595,7 @@ const PatientDetails = () => {
         const tabParam = searchParams.get('tab') as Tab | null;
         const openConsultId = searchParams.get('open_consultation');
 
-        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'actions', 'admin'];
+        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'actions', 'admin', 'workqueue'];
         if (tabParam && validTabs.includes(tabParam)) {
             handleTabChange(tabParam);
         }
@@ -665,15 +694,79 @@ const PatientDetails = () => {
         }
     };
 
+    const handleLabOrderSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLabOrderFormLoading(true);
+        try {
+            await api.post('/lab-orders/', { ...labOrderForm, patient: id });
+            toast.success('Lab order added.');
+            setShowLabOrderForm(false);
+            setLabOrderForm({ test_name: '', order_date: '', priority: 'routine', notes: '' });
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'lab-orders'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to save lab order.'));
+        } finally {
+            setLabOrderFormLoading(false);
+        }
+    };
+
+    const handleCancelLabOrder = async (orderId: number) => {
+        try {
+            await api.post(`/lab-orders/${orderId}/cancel/`);
+            toast.success('Lab order cancelled.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'lab-orders'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to cancel lab order.'));
+        }
+    };
+
     const handleDeleteLab = async (labId: number) => {
         try {
-            await api.delete(`/lab-results/${labId}/`);
-            toast.success('Lab result deleted.');
+            await api.post(`/lab-results/${labId}/void/`, { void_reason: 'Deleted by doctor' });
+            toast.success('Lab result voided.');
             setConfirmDeleteLabId(null);
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'labs'] });
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to delete lab result.'));
+            toast.error(parseApiError(err, 'Failed to void lab result.'));
             setConfirmDeleteLabId(null);
+        }
+    };
+
+    // Prescription stop modal state (Wave 7B)
+    const [stopRxId, setStopRxId] = useState<number | null>(null);
+    const [stopRxReason, setStopRxReason] = useState('');
+    const [stopRxCode, setStopRxCode] = useState('other');
+    const [stopRxLoading, setStopRxLoading] = useState(false);
+
+    const handleStopPrescription = async () => {
+        if (!stopRxId) return;
+        if (!stopRxReason.trim()) { toast.error('Please provide a stop reason.'); return; }
+        setStopRxLoading(true);
+        try {
+            await api.post(`/prescriptions/${stopRxId}/stop/`, {
+                stop_reason_text: stopRxReason,
+                stop_reason_code: stopRxCode,
+            });
+            toast.success('Prescription stopped.');
+            setStopRxId(null);
+            setStopRxReason('');
+            setStopRxCode('other');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to stop prescription.'));
+        } finally {
+            setStopRxLoading(false);
+        }
+    };
+
+    // Acknowledge alert handler (Wave 7A)
+    const handleAcknowledgeAlert = async (alertId: number) => {
+        try {
+            await api.post(`/clinical-alerts/${alertId}/acknowledge/`, {});
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'clinical-alerts'] });
+            toast.success('Alert acknowledged.');
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to acknowledge alert.'));
         }
     };
 
@@ -770,25 +863,21 @@ const PatientDetails = () => {
         }
     };
 
-    const handleMarkPrescriptionInactive = async (rxId: number) => {
-        try {
-            await api.patch(`/prescriptions/${rxId}/`, { is_active: false });
-            toast.success('Marked as inactive.');
-            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
-            queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications', 'all'] });
-        } catch (err) {
-            toast.error(parseApiError(err, 'Failed to update.'));
-        }
+    const handleMarkPrescriptionInactive = (rxId: number) => {
+        // Wave 7B: open the stop modal instead of directly patching is_active
+        setStopRxId(rxId);
+        setStopRxReason('');
+        setStopRxCode('other');
     };
 
     const handleMarkPrescriptionActive = async (rxId: number) => {
         try {
-            await api.patch(`/prescriptions/${rxId}/`, { is_active: true });
-            toast.success('Marked as active.');
+            await api.post(`/prescriptions/${rxId}/reactivate/`, { reactivation_reason: 'Reactivated by doctor' });
+            toast.success('Prescription reactivated.');
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications', 'all'] });
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to update.'));
+            toast.error(parseApiError(err, 'Failed to reactivate.'));
         }
     };
 
@@ -984,14 +1073,16 @@ const PatientDetails = () => {
 
     const historyCount = (patient.conditions?.length || 0) + (patient.allergy_records?.length || 0) || undefined;
     const actionsCount = (patient.medical_procedures?.length || 0) + (patient.referrals?.length || 0) || undefined;
+    const workQueueCount = clinicalAlerts.filter(a => a.is_open).length || undefined;
     const TABS: { key: Tab; label: string; count?: number }[] = [
         { key: 'overview', label: 'Overview' },
-        { key: 'consultations', label: 'Consultations', count: patient.consultations?.length },
-        { key: 'labs', label: 'Labs', count: labResults.length || patient.lab_results?.length },
+        { key: 'consultations', label: 'Visits', count: patient.consultations?.length },
+        { key: 'labs', label: 'Orders & Results', count: labResults.length || patient.lab_results?.length },
         { key: 'medications', label: 'Medications', count: medications.length || undefined },
-        { key: 'history', label: 'History', count: historyCount },
-        { key: 'actions', label: 'Actions', count: actionsCount },
-        { key: 'admin', label: 'Admin', count: pendingRequests.length || undefined },
+        { key: 'history', label: 'Problems & Allergies', count: historyCount },
+        { key: 'actions', label: 'Procedures & Referrals', count: actionsCount },
+        { key: 'admin', label: 'Portal', count: pendingRequests.length || undefined },
+        { key: 'workqueue', label: 'Work Queue', count: workQueueCount },
     ];
 
     return (
@@ -1219,6 +1310,22 @@ const PatientDetails = () => {
                                 </div>
                             );
                         })()}
+
+                        {/* Clinical Alerts banner (Wave 7A) */}
+                        {!alertsLoading && clinicalAlerts.length > 0 && (
+                            <div style={{ marginBottom: 'var(--space-3)' }}>
+                                {clinicalAlerts.map((alert: any) => (
+                                    <div key={alert.id} className="vital-alert-banner" style={{ borderColor: alert.severity === 'critical' ? 'var(--error)' : 'var(--warning)' }}>
+                                        <span className="vital-alert-icon">🔔</span>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <strong>{alert.title}</strong>
+                                            {alert.body && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{alert.body}</div>}
+                                        </div>
+                                        <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>Acknowledge</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* Snapshot strip — latest vitals */}
                         {(() => {
@@ -2205,31 +2312,116 @@ const PatientDetails = () => {
                 {activeTab === 'labs' && (
                     <div className="tab-panel">
                         <div className="tab-panel-header">
-                            <h3>Lab Results</h3>
+                            <h3>Labs</h3>
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <div className="view-toggle">
-                                    <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>All</button>
-                                    <button type="button" className={`view-toggle-btn${showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(true)}>
-                                        Unreleased {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
+                                    <button type="button" className={`view-toggle-btn${labSubTab === 'results' ? ' active' : ''}`} onClick={() => setLabSubTab('results')}>Results</button>
+                                    <button type="button" className={`view-toggle-btn${labSubTab === 'orders' ? ' active' : ''}`} onClick={() => setLabSubTab('orders')}>
+                                        Orders {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length > 0 && (
                                             <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
-                                                {labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length}
+                                                {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length}
                                             </span>
                                         )}
                                     </button>
                                 </div>
-                                <button
-                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                    disabled={!canWrite}
-                                    title={!canWrite ? 'Patient record is read-only' : undefined}
-                                    onClick={() => {
-                                        if (!canWrite) return;
-                                        setEditingLabId(null);
-                                        setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
-                                        setShowLabForm(true);
-                                    }}
-                                >+ Add Lab Result</button>
+                                {labSubTab === 'results' && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <div className="view-toggle">
+                                            <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>All</button>
+                                            <button type="button" className={`view-toggle-btn${showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(true)}>
+                                                Unreleased {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
+                                                    <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
+                                                        {labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
+                                        <button
+                                            className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                            disabled={!canWrite}
+                                            title={!canWrite ? 'Patient record is read-only' : undefined}
+                                            onClick={() => {
+                                                if (!canWrite) return;
+                                                setEditingLabId(null);
+                                                setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
+                                                setShowLabForm(true);
+                                            }}
+                                        >+ Add Result</button>
+                                    </div>
+                                )}
+                                {labSubTab === 'orders' && (
+                                    <button
+                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                                        disabled={!canWrite}
+                                        title={!canWrite ? 'Patient record is read-only' : undefined}
+                                        onClick={() => { if (!canWrite) return; setShowLabOrderForm(true); }}
+                                    >+ Add Order</button>
+                                )}
                             </div>
                         </div>
+
+                        {/* Lab Orders sub-tab */}
+                        {labSubTab === 'orders' && (
+                            <>
+                                {showLabOrderForm && (
+                                    <form onSubmit={handleLabOrderSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Test Name *</label>
+                                                <input required value={labOrderForm.test_name} onChange={e => setLabOrderForm(p => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c" />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Order Date *</label>
+                                                <input type="date" required value={labOrderForm.order_date} onChange={e => setLabOrderForm(p => ({ ...p, order_date: e.target.value }))} />
+                                            </div>
+                                        </div>
+                                        <div className="form-row">
+                                            <div className="form-group">
+                                                <label>Priority</label>
+                                                <select value={labOrderForm.priority} onChange={e => setLabOrderForm(p => ({ ...p, priority: e.target.value }))}>
+                                                    <option value="routine">Routine</option>
+                                                    <option value="urgent">Urgent</option>
+                                                    <option value="stat">STAT</option>
+                                                </select>
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Notes</label>
+                                                <input value={labOrderForm.notes} onChange={e => setLabOrderForm(p => ({ ...p, notes: e.target.value }))} />
+                                            </div>
+                                        </div>
+                                        <div className="form-actions">
+                                            <button type="submit" disabled={labOrderFormLoading}>{labOrderFormLoading ? 'Saving...' : 'Save Order'}</button>
+                                            <button type="button" onClick={() => setShowLabOrderForm(false)} className="cancel-button">Cancel</button>
+                                        </div>
+                                    </form>
+                                )}
+                                {labOrdersLoading ? <TabSkeleton rows={3} /> : labOrders.length === 0 ? (
+                                    <p className="muted">No lab orders on record.</p>
+                                ) : (
+                                    <ul className="detail-list">
+                                        {labOrders.map(order => (
+                                            <li key={order.id} className="detail-list-item">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <div>
+                                                        <strong>{order.test_name}</strong>
+                                                        <span style={{ marginLeft: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{order.order_date}</span>
+                                                        <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: order.order_status === 'resulted' ? 'var(--success-bg)' : order.order_status === 'cancelled' ? 'var(--error-bg)' : 'var(--warning-bg)' }}>{order.order_status_display || order.order_status}</span>
+                                                        {order.priority !== 'routine' && <span style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}>{order.priority_display || order.priority}</span>}
+                                                    </div>
+                                                    {order.order_status !== 'cancelled' && order.order_status !== 'resulted' && canWrite && (
+                                                        <button className="btn-secondary btn-sm" onClick={() => handleCancelLabOrder(order.id)}>Cancel</button>
+                                                    )}
+                                                </div>
+                                                {order.notes && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{order.notes}</p>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </>
+                        )}
+
+                        {/* Lab Results sub-tab */}
+                        {labSubTab === 'results' && (<>
                         {showLabForm && (
                             <form onSubmit={handleLabSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
                                 <div className="form-row">
@@ -2310,6 +2502,7 @@ const PatientDetails = () => {
                                 </>
                             );
                         })()}
+                        </>)}
                     </div>
                 )}
 
@@ -2659,6 +2852,91 @@ const PatientDetails = () => {
                     </div>
                     </div>
                 )}
+
+                {/* Work Queue tab (Wave 8) */}
+                {activeTab === 'workqueue' && (
+                    <div className="tab-panel">
+                        <div className="tab-panel-header"><h3>Work Queue</h3></div>
+
+                        {/* Open Clinical Alerts */}
+                        <div className="section-card" style={{ marginBottom: 'var(--space-4)' }}>
+                            <div className="section-card-header"><span className="section-card-title">Open Alerts</span></div>
+                            <div className="section-card-body">
+                                {alertsLoading ? <TabSkeleton rows={2} /> : clinicalAlerts.length === 0 ? (
+                                    <p className="muted">No open alerts.</p>
+                                ) : (
+                                    <ul className="detail-list">
+                                        {clinicalAlerts.map((alert: any) => (
+                                            <li key={alert.id} className="detail-list-item">
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                    <div>
+                                                        <strong>{alert.title}</strong>
+                                                        <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: alert.severity === 'critical' ? 'var(--error-bg)' : 'var(--warning-bg)' }}>{alert.severity}</span>
+                                                        {alert.body && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>{alert.body}</div>}
+                                                    </div>
+                                                    <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>Acknowledge</button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Unsigned Draft Consultations */}
+                        <div className="section-card" style={{ marginBottom: 'var(--space-4)' }}>
+                            <div className="section-card-header"><span className="section-card-title">Unsigned Drafts</span></div>
+                            <div className="section-card-body">
+                                {(() => {
+                                    const drafts = (patient.consultations || []).filter((c: any) =>
+                                        c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
+                                    );
+                                    if (!drafts.length) return <p className="muted">No unsigned drafts.</p>;
+                                    return (
+                                        <ul className="detail-list">
+                                            {drafts.map((c: any) => (
+                                                <li key={c.id} className="detail-list-item">
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                                        <div>
+                                                            <strong>{new Date(c.consultation_date).toLocaleDateString()}</strong>
+                                                            <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg)' }}>
+                                                                {c.consultation_status}
+                                                            </span>
+                                                            {c.reason_for_consultation && <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{c.reason_for_consultation}</span>}
+                                                        </div>
+                                                        <button className="btn-ghost-sm" onClick={() => handleTabChange('consultations')}>Open →</button>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* Pending Lab Orders */}
+                        <div className="section-card">
+                            <div className="section-card-header"><span className="section-card-title">Pending Lab Orders</span></div>
+                            <div className="section-card-body">
+                                {labOrdersLoading ? <TabSkeleton rows={2} /> : (() => {
+                                    const pending = labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted');
+                                    if (!pending.length) return <p className="muted">No pending lab orders.</p>;
+                                    return (
+                                        <ul className="detail-list">
+                                            {pending.map(o => (
+                                                <li key={o.id} className="detail-list-item">
+                                                    <strong>{o.test_name}</strong>
+                                                    <span style={{ marginLeft: 8, fontSize: '0.75rem' }}>{o.order_date}</span>
+                                                    <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg)' }}>{o.order_status_display || o.order_status}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
 
@@ -2978,6 +3256,43 @@ const PatientDetails = () => {
                     </div>
                 </div>
             )}
+        </Modal>
+
+        {/* Stop Prescription Modal (Wave 7B) */}
+        <Modal
+            open={stopRxId !== null}
+            onClose={() => { setStopRxId(null); setStopRxReason(''); }}
+            title="Stop prescription"
+            footer={
+                <>
+                    <button className="btn btn-secondary" onClick={() => { setStopRxId(null); setStopRxReason(''); }}>Cancel</button>
+                    <button className="btn btn-danger" disabled={stopRxLoading} onClick={handleStopPrescription}>
+                        {stopRxLoading ? 'Stopping…' : 'Stop Prescription'}
+                    </button>
+                </>
+            }
+        >
+            <div style={{ display: 'grid', gap: '1rem' }}>
+                <div className="form-group">
+                    <label>Reason for stopping *</label>
+                    <select value={stopRxCode} onChange={e => setStopRxCode(e.target.value)}>
+                        <option value="side_effect">Side Effect</option>
+                        <option value="ineffective">Ineffective</option>
+                        <option value="completed">Course Completed</option>
+                        <option value="patient_request">Patient Request</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Additional details *</label>
+                    <textarea
+                        rows={3}
+                        value={stopRxReason}
+                        onChange={e => setStopRxReason(e.target.value)}
+                        placeholder="Provide a brief clinical reason for stopping this medication."
+                    />
+                </div>
+            </div>
         </Modal>
         </>
     );
