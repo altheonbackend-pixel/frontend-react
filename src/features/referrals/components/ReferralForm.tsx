@@ -37,7 +37,6 @@ interface ReferralRecord {
     is_external?: boolean;
     external_doctor_name?: string;
     external_doctor_email?: string;
-    external_hospital?: string;
 }
 
 interface ReferralFormProps {
@@ -72,7 +71,7 @@ const ReferralForm = ({
         resolver: zodResolver(referralSchema),
         defaultValues: {
             is_external: false, referred_to: null,
-            external_doctor_name: '', external_doctor_email: '', external_hospital: '',
+            external_doctor_name: '', external_doctor_email: '',
             specialty_requested: undefined,
             urgency: 'routine',
             referral_type: 'consultation_required',
@@ -159,13 +158,12 @@ const ReferralForm = ({
                 comments:             referralToEdit.comments || '',
                 external_doctor_name: referralToEdit.external_doctor_name || '',
                 external_doctor_email: referralToEdit.external_doctor_email || '',
-                external_hospital:    referralToEdit.external_hospital || '',
                 is_draft: false,
             });
         } else {
             reset({
                 is_external: false, referred_to: null,
-                external_doctor_name: '', external_hospital: '',
+                external_doctor_name: '', external_doctor_email: '',
                 specialty_requested: undefined,
                 urgency: 'routine',
                 referral_type: 'consultation_required',
@@ -338,18 +336,14 @@ const ReferralForm = ({
                 ) : (
                     <>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_name">Doctor Name <span className="form-hint" style={{ display: 'inline' }}>(optional)</span></label>
+                            <label htmlFor="external_doctor_name">Doctor Name <span className="required">*</span></label>
                             <input type="text" id="external_doctor_name" className="input" placeholder="e.g. Dr. Ahmed Khan" {...register('external_doctor_name')} />
+                            {errors.external_doctor_name && <span className="field-error">{errors.external_doctor_name.message}</span>}
                         </div>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_email">Doctor's Email <span className="form-hint" style={{ display: 'inline' }}>— sends a platform invite</span></label>
+                            <label htmlFor="external_doctor_email">Doctor's Email <span className="required">*</span> <span className="form-hint" style={{ display: 'inline' }}>— sends a platform invite</span></label>
                             <input type="email" id="external_doctor_email" className="input" placeholder="e.g. dr.specialist@hospital.com" {...register('external_doctor_email')} />
                             {errors.external_doctor_email && <span className="field-error">{errors.external_doctor_email.message}</span>}
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="external_hospital">Hospital / Clinic <span className="required">*</span></label>
-                            <input type="text" id="external_hospital" className="input" placeholder="e.g. Aga Khan Hospital" {...register('external_hospital')} />
-                            {errors.external_hospital && <span className="field-error">{errors.external_hospital.message}</span>}
                         </div>
                     </>
                 )}

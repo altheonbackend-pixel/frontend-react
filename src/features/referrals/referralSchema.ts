@@ -13,7 +13,6 @@ export const referralSchema = z.object({
     referred_to: z.number().int().positive().nullable().optional(),
     external_doctor_name:  z.string(),
     external_doctor_email: z.union([z.string().email('Enter a valid email'), z.literal('')]).optional(),
-    external_hospital: z.string(),
     specialty_requested: z.enum(SPECIALTY_VALUES, { message: 'Select a specialty' }),
     urgency: z.enum(['routine', 'urgent', 'emergency']),
     referral_type: z.enum([
@@ -35,8 +34,11 @@ export const referralSchema = z.object({
     if (!data.is_external && !data.referred_to) {
         ctx.addIssue({ code: 'custom', message: 'Select a receiving doctor', path: ['referred_to'] });
     }
-    if (data.is_external && !data.external_hospital?.trim()) {
-        ctx.addIssue({ code: 'custom', message: 'Hospital name required for external referrals', path: ['external_hospital'] });
+    if (data.is_external && !data.external_doctor_name?.trim()) {
+        ctx.addIssue({ code: 'custom', message: 'Doctor name is required for external referrals', path: ['external_doctor_name'] });
+    }
+    if (data.is_external && !data.external_doctor_email?.trim()) {
+        ctx.addIssue({ code: 'custom', message: 'Doctor email is required for external referrals', path: ['external_doctor_email'] });
     }
 });
 
