@@ -79,6 +79,7 @@ export interface Appointment {
     cancel_reason_code?: string | null;
     is_follow_up?: boolean;
     follow_up_source_info?: { consultation_id: number; consultation_date: string } | null;
+    referral?: number | null;
     patient_details?: {
         unique_id: string;
         first_name: string;
@@ -370,6 +371,9 @@ export interface Referral {
     // Patient portal
     visible_to_patient?: boolean;
     patient_summary?: string | null;
+    // Cancellation actor
+    cancelled_by?: number | null;
+    cancelled_by_details?: { id: number; full_name: string; specialty: string } | null;
     // Nested details
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };

@@ -567,6 +567,12 @@ const Appointments = () => {
                                                         ↩ Rescheduled
                                                     </span>
                                                 )}
+                                                {appt.referral && (
+                                                    <span style={{ fontSize: '0.72rem', background: '#ede9fe', color: '#5b21b6', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}
+                                                        title="This appointment was created from a referral">
+                                                        Referral
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         {/* 3-dot overflow menu for Edit / Delete — toggle stops propagation so the document listener doesn't immediately close */}

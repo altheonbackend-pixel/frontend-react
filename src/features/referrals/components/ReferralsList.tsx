@@ -15,7 +15,7 @@ import { toast } from '../../../shared/components/ui';
 import ReferralForm from './ReferralForm';
 import ReferralSLABadge from './ReferralSLABadge';
 import ReferralMessageThread from './ReferralMessageThread';
-import { respondToReferral, deleteReferral, submitDraft } from '../services/referralService';
+import { respondToReferral, deleteReferral, submitDraft, submitResult } from '../services/referralService';
 import '../styles/ReferralsList.css';
 
 const PAGE_SIZE = 20;
@@ -174,6 +174,53 @@ const RespondModal = ({
     );
 };
 
+// ── Submit Result Modal ────────────────────────────────────────────────────────
+const SubmitResultModal = ({
+    referral, onClose, onDone,
+}: { referral: Referral; onClose: () => void; onDone: (updated: Referral) => void; }) => {
+    const [result, setResult] = useState('');
+    const [error, setError] = useState('');
+
+    const { mutate: submit, isPending } = useMutation({
+        mutationFn: () => submitResult(referral.id, result),
+        onSuccess: (res) => { toast.success('Result submitted. Referral completed.'); onDone(res.data); },
+        onError: (err: unknown) => {
+            const e = err as { response?: { data?: { error?: string; detail?: string } } };
+            setError(e?.response?.data?.error || e?.response?.data?.detail || 'Failed to submit result. Try again.');
+        },
+    });
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
+                <h3 className="modal-title">Submit Clinical Result</h3>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+                    Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
+                    {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
+                </p>
+                {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+                <form onSubmit={e => { e.preventDefault(); if (result.trim()) submit(); }}>
+                    <div className="form-field">
+                        <label htmlFor="result-text">Clinical findings / result <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <textarea
+                            id="result-text" className="input textarea" rows={5}
+                            value={result} onChange={e => setResult(e.target.value)}
+                            placeholder="Describe your clinical findings, diagnosis, and recommended next steps…"
+                            required
+                        />
+                    </div>
+                    <div className="btn-row btn-row--mt">
+                        <button type="button" className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="btn btn-primary btn-full" disabled={isPending || !result.trim()}>
+                            {isPending ? 'Submitting…' : 'Submit & Complete Referral'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 const ReferralsList = () => {
     const { profile } = useAuth();
@@ -183,6 +230,7 @@ const ReferralsList = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [urgencyFilter, setUrgencyFilter] = useState('');
     const [respondTarget, setRespondTarget] = useState<Referral | null>(null);
+    const [submitResultTarget, setSubmitResultTarget] = useState<Referral | null>(null);
     const [page, setPage] = useState(1);
     const [showPatientPicker, setShowPatientPicker] = useState(false);
     const [newReferralPatient, setNewReferralPatient] = useState<PatientResult | null>(null);
@@ -347,17 +395,14 @@ const ReferralsList = () => {
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div className="referral-card__badges">
                                             <StatusBadge status={urgency} label={referral.urgency_display} size="md" />
+                                            {/* Status badge — prominent, inline with urgency */}
+                                            <StatusBadge status={referral.status} label={referral.status_display} size="md" />
                                             {referral.referral_type_display && (
                                                 <span className="card-meta" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', padding: '0 6px', fontSize: '0.75rem' }}>
                                                     {referral.referral_type_display}
                                                 </span>
                                             )}
                                             {isDraft && <span className="card-meta" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Draft</span>}
-                                            <span className="card-meta">
-                                                {isReceived
-                                                    ? `← From Dr. ${referral.referred_by_details?.full_name ?? '?'}`
-                                                    : `→ To Dr. ${referral.referred_to_details?.full_name ?? '?'}`}
-                                            </span>
                                         </div>
                                         <div className="card-name">
                                             {referral.patient_details
@@ -366,10 +411,15 @@ const ReferralsList = () => {
                                                   </Link>
                                                 : 'Patient'}
                                         </div>
-                                        <div className="card-meta">Specialty: {referral.specialty_display ?? referral.specialty_requested}</div>
+                                        <div className="card-meta">
+                                            Specialty: {referral.specialty_display ?? referral.specialty_requested}
+                                            {' · '}
+                                            {isReceived
+                                                ? `From Dr. ${referral.referred_by_details?.full_name ?? '?'}`
+                                                : `To Dr. ${referral.referred_to_details?.full_name ?? '?'}`}
+                                        </div>
                                     </div>
                                     <div className="referral-card__status">
-                                        <StatusBadge status={referral.status} label={referral.status_display} />
                                         <span className="card-meta">
                                             {new Date(referral.date_of_referral).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
@@ -391,6 +441,12 @@ const ReferralsList = () => {
                                         <strong>Needs:</strong> {referral.return_requested_info}
                                     </div>
                                 )}
+                                {referral.status === 'cancelled' && referral.cancelled_by_details && (
+                                    <div className="card-meta" style={{ marginTop: '0.25rem', color: 'var(--text-muted)' }}>
+                                        Cancelled by Dr. {referral.cancelled_by_details.full_name}
+                                        {referral.cancellation_reason && ` — ${referral.cancellation_reason}`}
+                                    </div>
+                                )}
 
                                 {/* Actions */}
                                 <div className="btn-row" style={{ marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -398,6 +454,12 @@ const ReferralsList = () => {
                                     {canRespond && !isDraft && (
                                         <button className="btn btn-primary btn-sm" onClick={() => setRespondTarget(referral)}>
                                             {referral.status === 'returned' ? 'Re-evaluate' : 'Respond'}
+                                        </button>
+                                    )}
+                                    {/* Dr. B submit result (in_progress only) */}
+                                    {isReceived && referral.status === 'in_progress' && (
+                                        <button className="btn btn-primary btn-sm" onClick={() => setSubmitResultTarget(referral)}>
+                                            Submit Result
                                         </button>
                                     )}
                                     {/* Draft actions */}
@@ -461,6 +523,14 @@ const ReferralsList = () => {
 
             {respondTarget && (
                 <RespondModal referral={respondTarget} onClose={() => setRespondTarget(null)} onDone={handleResponded} />
+            )}
+
+            {submitResultTarget && (
+                <SubmitResultModal
+                    referral={submitResultTarget}
+                    onClose={() => setSubmitResultTarget(null)}
+                    onDone={updated => { queryClient.setQueryData(queryKeys.referrals.list(filters), (old: typeof data) => { if (!old) return old; return { ...old, results: old.results.map(r => r.id === updated.id ? updated : r) }; }); setSubmitResultTarget(null); invalidate(); }}
+                />
             )}
 
             {showPatientPicker && (
