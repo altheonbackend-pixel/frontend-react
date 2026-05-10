@@ -408,7 +408,7 @@ export default function PatientAppointments() {
                                 onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
                             />
                         </div>
-                        {rsPickDate && (rsSlotsLoading || !rsSlotsData) && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{rsSlotsLoading ? 'Loading slots…' : ''}</p>}
+                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading slots…</p>}
                         {rsPickDate && !rsSlotsLoading && rsSlotsError && (
                             <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>Could not load slots — please try again.</p>
                         )}
@@ -603,13 +603,17 @@ export default function PatientAppointments() {
                     {requestDate && formData.doctorId > 0 && (
                         <div className="form-group">
                             <label>Available time slots</label>
-                            {slotsLoading || !slotsData ? (
+                            {slotsLoading ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    {slotsLoading ? 'Checking availability…' : 'Select a doctor and date to see available slots.'}
+                                    Checking availability…
                                 </div>
                             ) : slotsError ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-danger)', padding: '0.5rem 0.75rem', background: 'var(--color-danger-light)', borderRadius: 'var(--radius-md)' }}>
                                     Could not load slots — please try again or send a request and the doctor will confirm a time.
+                                </div>
+                            ) : !slotsData ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    Select a doctor and date to see available slots.
                                 </div>
                             ) : !doctorAvailable ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', padding: '0.5rem 0.75rem', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
