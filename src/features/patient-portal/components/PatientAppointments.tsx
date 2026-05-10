@@ -74,7 +74,7 @@ export default function PatientAppointments() {
     });
     const patientTimezone = settings?.timezone || undefined;
 
-    const { data: slotsData, isFetching: slotsLoading, isError: slotsError } = useQuery({
+    const { data: slotsData, isFetching: slotsLoading, isError: slotsError, error: slotsRawError } = useQuery({
         queryKey: ['patient', 'available-slots', formData.doctorId, requestDate],
         queryFn: () => patientPortalService.getAvailableSlots(formData.doctorId, requestDate),
         enabled: formData.doctorId > 0 && requestDate.length === 10,
@@ -609,7 +609,7 @@ export default function PatientAppointments() {
                                 </div>
                             ) : slotsError ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-danger)', padding: '0.5rem 0.75rem', background: 'var(--color-danger-light)', borderRadius: 'var(--radius-md)' }}>
-                                    Could not load slots — please try again or send a request and the doctor will confirm a time.
+                                    {parseApiError(slotsRawError, 'Could not load slots — please try again or send a request and the doctor will confirm a time.')}
                                 </div>
                             ) : !slotsData ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
