@@ -11,7 +11,7 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
-import { toast } from '../../../shared/components/ui';
+import { Modal, toast } from '../../../shared/components/ui';
 import ReferralForm from './ReferralForm';
 import ReferralSLABadge from './ReferralSLABadge';
 import ReferralMessageThread from './ReferralMessageThread';
@@ -39,7 +39,10 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => { inputRef.current?.focus(); }, []);
+    useEffect(() => {
+        const t = setTimeout(() => inputRef.current?.focus(), 50);
+        return () => clearTimeout(t);
+    }, []);
 
     const search = (val: string) => {
         if (timerRef.current) clearTimeout(timerRef.current);
@@ -54,35 +57,42 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
-                <h3 className="modal-title">New Referral — Select Patient</h3>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Search for a patient to create a referral for.</p>
-                <input
-                    ref={inputRef} className="input" placeholder="Search by name or ID…"
-                    value={q} onChange={e => { setQ(e.target.value); search(e.target.value); }}
-                    style={{ marginBottom: '0.75rem' }}
-                />
-                {loading && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>Searching…</p>}
-                {!loading && results.length === 0 && q.trim() && (
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>No patients found.</p>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: 260, overflowY: 'auto' }}>
-                    {results.map(p => (
-                        <button key={p.unique_id} type="button" className="btn btn-ghost"
-                            style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '0.625rem 0.75rem' }}
-                            onClick={() => onSelect(p)}>
-                            <span style={{ fontWeight: 600 }}>{p.first_name} {p.last_name}</span>
-                            <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{p.unique_id}</span>
-                        </button>
-                    ))}
-                </div>
-                <div className="btn-row btn-row--mt">
-                    <button className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
-                    <Link to="/patients" className="btn btn-secondary btn-full" style={{ textAlign: 'center' }}>Browse all patients →</Link>
-                </div>
+        <Modal
+            open
+            onClose={onClose}
+            title="New Referral — Select Patient"
+            size="sm"
+            dismissOnBackdrop="always"
+            footer={
+                <>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <Link to="/patients" className="btn btn-secondary">Browse all patients →</Link>
+                </>
+            }
+        >
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem', marginTop: 0 }}>
+                Search for a patient to create a referral for.
+            </p>
+            <input
+                ref={inputRef} className="input" placeholder="Search by name or ID…"
+                value={q} onChange={e => { setQ(e.target.value); search(e.target.value); }}
+                style={{ marginBottom: '0.75rem' }}
+            />
+            {loading && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>Searching…</p>}
+            {!loading && results.length === 0 && q.trim() && (
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>No patients found.</p>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: 240, overflowY: 'auto' }}>
+                {results.map(p => (
+                    <button key={p.unique_id} type="button" className="btn btn-ghost"
+                        style={{ textAlign: 'left', justifyContent: 'flex-start', padding: '0.625rem 0.75rem' }}
+                        onClick={() => onSelect(p)}>
+                        <span style={{ fontWeight: 600 }}>{p.first_name} {p.last_name}</span>
+                        <span style={{ marginLeft: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{p.unique_id}</span>
+                    </button>
+                ))}
             </div>
-        </div>
+        </Modal>
     );
 };
 
@@ -111,66 +121,72 @@ const RespondModal = ({
 
     if (options.length === 0) {
         return (
-            <div className="modal-overlay" onClick={onClose}>
-                <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
-                    <h3 className="modal-title">No actions available</h3>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        This referral is in <strong>{referral.status}</strong> status. No respond actions are available.
-                    </p>
-                    <div className="btn-row btn-row--mt">
-                        <button className="btn btn-secondary btn-full" onClick={onClose}>Close</button>
-                    </div>
-                </div>
-            </div>
+            <Modal
+                open
+                onClose={onClose}
+                title="No actions available"
+                size="sm"
+                dismissOnBackdrop="always"
+                footer={<button type="button" className="btn btn-secondary" onClick={onClose}>Close</button>}
+            >
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                    This referral is in <strong>{referral.status}</strong> status. No respond actions are available.
+                </p>
+            </Modal>
         );
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
-                <h3 className="modal-title">Respond to Referral</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                    Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
-                    {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
-                </p>
-                {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
-                <form onSubmit={e => { e.preventDefault(); submit(); }}>
-                    <div className="form-field">
-                        <label htmlFor="respond-status">Response</label>
-                        <select id="respond-status" className="input select-input" value={respondStatus} onChange={e => setRespondStatus(e.target.value)}>
-                            {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                    </div>
-                    <div className="form-field">
-                        <label htmlFor="respond-notes">
-                            Notes {(respondStatus === 'rejected' || respondStatus === 'returned') && <span style={{ color: 'var(--color-danger)' }}>*</span>}
-                        </label>
+        <Modal
+            open
+            onClose={onClose}
+            title="Respond to Referral"
+            size="sm"
+            dismissOnBackdrop="always"
+            footer={
+                <>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="respond-form" className="btn btn-primary" disabled={isPending}>
+                        {isPending ? 'Saving…' : 'Submit Response'}
+                    </button>
+                </>
+            }
+        >
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 0, marginBottom: '1.25rem' }}>
+                Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
+                {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
+            </p>
+            {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+            <form id="respond-form" onSubmit={e => { e.preventDefault(); submit(); }}>
+                <div className="form-group">
+                    <label htmlFor="respond-status">Response</label>
+                    <select id="respond-status" className="input select-input" value={respondStatus} onChange={e => setRespondStatus(e.target.value)}>
+                        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label htmlFor="respond-notes">
+                        Notes {(respondStatus === 'rejected' || respondStatus === 'returned') && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+                    </label>
+                    <textarea
+                        id="respond-notes" className="input textarea" rows={3}
+                        value={notes} onChange={e => setNotes(e.target.value)}
+                        placeholder={respondStatus === 'returned' ? 'Explain why you are returning this referral…' : 'Add response notes…'}
+                        required={respondStatus === 'rejected' || respondStatus === 'returned'}
+                    />
+                </div>
+                {respondStatus === 'returned' && (
+                    <div className="form-group">
+                        <label htmlFor="return-info">What specific information do you need?</label>
                         <textarea
-                            id="respond-notes" className="input textarea" rows={3}
-                            value={notes} onChange={e => setNotes(e.target.value)}
-                            placeholder={respondStatus === 'returned' ? 'Explain why you are returning this referral…' : 'Add response notes…'}
-                            required={respondStatus === 'rejected' || respondStatus === 'returned'}
+                            id="return-info" className="input textarea" rows={2}
+                            value={returnInfo} onChange={e => setReturnInfo(e.target.value)}
+                            placeholder="e.g. Please include recent ECG and lipid panel results"
                         />
                     </div>
-                    {respondStatus === 'returned' && (
-                        <div className="form-field">
-                            <label htmlFor="return-info">What specific information do you need?</label>
-                            <textarea
-                                id="return-info" className="input textarea" rows={2}
-                                value={returnInfo} onChange={e => setReturnInfo(e.target.value)}
-                                placeholder="e.g. Please include recent ECG and lipid panel results"
-                            />
-                        </div>
-                    )}
-                    <div className="btn-row btn-row--mt">
-                        <button type="button" className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn btn-primary btn-full" disabled={isPending}>
-                            {isPending ? 'Saving…' : 'Submit Response'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                )}
+            </form>
+        </Modal>
     );
 };
 
@@ -191,33 +207,38 @@ const SubmitResultModal = ({
     });
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-box modal-box--md" onClick={e => e.stopPropagation()}>
-                <h3 className="modal-title">Submit Clinical Result</h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-                    Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
-                    {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
-                </p>
-                {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
-                <form onSubmit={e => { e.preventDefault(); if (result.trim()) submit(); }}>
-                    <div className="form-field">
-                        <label htmlFor="result-text">Clinical findings / result <span style={{ color: 'var(--color-danger)' }}>*</span></label>
-                        <textarea
-                            id="result-text" className="input textarea" rows={5}
-                            value={result} onChange={e => setResult(e.target.value)}
-                            placeholder="Describe your clinical findings, diagnosis, and recommended next steps…"
-                            required
-                        />
-                    </div>
-                    <div className="btn-row btn-row--mt">
-                        <button type="button" className="btn btn-secondary btn-full" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn btn-primary btn-full" disabled={isPending || !result.trim()}>
-                            {isPending ? 'Submitting…' : 'Submit & Complete Referral'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        <Modal
+            open
+            onClose={onClose}
+            title="Submit Clinical Result"
+            size="sm"
+            dismissOnBackdrop="always"
+            footer={
+                <>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button type="submit" form="submit-result-form" className="btn btn-primary" disabled={isPending || !result.trim()}>
+                        {isPending ? 'Submitting…' : 'Submit & Complete Referral'}
+                    </button>
+                </>
+            }
+        >
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 0, marginBottom: '1.25rem' }}>
+                Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
+                {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
+            </p>
+            {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
+            <form id="submit-result-form" onSubmit={e => { e.preventDefault(); if (result.trim()) submit(); }}>
+                <div className="form-group">
+                    <label htmlFor="result-text">Clinical findings / result <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                    <textarea
+                        id="result-text" className="input textarea" rows={5}
+                        value={result} onChange={e => setResult(e.target.value)}
+                        placeholder="Describe your clinical findings, diagnosis, and recommended next steps…"
+                        required
+                    />
+                </div>
+            </form>
+        </Modal>
     );
 };
 
