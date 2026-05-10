@@ -74,23 +74,25 @@ export default function PatientAppointments() {
     });
     const patientTimezone = settings?.timezone || undefined;
 
-    const { data: slotsData, isFetching: slotsLoading } = useQuery({
+    const { data: slotsData, isFetching: slotsLoading, isError: slotsError } = useQuery({
         queryKey: ['patient', 'available-slots', formData.doctorId, requestDate],
         queryFn: () => patientPortalService.getAvailableSlots(formData.doctorId, requestDate),
         enabled: formData.doctorId > 0 && requestDate.length === 10,
         staleTime: 60_000,
+        retry: 1,
     });
     const availableSlots = slotsData?.slots ?? [];
-    const doctorAvailable = slotsData?.doctor_available ?? true;
+    const doctorAvailable = slotsData?.doctor_available ?? false;
 
-    const { data: rsSlotsData, isFetching: rsSlotsLoading } = useQuery({
+    const { data: rsSlotsData, isFetching: rsSlotsLoading, isError: rsSlotsError } = useQuery({
         queryKey: ['patient', 'rs-slots', rescheduleTarget?.doctorId, rsPickDate],
         queryFn: () => patientPortalService.getAvailableSlots(rescheduleTarget!.doctorId, rsPickDate),
         enabled: !!rescheduleTarget && rsPickDate.length === 10,
         staleTime: 60_000,
+        retry: 1,
     });
     const rsAvailableSlots = rsSlotsData?.slots ?? [];
-    const rsDoctorAvailable = rsSlotsData?.doctor_available ?? true;
+    const rsDoctorAvailable = rsSlotsData?.doctor_available ?? false;
 
     const { data: nextDatesData, isFetching: nextDatesLoading } = useQuery({
         queryKey: ['patient', 'next-available-dates', formData.doctorId],
@@ -406,11 +408,14 @@ export default function PatientAppointments() {
                                 onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
                             />
                         </div>
-                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading slots…</p>}
-                        {rsPickDate && !rsSlotsLoading && !rsDoctorAvailable && (
+                        {rsPickDate && (rsSlotsLoading || !rsSlotsData) && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{rsSlotsLoading ? 'Loading slots…' : ''}</p>}
+                        {rsPickDate && !rsSlotsLoading && rsSlotsError && (
+                            <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>Could not load slots — please try again.</p>
+                        )}
+                        {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && !rsDoctorAvailable && (
                             <p style={{ color: 'var(--color-warning, #b45309)', fontSize: '0.875rem' }}>Doctor is not available on this day.</p>
                         )}
-                        {rsPickDate && !rsSlotsLoading && rsDoctorAvailable && rsAvailableSlots.length === 0 && (
+                        {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && rsDoctorAvailable && rsAvailableSlots.length === 0 && (
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No slots available on this day.</p>
                         )}
                         {rsPickDate && !rsSlotsLoading && rsAvailableSlots.length > 0 && (
@@ -598,11 +603,17 @@ export default function PatientAppointments() {
                     {requestDate && formData.doctorId > 0 && (
                         <div className="form-group">
                             <label>Available time slots</label>
-                            {slotsLoading ? (
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Checking availability…</div>
+                            {slotsLoading || !slotsData ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                    {slotsLoading ? 'Checking availability…' : 'Select a doctor and date to see available slots.'}
+                                </div>
+                            ) : slotsError ? (
+                                <div style={{ fontSize: '0.85rem', color: 'var(--color-danger)', padding: '0.5rem 0.75rem', background: 'var(--color-danger-light)', borderRadius: 'var(--radius-md)' }}>
+                                    Could not load slots — please try again or send a request and the doctor will confirm a time.
+                                </div>
                             ) : !doctorAvailable ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', padding: '0.5rem 0.75rem', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
-                                    The doctor does not work on this day. Please choose a weekday (Monday – Friday).
+                                    The doctor does not work on this day. Please choose a different date.
                                 </div>
                             ) : availableSlots.length === 0 ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
