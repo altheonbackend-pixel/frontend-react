@@ -1,19 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
-
-function formatDate(value: string) {
-    return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
+import { enumLabel, formatPortalDate } from '../utils/i18n';
 
 const ACTIVE_STATUSES = new Set(['pending', 'accepted', 'in_progress', 'returned']);
 
 export default function PatientReferrals({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('My Referrals');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.referrals.document_title'));
 
     const { data: referrals = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.referrals(),
@@ -24,8 +23,8 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="My Referrals" subtitle="" />}
-                <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.referrals.title')} subtitle="" />}
+                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={3} /></SectionCard>
             </>
         );
     }
@@ -33,8 +32,8 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
     if (isError) {
         return (
             <>
-                {!asTab && <PageHeader title="My Referrals" subtitle="" />}
-                <div className="error-message" style={{ margin: '1rem' }}>Failed to load referrals. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.referrals.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.referrals.error.load')}</div>
             </>
         );
     }
@@ -47,10 +46,10 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
             ?? item.specialty_requested.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
         const doctorLine = item.is_external
-            ? `${item.external_doctor_name ?? 'External doctor'} · ${item.external_hospital ?? ''}`.trim()
+            ? `${item.external_doctor_name ?? t('patient_portal.referrals.external_doctor')} · ${item.external_hospital ?? ''}`.trim()
             : [
-                item.referred_by_name && `From Dr. ${item.referred_by_name}`,
-                item.referred_to_name && `→ Dr. ${item.referred_to_name}`,
+                item.referred_by_name && t('patient_portal.referrals.from_doctor', { name: item.referred_by_name }),
+                item.referred_to_name && t('patient_portal.referrals.to_doctor', { name: item.referred_to_name }),
               ].filter(Boolean).join(' ');
 
         return (
@@ -67,13 +66,13 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
                         </div>
                         {doctorLine && (
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.15rem' }}>
-                                {doctorLine}{item.is_external ? ' (External)' : ''}
+                                {doctorLine}{item.is_external ? ` ${t('patient_portal.referrals.external_parenthetical')}` : ''}
                             </div>
                         )}
                     </div>
                     <div style={{ display: 'flex', gap: '0.4rem', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <StatusBadge status={item.status} label={item.status_display} />
-                        <StatusBadge status={item.urgency} label={item.urgency_display} />
+                        <StatusBadge status={item.status} label={enumLabel(t, 'common.status', item.status, item.status_display)} />
+                        <StatusBadge status={item.urgency} label={enumLabel(t, 'common.status', item.urgency, item.urgency_display)} />
                     </div>
                 </div>
 
@@ -91,7 +90,7 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
                 {/* SLA hint for urgent/emergency */}
                 {item.sla_due_at && ACTIVE_STATUSES.has(item.status) && item.urgency !== 'routine' && (
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                        Response expected by {formatDate(item.sla_due_at)}
+                        {t('patient_portal.referrals.response_expected_by', { date: formatPortalDate(item.sla_due_at, i18n.resolvedLanguage) })}
                     </div>
                 )}
 
@@ -99,14 +98,14 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
                 {item.result && (
                     <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius)', padding: '0.6rem 0.8rem', marginTop: '0.5rem' }}>
                         <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
-                            Specialist's Findings
-                            {item.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {formatDate(item.result_submitted_at)}</span>}
+                            {t('patient_portal.referrals.specialist_findings')}
+                            {item.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {formatPortalDate(item.result_submitted_at, i18n.resolvedLanguage)}</span>}
                         </div>
                         <div style={{ fontSize: '0.875rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{item.result}</div>
                     </div>
                 )}
 
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.5rem' }}>Referred {formatDate(item.date_of_referral)}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.5rem' }}>{t('patient_portal.referrals.referred_date', { date: formatPortalDate(item.date_of_referral, i18n.resolvedLanguage) })}</div>
             </div>
         );
     };
@@ -115,13 +114,13 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
         <>
             {!asTab && (
                 <PageHeader
-                    title="My Referrals"
-                    subtitle="Specialist referrals arranged by your care team."
+                    title={t('patient_portal.referrals.title')}
+                    subtitle={t('patient_portal.referrals.subtitle')}
                 />
             )}
 
             {active.length > 0 && (
-                <SectionCard title={`Active (${active.length})`}>
+                <SectionCard title={t('patient_portal.referrals.active_title', { count: active.length })}>
                     <div style={{ display: 'grid', gap: '1rem' }}>
                         {active.map(item => <ReferralCard key={item.id} item={item} />)}
                     </div>
@@ -129,8 +128,8 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
             )}
 
             <SectionCard
-                title={inactive.length > 0 ? `Past Referrals (${inactive.length})` : `Referrals (${referrals.length})`}
-                empty={{ title: 'No referrals on record', subtitle: 'Specialist referrals will appear here when your doctor arranges one.' }}
+                title={inactive.length > 0 ? t('patient_portal.referrals.past_title', { count: inactive.length }) : t('patient_portal.referrals.card_title', { count: referrals.length })}
+                empty={{ title: t('patient_portal.referrals.empty_title'), subtitle: t('patient_portal.referrals.empty_subtitle') }}
             >
                 <div style={{ display: 'grid', gap: '1rem' }}>
                     {inactive.map(item => <ReferralCard key={item.id} item={item} />)}

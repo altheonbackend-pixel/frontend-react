@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import PatientProfile from './PatientProfile';
 import PatientSettings from './PatientSettings';
@@ -8,31 +9,27 @@ import './PatientHealthRecord.css';
 const TABS = ['profile', 'settings'] as const;
 type Tab = typeof TABS[number];
 
-const TAB_LABELS: Record<Tab, string> = {
-    profile: 'Profile',
-    settings: 'Settings & Security',
-};
-
 export default function PatientAccount() {
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const rawTab = searchParams.get('tab');
     const activeTab: Tab = TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'profile';
 
     useEffect(() => {
-        document.title = 'Account — Altheon Connect';
+        document.title = t('patient_portal.account.document_title');
         return () => { document.title = 'Altheon Connect'; };
-    }, [activeTab]);
+    }, [activeTab, t]);
 
     const setTab = (tab: Tab) => setSearchParams({ tab }, { replace: true });
 
     return (
         <>
             <PageHeader
-                title="Account"
-                subtitle="Manage your personal information, preferences, and security settings."
+                title={t('patient_portal.account.title')}
+                subtitle={t('patient_portal.account.subtitle')}
             />
 
-            <div className="health-record-tabs" role="tablist" aria-label="Account sections">
+            <div className="health-record-tabs" role="tablist" aria-label={t('patient_portal.account.sections_aria')}>
                 {TABS.map(tab => (
                     <button
                         key={tab}
@@ -42,7 +39,7 @@ export default function PatientAccount() {
                         className={`health-tab-btn${activeTab === tab ? ' health-tab-btn--active' : ''}`}
                         onClick={() => setTab(tab)}
                     >
-                        {TAB_LABELS[tab]}
+                        {t(`patient_portal.account.tabs.${tab}`)}
                     </button>
                 ))}
             </div>

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
@@ -18,7 +19,8 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
 }
 
 export default function PatientDoctorProfile() {
-    usePageTitle('Doctor Profile');
+    const { t } = useTranslation();
+    usePageTitle(t('patient_portal.doctor_profile.document_title'));
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const doctorId = Number(id);
@@ -33,11 +35,11 @@ export default function PatientDoctorProfile() {
     return (
         <>
             <PageHeader
-                title={isLoading ? 'Loading…' : doctor?.full_name ?? 'Doctor Profile'}
+                title={isLoading ? t('patient_portal.common.loading') : doctor?.full_name ?? t('patient_portal.doctor_profile.title')}
                 subtitle={doctor?.specialty ?? undefined}
                 actions={
                     <button className="btn btn-secondary btn-sm" onClick={() => navigate(-1)}>
-                        ← Back
+                        {t('patient_portal.common.back')}
                     </button>
                 }
             />
@@ -48,7 +50,7 @@ export default function PatientDoctorProfile() {
 
             {isError && (
                 <div className="error-message" style={{ margin: '0 0 1rem' }}>
-                    Doctor profile not found or not available.
+                    {t('patient_portal.doctor_profile.error.load')}
                 </div>
             )}
 
@@ -79,27 +81,27 @@ export default function PatientDoctorProfile() {
                     </SectionCard>
 
                     {/* Contact details */}
-                    <SectionCard title="Contact information">
-                        <InfoRow label="Practice / Clinic" value={doctor.clinic} />
-                        <InfoRow label="Phone" value={doctor.phone_number} />
-                        <InfoRow label="Email" value={doctor.email} />
+                    <SectionCard title={t('patient_portal.doctor_profile.contact_information')}>
+                        <InfoRow label={t('patient_portal.doctor_profile.practice_clinic')} value={doctor.clinic} />
+                        <InfoRow label={t('patient_portal.doctor_profile.phone')} value={doctor.phone_number} />
+                        <InfoRow label={t('patient_portal.doctor_profile.email')} value={doctor.email} />
                         {!doctor.phone_number && !doctor.clinic && (
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
-                                No contact details on file.
+                                {t('patient_portal.doctor_profile.no_contact_details')}
                             </p>
                         )}
                     </SectionCard>
 
                     {/* Book appointment CTA */}
-                    <SectionCard title="Book an appointment">
+                    <SectionCard title={t('patient_portal.doctor_profile.book_appointment')}>
                         <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                            You can request an appointment with {doctor.full_name} through the appointments section.
+                            {t('patient_portal.doctor_profile.book_intro', { name: doctor.full_name })}
                         </p>
                         <button
                             className="btn btn-primary btn-sm"
                             onClick={() => navigate('/patient/appointments')}
                         >
-                            Go to appointments →
+                            {t('patient_portal.doctor_profile.go_to_appointments')}
                         </button>
                     </SectionCard>
                 </div>

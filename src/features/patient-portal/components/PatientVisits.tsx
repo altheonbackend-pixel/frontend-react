@@ -1,37 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
-
-function formatDate(value: string) {
-    return new Date(value).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'long', year: 'numeric',
-    });
-}
-
-function formatDateShort(value: string) {
-    return new Date(value).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric',
-    });
-}
-
-const FREQ_LABEL: Record<string, string> = {
-    once: 'Once',
-    once_daily: 'Once daily',
-    twice_daily: 'Twice daily',
-    three_times_daily: '3× daily',
-    four_times_daily: '4× daily',
-    as_needed: 'As needed',
-    weekly: 'Weekly',
-    other: 'Other',
-};
+import { enumLabel, formatPortalDate } from '../utils/i18n';
 
 export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('Patient Visits');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.visits.document_title'));
     const [expanded, setExpanded] = useState<Record<number, boolean>>({});
     const navigate = useNavigate();
 
@@ -47,7 +27,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="Visit summaries" subtitle="" />}
+                {!asTab && <PageHeader title={t('patient_portal.visits.title')} subtitle="" />}
                 <SectionCard title=""><TabSkeleton rows={5} /></SectionCard>
             </>
         );
@@ -56,8 +36,8 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
     if (isError) {
         return (
             <>
-                {!asTab && <PageHeader title="Visit summaries" subtitle="" />}
-                <div className="error-message" style={{ margin: '0 0 1rem' }}>Failed to load visits. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.visits.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '0 0 1rem' }}>{t('patient_portal.visits.error.load')}</div>
             </>
         );
     }
@@ -66,13 +46,13 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
         <>
             {!asTab && (
                 <PageHeader
-                    title="Visit summaries"
-                    subtitle="Your doctor's notes and prescriptions from each visit — shared with you for your records."
+                    title={t('patient_portal.visits.title')}
+                    subtitle={t('patient_portal.visits.subtitle')}
                 />
             )}
 
             {visits.length === 0 && (
-                <SectionCard empty={{ title: 'No visit summaries yet', subtitle: 'Your doctor will share summaries after consultations.' }}>{null}</SectionCard>
+                <SectionCard empty={{ title: t('patient_portal.visits.empty_title'), subtitle: t('patient_portal.visits.empty_subtitle') }}>{null}</SectionCard>
             )}
 
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -110,7 +90,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     {/* Date as the primary headline */}
                                     <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                                        {formatDate(visit.consultation_date)}
+                                        {formatPortalDate(visit.consultation_date, i18n.resolvedLanguage, { day: 'numeric', month: 'long', year: 'numeric' })}
                                     </div>
                                     {/* Reason as subtitle */}
                                     <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
@@ -123,7 +103,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                             borderRadius: '999px', border: '1px solid var(--border-subtle)',
                                             color: 'var(--text-secondary)', background: 'var(--bg-subtle)',
                                         }}>
-                                            {visit.consultation_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
+                                            {visit.consultation_type === 'telemedicine' ? t('patient_portal.appointments.type.telemedicine_short') : t('patient_portal.appointments.type.in_person')}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                             {visit.doctor_name}
@@ -134,7 +114,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                 borderRadius: '999px', background: 'var(--accent-lighter)',
                                                 color: 'var(--accent)',
                                             }}>
-                                                💊 {rxList.length} medication{rxList.length !== 1 ? 's' : ''}
+                                                {t('patient_portal.visits.medication_count', { count: rxList.length })}
                                             </span>
                                         )}
                                     </div>
@@ -151,7 +131,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                     {/* Diagnosis */}
                                     {visit.diagnosis && (
                                         <div style={{ paddingTop: '1rem' }}>
-                                            <div className="visit-section-label">Diagnosis</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.diagnosis')}</div>
                                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.25rem' }}>
                                                 {visit.diagnosis}
                                             </div>
@@ -161,23 +141,23 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                     {/* Vitals */}
                                     {(visit.weight || visit.height || visit.temperature || visit.sp2 || visit.bp_display) && (
                                         <div>
-                                            <div className="visit-section-label">Vitals recorded at this visit</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.vitals_recorded')}</div>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
                                                 {visit.weight && (
                                                     <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Weight</span>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>{t('patient_portal.visits.weight')}</span>
                                                         <strong>{visit.weight} kg</strong>
                                                     </div>
                                                 )}
                                                 {visit.height && (
                                                     <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Height</span>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>{t('patient_portal.visits.height')}</span>
                                                         <strong>{visit.height} {visit.height_unit}</strong>
                                                     </div>
                                                 )}
                                                 {visit.temperature && (
                                                     <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Temp</span>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>{t('patient_portal.visits.temperature_short')}</span>
                                                         <strong>{visit.temperature}°C</strong>
                                                     </div>
                                                 )}
@@ -189,7 +169,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                 )}
                                                 {visit.bp_display && (
                                                     <div style={{ padding: '0.45rem 0.85rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>Blood pressure</span>
+                                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem', display: 'block' }}>{t('patient_portal.visits.blood_pressure')}</span>
                                                         <strong>{visit.bp_display} mmHg</strong>
                                                     </div>
                                                 )}
@@ -200,7 +180,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                     {/* Doctor's note to patient */}
                                     {visit.patient_summary && (
                                         <div>
-                                            <div className="visit-section-label">What your doctor shared with you</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.doctor_shared')}</div>
                                             <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75, marginTop: '0.25rem' }}>
                                                 {visit.patient_summary}
                                             </div>
@@ -215,7 +195,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                             background: 'var(--accent-lighter)',
                                             borderLeft: '3px solid var(--accent)',
                                         }}>
-                                            <div className="visit-section-label">Instructions from your doctor</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.instructions')}</div>
                                             <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginTop: '0.25rem' }}>
                                                 {visit.patient_instructions}
                                             </div>
@@ -225,7 +205,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                     {/* Prescriptions from this visit */}
                                     {rxList.length > 0 && (
                                         <div>
-                                            <div className="visit-section-label">Medications prescribed at this visit</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.medications_prescribed')}</div>
                                             <div style={{ display: 'grid', gap: '0.5rem', marginTop: '0.5rem' }}>
                                                 {rxList.map(rx => (
                                                     <div
@@ -253,14 +233,14 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                                 {rx.medication_name}
                                                                 {!rx.is_active && (
                                                                     <span style={{ marginLeft: '0.4rem', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                                                                        (discontinued)
+                                                                        {t('patient_portal.medications.discontinued')}
                                                                     </span>
                                                                 )}
                                                             </div>
                                                             <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
                                                                 {rx.dosage}
-                                                                {rx.frequency && <> · {rx.frequency_display ?? FREQ_LABEL[rx.frequency] ?? rx.frequency}</>}
-                                                                {rx.duration_days && <> · {rx.duration_days} day{rx.duration_days !== 1 ? 's' : ''}</>}
+                                                                {rx.frequency && <> · {enumLabel(t, 'patient_portal.frequency', rx.frequency, rx.frequency_display)}</>}
+                                                                {rx.duration_days && <> · {t('patient_portal.medications.duration_days', { count: rx.duration_days })}</>}
                                                             </div>
                                                             {rx.patient_medication_note && (
                                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
@@ -307,10 +287,10 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                                                     <span style={{ fontSize: '1rem' }}>📅</span>
                                                     <span style={{ fontWeight: 600, fontSize: '0.875rem', color: isCancelled ? 'var(--color-danger)' : 'var(--text-primary)' }}>
-                                                        {!info && `Follow-up recommended on ${formatDateShort(visit.follow_up_date)}`}
-                                                        {isCancelled && `Follow-up appointment cancelled`}
-                                                        {isRescheduled && `Follow-up rescheduled to ${formatDateShort(info!.appointment_date)}`}
-                                                        {isScheduled && !isRescheduled && !isCancelled && `Follow-up ${isConfirmed ? 'confirmed' : 'scheduled'} for ${formatDateShort(info!.appointment_date)}`}
+                                                        {!info && t('patient_portal.visits.follow_up_recommended', { date: formatPortalDate(visit.follow_up_date, i18n.resolvedLanguage) })}
+                                                        {isCancelled && t('patient_portal.visits.follow_up_cancelled')}
+                                                        {isRescheduled && t('patient_portal.visits.follow_up_rescheduled', { date: formatPortalDate(info!.appointment_date, i18n.resolvedLanguage) })}
+                                                        {isScheduled && !isRescheduled && !isCancelled && t(isConfirmed ? 'patient_portal.visits.follow_up_confirmed' : 'patient_portal.visits.follow_up_scheduled', { date: formatPortalDate(info!.appointment_date, i18n.resolvedLanguage) })}
                                                     </span>
                                                     {info && !isCancelled && (
                                                         <span style={{
@@ -330,20 +310,20 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                             className="btn btn-primary btn-sm"
                                                             onClick={() => navigate(`/patient/appointments?reason=${encodeURIComponent(visit.reason_for_consultation || '')}`)}
                                                         >
-                                                            Book a new appointment
+                                                            {t('patient_portal.visits.book_new_appointment')}
                                                         </button>
                                                     </div>
                                                 )}
                                                 {!info && (
                                                     <div style={{ marginTop: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                                        No appointment booked yet.{' '}
+                                                        {t('patient_portal.visits.no_appointment_booked')}{' '}
                                                         <button
                                                             type="button"
                                                             className="btn-ghost"
                                                             style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'underline', padding: 0 }}
                                                             onClick={() => navigate(`/patient/appointments?reason=${encodeURIComponent(visit.reason_for_consultation || '')}`)}
                                                         >
-                                                            Book now →
+                                                            {t('patient_portal.visits.book_now')}
                                                         </button>
                                                     </div>
                                                 )}
@@ -354,7 +334,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                     {/* Documents */}
                                     {visit.file_attachments?.length > 0 && (
                                         <div>
-                                            <div className="visit-section-label">Documents</div>
+                                            <div className="visit-section-label">{t('patient_portal.visits.documents')}</div>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.4rem' }}>
                                                 {visit.file_attachments.map(att => (
                                                     att.download_url ? (
@@ -370,7 +350,7 @@ export default function PatientVisits({ asTab = false }: { asTab?: boolean }) {
                                                     ) : (
                                                         <span
                                                             key={att.id}
-                                                            title="File not available"
+                                                            title={t('patient_portal.common.file_not_available')}
                                                             style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through', cursor: 'not-allowed' }}
                                                         >
                                                             {att.original_filename}

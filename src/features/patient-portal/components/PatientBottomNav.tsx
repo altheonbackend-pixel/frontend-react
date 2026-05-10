@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import './PatientBottomNav.css';
 
 const Icons = {
@@ -36,15 +37,16 @@ const Icons = {
 
 export function PatientBottomNav() {
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     return (
-        <nav className="patient-bottom-nav" aria-label="Mobile navigation">
+        <nav className="patient-bottom-nav" aria-label={t('patient_portal.nav.mobile_navigation')}>
             <NavLink
                 to="/patient/dashboard"
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' bottom-nav-item--active' : ''}`}
             >
                 {Icons.home}
-                <span>Home</span>
+                <span>{t('patient_portal.nav.home')}</span>
             </NavLink>
 
             <NavLink
@@ -52,14 +54,14 @@ export function PatientBottomNav() {
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' bottom-nav-item--active' : ''}`}
             >
                 {Icons.appointments}
-                <span>Appointments</span>
+                <span>{t('patient_portal.nav.appointments')}</span>
             </NavLink>
 
             <button
                 type="button"
                 className="bottom-nav-fab"
                 onClick={() => navigate('/patient/appointments')}
-                aria-label="Book appointment"
+                aria-label={t('patient_portal.nav.book_appointment')}
             >
                 {Icons.plus}
             </button>
@@ -69,7 +71,7 @@ export function PatientBottomNav() {
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' bottom-nav-item--active' : ''}`}
             >
                 {Icons.health}
-                <span>My Health</span>
+                <span>{t('patient_portal.nav.health')}</span>
             </NavLink>
 
             <NavLink
@@ -77,7 +79,7 @@ export function PatientBottomNav() {
                 className={({ isActive }) => `bottom-nav-item${isActive ? ' bottom-nav-item--active' : ''}`}
             >
                 {Icons.account}
-                <span>Account</span>
+                <span>{t('patient_portal.nav.account')}</span>
             </NavLink>
         </nav>
     );

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -10,25 +11,21 @@ import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 import type { PatientLabResult } from '../services/patientPortalService';
-
-function formatDate(value: string) {
-    return new Date(value).toLocaleDateString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric',
-    });
-}
+import { formatPortalDate } from '../utils/i18n';
 
 function ReviewBadge({ lab }: { lab: PatientLabResult }) {
+    const { t } = useTranslation();
     if (!lab.submitted_by_patient) return null;
     const map = {
-        pending_review: { label: 'Pending review', style: { background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' } },
-        accepted: { label: 'Accepted', style: { background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' } },
-        rejected: { label: 'Rejected', style: { background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' } },
+        pending_review: { labelKey: 'patient_portal.labs.review.pending_review', style: { background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' } },
+        accepted: { labelKey: 'patient_portal.labs.review.accepted', style: { background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' } },
+        rejected: { labelKey: 'patient_portal.labs.review.rejected', style: { background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' } },
     } as const;
     const entry = map[lab.review_status as keyof typeof map];
     if (!entry) return null;
     return (
         <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', whiteSpace: 'nowrap', ...entry.style }}>
-            {entry.label}
+            {t(entry.labelKey)}
         </span>
     );
 }
@@ -36,7 +33,8 @@ function ReviewBadge({ lab }: { lab: PatientLabResult }) {
 const UPLOAD_FORM_EMPTY = { test_name: '', test_date: '', notes: '' };
 
 export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('Patient Labs');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.labs.document_title'));
 
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
@@ -89,14 +87,14 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
             setUploadForm(UPLOAD_FORM_EMPTY);
             setUploadFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
-            toast.success('Lab document uploaded. Your doctor will review it shortly.');
+            toast.success(t('patient_portal.labs.toast.uploaded'));
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to upload lab document.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.labs.error.upload'))),
     });
 
     function handleUploadSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!uploadFile) { toast.error('Please select a file to upload.'); return; }
+        if (!uploadFile) { toast.error(t('patient_portal.labs.error.select_file')); return; }
         uploadLab();
     }
 
@@ -110,8 +108,8 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="Lab results" subtitle="" />}
-                <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.labs.title')} subtitle="" />}
+                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={3} /></SectionCard>
             </>
         );
     }
@@ -119,8 +117,8 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
     if (isError) {
         return (
             <>
-                {!asTab && <PageHeader title="Lab results" subtitle="" />}
-                <div className="error-message" style={{ margin: '1rem' }}>Failed to load lab results. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.labs.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.labs.error.load')}</div>
             </>
         );
     }
@@ -130,23 +128,23 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
             {asTab ? (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
                     <button className="btn-primary btn-sm" onClick={() => setUploadOpen(true)}>
-                        + Upload Lab Document
+                        {t('patient_portal.labs.upload_action')}
                     </button>
                 </div>
             ) : (
                 <PageHeader
-                    title="Lab results"
-                    subtitle="Lab results shared by your doctor, and documents you've uploaded for review."
+                    title={t('patient_portal.labs.title')}
+                    subtitle={t('patient_portal.labs.subtitle')}
                     actions={
                         <button className="btn-primary btn-sm" onClick={() => setUploadOpen(true)}>
-                            + Upload Lab Document
+                            {t('patient_portal.labs.upload_action')}
                         </button>
                     }
                 />
             )}
 
             {labs.length === 0 && (
-                <SectionCard empty={{ title: 'No lab results yet', subtitle: 'Lab results shared by your doctor will appear here. You can also upload your own documents above.' }}>{null}</SectionCard>
+                <SectionCard empty={{ title: t('patient_portal.labs.empty_title'), subtitle: t('patient_portal.labs.empty_subtitle') }}>{null}</SectionCard>
             )}
 
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -163,10 +161,10 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
                                     <div>
                                         <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{lab.test_name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{formatDate(lab.test_date)}</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{formatPortalDate(lab.test_date, i18n.resolvedLanguage)}</div>
                                         {lab.submitted_by_patient && (
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.2rem' }}>
-                                                Uploaded by you
+                                                {t('patient_portal.labs.uploaded_by_you')}
                                             </div>
                                         )}
                                     </div>
@@ -179,12 +177,12 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                                 {!lab.submitted_by_patient && (
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem' }}>
                                         <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
-                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Result</div>
+                                            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.labs.result')}</div>
                                             <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{resultDisplay}</div>
                                         </div>
                                         {lab.reference_range && (
                                             <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
-                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Reference range</div>
+                                                <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.labs.reference_range')}</div>
                                                 <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{lab.reference_range}</div>
                                             </div>
                                         )}
@@ -193,21 +191,21 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
 
                                 {lab.patient_note && (
                                     <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: lab.status === 'abnormal' || lab.status === 'critical' ? 'var(--color-warning-light)' : 'var(--color-info-light)' }}>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Doctor note</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.labs.doctor_note')}</div>
                                         <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{lab.patient_note}</div>
                                     </div>
                                 )}
 
                                 {lab.submitted_by_patient && lab.review_status === 'rejected' && lab.rejection_reason && (
                                     <div style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--color-danger-light)', border: '1px solid var(--color-danger-border)' }}>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Rejection reason</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.labs.rejection_reason')}</div>
                                         <div style={{ color: 'var(--color-danger-dark)', lineHeight: 1.6 }}>{lab.rejection_reason}</div>
                                     </div>
                                 )}
 
                                 {lab.file_attachments?.length > 0 && (
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>Attachments</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>{t('patient_portal.common.attachments')}</div>
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                                             {lab.file_attachments.map((att: { id: number; download_url?: string | null; original_filename?: string | null }) => (
                                                 att.download_url ? (
@@ -218,12 +216,12 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                                                         onClick={() => handleDownload(lab.id, att.id, att.download_url!)}
                                                         style={{ fontSize: '0.85rem', color: 'var(--accent)', textDecoration: 'underline', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                                                     >
-                                                        {downloading === att.id ? 'Opening…' : att.original_filename}
+                                                        {downloading === att.id ? t('patient_portal.common.opening') : att.original_filename}
                                                     </button>
                                                 ) : (
                                                     <span
                                                         key={att.id}
-                                                        title="File not available"
+                                                        title={t('patient_portal.common.file_not_available')}
                                                         style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textDecoration: 'line-through', cursor: 'not-allowed' }}
                                                     >
                                                         {att.original_filename}
@@ -243,13 +241,13 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
             <Modal
                 open={uploadOpen}
                 onClose={closeUploadModal}
-                title="Upload Lab Document"
+                title={t('patient_portal.labs.upload_title')}
                 size="md"
                 dirty={!!(uploadForm.test_name || uploadFile)}
                 footer={
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                         <button type="button" className="btn-secondary" onClick={closeUploadModal}>
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -257,7 +255,7 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                             className="btn-primary"
                             disabled={isUploading}
                         >
-                            {isUploading ? 'Uploading…' : 'Submit for review'}
+                            {isUploading ? t('patient_portal.labs.uploading') : t('patient_portal.labs.submit_for_review')}
                         </button>
                     </div>
                 }
@@ -268,17 +266,17 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                     style={{ display: 'grid', gap: '1rem' }}
                 >
                     <div className="form-group">
-                        <label className="form-label">Test name <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <label className="form-label">{t('patient_portal.labs.test_name')} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                         <input
                             className="form-input"
                             required
                             value={uploadForm.test_name}
                             onChange={e => setUploadForm(p => ({ ...p, test_name: e.target.value }))}
-                            placeholder="e.g. CBC, HbA1c, TSH, Lipid panel"
+                            placeholder={t('patient_portal.labs.test_name_placeholder')}
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Test date <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <label className="form-label">{t('patient_portal.labs.test_date')} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                         <input
                             className="form-input"
                             type="date"
@@ -289,17 +287,17 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Notes for your doctor (optional)</label>
+                        <label className="form-label">{t('patient_portal.labs.notes_for_doctor')} {t('patient_portal.common.optional_parenthetical')}</label>
                         <textarea
                             className="form-input"
                             rows={3}
                             value={uploadForm.notes}
                             onChange={e => setUploadForm(p => ({ ...p, notes: e.target.value }))}
-                            placeholder="Any context your doctor should know…"
+                            placeholder={t('patient_portal.labs.notes_placeholder')}
                         />
                     </div>
                     <div className="form-group">
-                        <label className="form-label">Document <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                        <label className="form-label">{t('patient_portal.labs.document')} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                         <input
                             ref={fileInputRef}
                             className="form-input"
@@ -309,7 +307,7 @@ export default function PatientLabs({ asTab = false }: { asTab?: boolean }) {
                             onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
                         />
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                            PDF, JPEG, PNG, or WebP — max 10 MB
+                            {t('patient_portal.labs.file_hint')}
                         </div>
                     </div>
                 </form>

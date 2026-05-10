@@ -1,20 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
-
-const REACTION_TYPE_LABELS: Record<string, string> = {
-    drug: 'Drug',
-    food: 'Food',
-    environmental: 'Environmental',
-    other: 'Other',
-};
+import { enumLabel } from '../utils/i18n';
 
 export default function PatientAllergies({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('My Allergies');
+    const { t } = useTranslation();
+    usePageTitle(t('patient_portal.allergies.document_title'));
 
     const { data: allergies = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.allergies(),
@@ -25,8 +21,8 @@ export default function PatientAllergies({ asTab = false }: { asTab?: boolean })
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="My Allergies" subtitle="" />}
-                <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.allergies.title')} subtitle="" />}
+                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={3} /></SectionCard>
             </>
         );
     }
@@ -34,8 +30,8 @@ export default function PatientAllergies({ asTab = false }: { asTab?: boolean })
     if (isError) {
         return (
             <>
-                {!asTab && <PageHeader title="My Allergies" subtitle="" />}
-                <div className="error-message" style={{ margin: '1rem' }}>Failed to load allergies. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.allergies.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.allergies.error.load')}</div>
             </>
         );
     }
@@ -44,14 +40,14 @@ export default function PatientAllergies({ asTab = false }: { asTab?: boolean })
         <>
             {!asTab && (
                 <PageHeader
-                    title="My Allergies"
-                    subtitle="Known allergies on record with your care team."
+                    title={t('patient_portal.allergies.title')}
+                    subtitle={t('patient_portal.allergies.subtitle')}
                 />
             )}
 
             <SectionCard
-                title={`Allergies (${allergies.length})`}
-                empty={{ title: 'No allergies on record', subtitle: 'Allergy information shared by your doctor will appear here.' }}
+                title={t('patient_portal.allergies.card_title', { count: allergies.length })}
+                empty={{ title: t('patient_portal.allergies.empty_title'), subtitle: t('patient_portal.allergies.empty_subtitle') }}
             >
                 <div style={{ display: 'grid', gap: '1rem' }}>
                     {allergies.map(item => (
@@ -60,7 +56,7 @@ export default function PatientAllergies({ asTab = false }: { asTab?: boolean })
                                 <div>
                                     <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{item.allergen}</div>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-                                        {REACTION_TYPE_LABELS[item.reaction_type] ?? item.reaction_type}
+                                        {enumLabel(t, 'patient_portal.reaction_type', item.reaction_type)}
                                     </div>
                                 </div>
                                 <StatusBadge status={item.severity} />

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
@@ -7,19 +8,11 @@ import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 import { usePatientPortal } from '../context/PatientPortalContext';
-
-function timeAgo(value: string) {
-    const diff = Date.now() - new Date(value).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-}
+import { formatPortalRelativeTime } from '../utils/i18n';
 
 export default function PatientNotifications() {
-    usePageTitle('Patient Notifications');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.notifications.document_title'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { unreadCount, invalidateUnreadCount } = usePatientPortal();
@@ -37,7 +30,7 @@ export default function PatientNotifications() {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             invalidateUnreadCount();
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to mark notification as read.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.notifications.error.mark_read'))),
     });
 
     const { mutate: markAllRead, isPending: isMarkingAll } = useMutation({
@@ -46,28 +39,28 @@ export default function PatientNotifications() {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.notifications() });
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             invalidateUnreadCount();
-            toast.success('All notifications marked as read.');
+            toast.success(t('patient_portal.notifications.toast.all_read'));
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to mark all as read.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.notifications.error.mark_all_read'))),
     });
 
     return (
         <>
             <PageHeader
-                title="Notifications"
-                subtitle={`${unreadCount} unread update${unreadCount === 1 ? '' : 's'} in your patient portal.`}
+                title={t('patient_portal.notifications.title')}
+                subtitle={t('patient_portal.notifications.subtitle', { count: unreadCount })}
                 actions={unreadCount > 0 ? (
                     <button className="btn btn-secondary btn-sm" onClick={() => markAllRead()} disabled={isMarkingAll}>
-                        Mark all read
+                        {t('patient_portal.notifications.mark_all_read')}
                     </button>
                 ) : undefined}
             />
 
             {isLoading && <SectionCard title=""><TabSkeleton rows={4} /></SectionCard>}
-            {isError && <div className="error-message" style={{ margin: '0 0 1rem' }}>Failed to load notifications. Please refresh.</div>}
+            {isError && <div className="error-message" style={{ margin: '0 0 1rem' }}>{t('patient_portal.notifications.error.load')}</div>}
 
             {!isLoading && !isError && (
-                <SectionCard title="Recent updates" empty={{ title: 'No notifications yet', subtitle: 'Updates from your care team will appear here.' }}>
+                <SectionCard title={t('patient_portal.notifications.recent_updates')} empty={{ title: t('patient_portal.notifications.empty_title'), subtitle: t('patient_portal.notifications.empty_subtitle') }}>
                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                         {notifications.map(item => (
                             <button
@@ -91,7 +84,7 @@ export default function PatientNotifications() {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
                                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{timeAgo(item.created_at)}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatPortalRelativeTime(item.created_at, i18n.resolvedLanguage)}</div>
                                 </div>
                                 <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.body}</div>
                             </button>

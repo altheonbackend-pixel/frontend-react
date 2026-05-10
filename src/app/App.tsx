@@ -33,6 +33,7 @@ import PatientRegister from '../features/patient-portal/pages/PatientRegister';
 import PatientForgotPassword from '../features/patient-portal/pages/PatientForgotPassword';
 import PatientResetPassword from '../features/patient-portal/pages/PatientResetPassword';
 import PatientCompleteProfile from '../features/patient-portal/pages/PatientCompleteProfile';
+import { isSupportedPortalLanguage } from '../features/patient-portal/utils/i18n';
 
 // Code-split lazy imports
 const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
@@ -115,18 +116,25 @@ const PrivateAdminRoutes = () => {
     );
 };
 
-const RTL_LANGUAGES = ['ar', 'ur'];
-
 function App() {
-    const { isAuthenticated, authIsLoading, userType } = useAuth();
-    const { i18n } = useTranslation();
+    const { isAuthenticated, authIsLoading, userType, patientProfile } = useAuth();
+    const { t, i18n } = useTranslation();
     const location = useLocation();
 
-    // Sync <html dir> and <html lang>
+    // The patient portal intentionally supports English and French only.
     useEffect(() => {
-        document.documentElement.dir = RTL_LANGUAGES.includes(i18n.language) ? 'rtl' : 'ltr';
-        document.documentElement.lang = i18n.language;
-    }, [i18n.language]);
+        if (userType !== 'patient') return;
+        const preferred = patientProfile?.preferred_language;
+        if (isSupportedPortalLanguage(preferred) && i18n.resolvedLanguage !== preferred) {
+            i18n.changeLanguage(preferred);
+        }
+    }, [i18n, i18n.resolvedLanguage, patientProfile?.preferred_language, userType]);
+
+    // Sync <html dir> and <html lang>. English and French are both LTR.
+    useEffect(() => {
+        document.documentElement.dir = 'ltr';
+        document.documentElement.lang = i18n.resolvedLanguage || i18n.language;
+    }, [i18n.language, i18n.resolvedLanguage]);
 
     // Global Ctrl+K → focus patient search
     useKeyboardShortcut({
@@ -141,7 +149,7 @@ function App() {
     });
 
     if (authIsLoading) {
-        return <PageLoader message="Starting up" brand="Altheon Connect" fullScreen />;
+        return <PageLoader message={t('patient_portal.app.starting_up')} brand="Altheon Connect" fullScreen />;
     }
 
     // ── Admin app ──────────────────────────────────────────────────────────────
@@ -162,8 +170,8 @@ function App() {
     if (isAuthenticated && userType === 'patient') {
         return (
             <div className="App">
-                <a href="#main-content" className="skip-link">Skip to main content</a>
-                <Suspense fallback={<PageLoader message="Loading portal" />}>
+                <a href="#main-content" className="skip-link">{t('patient_portal.app.skip_link')}</a>
+                <Suspense fallback={<PageLoader message={t('patient_portal.app.loading_portal')} />}>
                     <Routes>
                         <Route element={<PrivateRoutes />}>
                             <Route element={<PatientLayout />}>
@@ -204,7 +212,7 @@ function App() {
     // ── Doctor app (sidebar layout) ────────────────────────────────────────────
     return (
         <div className="App">
-            <a href="#main-content" className="skip-link">Skip to main content</a>
+            <a href="#main-content" className="skip-link">{t('patient_portal.app.skip_link')}</a>
             <Suspense fallback={<PageLoader message="Loading" />}>
                 <Routes>
                     {/* Public routes (no sidebar) */}

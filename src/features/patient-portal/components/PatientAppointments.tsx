@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
 import { Modal, toast } from '../../../shared/components/ui';
@@ -10,26 +11,14 @@ import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
-
-function formatDateTime(value: string, timeZone?: string) {
-    return new Date(value).toLocaleString('en-GB', {
-        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-        ...(timeZone ? { timeZone } : {}),
-    });
-}
-
-function formatSlotTime(isoUtc: string, timeZone?: string) {
-    return new Date(isoUtc).toLocaleString('en-GB', {
-        hour: '2-digit', minute: '2-digit',
-        ...(timeZone ? { timeZone } : {}),
-    });
-}
+import { formatPortalDate, formatPortalDateTime, formatPortalTime } from '../utils/i18n';
 
 const UPCOMING_STATUSES = ['pending', 'scheduled', 'confirmed', 'in_progress'];
 const PAST_STATUSES = ['completed', 'cancelled', 'rejected', 'no_show', 'rescheduled'];
 
 export default function PatientAppointments() {
-    usePageTitle('Patient Appointments');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.appointments.document_title'));
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
 
@@ -117,9 +106,9 @@ export default function PatientAppointments() {
             setRequestOpen(false);
             setFormData({ doctorId: 0, appointmentDate: '', reason: '', appointmentType: 'in_person', notes: '' });
             setRequestDate('');
-            toast.success('Appointment request submitted. Awaiting doctor approval.');
+            toast.success(t('patient_portal.appointments.toast.request_submitted'));
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to submit request.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.common.error.submit_request'))),
     });
 
     const { mutate: rescheduleAppointment, isPending: isRescheduling } = useMutation({
@@ -131,11 +120,11 @@ export default function PatientAppointments() {
             setRescheduleTarget(null);
             setRescheduleDate('');
             setRsPickDate('');
-            toast.success('Reschedule request submitted. Awaiting doctor approval.');
+            toast.success(t('patient_portal.appointments.toast.reschedule_submitted'));
         },
         onError: (err) => {
             setRescheduleTarget(null);
-            toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
+            toast.error(parseApiError(err, t('patient_portal.appointments.error.reschedule')));
         },
     });
 
@@ -144,9 +133,9 @@ export default function PatientAppointments() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.appointments() });
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
-            toast.success('Appointment confirmed. See you there!');
+            toast.success(t('patient_portal.appointments.toast.confirmed'));
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to confirm appointment.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.appointments.error.confirm'))),
     });
 
     const { mutate: cancelAppointment, isPending: isCancelling } = useMutation({
@@ -157,11 +146,11 @@ export default function PatientAppointments() {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
             setCancelTarget(null);
             setCancelReason('');
-            toast.success('Appointment cancelled.');
+            toast.success(t('patient_portal.appointments.toast.cancelled'));
         },
         onError: (err) => {
             setCancelTarget(null);
-            toast.error(parseApiError(err, 'Failed to cancel appointment.'));
+            toast.error(parseApiError(err, t('patient_portal.appointments.error.cancel')));
         },
     });
 
@@ -172,11 +161,11 @@ export default function PatientAppointments() {
     const handleSubmitRequest = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.doctorId || !requestDate || !formData.reason.trim()) {
-            toast.error('Please choose a doctor, a date, and a reason for the visit.');
+            toast.error(t('patient_portal.appointments.error.required_request_fields'));
             return;
         }
         if (!formData.appointmentDate && availableSlots.length > 0) {
-            toast.error('Please select an available time slot.');
+            toast.error(t('patient_portal.appointments.error.select_time_slot'));
             return;
         }
         submitRequest();
@@ -185,8 +174,8 @@ export default function PatientAppointments() {
     return (
         <>
             <PageHeader
-                title="Appointments"
-                subtitle="Request a visit, track approval status, and review upcoming care."
+                title={t('patient_portal.appointments.title')}
+                subtitle={t('patient_portal.appointments.subtitle')}
                 actions={
                     <button
                         className="btn btn-primary btn-sm"
@@ -195,14 +184,14 @@ export default function PatientAppointments() {
                             setRequestOpen(true);
                         }}
                     >
-                        Request appointment
+                        {t('patient_portal.appointments.request_action')}
                     </button>
                 }
             />
 
             {/* Request flow explainer — collapsible */}
             <SectionCard
-                title="How it works"
+                title={t('patient_portal.appointments.how_it_works.title')}
                 action={
                     <button
                         type="button"
@@ -214,20 +203,20 @@ export default function PatientAppointments() {
                             localStorage.setItem('appt_how_it_works_collapsed', next ? '0' : '1');
                         }}
                     >
-                        {showHowItWorks ? 'Hide' : 'Show'}
+                        {showHowItWorks ? t('patient_portal.common.hide') : t('patient_portal.common.show')}
                     </button>
                 }
             >
                 {showHowItWorks && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                         {([
-                            ['1. Request an appointment', 'Choose the doctor, preferred date, and visit reason. Your request stays pending until the doctor reviews it.', 'var(--bg-subtle)'],
-                            ['2. Doctor schedules — you confirm', 'Once approved, you receive a notification to confirm the slot. Unconfirmed slots expire automatically.', 'var(--accent-lighter)'],
-                            ['3. Both parties notified', 'After you confirm, both you and your doctor receive a confirmation notification.', 'var(--color-info-light)'],
-                        ] as [string, string, string][]).map(([title, body, bg]) => (
-                            <div key={title} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
-                                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{title}</div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{body}</div>
+                            ['step1', 'var(--bg-subtle)'],
+                            ['step2', 'var(--accent-lighter)'],
+                            ['step3', 'var(--color-info-light)'],
+                        ] as [string, string][]).map(([step, bg]) => (
+                            <div key={step} style={{ padding: '0.875rem', borderRadius: 'var(--radius-md)', background: bg }}>
+                                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{t(`patient_portal.appointments.how_it_works.${step}.title`)}</div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t(`patient_portal.appointments.how_it_works.${step}.body`)}</div>
                             </div>
                         ))}
                     </div>
@@ -237,15 +226,15 @@ export default function PatientAppointments() {
             {/* Tab toggle */}
             <div style={{ display: 'flex', gap: '0.5rem', margin: '1rem 0' }}>
                 <button className={`btn btn-sm ${tab === 'upcoming' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('upcoming')}>
-                    Upcoming {upcoming.length > 0 && <span style={{ marginLeft: '0.3rem', opacity: 0.8 }}>({upcoming.length})</span>}
+                    {t('patient_portal.appointments.tabs.upcoming')} {upcoming.length > 0 && <span style={{ marginLeft: '0.3rem', opacity: 0.8 }}>({upcoming.length})</span>}
                 </button>
                 <button className={`btn btn-sm ${tab === 'past' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('past')}>
-                    Past & closed
+                    {t('patient_portal.appointments.tabs.past')}
                 </button>
             </div>
 
             {isLoading && <SectionCard title=""><TabSkeleton rows={3} /></SectionCard>}
-            {isError && <div className="error-message" style={{ margin: '0 0 1rem' }}>Failed to load appointments. Please refresh.</div>}
+            {isError && <div className="error-message" style={{ margin: '0 0 1rem' }}>{t('patient_portal.appointments.error.load')}</div>}
 
             {!isLoading && !isError && (
                 <div style={{ display: 'grid', gap: '1rem' }}>
@@ -263,17 +252,17 @@ export default function PatientAppointments() {
                                             to={`/patient/doctor/${item.doctor_id}`}
                                             style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none', marginTop: '0.2rem', display: 'inline-block' }}
                                         >
-                                            View profile →
+                                            {t('patient_portal.appointments.view_profile')}
                                         </Link>
                                     </div>
                                     <StatusBadge
                                         status={item.status}
                                         label={
-                                            item.status === 'pending' ? 'Pending approval' :
-                                            item.status === 'scheduled' ? 'Please confirm' :
-                                            item.status === 'rejected' ? 'Not approved' :
-                                            item.status === 'in_progress' ? 'In consultation' :
-                                            item.status === 'rescheduled' ? 'Rescheduled' :
+                                            item.status === 'pending' ? t('patient_portal.appointments.status.pending_approval') :
+                                            item.status === 'scheduled' ? t('patient_portal.appointments.status.please_confirm') :
+                                            item.status === 'rejected' ? t('patient_portal.appointments.status.not_approved') :
+                                            item.status === 'in_progress' ? t('patient_portal.appointments.status.in_consultation') :
+                                            item.status === 'rescheduled' ? t('common.status.rescheduled') :
                                             undefined
                                         }
                                     />
@@ -283,18 +272,18 @@ export default function PatientAppointments() {
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                            When{patientTimezone ? ` · ${patientTimezone.replace('_', ' ')}` : ''}
+                                            {patientTimezone ? t('patient_portal.appointments.when_with_timezone', { timezone: patientTimezone.replace('_', ' ') }) : t('patient_portal.appointments.when')}
                                         </div>
-                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(item.appointment_date, patientTimezone)}</div>
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{formatPortalDateTime(item.appointment_date, i18n.resolvedLanguage, patientTimezone)}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Visit type</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.appointments.visit_type')}</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                                            {item.appointment_type === 'telemedicine' ? '📹 Telemedicine (video)' : '🏥 In person'}
+                                            {item.appointment_type === 'telemedicine' ? t('patient_portal.appointments.type.telemedicine') : t('patient_portal.appointments.type.in_person')}
                                         </div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Reason</div>
+                                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.appointments.reason')}</div>
                                         <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{item.reason_for_appointment}</div>
                                     </div>
                                 </div>
@@ -315,13 +304,13 @@ export default function PatientAppointments() {
                                         fontSize: '0.875rem',
                                     }}>
                                         {item.status === 'pending'
-                                            ? 'Your request has been submitted and is waiting for the doctor to review it.'
+                                            ? t('patient_portal.appointments.note.pending')
                                             : item.status === 'scheduled'
-                                            ? 'Your appointment has been scheduled. Please confirm to hold this slot — unconfirmed slots expire automatically.'
+                                            ? t('patient_portal.appointments.note.scheduled')
                                             : item.status === 'rejected'
                                             ? (item.cancellation_reason
-                                                ? `This request was not approved. Reason: ${item.cancellation_reason}`
-                                                : 'This request was not approved. You may submit a new request for a different time.')
+                                                ? t('patient_portal.appointments.note.rejected_with_reason', { reason: item.cancellation_reason })
+                                                : t('patient_portal.appointments.note.rejected'))
                                             : item.portal_instructions || item.notes}
                                     </div>
                                 )}
@@ -335,7 +324,7 @@ export default function PatientAppointments() {
                                                 onClick={() => confirmAppointment(item.id)}
                                                 disabled={isConfirming}
                                             >
-                                                {isConfirming ? 'Confirming…' : 'Confirm appointment'}
+                                                {isConfirming ? t('patient_portal.appointments.confirming') : t('patient_portal.appointments.confirm_action')}
                                             </button>
                                         )}
                                         {item.patient_can_reschedule && (
@@ -345,7 +334,7 @@ export default function PatientAppointments() {
                                                 onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name, doctorId: item.doctor_id }); setRescheduleDate(''); setRsPickDate(''); }}
                                                 disabled={isRescheduling}
                                             >
-                                                Reschedule
+                                                {t('patient_portal.appointments.reschedule_action')}
                                             </button>
                                         )}
                                         {item.patient_can_cancel && (
@@ -355,7 +344,7 @@ export default function PatientAppointments() {
                                                 onClick={() => setCancelTarget({ id: item.id, doctorName: item.doctor_name })}
                                                 disabled={isCancelling}
                                             >
-                                                Cancel
+                                                {t('common.cancel')}
                                             </button>
                                         )}
                                     </div>
@@ -365,7 +354,7 @@ export default function PatientAppointments() {
                     ))}
 
                     {activeList.length === 0 && (
-                        <SectionCard empty={{ title: 'No appointments here yet', subtitle: 'Once appointments are requested or completed they will appear in this list.' }}>
+                        <SectionCard empty={{ title: t('patient_portal.appointments.empty_title'), subtitle: t('patient_portal.appointments.empty_subtitle') }}>
                             {null}
                         </SectionCard>
                     )}
@@ -376,18 +365,18 @@ export default function PatientAppointments() {
             <Modal
                 open={!!rescheduleTarget}
                 onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRsPickDate(''); }}
-                title={`Reschedule with ${rescheduleTarget?.doctorName ?? ''}`}
+                title={t('patient_portal.appointments.reschedule_with', { name: rescheduleTarget?.doctorName ?? '' })}
                 size="md"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={() => setRescheduleTarget(null)}>Keep it</button>
+                        <button type="button" className="cancel-button" onClick={() => setRescheduleTarget(null)}>{t('patient_portal.appointments.keep_it')}</button>
                         <button
                             type="button"
                             className="btn btn-primary"
                             disabled={!rescheduleDate || isRescheduling}
                             onClick={() => rescheduleTarget && rescheduleDate && rescheduleAppointment({ id: rescheduleTarget.id, date: rescheduleDate })}
                         >
-                            {isRescheduling ? 'Submitting…' : 'Request reschedule'}
+                            {isRescheduling ? t('patient_portal.common.submitting') : t('patient_portal.appointments.request_reschedule')}
                         </button>
                     </>
                 }
@@ -395,10 +384,10 @@ export default function PatientAppointments() {
                 {rescheduleTarget && (
                     <div className="form">
                         <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                            Pick a new date and available slot. The doctor will confirm the reschedule.
+                            {t('patient_portal.appointments.reschedule_intro')}
                         </p>
                         <div className="form-group">
-                            <label htmlFor="rs-pick-date">New date</label>
+                            <label htmlFor="rs-pick-date">{t('patient_portal.appointments.new_date')}</label>
                             <input
                                 id="rs-pick-date"
                                 type="date"
@@ -408,22 +397,22 @@ export default function PatientAppointments() {
                                 onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
                             />
                         </div>
-                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading slots…</p>}
+                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.loading_slots')}</p>}
                         {rsPickDate && !rsSlotsLoading && rsSlotsError && (
-                            <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>Could not load slots — please try again.</p>
+                            <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.error.load_slots')}</p>
                         )}
                         {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && !rsDoctorAvailable && (
-                            <p style={{ color: 'var(--color-warning, #b45309)', fontSize: '0.875rem' }}>Doctor is not available on this day.</p>
+                            <p style={{ color: 'var(--color-warning, #b45309)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.doctor_not_available')}</p>
                         )}
                         {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && rsDoctorAvailable && rsAvailableSlots.length === 0 && (
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>No slots available on this day.</p>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.no_slots')}</p>
                         )}
                         {rsPickDate && !rsSlotsLoading && rsAvailableSlots.length > 0 && (
                             <div className="form-group">
-                                <label>Available slots</label>
+                                <label>{t('patient_portal.appointments.available_slots')}</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
                                     {rsAvailableSlots.map((slotIso: string) => {
-                                        const label = formatSlotTime(slotIso, patientTimezone);
+                                        const label = formatPortalTime(slotIso, i18n.resolvedLanguage, patientTimezone);
                                         const isSelected = rescheduleDate === slotIso;
                                         return (
                                             <button
@@ -456,18 +445,18 @@ export default function PatientAppointments() {
             <Modal
                 open={!!cancelTarget}
                 onClose={() => { setCancelTarget(null); setCancelReason(''); }}
-                title="Cancel appointment"
+                title={t('patient_portal.appointments.cancel_title')}
                 size="sm"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={() => { setCancelTarget(null); setCancelReason(''); }}>Keep it</button>
+                        <button type="button" className="cancel-button" onClick={() => { setCancelTarget(null); setCancelReason(''); }}>{t('patient_portal.appointments.keep_it')}</button>
                         <button
                             type="button"
                             className="btn btn-danger"
                             disabled={isCancelling}
                             onClick={() => { if (cancelTarget) cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }); }}
                         >
-                            {isCancelling ? 'Cancelling…' : 'Yes, cancel'}
+                            {isCancelling ? t('patient_portal.appointments.cancelling') : t('patient_portal.appointments.yes_cancel')}
                         </button>
                     </>
                 }
@@ -475,18 +464,18 @@ export default function PatientAppointments() {
                 {cancelTarget && (
                     <div className="form">
                         <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                            Are you sure you want to cancel your appointment with {cancelTarget.doctorName}? The doctor will be notified.
+                            {t('patient_portal.appointments.cancel_confirm', { name: cancelTarget.doctorName })}
                         </p>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                             <label htmlFor="cancel-reason-patient">
-                                Reason <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                                {t('patient_portal.appointments.reason')} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span>
                             </label>
                             <textarea
                                 id="cancel-reason-patient"
                                 rows={2}
                                 value={cancelReason}
                                 onChange={e => setCancelReason(e.target.value)}
-                                placeholder="e.g. I'm feeling better, no longer needed."
+                                placeholder={t('patient_portal.appointments.cancel_reason_placeholder')}
                             />
                         </div>
                     </div>
@@ -497,44 +486,44 @@ export default function PatientAppointments() {
             <Modal
                 open={requestOpen}
                 onClose={() => setRequestOpen(false)}
-                title="Request a new appointment"
+                title={t('patient_portal.appointments.request_modal_title')}
                 size="lg"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={() => setRequestOpen(false)}>Cancel</button>
+                        <button type="button" className="cancel-button" onClick={() => setRequestOpen(false)}>{t('common.cancel')}</button>
                         <button type="submit" form="patient-appt-form" className="btn btn-primary" disabled={isSubmitting}>
-                            {isSubmitting ? 'Sending…' : 'Send request'}
+                            {isSubmitting ? t('patient_portal.common.sending') : t('patient_portal.appointments.send_request')}
                         </button>
                     </>
                 }
             >
                 <form id="patient-appt-form" onSubmit={handleSubmitRequest} className="form">
                     <div className="form-group">
-                        <label htmlFor="doctorId">Choose doctor</label>
+                        <label htmlFor="doctorId">{t('patient_portal.appointments.choose_doctor')}</label>
                         <select
                             id="doctorId"
                             value={formData.doctorId}
                             onChange={e => setFormData(p => ({ ...p, doctorId: Number(e.target.value) }))}
                         >
-                            <option value={0} disabled>— Select a doctor —</option>
+                            <option value={0} disabled>{t('patient_portal.appointments.select_doctor')}</option>
                             {doctors.map(d => (
                                 <option key={d.id} value={d.id}>{d.full_name} · {d.specialty}</option>
                             ))}
                         </select>
                     </div>
                     <div className="form-group">
-                        <label htmlFor="appointmentType">Visit type</label>
+                        <label htmlFor="appointmentType">{t('patient_portal.appointments.visit_type')}</label>
                         <select
                             id="appointmentType"
                             value={formData.appointmentType}
                             onChange={e => setFormData(p => ({ ...p, appointmentType: e.target.value }))}
                         >
-                            <option value="in_person">In person</option>
-                            <option value="telemedicine">Telemedicine (video)</option>
+                            <option value="in_person">{t('patient_portal.appointments.type.in_person_plain')}</option>
+                            <option value="telemedicine">{t('patient_portal.appointments.type.telemedicine_plain')}</option>
                         </select>
                     </div>
                     <div className="form-group">
-                        <label htmlFor="requestDate">Preferred date</label>
+                        <label htmlFor="requestDate">{t('patient_portal.appointments.preferred_date')}</label>
                         <input
                             id="requestDate"
                             type="date"
@@ -553,20 +542,20 @@ export default function PatientAppointments() {
                                     onClick={() => setNextDatesOpen(o => !o)}
                                     style={{ fontSize: '0.8rem' }}
                                 >
-                                    {nextDatesOpen ? 'Hide' : 'Find next available dates →'}
+                                    {nextDatesOpen ? t('patient_portal.common.hide') : t('patient_portal.appointments.find_next_dates')}
                                 </button>
                                 {nextDatesOpen && (
                                     <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
                                         {nextDatesLoading && (
-                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Checking availability…</div>
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t('patient_portal.appointments.checking_availability')}</div>
                                         )}
                                         {!nextDatesLoading && nextAvailableDates.length === 0 && (
-                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>No available dates found in the next 14 days.</div>
+                                            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t('patient_portal.appointments.no_dates')}</div>
                                         )}
                                         {!nextDatesLoading && nextAvailableDates.length > 0 && (
                                             <>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-                                                    Next available — tap to select
+                                                    {t('patient_portal.appointments.next_available_hint')}
                                                 </div>
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                                                     {nextAvailableDates.map(d => (
@@ -589,7 +578,7 @@ export default function PatientAppointments() {
                                                                 cursor: 'pointer',
                                                             }}
                                                         >
-                                                            {new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                            {formatPortalDate(d + 'T00:00:00', i18n.resolvedLanguage, { weekday: 'short', day: 'numeric', month: 'short' })}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -602,26 +591,26 @@ export default function PatientAppointments() {
                     </div>
                     {requestDate && formData.doctorId > 0 && (
                         <div className="form-group">
-                            <label>Available time slots</label>
+                            <label>{t('patient_portal.appointments.available_time_slots')}</label>
                             {slotsLoading ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    Checking availability…
+                                    {t('patient_portal.appointments.checking_availability')}
                                 </div>
                             ) : slotsError ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-danger)', padding: '0.5rem 0.75rem', background: 'var(--color-danger-light)', borderRadius: 'var(--radius-md)' }}>
-                                    {parseApiError(slotsRawError, 'Could not load slots — please try again or send a request and the doctor will confirm a time.')}
+                                    {parseApiError(slotsRawError, t('patient_portal.appointments.error.load_slots_with_fallback'))}
                                 </div>
                             ) : !slotsData ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    Select a doctor and date to see available slots.
+                                    {t('patient_portal.appointments.select_doctor_date')}
                                 </div>
                             ) : !doctorAvailable ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', padding: '0.5rem 0.75rem', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
-                                    The doctor does not work on this day. Please choose a different date.
+                                    {t('patient_portal.appointments.doctor_not_working')}
                                 </div>
                             ) : availableSlots.length === 0 ? (
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
-                                    No open slots on this day — you can still send a request and the doctor will confirm a time.
+                                    {t('patient_portal.appointments.no_open_slots')}
                                 </div>
                             ) : (
                                 <>
@@ -645,39 +634,39 @@ export default function PatientAppointments() {
                                                         transition: 'all 0.15s',
                                                     }}
                                                 >
-                                                    {formatSlotTime(slot, patientTimezone)}
+                                                    {formatPortalTime(slot, i18n.resolvedLanguage, patientTimezone)}
                                                 </button>
                                             );
                                         })}
                                     </div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
-                                        Times shown in {patientTimezone ? patientTimezone.replace('_', ' ') : 'your local time'}
+                                        {t('patient_portal.appointments.times_shown_in', { timezone: patientTimezone ? patientTimezone.replace('_', ' ') : t('patient_portal.appointments.local_time') })}
                                     </div>
                                 </>
                             )}
                         </div>
                     )}
                     <div className="form-group">
-                        <label htmlFor="reason">Reason for appointment</label>
+                        <label htmlFor="reason">{t('patient_portal.appointments.reason_for_appointment')}</label>
                         <textarea
                             id="reason"
                             rows={4}
                             value={formData.reason}
                             onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))}
-                            placeholder="Briefly describe what you need help with."
+                            placeholder={t('patient_portal.appointments.reason_placeholder')}
                         />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
                         <label htmlFor="notes">
-                            Additional notes{' '}
-                            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                            {t('patient_portal.appointments.additional_notes')}{' '}
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span>
                         </label>
                         <textarea
                             id="notes"
                             rows={2}
                             value={formData.notes}
                             onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))}
-                            placeholder="Any other information for the clinic."
+                            placeholder={t('patient_portal.appointments.notes_placeholder')}
                         />
                     </div>
                 </form>

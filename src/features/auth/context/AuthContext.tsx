@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { type DoctorProfile, type User, type AdminProfile, type PatientProfile } from '../../../shared/types';
 import api, { setLogoutCallback } from '../../../shared/services/api';
 import { clearAllDraftsForDoctor } from '../../../shared/hooks/useFormDraft';
+import { normalizePortalLanguage } from '../../patient-portal/utils/i18n';
 
 interface AuthContextType {
     user: User | null;
@@ -122,7 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     primary_doctor_name: '',
                     email_verified: patientProfileData?.email_verified ?? true,
                     claim_status: patientProfileData?.claim_status || 'claimed',
-                    preferred_language: patientProfileData?.preferred_language || 'en',
+                    preferred_language: normalizePortalLanguage(patientProfileData?.preferred_language),
                 });
                 localStorage.setItem('user_type', 'patient');
             } else {
@@ -193,22 +194,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsAuthenticated(true);
             navigate('/admin/dashboard');
         } else if (userTypeFromResponse === 'patient') {
+            const patientProfileRes = await api.get('/patient/profile/').catch(() => null);
+            const portalProfile = patientProfileRes?.data;
             setUser({ id: 0, email: loginUserData.email, full_name: loginUserData.full_name });
             setPatientProfile({
-                id: 0,
-                patient_id: '',
-                full_name: loginUserData.full_name,
-                email: loginUserData.email,
-                date_of_birth: '',
-                phone_number: '',
-                address: '',
-                emergency_contact_name: '',
-                emergency_contact_number: '',
-                blood_group: '',
-                primary_doctor_name: '',
+                id: portalProfile?.id || 0,
+                patient_id: portalProfile?.patient_id || '',
+                full_name: portalProfile?.full_name || loginUserData.full_name,
+                email: portalProfile?.email || loginUserData.email,
+                date_of_birth: portalProfile?.date_of_birth || '',
+                phone_number: portalProfile?.phone_number || '',
+                address: portalProfile?.address || '',
+                emergency_contact_name: portalProfile?.emergency_contact_name || '',
+                emergency_contact_number: portalProfile?.emergency_contact_number || '',
+                blood_group: portalProfile?.blood_group || '',
+                primary_doctor_name: portalProfile?.primary_doctor_name || '',
                 email_verified: true,
-                claim_status: 'claimed',
-                preferred_language: 'en',
+                claim_status: portalProfile?.claim_status || 'claimed',
+                preferred_language: normalizePortalLanguage(portalProfile?.preferred_language),
             });
             setProfile(null);
             setAdminProfile(null);

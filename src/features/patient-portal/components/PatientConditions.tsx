@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
+import { enumLabel, formatPortalDate } from '../utils/i18n';
 
 const SEVERITY_COLORS: Record<string, string> = {
     mild: 'var(--color-warning)',
@@ -13,13 +15,9 @@ const SEVERITY_COLORS: Record<string, string> = {
     life_threatening: 'var(--color-danger)',
 };
 
-function formatDate(value: string | null) {
-    if (!value) return null;
-    return new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
 export default function PatientConditions({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('My Conditions');
+    const { t, i18n } = useTranslation();
+    usePageTitle(t('patient_portal.conditions.document_title'));
 
     const { data: conditions = [], isLoading: condLoading, isError: condError } = useQuery({
         queryKey: queryKeys.patientPortal.conditions(),
@@ -39,8 +37,8 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="My Conditions" subtitle="" />}
-                <SectionCard title="Loading…"><TabSkeleton rows={3} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.conditions.title')} subtitle="" />}
+                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={3} /></SectionCard>
             </>
         );
     }
@@ -48,8 +46,8 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
     if (isError) {
         return (
             <>
-                {!asTab && <PageHeader title="My Conditions" subtitle="" />}
-                <div className="error-message" style={{ margin: '1rem' }}>Failed to load health record. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.conditions.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.conditions.error.load')}</div>
             </>
         );
     }
@@ -58,14 +56,14 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
         <>
             {!asTab && (
                 <PageHeader
-                    title="My Conditions"
-                    subtitle="Medical conditions shared with you by your care team."
+                    title={t('patient_portal.conditions.title')}
+                    subtitle={t('patient_portal.conditions.subtitle')}
                 />
             )}
 
             <SectionCard
-                title={`Conditions (${conditions.length})`}
-                empty={{ title: 'No conditions on record', subtitle: 'Conditions shared by your doctor will appear here.' }}
+                title={t('patient_portal.conditions.card_title', { count: conditions.length })}
+                empty={{ title: t('patient_portal.conditions.empty_title'), subtitle: t('patient_portal.conditions.empty_subtitle') }}
             >
                 <div style={{ display: 'grid', gap: '1rem' }}>
                     {conditions.map(item => (
@@ -76,7 +74,7 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
                                         {item.patient_friendly_name || item.name}
                                     </div>
                                     {item.onset_date && (
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Since {formatDate(item.onset_date)}</div>
+	                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>{t('patient_portal.conditions.since', { date: formatPortalDate(item.onset_date, i18n.resolvedLanguage) })}</div>
                                     )}
                                 </div>
                                 <StatusBadge status={item.status} />
@@ -90,8 +88,8 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
             </SectionCard>
 
             <SectionCard
-                title={`Allergies (${allergies.length})`}
-                empty={{ title: 'No allergies on record', subtitle: 'Allergies recorded by your doctor will appear here.' }}
+                title={t('patient_portal.allergies.card_title', { count: allergies.length })}
+                empty={{ title: t('patient_portal.allergies.empty_title'), subtitle: t('patient_portal.allergies.empty_subtitle') }}
             >
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
                     {allergies.map((item: { id: number; allergen: string; reaction_type: string; severity: string; notes?: string }) => (
@@ -101,7 +99,7 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
                                     {item.allergen}
                                 </div>
                                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                    {item.reaction_type.replace(/_/g, ' ')}
+                                    {enumLabel(t, 'patient_portal.reaction_type', item.reaction_type)}
                                     {item.notes ? ` · ${item.notes}` : ''}
                                 </div>
                             </div>
@@ -116,7 +114,7 @@ export default function PatientConditions({ asTab = false }: { asTab?: boolean }
                                 flexShrink: 0,
                                 marginLeft: '12px',
                             }}>
-                                {item.severity.replace(/_/g, ' ')}
+                                {enumLabel(t, 'patient_portal.severity', item.severity)}
                             </span>
                         </div>
                     ))}

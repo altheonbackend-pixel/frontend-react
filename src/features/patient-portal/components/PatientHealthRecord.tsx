@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import PatientVisits from './PatientVisits';
 import PatientLabs from './PatientLabs';
@@ -12,34 +13,27 @@ import './PatientHealthRecord.css';
 const TABS = ['visits', 'labs', 'medications', 'conditions', 'referrals'] as const;
 type Tab = typeof TABS[number];
 
-const TAB_LABELS: Record<Tab, string> = {
-    visits: 'Visits',
-    labs: 'Lab Results',
-    medications: 'Medications',
-    conditions: 'Conditions & Allergies',
-    referrals: 'Referrals',
-};
-
 export default function PatientHealthRecord() {
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const rawTab = searchParams.get('tab');
     const activeTab: Tab = TABS.includes(rawTab as Tab) ? (rawTab as Tab) : 'visits';
 
     useEffect(() => {
-        document.title = 'My Health — Altheon Connect';
+        document.title = t('patient_portal.health.document_title');
         return () => { document.title = 'Altheon Connect'; };
-    }, [activeTab]);
+    }, [activeTab, t]);
 
     const setTab = (tab: Tab) => setSearchParams({ tab }, { replace: true });
 
     return (
         <>
             <PageHeader
-                title="My Health"
-                subtitle="Your complete medical record in one place."
+                title={t('patient_portal.health.title')}
+                subtitle={t('patient_portal.health.subtitle')}
             />
 
-            <div className="health-record-tabs" role="tablist" aria-label="Health record sections">
+            <div className="health-record-tabs" role="tablist" aria-label={t('patient_portal.health.sections_aria')}>
                 {TABS.map(tab => (
                     <button
                         key={tab}
@@ -49,7 +43,7 @@ export default function PatientHealthRecord() {
                         className={`health-tab-btn${activeTab === tab ? ' health-tab-btn--active' : ''}`}
                         onClick={() => setTab(tab)}
                     >
-                        {TAB_LABELS[tab]}
+                        {t(`patient_portal.health.tabs.${tab}`)}
                     </button>
                 ))}
             </div>

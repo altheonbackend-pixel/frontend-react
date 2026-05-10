@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { toast } from '../../../shared/components/ui';
 import { parseApiError } from '../../../shared/components/ui/toast';
@@ -18,21 +19,39 @@ interface PatientPreview {
 
 // ── Stepper UI ────────────────────────────────────────────────────────────────
 
-const STEP_LABELS = ['Request access', 'Verify identity', 'Set password'];
+const STEP_LABEL_KEYS = [
+    'patient_portal.claim.steps.request',
+    'patient_portal.claim.steps.verify',
+    'patient_portal.claim.steps.password',
+] as const;
+
+function extractClaimToken(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    try {
+        const url = new URL(trimmed);
+        return url.searchParams.get('token')?.trim() || trimmed;
+    } catch {
+        const tokenMatch = trimmed.match(/[?&]token=([^&]+)/);
+        return tokenMatch?.[1] ? decodeURIComponent(tokenMatch[1]).trim() : trimmed;
+    }
+}
 
 function Stepper({ step }: { step: Step }) {
+    const { t } = useTranslation();
     const idx = step === 'request' || step === 'sent' ? 0 : step === 'verify' ? 1 : 2;
     return (
-        <div className="claim-stepper" aria-label="Claim progress">
-            {STEP_LABELS.map((label, i) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', flex: i < STEP_LABELS.length - 1 ? 1 : undefined }}>
+        <div className="claim-stepper" aria-label={t('patient_portal.claim.progress')}>
+            {STEP_LABEL_KEYS.map((labelKey, i) => (
+                <div key={labelKey} style={{ display: 'flex', alignItems: 'center', flex: i < STEP_LABEL_KEYS.length - 1 ? 1 : undefined }}>
                     <div className={`claim-step ${i < idx ? 'done' : i === idx ? 'active' : ''}`}>
                         <div className="claim-step-dot">
                             {i < idx ? '✓' : i + 1}
                         </div>
-                        <span>{label}</span>
+                        <span>{t(labelKey)}</span>
                     </div>
-                    {i < STEP_LABELS.length - 1 && <div className="claim-step-connector" />}
+                    {i < STEP_LABEL_KEYS.length - 1 && <div className="claim-step-connector" />}
                 </div>
             ))}
         </div>
@@ -42,7 +61,8 @@ function Stepper({ step }: { step: Step }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function PatientClaim() {
-    usePageTitle('Claim Your Patient Record');
+    const { t } = useTranslation();
+    usePageTitle(t('patient_portal.claim.document_title'));
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { login } = useAuth();
@@ -96,7 +116,7 @@ export default function PatientClaim() {
             setStep('sent');
         } catch (err) {
             // Backend returns 200 for anti-enumeration; only validation errors reach here
-            setError(parseApiError(err, 'Something went wrong. Please try again.'));
+            setError(parseApiError(err, t('patient_portal.common.error.generic_retry')));
         } finally {
             setLoading(false);
         }
@@ -105,19 +125,20 @@ export default function PatientClaim() {
     // ── Step 2: Verify token ───────────────────────────────────────────────────
 
     const handleVerify = async (rawToken: string) => {
-        if (!rawToken.trim()) {
-            setError('Please enter the verification code from your email.');
+        const cleanToken = extractClaimToken(rawToken);
+        if (!cleanToken) {
+            setError(t('patient_portal.claim.error.enter_verification_code'));
             return;
         }
         clearError();
         setLoading(true);
         try {
-            const res = await api.post('/patient/claim/verify/', { token: rawToken.trim() });
+            const res = await api.post('/patient/claim/verify/', { token: cleanToken });
             setPreview(res.data.patient_preview);
-            setToken(rawToken.trim());
+            setToken(cleanToken);
             setStep('complete');
         } catch (err) {
-            setError(parseApiError(err, 'Invalid or expired link. Please request a new one.'));
+            setError(parseApiError(err, t('patient_portal.claim.error.invalid_or_expired')));
         } finally {
             setLoading(false);
         }
@@ -134,15 +155,15 @@ export default function PatientClaim() {
         e.preventDefault();
         clearError();
         if (password.length < 8) {
-            setError('Password must be at least 8 characters.');
+            setError(t('patient_portal.auth.error.password_too_short'));
             return;
         }
         if (password !== confirmPassword) {
-            setError('Passwords do not match.');
+            setError(t('patient_portal.auth.error.passwords_mismatch'));
             return;
         }
         if (!termsAccepted || !privacyAccepted) {
-            setError('You must accept the Terms of Service and Privacy Notice to continue.');
+            setError(t('patient_portal.claim.error.accept_terms_privacy'));
             return;
         }
         setLoading(true);
@@ -158,12 +179,12 @@ export default function PatientClaim() {
                 try {
                     await login({ email: preview.email, password });
                 } catch {
-                    toast.success('Account created! Please sign in.');
+                    toast.success(t('patient_portal.claim.toast.account_created_sign_in'));
                     navigate('/patient/login', { replace: true });
                     return;
                 }
             }
-            toast.success('Welcome to your patient portal!');
+            toast.success(t('patient_portal.claim.toast.welcome'));
             const missingFields: string[] = res.data.missing_fields || [];
             if (missingFields.length > 0) {
                 navigate(`/patient/complete-profile?fields=${missingFields.join(',')}`, { replace: true });
@@ -171,7 +192,7 @@ export default function PatientClaim() {
                 navigate('/patient/dashboard', { replace: true });
             }
         } catch (err) {
-            setError(parseApiError(err, 'Failed to complete setup. Your link may have expired.'));
+            setError(parseApiError(err, t('patient_portal.claim.error.complete_failed')));
         } finally {
             setLoading(false);
         }
@@ -189,23 +210,23 @@ export default function PatientClaim() {
                             <path d="M18 10v16M10 18h16" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                         </svg>
                     </div>
-                    <div className="patient-auth-brand-name">Altheon Patient Portal</div>
+                    <div className="patient-auth-brand-name">{t('patient_portal.brand.full')}</div>
                 </div>
                 <div className="patient-auth-left-body">
-                    <div className="patient-auth-headline">Claim your health record.</div>
+                    <div className="patient-auth-headline">{t('patient_portal.claim.headline')}</div>
                     <div className="patient-auth-sub">
-                        Your doctor has already created your health record. Claim it to get secure online access — no registration needed.
+                        {t('patient_portal.claim.subtitle')}
                     </div>
                     <ul className="patient-auth-features">
-                        <li><span className="feature-dot feature-dot--green" />Your records are already on file</li>
-                        <li><span className="feature-dot feature-dot--blue" />Verify your identity with your email and date of birth</li>
-                        <li><span className="feature-dot feature-dot--purple" />Set your own password and accept the terms</li>
-                        <li><span className="feature-dot feature-dot--orange" />Gain instant access to your portal</li>
+                        <li><span className="feature-dot feature-dot--green" />{t('patient_portal.claim.features.records_on_file')}</li>
+                        <li><span className="feature-dot feature-dot--blue" />{t('patient_portal.claim.features.verify_identity')}</li>
+                        <li><span className="feature-dot feature-dot--purple" />{t('patient_portal.claim.features.set_password')}</li>
+                        <li><span className="feature-dot feature-dot--orange" />{t('patient_portal.claim.features.instant_access')}</li>
                     </ul>
                 </div>
                 <div className="patient-auth-left-footer">
-                    Already have an account?{' '}
-                    <Link to="/patient/login" className="patient-auth-link">Sign in →</Link>
+                    {t('patient_portal.auth.have_account')}{' '}
+                    <Link to="/patient/login" className="patient-auth-link">{t('patient_portal.auth.sign_in_arrow')}</Link>
                 </div>
             </div>
 
@@ -216,16 +237,16 @@ export default function PatientClaim() {
                     {(step === 'request') && (
                         <>
                             <div className="patient-auth-card-header">
-                                <div className="patient-auth-card-title">Request portal access</div>
+                                <div className="patient-auth-card-title">{t('patient_portal.claim.request.title')}</div>
                                 <div className="patient-auth-card-sub">
-                                    Enter the email address and date of birth your doctor has on file. We'll send you a verification link.
+                                    {t('patient_portal.claim.request.subtitle')}
                                 </div>
                             </div>
                             <Stepper step="request" />
                             <form onSubmit={handleRequest} className="patient-auth-form" noValidate>
                                 {error && <div className="patient-auth-error" role="alert">{error}</div>}
                                 <div className="form-group">
-                                    <label htmlFor="email">Email on file with your doctor</label>
+                                    <label htmlFor="email">{t('patient_portal.claim.request.email_on_file')}</label>
                                     <input
                                         id="email"
                                         type="email"
@@ -239,8 +260,8 @@ export default function PatientClaim() {
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="dob">
-                                        Date of birth{' '}
-                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(if your doctor has this on file)</span>
+                                        {t('patient_portal.profile.date_of_birth')}{' '}
+                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('patient_portal.claim.request.if_doctor_has_on_file')}</span>
                                     </label>
                                     <input
                                         id="dob"
@@ -252,8 +273,8 @@ export default function PatientClaim() {
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="last4phone">
-                                        Last 4 digits of your phone number{' '}
-                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(if on file with your doctor)</span>
+                                        {t('patient_portal.claim.request.last_4_phone')}{' '}
+                                        <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{t('patient_portal.claim.request.if_on_file')}</span>
                                     </label>
                                     <input
                                         id="last4phone"
@@ -262,21 +283,21 @@ export default function PatientClaim() {
                                         maxLength={4}
                                         value={last4Phone}
                                         onChange={e => setLast4Phone(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                                        placeholder="e.g. 4567"
+                                        placeholder={t('patient_portal.claim.request.phone_placeholder')}
                                         disabled={loading}
                                         autoComplete="off"
                                     />
                                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                                        Required if your doctor recorded a phone number for you.
+                                        {t('patient_portal.claim.request.phone_hint')}
                                     </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
-                                    {loading ? 'Sending…' : 'Send verification link'}
+                                    {loading ? t('patient_portal.claim.request.sending') : t('patient_portal.claim.request.send_link')}
                                 </button>
                                 <div style={{ textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                                    Already have a link?{' '}
+                                    {t('patient_portal.claim.request.already_have_link')}{' '}
                                     <button type="button" className="patient-auth-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: '0.82rem' }} onClick={() => { clearError(); setStep('verify'); }}>
-                                        Enter it here
+                                        {t('patient_portal.claim.request.enter_it_here')}
                                     </button>
                                 </div>
                             </form>
@@ -290,15 +311,15 @@ export default function PatientClaim() {
                                 <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--success-bg)', display: 'grid', placeItems: 'center', margin: '0 auto 1rem' }}>
                                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                 </div>
-                                <div className="patient-auth-card-title">Check your email</div>
+                                <div className="patient-auth-card-title">{t('patient_portal.claim.sent.title')}</div>
                                 <div className="patient-auth-card-sub">
-                                    If a matching patient record was found, we've sent a verification link to{' '}
-                                    <strong>{email || 'your email address'}</strong>. The link expires in 24 hours.
+                                    {t('patient_portal.claim.sent.subtitle_prefix')}{' '}
+                                    <strong>{email || t('patient_portal.claim.sent.your_email_address')}</strong>. {t('patient_portal.claim.sent.expires')}
                                 </div>
                             </div>
                             <div style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '1rem', margin: '1rem 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                                <strong>Didn't receive it?</strong><br />
-                                Check your spam folder. If nothing arrives within a few minutes, confirm the email and date of birth are exactly as given to your doctor.
+                                <strong>{t('patient_portal.claim.sent.didnt_receive')}</strong><br />
+                                {t('patient_portal.claim.sent.check_spam')}
                             </div>
                             <button
                                 type="button"
@@ -306,12 +327,12 @@ export default function PatientClaim() {
                                 style={{ width: '100%', justifyContent: 'center' }}
                                 onClick={() => { clearError(); setStep('request'); }}
                             >
-                                Try again
+                                {t('patient_portal.common.try_again')}
                             </button>
-                            <div className="patient-auth-divider"><span>or</span></div>
+                            <div className="patient-auth-divider"><span>{t('patient_portal.common.or')}</span></div>
                             <div style={{ textAlign: 'center' }}>
                                 <button type="button" className="patient-auth-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: '0.875rem' }} onClick={() => { clearError(); setStep('verify'); }}>
-                                    I have a verification link — enter it manually
+                                    {t('patient_portal.claim.sent.enter_manually')}
                                 </button>
                             </div>
                         </>
@@ -321,33 +342,33 @@ export default function PatientClaim() {
                     {step === 'verify' && !preview && (
                         <>
                             <div className="patient-auth-card-header">
-                                <div className="patient-auth-card-title">Enter your verification link</div>
-                                <div className="patient-auth-card-sub">Paste the full link or the token from the email your clinic sent you.</div>
+                                <div className="patient-auth-card-title">{t('patient_portal.claim.verify.title')}</div>
+                                <div className="patient-auth-card-sub">{t('patient_portal.claim.verify.subtitle')}</div>
                             </div>
                             <Stepper step="verify" />
                             <form onSubmit={handleVerifyForm} className="patient-auth-form" noValidate>
                                 {error && <div className="patient-auth-error" role="alert">{error}</div>}
                                 <div className="form-group">
-                                    <label htmlFor="token">Verification token</label>
+                                    <label htmlFor="token">{t('patient_portal.claim.verify.token')}</label>
                                     <input
                                         id="token"
                                         type="text"
                                         value={token}
                                         onChange={e => setToken(e.target.value)}
-                                        placeholder="Paste your token here"
+                                        placeholder={t('patient_portal.claim.verify.token_placeholder')}
                                         disabled={loading}
                                         autoComplete="off"
                                         required
                                     />
                                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                                        You can paste the full URL from the email or just the token portion after <code>?token=</code>
+                                        {t('patient_portal.claim.verify.token_hint')} <code>?token=</code>
                                     </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading || !token.trim()}>
-                                    {loading ? 'Verifying…' : 'Verify and continue'}
+                                    {loading ? t('patient_portal.claim.verify.verifying') : t('patient_portal.claim.verify.continue')}
                                 </button>
                                 <button type="button" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { clearError(); setStep('request'); }}>
-                                    ← Back to request
+                                    {t('patient_portal.claim.verify.back_to_request')}
                                 </button>
                             </form>
                         </>
@@ -357,8 +378,8 @@ export default function PatientClaim() {
                     {step === 'complete' && preview && (
                         <>
                             <div className="patient-auth-card-header">
-                                <div className="patient-auth-card-title">Set up your account</div>
-                                <div className="patient-auth-card-sub">We found your patient record. Create a password to finish setting up your portal.</div>
+                                <div className="patient-auth-card-title">{t('patient_portal.claim.complete.title')}</div>
+                                <div className="patient-auth-card-sub">{t('patient_portal.claim.complete.subtitle')}</div>
                             </div>
                             <Stepper step="complete" />
 
@@ -371,14 +392,14 @@ export default function PatientClaim() {
                                 {error && <div className="patient-auth-error" role="alert">{error}</div>}
 
                                 <div className="form-group">
-                                    <label htmlFor="password">Create password</label>
+                                    <label htmlFor="password">{t('patient_portal.auth.create_password')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             id="password"
                                             type={showPassword ? 'text' : 'password'}
                                             value={password}
                                             onChange={e => setPassword(e.target.value)}
-                                            placeholder="Minimum 8 characters"
+                                            placeholder={t('patient_portal.auth.minimum_8_characters')}
                                             autoComplete="new-password"
                                             disabled={loading}
                                             required
@@ -391,19 +412,19 @@ export default function PatientClaim() {
                                             style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.8rem', color: 'var(--text-muted)' }}
                                             tabIndex={-1}
                                         >
-                                            {showPassword ? 'Hide' : 'Show'}
+                                            {showPassword ? t('patient_portal.common.hide') : t('patient_portal.common.show')}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="confirmPassword">Confirm password</label>
+                                    <label htmlFor="confirmPassword">{t('patient_portal.auth.confirm_password')}</label>
                                     <input
                                         id="confirmPassword"
                                         type={showPassword ? 'text' : 'password'}
                                         value={confirmPassword}
                                         onChange={e => setConfirmPassword(e.target.value)}
-                                        placeholder="Repeat your password"
+                                        placeholder={t('patient_portal.auth.repeat_password')}
                                         autoComplete="new-password"
                                         disabled={loading}
                                         required
@@ -418,8 +439,8 @@ export default function PatientClaim() {
                                             onChange={e => setTermsAccepted(e.target.checked)}
                                             style={{ marginTop: '0.1rem', flexShrink: 0 }}
                                         />
-                                        I accept the{' '}
-                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Terms of Service</span>
+                                        {t('patient_portal.claim.complete.accept_terms')}{' '}
+                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{t('patient_portal.auth.register.terms')}</span>
                                     </label>
                                     <label style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                                         <input
@@ -428,8 +449,8 @@ export default function PatientClaim() {
                                             onChange={e => setPrivacyAccepted(e.target.checked)}
                                             style={{ marginTop: '0.1rem', flexShrink: 0 }}
                                         />
-                                        I have read and accept the{' '}
-                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Privacy Notice</span>
+                                        {t('patient_portal.claim.complete.accept_privacy')}{' '}
+                                        <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{t('patient_portal.auth.register.privacy')}</span>
                                     </label>
                                 </div>
 
@@ -439,7 +460,7 @@ export default function PatientClaim() {
                                     style={{ width: '100%', justifyContent: 'center' }}
                                     disabled={loading || !termsAccepted || !privacyAccepted}
                                 >
-                                    {loading ? 'Creating account…' : 'Create account & sign in'}
+                                    {loading ? t('patient_portal.auth.register.creating_account') : t('patient_portal.claim.complete.create_and_sign_in')}
                                 </button>
                             </form>
                         </>
@@ -448,8 +469,8 @@ export default function PatientClaim() {
                     {/* Bottom link */}
                     {step !== 'done' && (
                         <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                            Already have an account?{' '}
-                            <Link to="/patient/login" className="patient-auth-link">Sign in</Link>
+                            {t('patient_portal.auth.have_account')}{' '}
+                            <Link to="/patient/login" className="patient-auth-link">{t('patient_portal.auth.sign_in')}</Link>
                         </div>
                     )}
                 </div>

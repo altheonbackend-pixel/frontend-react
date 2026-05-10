@@ -1,66 +1,68 @@
 // 3-step patient self-registration
 // Step 1: Personal  →  Step 2: Location & Timezone  →  Step 3: Security
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import api from '../../../shared/services/api';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
-const step1Schema = z.object({
-    first_name:    z.string().min(1, 'First name is required'),
-    last_name:     z.string().min(1, 'Last name is required'),
-    email:         z.string().email('Please enter a valid email'),
+const createStep1Schema = (t: TFunction) => z.object({
+    first_name:    z.string().min(1, t('patient_portal.auth.error.first_name_required')),
+    last_name:     z.string().min(1, t('patient_portal.auth.error.last_name_required')),
+    email:         z.string().email(t('patient_portal.auth.error.valid_email')),
     date_of_birth: z.string().optional(),
     phone_number:  z.string().optional(),
 });
 
-const step2Schema = z.object({
+const createStep2Schema = () => z.object({
     address:  z.string().optional(),
     timezone: z.string().optional(),
 });
 
-const step3Schema = z.object({
-    password:         z.string().min(8, 'Minimum 8 characters'),
-    confirm_password: z.string().min(1, 'Please confirm your password'),
+const createStep3Schema = (t: TFunction) => z.object({
+    password:         z.string().min(8, t('patient_portal.auth.error.password_too_short')),
+    confirm_password: z.string().min(1, t('patient_portal.auth.error.confirm_password_required')),
     terms_accepted:   z.boolean().refine(v => v === true, {
-        message: 'You must accept the Terms of Service to register.',
+        message: t('patient_portal.auth.error.accept_terms'),
     }),
 }).refine(d => d.password === d.confirm_password, {
-    message: "Passwords don't match",
+    message: t('patient_portal.auth.error.passwords_mismatch'),
     path: ['confirm_password'],
 });
 
-type Step1Data = z.infer<typeof step1Schema>;
-type Step2Data = z.infer<typeof step2Schema>;
-type Step3Data = z.infer<typeof step3Schema>;
+type Step1Data = z.infer<ReturnType<typeof createStep1Schema>>;
+type Step2Data = z.infer<ReturnType<typeof createStep2Schema>>;
+type Step3Data = z.infer<ReturnType<typeof createStep3Schema>>;
 type AllData   = Partial<Step1Data & Step2Data & Step3Data>;
 
-const STEPS = ['Personal', 'Location', 'Security'];
+const STEPS = ['personal', 'location', 'security'] as const;
 
 const TIMEZONES = [
-    { value: 'UTC',                 label: 'UTC' },
-    { value: 'Asia/Karachi',        label: 'Pakistan (UTC+5)' },
-    { value: 'Asia/Kolkata',        label: 'India (UTC+5:30)' },
-    { value: 'Asia/Dhaka',          label: 'Bangladesh (UTC+6)' },
-    { value: 'Asia/Dubai',          label: 'UAE (UTC+4)' },
-    { value: 'Asia/Riyadh',         label: 'Saudi Arabia (UTC+3)' },
-    { value: 'Asia/Baghdad',        label: 'Iraq (UTC+3)' },
-    { value: 'Asia/Istanbul',       label: 'Turkey (UTC+3)' },
-    { value: 'Europe/London',       label: 'United Kingdom (UTC+0/+1)' },
-    { value: 'Europe/Paris',        label: 'France / Central Europe (UTC+1/+2)' },
-    { value: 'Europe/Berlin',       label: 'Germany (UTC+1/+2)' },
-    { value: 'Africa/Cairo',        label: 'Egypt (UTC+2)' },
-    { value: 'Africa/Lagos',        label: 'Nigeria (UTC+1)' },
-    { value: 'Africa/Nairobi',      label: 'Kenya / East Africa (UTC+3)' },
-    { value: 'America/New_York',    label: 'US Eastern (UTC-5/-4)' },
-    { value: 'America/Chicago',     label: 'US Central (UTC-6/-5)' },
-    { value: 'America/Los_Angeles', label: 'US Pacific (UTC-8/-7)' },
-    { value: 'Australia/Sydney',    label: 'Australia Eastern (UTC+10/+11)' },
+    { value: 'UTC',                 labelKey: 'patient_portal.timezones.utc' },
+    { value: 'Asia/Karachi',        labelKey: 'patient_portal.timezones.asia_karachi' },
+    { value: 'Asia/Kolkata',        labelKey: 'patient_portal.timezones.asia_kolkata' },
+    { value: 'Asia/Dhaka',          labelKey: 'patient_portal.timezones.asia_dhaka' },
+    { value: 'Asia/Dubai',          labelKey: 'patient_portal.timezones.asia_dubai' },
+    { value: 'Asia/Riyadh',         labelKey: 'patient_portal.timezones.asia_riyadh' },
+    { value: 'Asia/Baghdad',        labelKey: 'patient_portal.timezones.asia_baghdad' },
+    { value: 'Asia/Istanbul',       labelKey: 'patient_portal.timezones.asia_istanbul' },
+    { value: 'Europe/London',       labelKey: 'patient_portal.timezones.europe_london' },
+    { value: 'Europe/Paris',        labelKey: 'patient_portal.timezones.europe_paris' },
+    { value: 'Europe/Berlin',       labelKey: 'patient_portal.timezones.europe_berlin' },
+    { value: 'Africa/Cairo',        labelKey: 'patient_portal.timezones.africa_cairo' },
+    { value: 'Africa/Lagos',        labelKey: 'patient_portal.timezones.africa_lagos' },
+    { value: 'Africa/Nairobi',      labelKey: 'patient_portal.timezones.africa_nairobi' },
+    { value: 'America/New_York',    labelKey: 'patient_portal.timezones.america_new_york' },
+    { value: 'America/Chicago',     labelKey: 'patient_portal.timezones.america_chicago' },
+    { value: 'America/Los_Angeles', labelKey: 'patient_portal.timezones.america_los_angeles' },
+    { value: 'Australia/Sydney',    labelKey: 'patient_portal.timezones.australia_sydney' },
 ];
 
 const EyeOn = () => (
@@ -77,7 +79,11 @@ const EyeOff = () => (
 );
 
 export default function PatientRegister() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
+    const step1Schema = useMemo(() => createStep1Schema(t), [t]);
+    const step2Schema = useMemo(() => createStep2Schema(), []);
+    const step3Schema = useMemo(() => createStep3Schema(t), [t]);
 
     const [step, setStep] = useState(0);
     const [formData, setFormData] = useState<AllData>({});
@@ -122,10 +128,10 @@ export default function PatientRegister() {
                 const resp = err.response.data;
                 const msg = typeof resp === 'object'
                     ? Object.values(resp).flat().join(' ')
-                    : 'Registration failed. Please try again.';
+                    : t('patient_portal.auth.register.error_failed');
                 setError(msg);
             } else {
-                setError('Network error. Please try again.');
+                setError(t('patient_portal.common.error.network_retry'));
             }
         } finally {
             setSubmitting(false);
@@ -143,23 +149,23 @@ export default function PatientRegister() {
                                 <path d="M18 10v16M10 18h16" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                             </svg>
                         </div>
-                        <div className="patient-auth-brand-name">Altheon Patient Portal</div>
+                        <div className="patient-auth-brand-name">{t('patient_portal.brand.full')}</div>
                     </div>
                     <div className="patient-auth-left-body">
-                        <div className="patient-auth-headline">Your health, clear and connected.</div>
+                        <div className="patient-auth-headline">{t('patient_portal.auth.headline')}</div>
                     </div>
                 </div>
                 <div className="patient-auth-right">
                     <div className="patient-auth-card" style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                        <div className="patient-auth-card-title">Account created!</div>
+                        <div className="patient-auth-card-title">{t('patient_portal.auth.register.success_title')}</div>
                         <div className="patient-auth-card-sub" style={{ marginTop: '0.5rem' }}>
                             {successInfo.merged
-                                ? 'We found an existing patient record linked to your email. Your account is now connected to your health records.'
-                                : 'Your account is ready. You can now browse doctors and book appointments.'}
+                                ? t('patient_portal.auth.register.success_merged')
+                                : t('patient_portal.auth.register.success_new')}
                         </div>
                         <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                            Redirecting to your dashboard…
+                            {t('patient_portal.auth.register.redirecting')}
                         </div>
                     </div>
                 </div>
@@ -177,22 +183,22 @@ export default function PatientRegister() {
                             <path d="M18 10v16M10 18h16" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                         </svg>
                     </div>
-                    <div className="patient-auth-brand-name">Altheon Patient Portal</div>
+                    <div className="patient-auth-brand-name">{t('patient_portal.brand.full')}</div>
                 </div>
                 <div className="patient-auth-left-body">
-                    <div className="patient-auth-headline">Your health, clear and connected.</div>
+                    <div className="patient-auth-headline">{t('patient_portal.auth.headline')}</div>
                     <div className="patient-auth-sub">
-                        Create your account to browse doctors, request appointments, and access your health records.
+                        {t('patient_portal.auth.register.left_subtitle')}
                     </div>
                     <ul className="patient-auth-features">
-                        <li><span className="feature-dot feature-dot--green" />Browse doctors by specialty</li>
-                        <li><span className="feature-dot feature-dot--blue" />Request and track appointments</li>
-                        <li><span className="feature-dot feature-dot--purple" />View your health records</li>
-                        <li><span className="feature-dot feature-dot--orange" />Stay notified about your care</li>
+                        <li><span className="feature-dot feature-dot--green" />{t('patient_portal.auth.register.feature_browse')}</li>
+                        <li><span className="feature-dot feature-dot--blue" />{t('patient_portal.auth.features.appointments')}</li>
+                        <li><span className="feature-dot feature-dot--purple" />{t('patient_portal.auth.register.feature_records')}</li>
+                        <li><span className="feature-dot feature-dot--orange" />{t('patient_portal.auth.features.notifications')}</li>
                     </ul>
                 </div>
                 <div className="patient-auth-left-footer">
-                    Already have an account? <Link to="/patient/login" className="patient-auth-link">Sign in →</Link>
+                    {t('patient_portal.auth.register.have_account')} <Link to="/patient/login" className="patient-auth-link">{t('patient_portal.auth.sign_in_arrow')}</Link>
                 </div>
             </div>
 
@@ -204,47 +210,47 @@ export default function PatientRegister() {
                             <div
                                 key={label}
                                 className={`auth-step-dot${i === step ? ' active' : i < step ? ' done' : ''}`}
-                                title={label}
+                                title={t(`patient_portal.auth.register.steps.${label}`)}
                             />
                         ))}
-                        <span className="auth-step-label">Step {step + 1} of {STEPS.length} — {STEPS[step]}</span>
+                        <span className="auth-step-label">{t('patient_portal.auth.register.step_label', { current: step + 1, total: STEPS.length, label: t(`patient_portal.auth.register.steps.${STEPS[step]}`) })}</span>
                     </div>
 
                     {/* ── Step 1: Personal ── */}
                     {step === 0 && (
                         <>
-                            <div className="patient-auth-card-title">Create your account</div>
-                            <div className="patient-auth-card-sub">Your personal information</div>
+                            <div className="patient-auth-card-title">{t('patient_portal.auth.register.title')}</div>
+                            <div className="patient-auth-card-sub">{t('patient_portal.auth.register.personal_information')}</div>
                             <form onSubmit={handleNext1} className="patient-auth-form" style={{ marginTop: '1.25rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div className="form-group">
-                                        <label htmlFor="first_name">First name</label>
+                                        <label htmlFor="first_name">{t('patient_portal.auth.register.first_name')}</label>
                                         <input id="first_name" placeholder="Sara" {...s1.register('first_name')} />
                                         {s1.formState.errors.first_name && <span className="form-field-error">{s1.formState.errors.first_name.message}</span>}
                                     </div>
                                     <div className="form-group">
-                                        <label htmlFor="last_name">Last name</label>
+                                        <label htmlFor="last_name">{t('patient_portal.auth.register.last_name')}</label>
                                         <input id="last_name" placeholder="Ahmed" {...s1.register('last_name')} />
                                         {s1.formState.errors.last_name && <span className="form-field-error">{s1.formState.errors.last_name.message}</span>}
                                     </div>
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="reg_email">Email address</label>
+                                    <label htmlFor="reg_email">{t('patient_portal.auth.email_address')}</label>
                                     <input id="reg_email" type="email" autoComplete="email" placeholder="you@example.com" {...s1.register('email')} />
                                     {s1.formState.errors.email && <span className="form-field-error">{s1.formState.errors.email.message}</span>}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div className="form-group">
-                                        <label htmlFor="date_of_birth">Date of birth <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                        <label htmlFor="date_of_birth">{t('patient_portal.profile.date_of_birth')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span></label>
                                         <input id="date_of_birth" type="date" {...s1.register('date_of_birth')} />
                                     </div>
                                     <div className="form-group">
-                                        <label htmlFor="phone_number">Phone <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                        <label htmlFor="phone_number">{t('patient_portal.profile.phone_number')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span></label>
                                         <input id="phone_number" type="tel" placeholder="+92 300 0000000" {...s1.register('phone_number')} />
                                     </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '0.5rem' }}>
-                                    Next →
+                                    {t('patient_portal.auth.register.next')}
                                 </button>
                             </form>
                         </>
@@ -253,24 +259,24 @@ export default function PatientRegister() {
                     {/* ── Step 2: Location & Timezone ── */}
                     {step === 1 && (
                         <>
-                            <div className="patient-auth-card-title">Your location</div>
-                            <div className="patient-auth-card-sub">Helps display appointment times correctly</div>
+                            <div className="patient-auth-card-title">{t('patient_portal.auth.register.location_title')}</div>
+                            <div className="patient-auth-card-sub">{t('patient_portal.auth.register.location_subtitle')}</div>
                             <form onSubmit={handleNext2} className="patient-auth-form" style={{ marginTop: '1.25rem' }}>
                                 <div className="form-group">
-                                    <label htmlFor="address">Address <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                    <label htmlFor="address">{t('patient_portal.profile.address')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span></label>
                                     <input id="address" placeholder="123 Main St, City" {...s2.register('address')} />
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="timezone">Your timezone</label>
+                                    <label htmlFor="timezone">{t('patient_portal.settings.timezone')}</label>
                                     <select id="timezone" {...s2.register('timezone')} style={{ width: '100%' }}>
                                         {TIMEZONES.map(tz => (
-                                            <option key={tz.value} value={tz.value}>{tz.label}</option>
+                                            <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                    <button type="button" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(0)}>← Back</button>
-                                    <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>Next →</button>
+                                    <button type="button" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(0)}>{t('patient_portal.common.back')}</button>
+                                    <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }}>{t('patient_portal.auth.register.next')}</button>
                                 </div>
                             </form>
                         </>
@@ -279,22 +285,22 @@ export default function PatientRegister() {
                     {/* ── Step 3: Security ── */}
                     {step === 2 && (
                         <>
-                            <div className="patient-auth-card-title">Create a password</div>
-                            <div className="patient-auth-card-sub">Almost done — set a strong password</div>
+                            <div className="patient-auth-card-title">{t('patient_portal.auth.register.create_password')}</div>
+                            <div className="patient-auth-card-sub">{t('patient_portal.auth.register.password_subtitle')}</div>
                             <form onSubmit={handleSubmit3} className="patient-auth-form" style={{ marginTop: '1.25rem' }}>
                                 {error && <div className="patient-auth-error" role="alert">{error}</div>}
 
                                 <div className="form-group">
-                                    <label htmlFor="password">Password</label>
+                                    <label htmlFor="password">{t('patient_portal.auth.password')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             id="password"
                                             type={showPassword ? 'text' : 'password'}
-                                            placeholder="Min. 8 characters"
+                                            placeholder={t('patient_portal.auth.minimum_8_characters_short')}
                                             style={{ paddingRight: '2.75rem' }}
                                             {...s3.register('password')}
                                         />
-                                        <button type="button" onClick={() => setShowPassword(p => !p)} className="btn-ghost" style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)' }} aria-label={showPassword ? 'Hide' : 'Show'}>
+                                        <button type="button" onClick={() => setShowPassword(p => !p)} className="btn-ghost" style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)' }} aria-label={showPassword ? t('patient_portal.common.hide') : t('patient_portal.common.show')}>
                                             {showPassword ? <EyeOff /> : <EyeOn />}
                                         </button>
                                     </div>
@@ -302,16 +308,16 @@ export default function PatientRegister() {
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="confirm_password">Confirm password</label>
+                                    <label htmlFor="confirm_password">{t('patient_portal.auth.register.confirm_password')}</label>
                                     <div style={{ position: 'relative' }}>
                                         <input
                                             id="confirm_password"
                                             type={showConfirm ? 'text' : 'password'}
-                                            placeholder="Repeat your password"
+                                            placeholder={t('patient_portal.auth.repeat_password')}
                                             style={{ paddingRight: '2.75rem' }}
                                             {...s3.register('confirm_password')}
                                         />
-                                        <button type="button" onClick={() => setShowConfirm(p => !p)} className="btn-ghost" style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)' }} aria-label={showConfirm ? 'Hide' : 'Show'}>
+                                        <button type="button" onClick={() => setShowConfirm(p => !p)} className="btn-ghost" style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)' }} aria-label={showConfirm ? t('patient_portal.common.hide') : t('patient_portal.common.show')}>
                                             {showConfirm ? <EyeOff /> : <EyeOn />}
                                         </button>
                                     </div>
@@ -321,18 +327,18 @@ export default function PatientRegister() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '8px 0 4px' }}>
                                     <input type="checkbox" id="terms" {...s3.register('terms_accepted')} style={{ marginTop: '3px', flexShrink: 0 }} />
                                     <label htmlFor="terms" style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                        I accept the{' '}
-                                        <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Terms of Service</a>
-                                        {' '}and{' '}
-                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Privacy Notice</a>.
+                                        {t('patient_portal.claim.complete.accept_terms')}{' '}
+                                        <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{t('patient_portal.auth.register.terms')}</a>
+                                        {' '}{t('patient_portal.common.and')}{' '}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{t('patient_portal.auth.register.privacy')}</a>.
                                     </label>
                                 </div>
                                 {s3.formState.errors.terms_accepted && <span className="form-field-error">{s3.formState.errors.terms_accepted.message}</span>}
 
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
-                                    <button type="button" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>← Back</button>
+                                    <button type="button" className="btn btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setStep(1)}>{t('patient_portal.common.back')}</button>
                                     <button type="submit" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} disabled={submitting}>
-                                        {submitting ? 'Creating account…' : 'Create account'}
+                                        {submitting ? t('patient_portal.auth.register.creating_account') : t('patient_portal.auth.create_account_short')}
                                     </button>
                                 </div>
                             </form>
@@ -340,8 +346,8 @@ export default function PatientRegister() {
                     )}
 
                     <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                        This portal is for patients of Altheon Connect healthcare providers.<br />
-                        Your session is secured and your data is protected.
+                        {t('patient_portal.auth.footer_line1')}<br />
+                        {t('patient_portal.auth.footer_line2')}
                     </div>
                 </div>
             </div>

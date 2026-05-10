@@ -1,6 +1,8 @@
 // src/shared/components/StatusBadge.tsx
 // Single unified component for every status in the app.
 
+import { useTranslation } from 'react-i18next';
+
 type StatusType =
     | 'active' | 'inactive' | 'transferred' | 'deceased'
     | 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'rejected'
@@ -42,8 +44,9 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, label, size = 'sm' }: StatusBadgeProps) {
+    const { t } = useTranslation();
     const normalised = status?.toLowerCase().replace(/-/g, '_') as StatusType;
-    const displayLabel = label ?? LABELS[normalised] ?? status;
+    const displayLabel = label ?? t(`common.status.${normalised}`, { defaultValue: LABELS[normalised] ?? status });
     return (
         <span
             className={`status-badge status-${normalised}`}

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Avatar } from '../../../shared/components/Avatar';
 import { PatientNotificationBell } from './PatientNotificationBell';
@@ -41,33 +42,35 @@ const Icons = {
 };
 
 const NAV_LINKS = [
-    { to: '/patient/dashboard',    icon: Icons.dashboard,    label: 'Dashboard' },
-    { to: '/patient/appointments', icon: Icons.appointments, label: 'Appointments' },
-    { to: '/patient/health',       icon: Icons.health,       label: 'My Health' },
-    { to: '/patient/account',      icon: Icons.account,      label: 'Account' },
+    { to: '/patient/dashboard',    icon: Icons.dashboard,    labelKey: 'patient_portal.nav.dashboard' },
+    { to: '/patient/appointments', icon: Icons.appointments, labelKey: 'patient_portal.nav.appointments' },
+    { to: '/patient/health',       icon: Icons.health,       labelKey: 'patient_portal.nav.health' },
+    { to: '/patient/account',      icon: Icons.account,      labelKey: 'patient_portal.nav.account' },
 ];
 
 export function PatientSidebar({ isOpen, onClose }: PatientSidebarProps) {
     const { logout, patientProfile } = useAuth();
+    const { t } = useTranslation();
+    const patientLabel = t('patient_portal.common.patient');
 
     return (
-        <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label="Patient navigation">
+        <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label={t('patient_portal.nav.patient_navigation')}>
             <div className="sidebar-brand">
                 <div className="sidebar-brand-dot" />
-                <span className="sidebar-brand-name">Altheon Patient</span>
+                <span className="sidebar-brand-name">{t('patient_portal.brand.short')}</span>
             </div>
 
             <div className="sidebar-doctor">
-                <Avatar name={patientProfile?.full_name ?? 'Patient'} size="sm" />
+                <Avatar name={patientProfile?.full_name ?? patientLabel} size="sm" />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="sidebar-doctor-name">{patientProfile?.full_name ?? 'Patient'}</div>
-                    <div className="sidebar-doctor-specialty">Portal access active</div>
+                    <div className="sidebar-doctor-name">{patientProfile?.full_name ?? patientLabel}</div>
+                    <div className="sidebar-doctor-specialty">{t('patient_portal.nav.portal_access_active')}</div>
                 </div>
                 <PatientNotificationBell />
             </div>
 
             <nav className="sidebar-nav" role="navigation">
-                <div className="sidebar-nav-section">Portal</div>
+                <div className="sidebar-nav-section">{t('patient_portal.nav.portal')}</div>
                 {NAV_LINKS.map(link => (
                     <NavLink
                         key={link.to}
@@ -76,7 +79,7 @@ export function PatientSidebar({ isOpen, onClose }: PatientSidebarProps) {
                         onClick={onClose}
                     >
                         {link.icon}
-                        {link.label}
+                        {t(link.labelKey)}
                     </NavLink>
                 ))}
             </nav>
@@ -84,7 +87,7 @@ export function PatientSidebar({ isOpen, onClose }: PatientSidebarProps) {
             <div className="sidebar-bottom">
                 <button className="sidebar-nav-item sidebar-logout" onClick={logout}>
                     {Icons.logout}
-                    Log out
+                    {t('patient_portal.nav.logout')}
                 </button>
             </div>
         </aside>

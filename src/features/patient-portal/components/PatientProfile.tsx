@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import { Avatar } from '../../../shared/components/Avatar';
@@ -21,7 +22,8 @@ const patientProfileSchema = z.object({
 type PatientProfileFormData = z.infer<typeof patientProfileSchema>;
 
 export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
-    usePageTitle('Patient Profile');
+    const { t } = useTranslation();
+    usePageTitle(t('patient_portal.profile.document_title'));
     const queryClient = useQueryClient();
 
     const { data: profile, isLoading, isError } = useQuery({
@@ -60,16 +62,16 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
         mutationFn: (data: PatientProfileFormData) => patientPortalService.updateProfile(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profile() });
-            toast.success('Profile updated successfully.');
+            toast.success(t('patient_portal.profile.toast.updated'));
         },
-        onError: (err) => toast.error(parseApiError(err, 'Failed to update profile.')),
+        onError: (err) => toast.error(parseApiError(err, t('patient_portal.profile.error.update'))),
     });
 
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title="Profile" subtitle="Manage your contact details." />}
-                <SectionCard title="Loading…"><TabSkeleton rows={5} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.profile.title')} subtitle={t('patient_portal.profile.subtitle_short')} />}
+                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={5} /></SectionCard>
             </>
         );
     }
@@ -77,8 +79,8 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
     if (isError || !profile) {
         return (
             <>
-                {!asTab && <PageHeader title="Profile" subtitle="" />}
-                <div className="error-message" style={{ margin: '1rem' }}>Failed to load profile. Please refresh.</div>
+                {!asTab && <PageHeader title={t('patient_portal.profile.title')} subtitle="" />}
+                <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.profile.error.load')}</div>
             </>
         );
     }
@@ -87,8 +89,8 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
         <>
             {!asTab && (
                 <PageHeader
-                    title="Profile"
-                    subtitle="Manage your contact details and the core information used in your portal."
+                    title={t('patient_portal.profile.title')}
+                    subtitle={t('patient_portal.profile.subtitle')}
                 />
             )}
 
@@ -102,10 +104,10 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                         </div>
                         <div style={{ width: '100%', display: 'grid', gap: '0.65rem', marginTop: '0.5rem' }}>
                             {[
-                                { label: 'Patient ID', value: profile.patient_id },
-                                { label: 'Date of birth', value: profile.date_of_birth ?? '—' },
-                                { label: 'Blood group', value: profile.blood_group ?? '—' },
-                                { label: 'Primary doctor', value: profile.primary_doctor_name ?? '—' },
+                                { label: t('patient_portal.profile.patient_id'), value: profile.patient_id },
+                                { label: t('patient_portal.profile.date_of_birth'), value: profile.date_of_birth ?? '—' },
+                                { label: t('patient_portal.profile.blood_group'), value: profile.blood_group ?? '—' },
+                                { label: t('patient_portal.profile.primary_doctor'), value: profile.primary_doctor_name ?? '—' },
                             ].map(({ label, value }) => (
                                 <div key={label} style={{ padding: '0.75rem 0.875rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{label}</div>
@@ -116,29 +118,29 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                     </div>
                 </SectionCard>
 
-                <SectionCard title="Contact details">
+                <SectionCard title={t('patient_portal.profile.contact_details')}>
                     <form className="form" onSubmit={handleSubmit(data => saveProfile(data))}>
                         <div className="form-group">
-                            <label htmlFor="phone_number">Phone number</label>
+                            <label htmlFor="phone_number">{t('patient_portal.profile.phone_number')}</label>
                             <input id="phone_number" {...register('phone_number')} />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="address">Address</label>
+                            <label htmlFor="address">{t('patient_portal.profile.address')}</label>
                             <textarea id="address" rows={3} {...register('address')} />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <div className="form-group">
-                                <label htmlFor="emergency_contact_name">Emergency contact name</label>
+                                <label htmlFor="emergency_contact_name">{t('patient_portal.profile.emergency_contact_name')}</label>
                                 <input id="emergency_contact_name" {...register('emergency_contact_name')} />
                             </div>
                             <div className="form-group">
-                                <label htmlFor="emergency_contact_number">Emergency contact number</label>
+                                <label htmlFor="emergency_contact_number">{t('patient_portal.profile.emergency_contact_number')}</label>
                                 <input id="emergency_contact_number" {...register('emergency_contact_number')} />
                             </div>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                             <button type="submit" className="btn btn-primary" disabled={isSubmitting || !isDirty}>
-                                {isSubmitting ? 'Saving…' : 'Save changes'}
+                                {isSubmitting ? t('patient_portal.common.saving') : t('patient_portal.profile.save_changes')}
                             </button>
                         </div>
                     </form>
