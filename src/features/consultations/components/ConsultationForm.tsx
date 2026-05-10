@@ -46,6 +46,8 @@ interface Consultation {
     bp_diastolic: number | null;
     blood_pressure_display?: string | null;
     visible_to_patient?: boolean;
+    patient_summary?: string;
+    patient_instructions?: string;
 }
 
 export interface SavedRx {
@@ -110,6 +112,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             bp_systolic: null,
             bp_diastolic: null,
             visible_to_patient: true,
+            patient_summary: '',
+            patient_instructions: '',
         },
     });
 
@@ -292,7 +296,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 temperature: consultationToEdit.temperature,
                 bp_systolic: consultationToEdit.bp_systolic,
                 bp_diastolic: consultationToEdit.bp_diastolic,
-                visible_to_patient: true,
+                visible_to_patient: consultationToEdit.visible_to_patient ?? true,
+                patient_summary: consultationToEdit.patient_summary || '',
+                patient_instructions: consultationToEdit.patient_instructions || '',
             });
             setSymptoms(consultationToEdit.symptoms || []);
         }
@@ -768,6 +774,35 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         />
                     </label>
                 </div>
+
+                {/* Patient-facing fields — only relevant when sharing is on */}
+                {watch('visible_to_patient') && (
+                    <div style={{ background: 'var(--accent-lighter)', borderRadius: 'var(--radius-md)', padding: '0.875rem', margin: '0.75rem 0', display: 'grid', gap: '0.75rem' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                            Patient portal content
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="patient_summary">Patient-friendly summary</label>
+                            <textarea
+                                id="patient_summary"
+                                className="textarea"
+                                rows={3}
+                                placeholder="Plain-language summary of today's visit that the patient can read."
+                                {...register('patient_summary')}
+                            />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 0 }}>
+                            <label htmlFor="patient_instructions">Next steps / instructions for patient</label>
+                            <textarea
+                                id="patient_instructions"
+                                className="textarea"
+                                rows={2}
+                                placeholder="e.g. Take medication with food. Return in 2 weeks if no improvement."
+                                {...register('patient_instructions')}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <hr />
 

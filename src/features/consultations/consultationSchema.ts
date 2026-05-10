@@ -9,6 +9,8 @@ export const consultationSchema = z.object({
   medical_report: z.string(),
   follow_up_date: z.string().nullable().optional(),
   visible_to_patient: z.boolean(),
+  patient_summary: z.string(),
+  patient_instructions: z.string(),
   height_unit: z.enum(['cm', 'm']),
   // Vitals — optional; setValueAs in register converts empty string to null before zod sees it
   weight: z.number().positive('Weight must be positive').max(500, 'Weight too high').optional().nullable(),
