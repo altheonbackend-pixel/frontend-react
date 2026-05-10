@@ -46,8 +46,8 @@ interface Consultation {
     bp_diastolic: number | null;
     blood_pressure_display?: string | null;
     visible_to_patient?: boolean;
-    patient_summary?: string;
-    patient_instructions?: string;
+    patient_summary?: string | null;
+    patient_instructions?: string | null;
 }
 
 export interface SavedRx {
