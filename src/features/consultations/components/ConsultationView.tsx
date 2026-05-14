@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
+import Dialog from '../../../shared/components/ui/Dialog';
 import { amendConsultation } from '../services/consultationService';
 import type { Consultation } from '../../../shared/types';
 
@@ -38,24 +39,18 @@ function fmtDateTime(iso: string | null | undefined) {
 
 const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationViewProps) => {
     const [amendOpen, setAmendOpen] = useState(false);
-    const [amendReason, setAmendReason] = useState('');
-    const [amendLoading, setAmendLoading] = useState(false);
 
     const isSigned = c.consultation_status === 'signed';
 
-    const handleAmendConfirm = async () => {
-        if (!amendReason.trim()) return;
-        setAmendLoading(true);
+    const handleAmendConfirm = async (reason?: string) => {
         try {
-            const res = await amendConsultation(c.id, amendReason.trim());
+            const res = await amendConsultation(c.id, reason!);
             toast.success('Consultation unlocked for amendment.');
             setAmendOpen(false);
-            setAmendReason('');
             onAmend(res.data as Consultation);
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to amend consultation.'));
-        } finally {
-            setAmendLoading(false);
+            throw err; // re-throw so Dialog keeps its submitting state reset
         }
     };
 
@@ -312,68 +307,17 @@ const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationVie
                 </div>
             </Drawer>
 
-            {/* Amendment dialog */}
-            {amendOpen && (
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Amend consultation"
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 1100,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'rgba(0,0,0,0.45)',
-                    }}
-                    onClick={e => { if (e.target === e.currentTarget) setAmendOpen(false); }}
-                >
-                    <div style={{
-                        background: 'var(--bg-card)',
-                        borderRadius: '12px',
-                        padding: '28px 32px',
-                        width: '440px',
-                        maxWidth: 'calc(100vw - 32px)',
-                        boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-                        display: 'flex', flexDirection: 'column', gap: '16px',
-                    }}>
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Amend Consultation</h2>
-                        <p style={{ margin: 0, fontSize: '0.87rem', color: 'var(--text-secondary)' }}>
-                            Amending will unlock this consultation for editing. Provide a reason for the amendment — it will be stored permanently.
-                        </p>
-                        <div>
-                            <label htmlFor="amend-reason" style={{ display: 'block', fontSize: '0.83rem', fontWeight: 600, marginBottom: '6px' }}>
-                                Amendment reason <span style={{ color: 'var(--color-danger)' }}>*</span>
-                            </label>
-                            <textarea
-                                id="amend-reason"
-                                rows={3}
-                                className="input"
-                                style={{ width: '100%', resize: 'vertical', boxSizing: 'border-box' }}
-                                placeholder="e.g. Incorrect diagnosis code entered"
-                                value={amendReason}
-                                onChange={e => setAmendReason(e.target.value)}
-                                autoFocus
-                            />
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                            <button
-                                type="button"
-                                className="cancel-button"
-                                onClick={() => { setAmendOpen(false); setAmendReason(''); }}
-                                disabled={amendLoading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleAmendConfirm}
-                                disabled={!amendReason.trim() || amendLoading}
-                            >
-                                {amendLoading ? 'Saving…' : 'Confirm Amendment'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={amendOpen}
+                onClose={() => setAmendOpen(false)}
+                onConfirm={handleAmendConfirm}
+                title="Amend Consultation"
+                message="Amending will unlock this consultation for editing. The reason will be stored permanently on the record."
+                confirmLabel="Confirm Amendment"
+                reasonLabel="Amendment reason"
+                reasonPlaceholder="e.g. Incorrect diagnosis code entered"
+                requireReason
+            />
         </>
     );
 };
