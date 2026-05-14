@@ -36,6 +36,12 @@
   color: var(--text-primary);
   letter-spacing: -0.5px;
   line-height: var(--leading-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal;
+  overflow-wrap: normal;
+  max-width: 100%;
 }
 
 /* ── Action buttons (in the detail header) ── */
