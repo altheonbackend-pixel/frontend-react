@@ -12,7 +12,7 @@ import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../../../shared/services/api';
-import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
+import { Dialog, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
@@ -70,7 +70,6 @@ const Appointments = () => {
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
     const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'no_show' } | null>(null);
     const [cancelTarget, setCancelTarget] = useState<{ id: number } | null>(null);
-    const [cancelReason, setCancelReason] = useState('');
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; patientName: string } | null>(null);
     const [rsDate, setRsDate] = useState('');
     const [rsSlots, setRsSlots] = useState<{ time: string; datetime: string; status: string; patient_name?: string }[]>([]);
@@ -81,9 +80,7 @@ const Appointments = () => {
     const [rebookPatientId, setRebookPatientId] = useState<string | undefined>(undefined);
     const [filterFollowUpOnly, setFilterFollowUpOnly] = useState(false);
     const [approveTarget, setApproveTarget] = useState<{ id: number; patientName: string } | null>(null);
-    const [approveInstructions, setApproveInstructions] = useState('');
     const [rejectTarget, setRejectTarget] = useState<{ id: number; patientName: string } | null>(null);
-    const [rejectReason, setRejectReason] = useState('');
 
     const selectedDate = toYYYYMMDD(date);
 
@@ -112,31 +109,31 @@ const Appointments = () => {
         }
     }, [sectionParam, pendingRequests.length]);
 
-    const handleApprove = async () => {
+    const handleApprove = async (instructions?: string) => {
         if (!approveTarget) return;
         try {
-            await api.post(`/appointments/${approveTarget.id}/approve/`, { portal_instructions: approveInstructions });
+            await api.post(`/appointments/${approveTarget.id}/approve/`, { portal_instructions: instructions ?? '' });
             toast.success('Appointment approved.');
             setApproveTarget(null);
-            setApproveInstructions('');
             refetchRequests();
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to approve.'));
+            throw err;
         }
     };
 
-    const handleReject = async () => {
+    const handleReject = async (reason?: string) => {
         if (!rejectTarget) return;
         try {
-            await api.post(`/appointments/${rejectTarget.id}/reject/`, { reason: rejectReason });
+            await api.post(`/appointments/${rejectTarget.id}/reject/`, { reason: reason ?? '' });
             toast.success('Request rejected.');
             setRejectTarget(null);
-            setRejectReason('');
             refetchRequests();
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to reject.'));
+            throw err;
         }
     };
 
@@ -271,16 +268,16 @@ const Appointments = () => {
         }
     };
 
-    const executeCancelWithReason = async () => {
+    const executeCancelWithReason = async (reason?: string) => {
         if (!cancelTarget) return;
         try {
-            await api.post(`/appointments/${cancelTarget.id}/cancel/`, { reason: cancelReason });
+            await api.post(`/appointments/${cancelTarget.id}/cancel/`, { reason: reason ?? '' });
             toast.success('Appointment cancelled.');
             setCancelTarget(null);
-            setCancelReason('');
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to cancel appointment.'));
+            throw err;
         }
     };
 
@@ -339,13 +336,13 @@ const Appointments = () => {
                                 <div className="request-card__actions">
                                     <button
                                         className="btn btn-success btn-sm"
-                                        onClick={() => { setApproveTarget({ id: req.id, patientName: req.patient_name }); setApproveInstructions(''); }}
+                                        onClick={() => setApproveTarget({ id: req.id, patientName: req.patient_name })}
                                     >
                                         Approve
                                     </button>
                                     <button
                                         className="btn-danger-outline btn-sm"
-                                        onClick={() => { setRejectTarget({ id: req.id, patientName: req.patient_name }); setRejectReason(''); }}
+                                        onClick={() => setRejectTarget({ id: req.id, patientName: req.patient_name })}
                                     >
                                         Reject
                                     </button>
@@ -550,12 +547,12 @@ const Appointments = () => {
                                             <div className="card-meta" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 <span>🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                                 {appt.appointment_type === 'telemedicine'
-                                                    ? <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1e40af', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
-                                                    : <span style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
+                                                    ? <span style={{ fontSize: '0.72rem', background: 'var(--color-info-light)', color: 'var(--color-info-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
+                                                    : <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
                                                 }
                                                 {appt.is_follow_up && (
                                                     <span
-                                                        style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#065f46', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
+                                                        style={{ fontSize: '0.72rem', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
                                                         title={appt.follow_up_source_info ? `Follow-up from consultation on ${new Date(appt.follow_up_source_info.consultation_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Follow-up appointment'}
                                                     >
                                                         ↩ Follow-up
@@ -609,10 +606,10 @@ const Appointments = () => {
                                     {/* PENDING: approve or reject */}
                                     {appt.status === 'pending' && (
                                         <div className="btn-row" style={{ marginTop: '0.5rem' }}>
-                                            <button onClick={() => { setApproveTarget({ id: appt.id, patientName }); setApproveInstructions(''); }} className="btn btn-success btn-sm">
+                                            <button onClick={() => setApproveTarget({ id: appt.id, patientName })} className="btn btn-success btn-sm">
                                                 ✓ Approve
                                             </button>
-                                            <button onClick={() => { setRejectTarget({ id: appt.id, patientName }); setRejectReason(''); }} className="btn-danger-outline btn-sm">
+                                            <button onClick={() => setRejectTarget({ id: appt.id, patientName })} className="btn-danger-outline btn-sm">
                                                 ✕ Reject
                                             </button>
                                         </div>
@@ -705,7 +702,7 @@ const Appointments = () => {
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => { setCancelTarget({ id: appt.id }); setCancelReason(''); }}
+                                                    onClick={() => setCancelTarget({ id: appt.id })}
                                                     className="btn-danger-outline btn-sm"
                                                 >
                                                     Cancel Visit
@@ -767,131 +764,100 @@ const Appointments = () => {
             />
 
             {/* Reschedule modal — slot picker */}
-            {rescheduleTarget && (
-                <div className="modal-overlay" onClick={closeReschedule}>
-                    <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
-                        <h3 className="modal-title">Reschedule — {rescheduleTarget.patientName}</h3>
-                        <p className="modal-desc" style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            Pick a new date and an available slot. The current appointment will be marked as rescheduled.
-                        </p>
+            <Modal
+                open={!!rescheduleTarget}
+                onClose={closeReschedule}
+                title={`Reschedule — ${rescheduleTarget?.patientName ?? ''}`}
+                size="md"
+                footer={
+                    <>
+                        <button type="button" className="cancel-button" onClick={closeReschedule}>Cancel</button>
+                        <button type="button" className="btn btn-primary" onClick={executeReschedule} disabled={!rsSelected}>
+                            Confirm reschedule
+                        </button>
+                    </>
+                }
+            >
+                <div className="appointment-form">
+                    <p style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                        Pick a new date and an available slot. The current appointment will be marked as rescheduled.
+                    </p>
+                    <div className="form-group">
+                        <label htmlFor="rs-date">New Date</label>
+                        <input
+                            id="rs-date"
+                            type="date"
+                            className="input"
+                            min={todayStr}
+                            value={rsDate}
+                            onChange={e => { setRsDate(e.target.value); rescheduleTarget && fetchRsSlots(e.target.value, rescheduleTarget.id); }}
+                        />
+                    </div>
+                    {rsDate && rsSlotsLoading && <div className="slots-loading">Loading slots…</div>}
+                    {rsDate && !rsSlotsLoading && rsDayOff && <div className="slots-day-off">Doctor is not available on this day.</div>}
+                    {rsDate && !rsSlotsLoading && !rsDayOff && rsSlots.length === 0 && <div className="slots-day-off">No working hours configured for this day.</div>}
+                    {rsDate && !rsSlotsLoading && rsSlots.length > 0 && (
                         <div className="form-group">
-                            <label htmlFor="rs-date">New Date</label>
-                            <input
-                                id="rs-date"
-                                type="date"
-                                className="input"
-                                min={todayStr}
-                                value={rsDate}
-                                onChange={e => { setRsDate(e.target.value); fetchRsSlots(e.target.value, rescheduleTarget.id); }}
-                            />
-                        </div>
-                        {rsDate && rsSlotsLoading && <div className="slots-loading">Loading slots…</div>}
-                        {rsDate && !rsSlotsLoading && rsDayOff && <div className="slots-day-off">Doctor is not available on this day.</div>}
-                        {rsDate && !rsSlotsLoading && !rsDayOff && rsSlots.length === 0 && rsDate && <div className="slots-day-off">No working hours configured for this day.</div>}
-                        {rsDate && !rsSlotsLoading && rsSlots.length > 0 && (
-                            <div className="form-group">
-                                <label>Available slots</label>
-                                <div className="slot-grid">
-                                    {rsSlots.map(slot => (
-                                        <button
-                                            key={slot.time}
-                                            type="button"
-                                            className={['slot-btn', `slot-${slot.status}`, rsSelected === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
-                                            disabled={slot.status !== 'free'}
-                                            title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
-                                            onClick={() => setRsSelected(slot.datetime)}
-                                        >
-                                            <span className="slot-time">{slot.time}</span>
-                                            {slot.status === 'booked' && <span className="slot-label">Booked</span>}
-                                            {slot.status === 'past' && <span className="slot-label">Past</span>}
-                                        </button>
-                                    ))}
-                                </div>
+                            <label>Available slots</label>
+                            <div className="slot-grid">
+                                {rsSlots.map(slot => (
+                                    <button
+                                        key={slot.time}
+                                        type="button"
+                                        className={['slot-btn', `slot-${slot.status}`, rsSelected === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
+                                        disabled={slot.status !== 'free'}
+                                        title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
+                                        onClick={() => setRsSelected(slot.datetime)}
+                                    >
+                                        <span className="slot-time">{slot.time}</span>
+                                        {slot.status === 'booked' && <span className="slot-label">Booked</span>}
+                                        {slot.status === 'past' && <span className="slot-label">Past</span>}
+                                    </button>
+                                ))}
                             </div>
-                        )}
-                        <div className="btn-row btn-row--mt">
-                            <button className="btn btn-secondary btn-full" onClick={closeReschedule}>Cancel</button>
-                            <button className="btn btn-primary btn-full" onClick={executeReschedule} disabled={!rsSelected}>
-                                Confirm reschedule
-                            </button>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </Modal>
             {/* Approve modal */}
-            {approveTarget && (
-                <div className="modal-overlay" onClick={() => setApproveTarget(null)}>
-                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
-                        <h3 className="modal-title">Approve Request — {approveTarget.patientName}</h3>
-                        <p className="card-meta" style={{ marginBottom: '1rem' }}>
-                            Optionally add instructions for the patient (e.g. what to bring, fasting requirements).
-                        </p>
-                        <div className="form-group">
-                            <label htmlFor="approve-instructions">Portal instructions (optional)</label>
-                            <textarea
-                                id="approve-instructions"
-                                rows={3}
-                                value={approveInstructions}
-                                onChange={e => setApproveInstructions(e.target.value)}
-                                placeholder="e.g. Please bring your home BP log."
-                            />
-                        </div>
-                        <div className="btn-row btn-row--mt">
-                            <button className="btn btn-secondary btn-full" onClick={() => setApproveTarget(null)}>Cancel</button>
-                            <button className="btn btn-success btn-full" onClick={handleApprove}>Approve</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={!!approveTarget}
+                onClose={() => setApproveTarget(null)}
+                onConfirm={handleApprove}
+                title={`Approve Request — ${approveTarget?.patientName ?? ''}`}
+                message="Optionally add instructions for the patient (e.g. what to bring, fasting requirements)."
+                confirmLabel="Approve"
+                reasonLabel="Portal instructions (optional)"
+                reasonPlaceholder="e.g. Please bring your home BP log."
+            />
 
             {/* Cancel appointment reason modal */}
-            {cancelTarget && (
-                <div className="modal-overlay" onClick={() => setCancelTarget(null)}>
-                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
-                        <h3 className="modal-title">Cancel Appointment</h3>
-                        <p className="card-meta" style={{ marginBottom: '1rem' }}>
-                            The patient will be notified. Providing a reason helps them understand what to do next.
-                        </p>
-                        <div className="form-group">
-                            <label htmlFor="cancel-reason">Reason for cancellation (optional)</label>
-                            <textarea
-                                id="cancel-reason"
-                                rows={3}
-                                value={cancelReason}
-                                onChange={e => setCancelReason(e.target.value)}
-                                placeholder="e.g. Doctor unavailable. Please call to reschedule."
-                            />
-                        </div>
-                        <div className="btn-row btn-row--mt">
-                            <button className="btn btn-secondary btn-full" onClick={() => setCancelTarget(null)}>Keep appointment</button>
-                            <button className="btn btn-danger btn-full" onClick={executeCancelWithReason}>Confirm cancellation</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={!!cancelTarget}
+                onClose={() => setCancelTarget(null)}
+                onConfirm={executeCancelWithReason}
+                title="Cancel Appointment"
+                message="The patient will be notified. Providing a reason helps them understand what to do next."
+                confirmLabel="Confirm cancellation"
+                cancelLabel="Keep appointment"
+                reasonLabel="Reason for cancellation (optional)"
+                reasonPlaceholder="e.g. Doctor unavailable. Please call to reschedule."
+                tone="danger"
+            />
 
             {/* Reject modal */}
-            {rejectTarget && (
-                <div className="modal-overlay" onClick={() => setRejectTarget(null)}>
-                    <div className="modal-box modal-box--sm" onClick={e => e.stopPropagation()}>
-                        <h3 className="modal-title">Reject Request — {rejectTarget.patientName}</h3>
-                        <div className="form-group">
-                            <label htmlFor="reject-reason">Reason for rejection</label>
-                            <textarea
-                                id="reject-reason"
-                                rows={3}
-                                value={rejectReason}
-                                onChange={e => setRejectReason(e.target.value)}
-                                placeholder="e.g. No availability on this day. Please request another date."
-                            />
-                        </div>
-                        <div className="btn-row btn-row--mt">
-                            <button className="btn btn-secondary btn-full" onClick={() => setRejectTarget(null)}>Cancel</button>
-                            <button className="btn btn-danger btn-full" onClick={handleReject}>Reject</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={!!rejectTarget}
+                onClose={() => setRejectTarget(null)}
+                onConfirm={handleReject}
+                title={`Reject Request — ${rejectTarget?.patientName ?? ''}`}
+                message="The patient will be notified that their request has been rejected."
+                confirmLabel="Reject"
+                reasonLabel="Reason for rejection"
+                reasonPlaceholder="e.g. No availability on this day. Please request another date."
+                requireReason
+                tone="danger"
+            />
 
         </>
     );
