@@ -94,7 +94,7 @@ const Appointments = () => {
         notes?: string;
     }
 
-    const { data: pendingRequests = [], refetch: refetchRequests } = useQuery<PendingRequest[]>({
+    const { data: pendingRequests = [] } = useQuery<PendingRequest[]>({
         queryKey: ['appointments', 'pending-requests'],
         queryFn: async () => {
             const res = await api.get('/doctor/appointment-requests/');
@@ -115,7 +115,6 @@ const Appointments = () => {
             await api.post(`/appointments/${approveTarget.id}/approve/`, { portal_instructions: instructions ?? '' });
             toast.success('Appointment approved.');
             setApproveTarget(null);
-            refetchRequests();
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to approve.'));
@@ -129,7 +128,6 @@ const Appointments = () => {
             await api.post(`/appointments/${rejectTarget.id}/reject/`, { reason: reason ?? '' });
             toast.success('Request rejected.');
             setRejectTarget(null);
-            refetchRequests();
             invalidateAll();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to reject.'));
