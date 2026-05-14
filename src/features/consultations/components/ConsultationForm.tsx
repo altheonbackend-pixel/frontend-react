@@ -31,6 +31,7 @@ interface Consultation {
     id?: number;
     consultation_date: string;
     consultation_type?: string;
+    consultation_status?: string;
     reason_for_consultation: string;
     symptoms?: string[];
     medical_report: string | null;
@@ -48,6 +49,9 @@ interface Consultation {
     visible_to_patient?: boolean;
     patient_summary?: string | null;
     patient_instructions?: string | null;
+    prescriptions?: Array<{ id: number; medication_name: string; dosage: string; frequency: string; duration_days: number | null; instructions: string; is_active: boolean; }>;
+    lab_results?: Array<{ id: number; test_name: string; status: string; test_date: string; }>;
+    procedures?: Array<{ id: number; procedure_type: string; procedure_category?: string; procedure_date: string; result?: string | null; }>;
 }
 
 export interface SavedRx {
@@ -207,7 +211,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             return records.filter(a => a.reaction_type === 'drug' && a.is_active);
         },
         staleTime: 5 * 60_000,
-        enabled: !consultationToEdit,
+        enabled: !consultationToEdit || consultationToEdit?.consultation_status === 'amended',
     });
 
     // Prescriptions for this visit — compact multi-medicine adder
@@ -222,6 +226,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         rx: RxDraft;
         conflicts: Array<{ allergen: string; severity: string }>;
     } | null>(null);
+
+    // Track IDs of existing items removed during amendment (deleted on save)
+    const [deletedRxIds, setDeletedRxIds] = useState<number[]>([]);
+    const [deletedLabIds, setDeletedLabIds] = useState<number[]>([]);
+    const [deletedProcIds, setDeletedProcIds] = useState<number[]>([]);
 
     // Block in-app navigation (sidebar links, back button) when form has unsaved changes
     useNavigationBlocker(isDirty || failedRx.length > 0);
@@ -458,17 +467,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     }
                 }
 
+                // Batch-delete items removed during amendment editing
+                if (deletedRxIds.length > 0) {
+                    await Promise.allSettled(deletedRxIds.map(id => api.delete(`/prescriptions/${id}/`)));
+                }
+                if (deletedLabIds.length > 0) {
+                    await Promise.allSettled(deletedLabIds.map(id => api.delete(`/lab-results/${id}/`)));
+                }
+                if (deletedProcIds.length > 0) {
+                    await Promise.allSettled(deletedProcIds.map(id => api.delete(`/procedures/${id}/`)));
+                }
+
                 clearDraft();
                 toast.success(isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'));
 
-                // EC-1+EC-2: if the doctor clicked "Save & Complete", sign the consultation now.
-                // This transitions the appointment from in_progress → completed and invalidates
-                // the appointments list so the "Resume Consultation" button updates immediately.
-                if (shouldSign && isDraft) {
+                // Sign the consultation when "Save & Complete" is clicked for drafts or amendments.
+                if (shouldSign && (isDraft || isAmended)) {
                     try {
                         await api.post(`/consultations/${consultationId}/sign/`);
                         queryClient.invalidateQueries({ queryKey: ['appointments'] });
-                        toast.success('Consultation signed and appointment completed.');
+                        toast.success(isAmended ? 'Amendment signed and consultation re-locked.' : 'Consultation signed and appointment completed.');
                     } catch (signErr) {
                         toast.error(parseApiError(signErr, 'Consultation saved but could not be signed. Please try again.'));
                     }
@@ -510,6 +528,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
     };
 
     const isEditing = !!consultationToEdit;
+    const isAmended = consultationToEdit?.consultation_status === 'amended';
 
     const handleCreateFollowUpAppointment = async () => {
         if (!pendingFollowUp || !followUpSelectedSlot) return;
@@ -700,15 +719,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     <button type="button" onClick={handleCancel} className="cancel-button" disabled={isSubmitting}>
                         {t('consultation.cancel')}
                     </button>
-                    {isDraft ? (
+                    {(isDraft || isAmended) ? (
                         <>
-                            {/* Save Draft: keeps appointment in_progress so the doctor can resume */}
                             <button type="submit" form="consultation-form" className="btn btn-secondary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : 'Save Draft'}
+                                {isSubmitting ? t('consultation.loading') : (isDraft ? 'Save Draft' : 'Save')}
                             </button>
-                            {/* Save & Complete: saves then signs the consultation, closing the appointment */}
                             <button type="button" onClick={handleSaveAndComplete} className="btn btn-primary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : 'Save & Complete'}
+                                {isSubmitting ? t('consultation.loading') : (isAmended ? 'Save & Re-sign' : 'Save & Complete')}
                             </button>
                         </>
                     ) : (
@@ -973,12 +990,36 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Prescriptions this visit — compact multi-medicine adder */}
-                {(!consultationToEdit || isDraft) && (
+                {(!consultationToEdit || isDraft || isAmended) && (
                     <div className="rx-section">
                         <div className="rx-section-header">
                             <span className="rx-section-label">Prescriptions this visit</span>
                             {rxList.length > 0 && <span className="rx-count">{rxList.length}</span>}
                         </div>
+
+                        {/* Pre-loaded prescriptions from the original consultation (amendment mode) */}
+                        {isAmended && consultationToEdit?.prescriptions && consultationToEdit.prescriptions.filter(rx => !deletedRxIds.includes(rx.id)).length > 0 && (
+                            <div className="rx-list">
+                                {consultationToEdit.prescriptions.filter(rx => !deletedRxIds.includes(rx.id)).map(rx => (
+                                    <div key={rx.id} className="rx-item" style={{ opacity: rx.is_active ? 1 : 0.5 }}>
+                                        <span className="rx-item-name">{rx.medication_name}</span>
+                                        <span className="rx-item-sep">·</span>
+                                        <span className="rx-item-detail">{rx.dosage}</span>
+                                        <span className="rx-item-sep">·</span>
+                                        <span className="rx-item-detail">{rx.frequency.replace(/_/g, ' ')}</span>
+                                        {rx.duration_days && <><span className="rx-item-sep">·</span><span className="rx-item-detail">{rx.duration_days}d</span></>}
+                                        {!rx.is_active && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px' }}>(stopped)</span>}
+                                        <button
+                                            type="button"
+                                            className="rx-remove"
+                                            onClick={() => setDeletedRxIds(prev => [...prev, rx.id])}
+                                            aria-label="Remove prescription"
+                                            title="Remove from this consultation"
+                                        >×</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {rxList.length > 0 && (
                             <div className="rx-list">
@@ -1068,7 +1109,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Lab orders for this visit */}
-                {(!consultationToEdit || isDraft) && (
+                {(!consultationToEdit || isDraft || isAmended) && (
                     <div className="consult-section">
                         <button
                             type="button"
@@ -1082,6 +1123,18 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         </button>
                         {labsOpen && (
                             <div className="consult-section-body">
+                                {/* Pre-loaded lab results from the original consultation */}
+                                {isAmended && consultationToEdit?.lab_results && consultationToEdit.lab_results.filter(lr => !deletedLabIds.includes(lr.id)).map(lr => (
+                                    <div key={lr.id} className="consult-inline-row">
+                                        <span className="input consult-inline-input" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-primary)', cursor: 'default' }}>
+                                            {lr.test_name}
+                                        </span>
+                                        <span className="input consult-inline-input consult-inline-notes" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'default', fontSize: '0.82rem' }}>
+                                            {lr.status}
+                                        </span>
+                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedLabIds(prev => [...prev, lr.id])} aria-label="Remove">×</button>
+                                    </div>
+                                ))}
                                 {labList.map(item => (
                                     <div key={item.id} className="consult-inline-row">
                                         <input
@@ -1106,7 +1159,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Procedures for this visit */}
-                {(!consultationToEdit || isDraft) && (
+                {(!consultationToEdit || isDraft || isAmended) && (
                     <div className="consult-section">
                         <button
                             type="button"
@@ -1120,6 +1173,21 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         </button>
                         {procsOpen && (
                             <div className="consult-section-body">
+                                {/* Pre-loaded procedures from the original consultation */}
+                                {isAmended && consultationToEdit?.procedures && consultationToEdit.procedures.filter(p => !deletedProcIds.includes(p.id)).map(p => (
+                                    <div key={p.id} className="consult-inline-row">
+                                        <span className="input consult-inline-input" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-primary)', cursor: 'default' }}>
+                                            {p.procedure_type}
+                                        </span>
+                                        <span className="consult-inline-select" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', fontSize: '0.82rem', padding: '0 8px' }}>
+                                            {p.procedure_category ?? 'diagnostic'}
+                                        </span>
+                                        <span className="input consult-inline-input consult-inline-notes" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'default', fontSize: '0.82rem' }}>
+                                            {p.result ?? ''}
+                                        </span>
+                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedProcIds(prev => [...prev, p.id])} aria-label="Remove">×</button>
+                                    </div>
+                                ))}
                                 {procList.map(item => (
                                     <div key={item.id} className="consult-inline-row">
                                         <input
