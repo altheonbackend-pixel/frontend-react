@@ -2,15 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePatientPortal } from '../context/PatientPortalContext';
 import { patientPortalService } from '../services/patientPortalService';
 import type { PatientNotification } from '../services/patientPortalService';
+import { queryKeys } from '../../../shared/queryKeys';
 import '../../../shared/components/NotificationBell.css';
 import { formatPortalRelativeTime } from '../utils/i18n';
 
 export function PatientNotificationBell() {
     const { t, i18n } = useTranslation();
     const { unreadCount, invalidateUnreadCount } = usePatientPortal();
+    const queryClient = useQueryClient();
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<PatientNotification[]>([]);
     const [loading, setLoading] = useState(false);
@@ -61,17 +64,23 @@ export function PatientNotificationBell() {
         if (next) fetchAll();
     };
 
+    const syncNotifQueries = () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.notifications() });
+        queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.dashboard() });
+        invalidateUnreadCount();
+    };
+
     const markAll = async () => {
         await patientPortalService.markAllNotificationsRead();
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-        invalidateUnreadCount();
+        syncNotifQueries();
     };
 
     const handleClick = async (n: PatientNotification) => {
         if (!n.is_read) {
             await patientPortalService.markNotificationRead(n.id);
             setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
-            invalidateUnreadCount();
+            syncNotifQueries();
         }
         setOpen(false);
         if (n.link) navigate(n.link);

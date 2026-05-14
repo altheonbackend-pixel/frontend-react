@@ -223,6 +223,7 @@ function Dashboard() {
             await api.post(`/appointments/${apptId}/approve/`, {});
             toast.success('Appointment approved.');
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+            qc.invalidateQueries({ queryKey: ['appointments'] });
         } catch {
             toast.error('Failed to approve appointment.');
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
@@ -243,6 +244,7 @@ function Dashboard() {
             await api.post(`/appointments/${id}/reject/`, { reason: rejectApptReason });
             toast.success(`Request from ${patientName} rejected.`);
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+            qc.invalidateQueries({ queryKey: ['appointments'] });
         } catch {
             toast.error('Failed to reject.');
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });

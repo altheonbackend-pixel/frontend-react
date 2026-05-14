@@ -298,7 +298,7 @@ const ReferralsList = () => {
     const totalCount = data?.count ?? 0;
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-    const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.referrals.list(filters) });
+    const invalidate = () => queryClient.invalidateQueries({ queryKey: ['referrals'] });
 
     const handleTabChange = (newTab: Tab) => { setTab(newTab); setPage(1); };
 
