@@ -53,7 +53,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationVie
             setAmendReason('');
             onAmend(res.data as Consultation);
         } catch (err) {
-            toast.error(parseApiError(err));
+            toast.error(parseApiError(err, 'Failed to amend consultation.'));
         } finally {
             setAmendLoading(false);
         }
