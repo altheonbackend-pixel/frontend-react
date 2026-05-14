@@ -42,6 +42,7 @@ export default function PatientAppointments() {
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; doctorName: string; doctorId: number } | null>(null);
     const [rescheduleDate, setRescheduleDate] = useState('');
     const [rsPickDate, setRsPickDate] = useState('');
+    const [rsNextDatesOpen, setRsNextDatesOpen] = useState(false);
 
     const { data: appointments = [], isLoading, isError } = useQuery({
         queryKey: queryKeys.patientPortal.appointments(),
@@ -86,6 +87,13 @@ export default function PatientAppointments() {
         }
     }, [slotsData, slotsLoading, availableSlots.length, doctorAvailable]);
 
+    // Same auto-open for reschedule slot picker.
+    useEffect(() => {
+        if (rsSlotsData && !rsSlotsLoading && (rsAvailableSlots.length === 0 || !rsDoctorAvailable)) {
+            setRsNextDatesOpen(true);
+        }
+    }, [rsSlotsData, rsSlotsLoading, rsAvailableSlots.length, rsDoctorAvailable]);
+
     const { data: rsSlotsData, isFetching: rsSlotsLoading, isError: rsSlotsError } = useQuery({
         queryKey: ['patient', 'rs-slots', rescheduleTarget?.doctorId, rsPickDate],
         queryFn: () => patientPortalService.getAvailableSlots(rescheduleTarget!.doctorId, rsPickDate),
@@ -95,6 +103,14 @@ export default function PatientAppointments() {
     });
     const rsAvailableSlots = rsSlotsData?.slots ?? [];
     const rsDoctorAvailable = rsSlotsData?.doctor_available ?? false;
+
+    const { data: rsNextDatesData, isFetching: rsNextDatesLoading } = useQuery({
+        queryKey: ['patient', 'rs-next-dates', rescheduleTarget?.doctorId],
+        queryFn: () => patientPortalService.getNextAvailableDates(rescheduleTarget!.doctorId, 14),
+        enabled: rsNextDatesOpen && !!rescheduleTarget,
+        staleTime: 60_000,
+    });
+    const rsNextAvailableDates = rsNextDatesData?.available_dates ?? [];
 
     const { data: nextDatesData, isFetching: nextDatesLoading } = useQuery({
         queryKey: ['patient', 'next-available-dates', formData.doctorId],
@@ -344,7 +360,7 @@ export default function PatientAppointments() {
                                             <button
                                                 type="button"
                                                 className="btn btn-sm btn-secondary"
-                                                onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name, doctorId: item.doctor_id }); setRescheduleDate(''); setRsPickDate(''); }}
+                                                onClick={() => { setRescheduleTarget({ id: item.id, doctorName: item.doctor_name, doctorId: item.doctor_id }); setRescheduleDate(''); setRsPickDate(''); setRsNextDatesOpen(false); }}
                                                 disabled={isRescheduling}
                                             >
                                                 {t('patient_portal.appointments.reschedule_action')}
@@ -377,12 +393,12 @@ export default function PatientAppointments() {
             {/* ── Reschedule modal — slot picker ── */}
             <Modal
                 open={!!rescheduleTarget}
-                onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRsPickDate(''); }}
+                onClose={() => { setRescheduleTarget(null); setRescheduleDate(''); setRsPickDate(''); setRsNextDatesOpen(false); }}
                 title={t('patient_portal.appointments.reschedule_with', { name: rescheduleTarget?.doctorName ?? '' })}
                 size="md"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={() => setRescheduleTarget(null)}>{t('patient_portal.appointments.keep_it')}</button>
+                        <button type="button" className="cancel-button" onClick={() => { setRescheduleTarget(null); setRescheduleDate(''); setRsPickDate(''); setRsNextDatesOpen(false); }}>{t('patient_portal.appointments.keep_it')}</button>
                         <button
                             type="button"
                             className="btn btn-primary"
@@ -407,47 +423,101 @@ export default function PatientAppointments() {
                                 className="input"
                                 min={todayLocal}
                                 value={rsPickDate}
-                                onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
+                                onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); setRsNextDatesOpen(false); }}
                             />
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    className="btn btn-sm btn-secondary"
+                                    onClick={() => setRsNextDatesOpen(o => !o)}
+                                    style={{ fontSize: '0.8rem' }}
+                                >
+                                    {rsNextDatesOpen ? t('patient_portal.common.hide') : t('patient_portal.appointments.find_next_dates')}
+                                </button>
+                                {rsNextDatesOpen && (
+                                    <div style={{ marginTop: '0.5rem', padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                                        {rsNextDatesLoading && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t('patient_portal.appointments.checking_availability')}</div>}
+                                        {!rsNextDatesLoading && rsNextAvailableDates.length === 0 && <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>{t('patient_portal.appointments.no_dates')}</div>}
+                                        {!rsNextDatesLoading && rsNextAvailableDates.length > 0 && (
+                                            <>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>{t('patient_portal.appointments.next_available_hint')}</div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                    {rsNextAvailableDates.map(d => (
+                                                        <button
+                                                            key={d}
+                                                            type="button"
+                                                            onClick={() => { setRsPickDate(d); setRescheduleDate(''); setRsNextDatesOpen(false); }}
+                                                            style={{
+                                                                padding: '0.3rem 0.75rem',
+                                                                borderRadius: '999px',
+                                                                border: `2px solid ${rsPickDate === d ? 'var(--accent)' : 'var(--border-default)'}`,
+                                                                background: rsPickDate === d ? 'var(--accent)' : 'var(--bg-card)',
+                                                                color: rsPickDate === d ? '#fff' : 'var(--text-primary)',
+                                                                fontWeight: rsPickDate === d ? 700 : 400,
+                                                                fontSize: '0.8rem',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        >
+                                                            {formatPortalDate(d + 'T00:00:00', i18n.resolvedLanguage, { weekday: 'short', day: 'numeric', month: 'short' })}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        {rsPickDate && rsSlotsLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.loading_slots')}</p>}
-                        {rsPickDate && !rsSlotsLoading && rsSlotsError && (
-                            <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.error.load_slots')}</p>
-                        )}
-                        {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && !rsDoctorAvailable && (
-                            <p style={{ color: 'var(--color-warning, #b45309)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.doctor_not_available')}</p>
-                        )}
-                        {rsPickDate && !rsSlotsLoading && !rsSlotsError && rsSlotsData && rsDoctorAvailable && rsAvailableSlots.length === 0 && (
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{t('patient_portal.appointments.no_slots')}</p>
-                        )}
-                        {rsPickDate && !rsSlotsLoading && rsAvailableSlots.length > 0 && (
+
+                        {rsPickDate && (
                             <div className="form-group">
-                                <label>{t('patient_portal.appointments.available_slots')}</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
-                                    {rsAvailableSlots.map((slotIso: string) => {
-                                        const label = formatPortalTime(slotIso, i18n.resolvedLanguage, patientTimezone);
-                                        const isSelected = rescheduleDate === slotIso;
-                                        return (
-                                            <button
-                                                key={slotIso}
-                                                type="button"
-                                                onClick={() => setRescheduleDate(slotIso)}
-                                                style={{
-                                                    padding: '0.5rem',
-                                                    borderRadius: 'var(--radius-md)',
-                                                    border: isSelected ? '2px solid var(--accent)' : '1.5px solid #86efac',
-                                                    background: isSelected ? 'var(--accent)' : '#dcfce7',
-                                                    color: isSelected ? '#fff' : '#166534',
-                                                    fontWeight: 600,
-                                                    fontSize: '0.8rem',
-                                                    cursor: 'pointer',
-                                                }}
-                                            >
-                                                {label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                <label>{t('patient_portal.appointments.available_time_slots')}</label>
+                                {rsSlotsLoading ? (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('patient_portal.appointments.checking_availability')}</div>
+                                ) : rsSlotsError ? (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--color-danger)', padding: '0.5rem 0.75rem', background: 'var(--color-danger-light)', borderRadius: 'var(--radius-md)' }}>
+                                        {t('patient_portal.appointments.error.load_slots')}
+                                    </div>
+                                ) : !rsDoctorAvailable ? (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--color-warning)', padding: '0.5rem 0.75rem', background: 'var(--color-warning-light)', borderRadius: 'var(--radius-md)' }}>
+                                        {t('patient_portal.appointments.doctor_not_working')}
+                                    </div>
+                                ) : rsAvailableSlots.length === 0 ? (
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                                        {t('patient_portal.appointments.no_open_slots')}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem' }}>
+                                            {rsAvailableSlots.map((slotIso: string) => {
+                                                const isSelected = rescheduleDate === slotIso;
+                                                return (
+                                                    <button
+                                                        key={slotIso}
+                                                        type="button"
+                                                        onClick={() => setRescheduleDate(slotIso)}
+                                                        style={{
+                                                            padding: '0.35rem 0.85rem',
+                                                            borderRadius: '999px',
+                                                            border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-default)'}`,
+                                                            background: isSelected ? 'var(--accent)' : 'var(--bg-subtle)',
+                                                            color: isSelected ? '#fff' : 'var(--text-primary)',
+                                                            fontWeight: isSelected ? 700 : 400,
+                                                            fontSize: '0.875rem',
+                                                            cursor: 'pointer',
+                                                            transition: 'all 0.15s',
+                                                        }}
+                                                    >
+                                                        {formatPortalTime(slotIso, i18n.resolvedLanguage, patientTimezone)}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
+                                            {t('patient_portal.appointments.times_shown_in', { timezone: patientTimezone ? patientTimezone.replace('_', ' ') : t('patient_portal.appointments.local_time') })}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
