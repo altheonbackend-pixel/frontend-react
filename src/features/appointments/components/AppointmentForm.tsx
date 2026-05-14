@@ -318,6 +318,18 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                         />
                         {errors.reason_for_appointment && <span className="field-error">{errors.reason_for_appointment.message}</span>}
                     </div>
+
+                    {/* Notes */}
+                    <div className="form-group">
+                        <label htmlFor="notes">{t('appointments.form.notes_label', { defaultValue: 'Notes (internal)' })}</label>
+                        <textarea
+                            id="notes"
+                            className="textarea"
+                            rows={2}
+                            placeholder={t('appointments.form.notes_placeholder', { defaultValue: 'Internal notes — not visible to patient' })}
+                            {...register('notes')}
+                        />
+                    </div>
                 </form>
             )}
         </Modal>

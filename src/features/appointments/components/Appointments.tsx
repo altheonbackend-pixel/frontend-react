@@ -68,7 +68,7 @@ const Appointments = () => {
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-    const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'confirm' | 'complete' | 'no_show' } | null>(null);
+    const [lifecycleConfirm, setLifecycleConfirm] = useState<{ id: number; action: 'no_show' } | null>(null);
     const [cancelTarget, setCancelTarget] = useState<{ id: number } | null>(null);
     const [rescheduleTarget, setRescheduleTarget] = useState<{ id: number; patientName: string } | null>(null);
     const [rsDate, setRsDate] = useState('');
@@ -515,17 +515,17 @@ const Appointments = () => {
                                     {appt.status === 'pending' && (
                                         <div style={{
                                             display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                            background: 'var(--color-warning-bg, #fffbeb)',
-                                            border: '1px solid var(--color-warning-border, #fcd34d)',
+                                            background: 'var(--color-warning-light)',
+                                            border: '1px solid var(--color-warning-border)',
                                             borderRadius: '6px', padding: '0.3rem 0.6rem',
                                             marginBottom: '0.5rem', fontSize: '0.78rem',
-                                            color: 'var(--color-warning-text, #92400e)', fontWeight: 500,
+                                            color: 'var(--color-warning-dark)', fontWeight: 500,
                                         }}>
                                             ⏳ Patient request — awaiting your approval
                                             {appt.patient_details && (
                                                 <Link
                                                     to={`/patients/${appt.patient_details.unique_id}`}
-                                                    style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--color-primary, #6366f1)', textDecoration: 'none' }}
+                                                    style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--accent)', textDecoration: 'none' }}
                                                 >
                                                     View record →
                                                 </Link>
@@ -565,7 +565,7 @@ const Appointments = () => {
                                                     </span>
                                                 )}
                                                 {appt.referral && (
-                                                    <span style={{ fontSize: '0.72rem', background: '#ede9fe', color: '#5b21b6', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}
+                                                    <span style={{ fontSize: '0.72rem', background: 'var(--accent-lighter)', color: 'var(--accent)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}
                                                         title="This appointment was created from a referral">
                                                         Referral
                                                     </span>
@@ -749,18 +749,10 @@ const Appointments = () => {
                 open={lifecycleConfirm !== null}
                 onClose={() => setLifecycleConfirm(null)}
                 onConfirm={executeLifecycleAction}
-                title={lifecycleConfirm
-                    ? (lifecycleConfirm.action === 'confirm' ? 'Confirm appointment?'
-                       : lifecycleConfirm.action === 'no_show' ? 'Mark as no-show?'
-                       : 'Update appointment?')
-                    : ''}
-                message={lifecycleConfirm
-                    ? (lifecycleConfirm.action === 'confirm' ? 'This will confirm the appointment and notify the patient.'
-                       : lifecycleConfirm.action === 'no_show' ? 'Mark this appointment as a no-show. The patient was not present.'
-                       : 'Are you sure?')
-                    : ''}
-                tone={lifecycleConfirm?.action === 'no_show' ? 'danger' : 'warning'}
-                confirmLabel={lifecycleConfirm?.action === 'confirm' ? 'Confirm' : lifecycleConfirm?.action === 'no_show' ? 'Mark No-Show' : 'Update'}
+                title="Mark as no-show?"
+                message="Mark this appointment as a no-show. The patient was not present."
+                tone="danger"
+                confirmLabel="Mark No-Show"
             />
 
             {/* Reschedule modal — slot picker */}
