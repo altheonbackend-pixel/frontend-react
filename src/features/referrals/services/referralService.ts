@@ -22,6 +22,8 @@ export const respondToReferral = (id: number, data: {
     status: 'accepted' | 'in_progress' | 'rejected' | 'returned';
     response_notes?: string;
     return_requested_info?: string;
+    appointment_date?: string;
+    appointment_type?: 'in_person' | 'telemedicine';
 }) => api.post(`/referrals/${id}/respond/`, data);
 
 export const submitResult = (id: number, result: string) =>

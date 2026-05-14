@@ -361,6 +361,13 @@ export interface Referral {
     root_referral?: number | null;
     // Linkage
     linked_appointment?: number | null;
+    linked_appointment_details?: {
+        id: number;
+        appointment_date: string;
+        status: string;
+        status_display: string;
+        appointment_type: string;
+    } | null;
     source_encounter?: number | null;
     receiving_encounter?: number | null;
     // Consent

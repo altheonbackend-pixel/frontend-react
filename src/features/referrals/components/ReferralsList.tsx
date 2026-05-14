@@ -24,6 +24,138 @@ type Tab = 'all' | 'received' | 'sent';
 
 interface PatientResult { unique_id: string; first_name: string; last_name: string; }
 
+// Referral types where the receiving doctor must schedule an appointment on acceptance.
+const APPOINTMENT_REQUIRED_TYPES = new Set([
+    'consultation_required',
+    'second_opinion_only',
+    'transfer_of_care',
+    'procedure_request',
+]);
+
+// ── Slot Picker ────────────────────────────────────────────────────────────────
+interface SlotInfo { time: string; datetime: string; status: 'free' | 'booked' | 'past'; }
+
+const ReferralSlotPicker = ({
+    selectedDate,
+    onDateSelect,
+    selectedSlot,
+    onSlotSelect,
+}: {
+    selectedDate: string;
+    onDateSelect: (d: string) => void;
+    selectedSlot: string;
+    onSlotSelect: (datetime: string) => void;
+}) => {
+    const { t } = useTranslation();
+    const [slots, setSlots] = useState<SlotInfo[]>([]);
+    const [loadingSlots, setLoadingSlots] = useState(false);
+    const [dayOff, setDayOff] = useState(false);
+
+    // Generate next 14 calendar days (skip today — appointment must be in the future)
+    const dates = Array.from({ length: 14 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i + 1);
+        return d.toISOString().slice(0, 10);
+    });
+
+    useEffect(() => {
+        if (!selectedDate) return;
+        setLoadingSlots(true);
+        setSlots([]);
+        setDayOff(false);
+        api.get('/appointments/day-slots/', { params: { date: selectedDate } })
+            .then(res => {
+                if (res.data.day_off) { setDayOff(true); return; }
+                setSlots((res.data.slots ?? []).filter((s: SlotInfo) => s.status === 'free'));
+            })
+            .catch(() => {})
+            .finally(() => setLoadingSlots(false));
+    }, [selectedDate]);
+
+    const pillBase: React.CSSProperties = {
+        padding: '0.25rem 0.55rem',
+        fontSize: '0.78rem',
+        borderRadius: 'var(--radius-sm)',
+        border: '1px solid var(--border)',
+        cursor: 'pointer',
+        background: 'var(--bg-subtle)',
+        color: 'inherit',
+    };
+    const pillSelected: React.CSSProperties = {
+        background: 'var(--accent)',
+        borderColor: 'var(--accent)',
+        color: 'var(--text-inverse)',
+    };
+    const pillFree: React.CSSProperties = {
+        background: 'var(--color-success-light)',
+        borderColor: 'var(--color-success-border)',
+        color: 'var(--color-success-dark)',
+    };
+
+    return (
+        <div style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                {t('referrals.respond.appt_date_label', { defaultValue: 'Select appointment date' })}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.75rem' }}>
+                {dates.map(d => {
+                    const isSelected = selectedDate === d;
+                    return (
+                        <button
+                            key={d}
+                            type="button"
+                            onClick={() => { onDateSelect(d); onSlotSelect(''); }}
+                            style={{ ...pillBase, ...(isSelected ? pillSelected : {}) }}
+                        >
+                            {new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {selectedDate && (
+                <>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                        {t('referrals.respond.appt_time_label', { defaultValue: 'Select time slot' })}
+                    </label>
+                    {loadingSlots && (
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                            {t('referrals.respond.appt_loading_slots', { defaultValue: 'Loading available slots…' })}
+                        </p>
+                    )}
+                    {!loadingSlots && dayOff && (
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                            {t('referrals.respond.appt_day_off', { defaultValue: 'No availability on this day.' })}
+                        </p>
+                    )}
+                    {!loadingSlots && !dayOff && slots.length === 0 && (
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: 0 }}>
+                            {t('referrals.respond.appt_no_slots', { defaultValue: 'No free slots on this date.' })}
+                        </p>
+                    )}
+                    {!loadingSlots && slots.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            {slots.map(s => {
+                                const isSelected = selectedSlot === s.datetime;
+                                return (
+                                    <button
+                                        key={s.time}
+                                        type="button"
+                                        onClick={() => onSlotSelect(s.datetime)}
+                                        style={{ ...pillBase, ...(isSelected ? pillSelected : pillFree) }}
+                                    >
+                                        {s.time}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+};
+
 // ── Patient Picker Modal ───────────────────────────────────────────────────────
 const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => void; onClose: () => void }) => {
     const { t } = useTranslation();
@@ -117,17 +249,25 @@ const RespondModal = ({
     const [notes, setNotes] = useState('');
     const [returnInfo, setReturnInfo] = useState('');
     const [error, setError] = useState('');
+    // Appointment scheduling fields (only shown when accepting a mandatory-appointment type)
+    const [apptDate, setApptDate] = useState('');
+    const [apptSlot, setApptSlot] = useState('');
+    const [apptType, setApptType] = useState<'in_person' | 'telemedicine'>('in_person');
+
+    const needsAppointment = respondStatus === 'accepted' && APPOINTMENT_REQUIRED_TYPES.has(referral.referral_type ?? '');
+    const canSubmit = !needsAppointment || !!apptSlot;
 
     const { mutate: submit, isPending } = useMutation({
         mutationFn: () => respondToReferral(referral.id, {
             status: respondStatus as 'accepted' | 'in_progress' | 'rejected' | 'returned',
             response_notes: notes,
             return_requested_info: returnInfo,
+            ...(needsAppointment && apptSlot ? { appointment_date: apptSlot, appointment_type: apptType } : {}),
         }),
         onSuccess: (res) => { toast.success(t('referrals.respond.success')); onDone(res.data); },
         onError: (err: unknown) => {
-            const e = err as { response?: { data?: { error?: string } } };
-            setError(e?.response?.data?.error || t('referrals.respond.error'));
+            const e = err as { response?: { data?: { error?: string; detail?: string } } };
+            setError(e?.response?.data?.error || e?.response?.data?.detail || t('referrals.respond.error'));
         },
     });
 
@@ -153,12 +293,12 @@ const RespondModal = ({
             open
             onClose={onClose}
             title={t('referrals.respond.title')}
-            size="sm"
+            size={needsAppointment ? 'md' : 'sm'}
             dismissOnBackdrop="always"
             footer={
                 <>
                     <button type="button" className="btn btn-secondary" onClick={onClose}>{t('referrals.respond.cancel')}</button>
-                    <button type="submit" form="respond-form" className="btn btn-primary" disabled={isPending}>
+                    <button type="submit" form="respond-form" className="btn btn-primary" disabled={isPending || !canSubmit}>
                         {isPending ? t('referrals.respond.saving') : t('referrals.respond.submit')}
                     </button>
                 </>
@@ -170,10 +310,11 @@ const RespondModal = ({
                 {t('referrals.respond.from_label')}: <strong>Dr. {referral.referred_by_details?.full_name ?? '?'}</strong>
             </p>
             {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
-            <form id="respond-form" onSubmit={e => { e.preventDefault(); submit(); }}>
+            <form id="respond-form" onSubmit={e => { e.preventDefault(); if (canSubmit) submit(); }}>
                 <div className="form-group">
                     <label htmlFor="respond-status">{t('referrals.respond.response_label')}</label>
-                    <select id="respond-status" className="input select-input" value={respondStatus} onChange={e => setRespondStatus(e.target.value)}>
+                    <select id="respond-status" className="input select-input" value={respondStatus}
+                        onChange={e => { setRespondStatus(e.target.value); setApptDate(''); setApptSlot(''); }}>
                         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
@@ -196,6 +337,38 @@ const RespondModal = ({
                             value={returnInfo} onChange={e => setReturnInfo(e.target.value)}
                             placeholder={t('referrals.respond.specific_info_placeholder')}
                         />
+                    </div>
+                )}
+
+                {needsAppointment && (
+                    <div style={{ marginTop: '0.25rem', padding: '0.75rem', background: 'var(--color-info-light)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.83rem', color: 'var(--color-info-dark)', fontWeight: 600 }}>
+                            {t('referrals.respond.appt_required_notice', {
+                                defaultValue: 'This referral type requires you to schedule an appointment with the patient upon acceptance.',
+                            })}
+                        </p>
+                        <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                            <label htmlFor="appt-type" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                {t('referrals.respond.appt_type_label', { defaultValue: 'Appointment type' })}
+                            </label>
+                            <select id="appt-type" className="input select-input" value={apptType}
+                                onChange={e => setApptType(e.target.value as 'in_person' | 'telemedicine')}
+                                style={{ marginTop: '0.25rem' }}>
+                                <option value="in_person">{t('appointments.type.in_person', { defaultValue: 'In Person' })}</option>
+                                <option value="telemedicine">{t('appointments.type.telemedicine', { defaultValue: 'Telemedicine' })}</option>
+                            </select>
+                        </div>
+                        <ReferralSlotPicker
+                            selectedDate={apptDate}
+                            onDateSelect={setApptDate}
+                            selectedSlot={apptSlot}
+                            onSlotSelect={setApptSlot}
+                        />
+                        {needsAppointment && !apptSlot && (
+                            <p style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--color-danger)', margin: '0.5rem 0 0' }}>
+                                {t('referrals.respond.appt_slot_required', { defaultValue: 'Select a time slot to accept this referral.' })}
+                            </p>
+                        )}
                     </div>
                 )}
             </form>
@@ -466,6 +639,37 @@ const ReferralsList = () => {
                                 {referral.reason_for_referral && (
                                     <p className="card-reason">{referral.reason_for_referral}</p>
                                 )}
+
+                                {/* Linked appointment badge */}
+                                {referral.linked_appointment_details && (
+                                    <div style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                        marginTop: '0.25rem', marginBottom: '0.25rem',
+                                        padding: '0.3rem 0.6rem',
+                                        background: referral.linked_appointment_details.status === 'completed'
+                                            ? 'var(--color-success-light)' : 'var(--color-info-light)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '0.8rem',
+                                        color: referral.linked_appointment_details.status === 'completed'
+                                            ? 'var(--color-success-dark)' : 'var(--color-info-dark)',
+                                    }}>
+                                        <span>📅</span>
+                                        <span>
+                                            {t('referrals.list.card.linked_appointment', { defaultValue: 'Appointment' })}:{' '}
+                                            <strong>
+                                                {new Date(referral.linked_appointment_details.appointment_date).toLocaleDateString(undefined, {
+                                                    day: 'numeric', month: 'short', year: 'numeric',
+                                                })}{' '}
+                                                {new Date(referral.linked_appointment_details.appointment_date).toLocaleTimeString(undefined, {
+                                                    hour: '2-digit', minute: '2-digit',
+                                                })}
+                                            </strong>
+                                            {' · '}
+                                            {referral.linked_appointment_details.status_display}
+                                        </span>
+                                    </div>
+                                )}
+
                                 {referral.response_notes && (
                                     <div className="referral-card__response">{t('referrals.list.card.response_label')}: {referral.response_notes}</div>
                                 )}
