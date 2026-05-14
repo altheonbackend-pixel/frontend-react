@@ -32,6 +32,19 @@ const APPOINTMENT_REQUIRED_TYPES = new Set([
     'procedure_request',
 ]);
 
+// Days allowed per urgency level (matches backend _URGENCY_WINDOW)
+const URGENCY_DATE_DAYS: Record<string, number> = {
+    emergency: 1,   // 24h window
+    urgent:    3,   // 72h window
+    routine:   14,  // 30d window, UI shows 14 for practicality
+};
+
+const URGENCY_DEADLINE_HOURS: Record<string, number> = {
+    emergency: 24,
+    urgent:    72,
+    routine:   720, // 30 days in hours
+};
+
 // ── Slot Picker ────────────────────────────────────────────────────────────────
 interface SlotInfo { time: string; datetime: string; status: 'free' | 'booked' | 'past'; }
 
@@ -40,23 +53,27 @@ const ReferralSlotPicker = ({
     onDateSelect,
     selectedSlot,
     onSlotSelect,
+    urgency,
 }: {
     selectedDate: string;
     onDateSelect: (d: string) => void;
     selectedSlot: string;
     onSlotSelect: (datetime: string) => void;
+    urgency: string;
 }) => {
     const { t } = useTranslation();
     const [slots, setSlots] = useState<SlotInfo[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [dayOff, setDayOff] = useState(false);
 
-    // Generate next 14 calendar days (skip today — appointment must be in the future)
-    const dates = Array.from({ length: 14 }, (_, i) => {
+    // Generate dates within the urgency-allowed window only
+    const maxDays = URGENCY_DATE_DAYS[urgency] ?? 14;
+    const deadlineMs = Date.now() + (URGENCY_DEADLINE_HOURS[urgency] ?? 720) * 60 * 60 * 1000;
+    const dates = Array.from({ length: maxDays }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() + i + 1);
         return d.toISOString().slice(0, 10);
-    });
+    }).filter(d => new Date(d + 'T23:59:59').getTime() <= deadlineMs + 24 * 60 * 60 * 1000);
 
     useEffect(() => {
         if (!selectedDate) return;
@@ -340,37 +357,72 @@ const RespondModal = ({
                     </div>
                 )}
 
-                {needsAppointment && (
-                    <div style={{ marginTop: '0.25rem', padding: '0.75rem', background: 'var(--color-info-light)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
-                        <p style={{ margin: '0 0 0.75rem', fontSize: '0.83rem', color: 'var(--color-info-dark)', fontWeight: 600 }}>
-                            {t('referrals.respond.appt_required_notice', {
-                                defaultValue: 'This referral type requires you to schedule an appointment with the patient upon acceptance.',
-                            })}
-                        </p>
-                        <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                            <label htmlFor="appt-type" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
-                                {t('referrals.respond.appt_type_label', { defaultValue: 'Appointment type' })}
-                            </label>
-                            <select id="appt-type" className="input select-input" value={apptType}
-                                onChange={e => setApptType(e.target.value as 'in_person' | 'telemedicine')}
-                                style={{ marginTop: '0.25rem' }}>
-                                <option value="in_person">{t('appointments.type.in_person', { defaultValue: 'In Person' })}</option>
-                                <option value="telemedicine">{t('appointments.type.telemedicine', { defaultValue: 'Telemedicine' })}</option>
-                            </select>
-                        </div>
-                        <ReferralSlotPicker
-                            selectedDate={apptDate}
-                            onDateSelect={setApptDate}
-                            selectedSlot={apptSlot}
-                            onSlotSelect={setApptSlot}
-                        />
-                        {needsAppointment && !apptSlot && (
-                            <p style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--color-danger)', margin: '0.5rem 0 0' }}>
-                                {t('referrals.respond.appt_slot_required', { defaultValue: 'Select a time slot to accept this referral.' })}
+                {needsAppointment && (() => {
+                    const urgency = referral.urgency ?? 'routine';
+                    const deadlineHours = URGENCY_DEADLINE_HOURS[urgency] ?? 720;
+                    const deadlineDate = new Date(Date.now() + deadlineHours * 60 * 60 * 1000);
+                    const deadlineStr = deadlineDate.toLocaleDateString(undefined, {
+                        weekday: 'short', day: 'numeric', month: 'short',
+                        hour: '2-digit', minute: '2-digit',
+                    });
+
+                    const urgencyStyles: Record<string, { bg: string; border: string; color: string; icon: string }> = {
+                        emergency: { bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)',  color: 'var(--color-danger-dark)',   icon: '🚨' },
+                        urgent:    { bg: 'var(--color-warning-light)',   border: 'var(--color-warning-border, #fcd34d)', color: 'var(--color-warning-dark)',  icon: '⚠️' },
+                        routine:   { bg: 'var(--color-info-light)',      border: 'var(--border)',               color: 'var(--color-info-dark)',     icon: '📅' },
+                    };
+                    const style = urgencyStyles[urgency] ?? urgencyStyles.routine;
+
+                    return (
+                        <div style={{ marginTop: '0.25rem', padding: '0.75rem', background: style.bg, borderRadius: 'var(--radius-sm)', border: `1px solid ${style.border}` }}>
+                            {/* Urgency deadline banner */}
+                            <p style={{ margin: '0 0 0.5rem', fontSize: '0.83rem', color: style.color, fontWeight: 700 }}>
+                                {style.icon}{' '}
+                                {urgency === 'emergency' && t('referrals.respond.urgency_emergency_notice', {
+                                    defaultValue: 'EMERGENCY — appointment must be scheduled within 24 hours.',
+                                })}
+                                {urgency === 'urgent' && t('referrals.respond.urgency_urgent_notice', {
+                                    defaultValue: 'URGENT — appointment must be scheduled within 72 hours.',
+                                })}
+                                {urgency === 'routine' && t('referrals.respond.appt_required_notice', {
+                                    defaultValue: 'This referral type requires you to schedule an appointment with the patient upon acceptance.',
+                                })}
                             </p>
-                        )}
-                    </div>
-                )}
+                            {(urgency === 'emergency' || urgency === 'urgent') && (
+                                <p style={{ margin: '0 0 0.75rem', fontSize: '0.79rem', color: style.color }}>
+                                    {t('referrals.respond.urgency_deadline', {
+                                        defaultValue: 'Deadline: {{deadline}}',
+                                        deadline: deadlineStr,
+                                    })}
+                                </p>
+                            )}
+
+                            <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                                <label htmlFor="appt-type" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                                    {t('referrals.respond.appt_type_label', { defaultValue: 'Appointment type' })}
+                                </label>
+                                <select id="appt-type" className="input select-input" value={apptType}
+                                    onChange={e => setApptType(e.target.value as 'in_person' | 'telemedicine')}
+                                    style={{ marginTop: '0.25rem' }}>
+                                    <option value="in_person">{t('appointments.type.in_person', { defaultValue: 'In Person' })}</option>
+                                    <option value="telemedicine">{t('appointments.type.telemedicine', { defaultValue: 'Telemedicine' })}</option>
+                                </select>
+                            </div>
+                            <ReferralSlotPicker
+                                selectedDate={apptDate}
+                                onDateSelect={setApptDate}
+                                selectedSlot={apptSlot}
+                                onSlotSelect={setApptSlot}
+                                urgency={urgency}
+                            />
+                            {!apptSlot && (
+                                <p style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--color-danger)', margin: '0.5rem 0 0' }}>
+                                    {t('referrals.respond.appt_slot_required', { defaultValue: 'Select a time slot to accept this referral.' })}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })()}
             </form>
         </Modal>
     );
