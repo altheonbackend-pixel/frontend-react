@@ -25,6 +25,11 @@ export default function PatientAppointments() {
     const doctorIdParam = Number(searchParams.get('doctor_id') ?? 0);
     const reasonParam = searchParams.get('reason') ?? '';
 
+    const todayLocal = useMemo(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }, []);
+
     const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
     const [showHowItWorks, setShowHowItWorks] = useState(() => localStorage.getItem('appt_how_it_works_collapsed') !== '1');
     const [requestOpen, setRequestOpen] = useState(false);
@@ -72,6 +77,14 @@ export default function PatientAppointments() {
     });
     const availableSlots = slotsData?.slots ?? [];
     const doctorAvailable = slotsData?.doctor_available ?? false;
+
+    // Auto-open the "Find Next Available Dates" panel when the loaded date has no open slots,
+    // so the patient is immediately guided to a working date instead of being stuck.
+    useEffect(() => {
+        if (slotsData && !slotsLoading && (availableSlots.length === 0 || !doctorAvailable)) {
+            setNextDatesOpen(true);
+        }
+    }, [slotsData, slotsLoading, availableSlots.length, doctorAvailable]);
 
     const { data: rsSlotsData, isFetching: rsSlotsLoading, isError: rsSlotsError } = useQuery({
         queryKey: ['patient', 'rs-slots', rescheduleTarget?.doctorId, rsPickDate],
@@ -392,7 +405,7 @@ export default function PatientAppointments() {
                                 id="rs-pick-date"
                                 type="date"
                                 className="input"
-                                min={new Date().toISOString().slice(0, 10)}
+                                min={todayLocal}
                                 value={rsPickDate}
                                 onChange={e => { setRsPickDate(e.target.value); setRescheduleDate(''); }}
                             />
@@ -528,10 +541,11 @@ export default function PatientAppointments() {
                             id="requestDate"
                             type="date"
                             value={requestDate}
-                            min={new Date().toISOString().slice(0, 10)}
+                            min={todayLocal}
                             onChange={e => {
                                 setRequestDate(e.target.value);
                                 setFormData(p => ({ ...p, appointmentDate: '' }));
+                                setNextDatesOpen(false);
                             }}
                         />
                         {formData.doctorId > 0 && (

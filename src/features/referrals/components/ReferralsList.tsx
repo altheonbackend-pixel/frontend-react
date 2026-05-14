@@ -1,6 +1,7 @@
 // src/features/referrals/components/ReferralsList.tsx
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Referral } from '../../../shared/types';
 import { Link } from 'react-router-dom';
@@ -23,16 +24,9 @@ type Tab = 'all' | 'received' | 'sent';
 
 interface PatientResult { unique_id: string; first_name: string; last_name: string; }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-const ALLOWED_RESPOND_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
-    pending:  [{ value: 'accepted', label: 'Accept' }, { value: 'rejected', label: 'Reject' }, { value: 'returned', label: 'Return for more information' }],
-    returned: [{ value: 'accepted', label: 'Accept' }, { value: 'rejected', label: 'Reject' }],
-    accepted: [{ value: 'in_progress', label: 'Mark In Progress' }, { value: 'returned', label: 'Return for more information' }],
-    // in_progress: result submission only — no respond options
-};
-
 // ── Patient Picker Modal ───────────────────────────────────────────────────────
 const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => void; onClose: () => void }) => {
+    const { t } = useTranslation();
     const [q, setQ] = useState('');
     const [results, setResults] = useState<PatientResult[]>([]);
     const [loading, setLoading] = useState(false);
@@ -40,8 +34,8 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        const t = setTimeout(() => inputRef.current?.focus(), 50);
-        return () => clearTimeout(t);
+        const timer = setTimeout(() => inputRef.current?.focus(), 50);
+        return () => clearTimeout(timer);
     }, []);
 
     const search = (val: string) => {
@@ -60,27 +54,27 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
         <Modal
             open
             onClose={onClose}
-            title="New Referral — Select Patient"
+            title={t('referrals.picker.title')}
             size="sm"
             dismissOnBackdrop="always"
             footer={
                 <>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                    <Link to="/patients" className="btn btn-secondary">Browse all patients →</Link>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>{t('referrals.picker.cancel')}</button>
+                    <Link to="/patients" className="btn btn-secondary">{t('referrals.picker.browse')}</Link>
                 </>
             }
         >
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem', marginTop: 0 }}>
-                Search for a patient to create a referral for.
+                {t('referrals.picker.description')}
             </p>
             <input
-                ref={inputRef} className="input" placeholder="Search by name or ID…"
+                ref={inputRef} className="input" placeholder={t('referrals.picker.placeholder')}
                 value={q} onChange={e => { setQ(e.target.value); search(e.target.value); }}
                 style={{ marginBottom: '0.75rem' }}
             />
-            {loading && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>Searching…</p>}
+            {loading && <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>{t('referrals.picker.searching')}</p>}
             {!loading && results.length === 0 && q.trim() && (
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>No patients found.</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>{t('referrals.picker.no_results')}</p>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: 240, overflowY: 'auto' }}>
                 {results.map(p => (
@@ -100,6 +94,24 @@ const PatientPicker = ({ onSelect, onClose }: { onSelect: (p: PatientResult) => 
 const RespondModal = ({
     referral, onClose, onDone,
 }: { referral: Referral; onClose: () => void; onDone: (updated: Referral) => void; }) => {
+    const { t } = useTranslation();
+
+    const ALLOWED_RESPOND_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
+        pending:  [
+            { value: 'accepted',    label: t('referrals.respond.options.accept') },
+            { value: 'rejected',    label: t('referrals.respond.options.reject') },
+            { value: 'returned',    label: t('referrals.respond.options.return') },
+        ],
+        returned: [
+            { value: 'accepted',    label: t('referrals.respond.options.accept') },
+            { value: 'rejected',    label: t('referrals.respond.options.reject') },
+        ],
+        accepted: [
+            { value: 'in_progress', label: t('referrals.respond.options.in_progress') },
+            { value: 'returned',    label: t('referrals.respond.options.return') },
+        ],
+    };
+
     const options = ALLOWED_RESPOND_OPTIONS[referral.status] ?? [];
     const [respondStatus, setRespondStatus] = useState(options[0]?.value ?? 'accepted');
     const [notes, setNotes] = useState('');
@@ -112,10 +124,10 @@ const RespondModal = ({
             response_notes: notes,
             return_requested_info: returnInfo,
         }),
-        onSuccess: (res) => { toast.success('Response submitted.'); onDone(res.data); },
+        onSuccess: (res) => { toast.success(t('referrals.respond.success')); onDone(res.data); },
         onError: (err: unknown) => {
             const e = err as { response?: { data?: { error?: string } } };
-            setError(e?.response?.data?.error || 'Failed to respond. Try again.');
+            setError(e?.response?.data?.error || t('referrals.respond.error'));
         },
     });
 
@@ -124,13 +136,13 @@ const RespondModal = ({
             <Modal
                 open
                 onClose={onClose}
-                title="No actions available"
+                title={t('referrals.respond.no_actions_title')}
                 size="sm"
                 dismissOnBackdrop="always"
-                footer={<button type="button" className="btn btn-secondary" onClick={onClose}>Close</button>}
+                footer={<button type="button" className="btn btn-secondary" onClick={onClose}>{t('referrals.respond.close')}</button>}
             >
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                    This referral is in <strong>{referral.status}</strong> status. No respond actions are available.
+                    {t('referrals.respond.no_actions_body', { status: referral.status })}
                 </p>
             </Modal>
         );
@@ -140,48 +152,49 @@ const RespondModal = ({
         <Modal
             open
             onClose={onClose}
-            title="Respond to Referral"
+            title={t('referrals.respond.title')}
             size="sm"
             dismissOnBackdrop="always"
             footer={
                 <>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>{t('referrals.respond.cancel')}</button>
                     <button type="submit" form="respond-form" className="btn btn-primary" disabled={isPending}>
-                        {isPending ? 'Saving…' : 'Submit Response'}
+                        {isPending ? t('referrals.respond.saving') : t('referrals.respond.submit')}
                     </button>
                 </>
             }
         >
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 0, marginBottom: '1.25rem' }}>
-                Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
-                {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
+                {t('referrals.respond.patient_label')}: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
+                {' · '}
+                {t('referrals.respond.from_label')}: <strong>Dr. {referral.referred_by_details?.full_name ?? '?'}</strong>
             </p>
             {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
             <form id="respond-form" onSubmit={e => { e.preventDefault(); submit(); }}>
                 <div className="form-group">
-                    <label htmlFor="respond-status">Response</label>
+                    <label htmlFor="respond-status">{t('referrals.respond.response_label')}</label>
                     <select id="respond-status" className="input select-input" value={respondStatus} onChange={e => setRespondStatus(e.target.value)}>
                         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
                 <div className="form-group">
                     <label htmlFor="respond-notes">
-                        Notes {(respondStatus === 'rejected' || respondStatus === 'returned') && <span style={{ color: 'var(--color-danger)' }}>*</span>}
+                        {t('referrals.respond.notes_label')} {(respondStatus === 'rejected' || respondStatus === 'returned') && <span style={{ color: 'var(--color-danger)' }}>*</span>}
                     </label>
                     <textarea
                         id="respond-notes" className="input textarea" rows={3}
                         value={notes} onChange={e => setNotes(e.target.value)}
-                        placeholder={respondStatus === 'returned' ? 'Explain why you are returning this referral…' : 'Add response notes…'}
+                        placeholder={respondStatus === 'returned' ? t('referrals.respond.placeholder_returned') : t('referrals.respond.placeholder_notes')}
                         required={respondStatus === 'rejected' || respondStatus === 'returned'}
                     />
                 </div>
                 {respondStatus === 'returned' && (
                     <div className="form-group">
-                        <label htmlFor="return-info">What specific information do you need?</label>
+                        <label htmlFor="return-info">{t('referrals.respond.specific_info_label')}</label>
                         <textarea
                             id="return-info" className="input textarea" rows={2}
                             value={returnInfo} onChange={e => setReturnInfo(e.target.value)}
-                            placeholder="e.g. Please include recent ECG and lipid panel results"
+                            placeholder={t('referrals.respond.specific_info_placeholder')}
                         />
                     </div>
                 )}
@@ -194,15 +207,16 @@ const RespondModal = ({
 const SubmitResultModal = ({
     referral, onClose, onDone,
 }: { referral: Referral; onClose: () => void; onDone: (updated: Referral) => void; }) => {
+    const { t } = useTranslation();
     const [result, setResult] = useState('');
     const [error, setError] = useState('');
 
     const { mutate: submit, isPending } = useMutation({
         mutationFn: () => submitResult(referral.id, result),
-        onSuccess: (res) => { toast.success('Result submitted. Referral completed.'); onDone(res.data); },
+        onSuccess: (res) => { toast.success(t('referrals.result.success')); onDone(res.data); },
         onError: (err: unknown) => {
             const e = err as { response?: { data?: { error?: string; detail?: string } } };
-            setError(e?.response?.data?.error || e?.response?.data?.detail || 'Failed to submit result. Try again.');
+            setError(e?.response?.data?.error || e?.response?.data?.detail || t('referrals.result.error'));
         },
     });
 
@@ -210,30 +224,31 @@ const SubmitResultModal = ({
         <Modal
             open
             onClose={onClose}
-            title="Submit Clinical Result"
+            title={t('referrals.result.title')}
             size="sm"
             dismissOnBackdrop="always"
             footer={
                 <>
-                    <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                    <button type="button" className="btn btn-secondary" onClick={onClose}>{t('referrals.result.cancel')}</button>
                     <button type="submit" form="submit-result-form" className="btn btn-primary" disabled={isPending || !result.trim()}>
-                        {isPending ? 'Submitting…' : 'Submit & Complete Referral'}
+                        {isPending ? t('referrals.result.submitting') : t('referrals.result.submit')}
                     </button>
                 </>
             }
         >
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: 0, marginBottom: '1.25rem' }}>
-                Patient: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
-                {' · '}From: <strong>Dr. {referral.referred_by_details?.full_name ?? 'Unknown'}</strong>
+                {t('referrals.respond.patient_label')}: <strong>{referral.patient_details?.first_name} {referral.patient_details?.last_name}</strong>
+                {' · '}
+                {t('referrals.respond.from_label')}: <strong>Dr. {referral.referred_by_details?.full_name ?? '?'}</strong>
             </p>
             {error && <div className="error-message" style={{ marginBottom: '1rem' }}>{error}</div>}
             <form id="submit-result-form" onSubmit={e => { e.preventDefault(); if (result.trim()) submit(); }}>
                 <div className="form-group">
-                    <label htmlFor="result-text">Clinical findings / result <span style={{ color: 'var(--color-danger)' }}>*</span></label>
+                    <label htmlFor="result-text">{t('referrals.result.findings_label')} <span style={{ color: 'var(--color-danger)' }}>*</span></label>
                     <textarea
                         id="result-text" className="input textarea" rows={5}
                         value={result} onChange={e => setResult(e.target.value)}
-                        placeholder="Describe your clinical findings, diagnosis, and recommended next steps…"
+                        placeholder={t('referrals.result.placeholder')}
                         required
                     />
                 </div>
@@ -244,6 +259,7 @@ const SubmitResultModal = ({
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const ReferralsList = () => {
+    const { t } = useTranslation();
     const { profile } = useAuth();
     const queryClient = useQueryClient();
 
@@ -298,21 +314,21 @@ const ReferralsList = () => {
     const handleDelete = async (id: number) => {
         try {
             await deleteReferral(id);
-            toast.success('Referral deleted.');
+            toast.success(t('referrals.list.toast.deleted'));
             setConfirmDeleteId(null);
             invalidate();
         } catch {
-            toast.error('Failed to delete referral.');
+            toast.error(t('referrals.list.toast.delete_failed'));
         }
     };
 
     const handleSubmitDraft = async (id: number) => {
         try {
             await submitDraft(id);
-            toast.success('Referral sent successfully.');
+            toast.success(t('referrals.list.toast.draft_sent'));
             invalidate();
         } catch {
-            toast.error('Failed to submit draft.');
+            toast.error(t('referrals.list.toast.draft_send_failed'));
         }
     };
 
@@ -329,46 +345,46 @@ const ReferralsList = () => {
     return (
         <>
             <PageHeader
-                title="Referrals"
-                subtitle="Track and respond to patient referrals"
+                title={t('referrals.list.title')}
+                subtitle={t('referrals.list.subtitle')}
                 actions={
                     <button className="btn btn-primary btn-sm" onClick={() => setShowPatientPicker(true)}>
-                        + New Referral
+                        {t('referrals.list.new_referral')}
                     </button>
                 }
             />
 
             <div className="tab-bar">
-                <TabBtn value="all"      label="All" />
-                <TabBtn value="received" label="Received" />
-                <TabBtn value="sent"     label="Sent" />
+                <TabBtn value="all"      label={t('referrals.list.tabs.all')} />
+                <TabBtn value="received" label={t('referrals.list.tabs.received')} />
+                <TabBtn value="sent"     label={t('referrals.list.tabs.sent')} />
             </div>
 
             <div className="filter-row">
                 <select className="input select-input" style={{ width: 'auto', minWidth: 160 }}
                     value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}>
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="pending">Pending</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="returned">Returned for Info</option>
-                    <option value="completed">Completed</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="recalled">Recalled</option>
-                    <option value="expired">Expired</option>
+                    <option value="">{t('referrals.list.filter.all_statuses')}</option>
+                    <option value="draft">{t('referrals.list.status.draft')}</option>
+                    <option value="pending">{t('referrals.list.status.pending')}</option>
+                    <option value="accepted">{t('referrals.list.status.accepted')}</option>
+                    <option value="in_progress">{t('referrals.list.status.in_progress')}</option>
+                    <option value="returned">{t('referrals.list.status.returned_for_info')}</option>
+                    <option value="completed">{t('referrals.list.status.completed')}</option>
+                    <option value="rejected">{t('referrals.list.status.rejected')}</option>
+                    <option value="cancelled">{t('referrals.list.status.cancelled')}</option>
+                    <option value="recalled">{t('referrals.list.status.recalled')}</option>
+                    <option value="expired">{t('referrals.list.status.expired')}</option>
                 </select>
                 <select className="input select-input" style={{ width: 'auto', minWidth: 160 }}
                     value={urgencyFilter} onChange={e => { setUrgencyFilter(e.target.value); setPage(1); }}>
-                    <option value="">All Urgencies</option>
-                    <option value="routine">Routine</option>
-                    <option value="urgent">Urgent</option>
-                    <option value="emergency">Emergency</option>
+                    <option value="">{t('referrals.list.filter.all_urgencies')}</option>
+                    <option value="routine">{t('referrals.list.urgency.routine')}</option>
+                    <option value="urgent">{t('referrals.list.urgency.urgent')}</option>
+                    <option value="emergency">{t('referrals.list.urgency.emergency')}</option>
                 </select>
             </div>
 
-            {isError && <div className="error-message" style={{ marginBottom: '1rem' }}>Failed to load referrals.</div>}
+            {isError && <div className="error-message" style={{ marginBottom: '1rem' }}>{t('referrals.list.error.load')}</div>}
 
             {isLoading && !data ? (
                 <div className="section-card"><div className="section-card-body"><TabSkeleton rows={4} /></div></div>
@@ -377,8 +393,8 @@ const ReferralsList = () => {
                     <div className="section-card-body">
                         <div className="empty-state">
                             <div className="empty-state-icon">💬</div>
-                            <div className="empty-state-title">No referrals found</div>
-                            <div className="empty-state-subtitle">Referrals sent or received will appear here.</div>
+                            <div className="empty-state-title">{t('referrals.list.empty.title')}</div>
+                            <div className="empty-state-subtitle">{t('referrals.list.empty.subtitle')}</div>
                         </div>
                     </div>
                 </div>
@@ -388,7 +404,8 @@ const ReferralsList = () => {
                         const isReceived = referral.referred_to === myId;
                         const isSent     = referral.referred_by === myId;
                         const isDraft    = referral.is_draft;
-                        const canRespond = isReceived && !!ALLOWED_RESPOND_OPTIONS[referral.status];
+                        const ALLOWED_RESPOND_STATUSES = ['pending', 'returned', 'accepted'];
+                        const canRespond = isReceived && ALLOWED_RESPOND_STATUSES.includes(referral.status);
                         const canDelete  = isSent && ['draft', 'pending', 'rejected', 'cancelled', 'recalled', 'expired'].includes(referral.status);
                         const canEdit    = isSent && ['draft', 'pending', 'returned'].includes(referral.status);
                         const isReturnedToMe = isSent && referral.status === 'returned';
@@ -396,55 +413,50 @@ const ReferralsList = () => {
 
                         return (
                             <div key={referral.id} className={urgencyClass(urgency)}>
-                                {/* SLA breached banner */}
                                 {referral.sla_breached && (
                                     <div style={{ background: 'var(--color-danger-bg, #fef2f2)', color: 'var(--color-danger, #dc2626)', fontSize: '0.78rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.5rem' }}>
-                                        ⚠ SLA breached — response overdue
+                                        {t('referrals.list.card.sla_breached')}
                                     </div>
                                 )}
 
-                                {/* Returned banner */}
                                 {isReturnedToMe && (
                                     <div style={{ background: 'var(--color-warning-bg, #fffbeb)', border: '1px solid var(--color-warning, #f59e0b)', borderRadius: 'var(--radius-sm)', padding: '0.5rem 0.75rem', marginBottom: '0.5rem', fontSize: '0.82rem' }}>
-                                        <strong>Specialist returned this referral for more information.</strong>
+                                        <strong>{t('referrals.list.card.specialist_returned')}</strong>
                                         {referral.return_reason && <span> "{referral.return_reason}"</span>}
                                     </div>
                                 )}
 
-                                {/* Header row */}
                                 <div className="referral-card__header">
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div className="referral-card__badges">
                                             <StatusBadge status={urgency} label={referral.urgency_display} size="md" />
-                                            {/* Status badge — prominent, inline with urgency */}
                                             <StatusBadge status={referral.status} label={referral.status_display} size="md" />
                                             {referral.referral_type_display && (
                                                 <span className="card-meta" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', padding: '0 6px', fontSize: '0.75rem' }}>
                                                     {referral.referral_type_display}
                                                 </span>
                                             )}
-                                            {isDraft && <span className="card-meta" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Draft</span>}
+                                            {isDraft && <span className="card-meta" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('referrals.list.card.draft_label')}</span>}
                                         </div>
                                         <div className="card-name">
                                             {referral.patient_details
                                                 ? <Link to={`/patients/${referral.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
                                                     {referral.patient_details.first_name} {referral.patient_details.last_name}
                                                   </Link>
-                                                : 'Patient'}
+                                                : t('referrals.list.card.patient_unknown')}
                                         </div>
                                         <div className="card-meta">
-                                            Specialty: {referral.specialty_display ?? referral.specialty_requested}
+                                            {t('referrals.list.card.specialty')}: {referral.specialty_display ?? referral.specialty_requested}
                                             {' · '}
                                             {isReceived
-                                                ? `From Dr. ${referral.referred_by_details?.full_name ?? '?'}`
-                                                : `To Dr. ${referral.referred_to_details?.full_name ?? '?'}`}
+                                                ? t('referrals.list.card.from_dr', { name: referral.referred_by_details?.full_name ?? '?' })
+                                                : t('referrals.list.card.to_dr',   { name: referral.referred_to_details?.full_name ?? '?' })}
                                         </div>
                                     </div>
                                     <div className="referral-card__status">
                                         <span className="card-meta">
-                                            {new Date(referral.date_of_referral).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            {new Date(referral.date_of_referral).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                                         </span>
-                                        {/* SLA badge */}
                                         {urgency !== 'routine' && referral.sla_due_at && !referral.sla_breached && (
                                             <ReferralSLABadge sla_due_at={referral.sla_due_at} sla_breached={false} urgency={urgency} />
                                         )}
@@ -455,75 +467,67 @@ const ReferralsList = () => {
                                     <p className="card-reason">{referral.reason_for_referral}</p>
                                 )}
                                 {referral.response_notes && (
-                                    <div className="referral-card__response">Response: {referral.response_notes}</div>
+                                    <div className="referral-card__response">{t('referrals.list.card.response_label')}: {referral.response_notes}</div>
                                 )}
                                 {referral.return_requested_info && isSent && (
                                     <div className="referral-card__response" style={{ borderLeft: '3px solid var(--color-warning, #f59e0b)', paddingLeft: '0.5rem' }}>
-                                        <strong>Needs:</strong> {referral.return_requested_info}
+                                        <strong>{t('referrals.list.card.needs_label')}:</strong> {referral.return_requested_info}
                                     </div>
                                 )}
                                 {referral.status === 'cancelled' && referral.cancelled_by_details && (
                                     <div className="card-meta" style={{ marginTop: '0.25rem', color: 'var(--text-muted)' }}>
-                                        Cancelled by Dr. {referral.cancelled_by_details.full_name}
+                                        {t('referrals.list.card.cancelled_by', { name: referral.cancelled_by_details.full_name })}
                                         {referral.cancellation_reason && ` — ${referral.cancellation_reason}`}
                                     </div>
                                 )}
 
-                                {/* Actions */}
                                 <div className="btn-row" style={{ marginTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                    {/* Dr. B respond */}
                                     {canRespond && !isDraft && (
                                         <button className="btn btn-primary btn-sm" onClick={() => setRespondTarget(referral)}>
-                                            {referral.status === 'returned' ? 'Re-evaluate' : 'Respond'}
+                                            {referral.status === 'returned' ? t('referrals.list.actions.re_evaluate') : t('referrals.list.actions.respond')}
                                         </button>
                                     )}
-                                    {/* Dr. B submit result (in_progress only) */}
                                     {isReceived && referral.status === 'in_progress' && (
                                         <button className="btn btn-primary btn-sm" onClick={() => setSubmitResultTarget(referral)}>
-                                            Submit Result
+                                            {t('referrals.list.actions.submit_result')}
                                         </button>
                                     )}
-                                    {/* Draft actions */}
                                     {isDraft && isSent && (
                                         <>
                                             <button className="btn btn-primary btn-sm" onClick={() => handleSubmitDraft(referral.id)}>
-                                                Send Referral
+                                                {t('referrals.list.actions.send_referral')}
                                             </button>
                                             <button className="btn btn-secondary btn-sm" onClick={() => setEditTarget(referral)}>
-                                                Edit
+                                                {t('referrals.list.actions.edit')}
                                             </button>
                                         </>
                                     )}
-                                    {/* Edit for pending/returned */}
                                     {canEdit && !isDraft && (
                                         <button className="btn btn-secondary btn-sm" onClick={() => setEditTarget(referral)}>
-                                            {referral.status === 'returned' ? 'Edit & Resubmit' : 'Edit'}
+                                            {referral.status === 'returned' ? t('referrals.list.actions.edit_resubmit') : t('referrals.list.actions.edit')}
                                         </button>
                                     )}
-                                    {/* Delete */}
                                     {canDelete && (
                                         confirmDeleteId === referral.id ? (
                                             <>
-                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Delete?</span>
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(referral.id)}>Confirm</button>
-                                                <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', alignSelf: 'center' }}>{t('referrals.list.actions.delete_confirm_q')}</span>
+                                                <button className="btn btn-danger btn-sm" onClick={() => handleDelete(referral.id)}>{t('referrals.list.actions.confirm')}</button>
+                                                <button className="btn btn-secondary btn-sm" onClick={() => setConfirmDeleteId(null)}>{t('referrals.list.actions.cancel')}</button>
                                             </>
                                         ) : (
-                                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteId(referral.id)}>Delete</button>
+                                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDeleteId(referral.id)}>{t('referrals.list.actions.delete')}</button>
                                         )
                                     )}
-                                    {/* Message thread toggle */}
                                     {!isDraft && !referral.is_external && (referral.referred_by === myId || referral.referred_to === myId) && (
                                         <button
                                             className="btn btn-ghost btn-sm"
                                             onClick={() => setOpenThreadId(openThreadId === referral.id ? null : referral.id)}
                                         >
-                                            {openThreadId === referral.id ? 'Hide Messages' : 'Messages'}
+                                            {openThreadId === referral.id ? t('referrals.list.actions.hide_messages') : t('referrals.list.actions.messages')}
                                         </button>
                                     )}
                                 </div>
 
-                                {/* Message thread */}
                                 {openThreadId === referral.id && myId !== undefined && (
                                     <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
                                         <ReferralMessageThread referralId={referral.id} currentDoctorId={myId} />

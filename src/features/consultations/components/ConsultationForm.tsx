@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { Drawer, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
@@ -70,6 +70,10 @@ interface ConsultationFormProps {
 const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false }: ConsultationFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Ref flag: when true, doSubmit will call sign/ after saving and invalidate appointments cache (EC-1+EC-2)
+    const signOnNextSubmitRef = useRef(false);
 
     // Non-form state
     const [symptoms, setSymptoms] = useState<string[]>([]);
@@ -343,7 +347,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         }
     };
 
+    // "Save & Complete" button handler — sets the sign flag then triggers form validation + submit
+    const handleSaveAndComplete = () => {
+        signOnNextSubmitRef.current = true;
+        handleSubmit(onSubmit)();
+    };
+
     const doSubmit = async (data: ConsultationFormData) => {
+        const shouldSign = signOnNextSubmitRef.current;
+        signOnNextSubmitRef.current = false;
         try {
             const dataToSend = {
                 ...data,
@@ -449,6 +461,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 clearDraft();
                 toast.success(isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'));
 
+                // EC-1+EC-2: if the doctor clicked "Save & Complete", sign the consultation now.
+                // This transitions the appointment from in_progress → completed and invalidates
+                // the appointments list so the "Resume Consultation" button updates immediately.
+                if (shouldSign && isDraft) {
+                    try {
+                        await api.post(`/consultations/${consultationId}/sign/`);
+                        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+                        toast.success('Consultation signed and appointment completed.');
+                    } catch (signErr) {
+                        toast.error(parseApiError(signErr, 'Consultation saved but could not be signed. Please try again.'));
+                    }
+                }
+
                 // Prompt follow-up appointment for new or draft consultations (not true edits)
                 if ((!isEditing || isDraft) && data.follow_up_date) {
                     const apptType = data.consultation_type === 'telemedicine' ? 'telemedicine' : 'in_person';
@@ -541,7 +566,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 setVitalsConfirmOpen(false);
                 if (pendingSubmitData) doSubmit(pendingSubmitData);
             }}
-            onClose={() => { setVitalsConfirmOpen(false); setPendingSubmitData(null); }}
+            onClose={() => { setVitalsConfirmOpen(false); setPendingSubmitData(null); signOnNextSubmitRef.current = false; }}
         />
         <Modal
             open={!!pendingFollowUp}
@@ -675,9 +700,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     <button type="button" onClick={handleCancel} className="cancel-button" disabled={isSubmitting}>
                         {t('consultation.cancel')}
                     </button>
-                    <button type="submit" form="consultation-form" className="btn btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? t('consultation.loading') : (isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'))}
-                    </button>
+                    {isDraft ? (
+                        <>
+                            {/* Save Draft: keeps appointment in_progress so the doctor can resume */}
+                            <button type="submit" form="consultation-form" className="btn btn-secondary" disabled={isSubmitting}>
+                                {isSubmitting ? t('consultation.loading') : 'Save Draft'}
+                            </button>
+                            {/* Save & Complete: saves then signs the consultation, closing the appointment */}
+                            <button type="button" onClick={handleSaveAndComplete} className="btn btn-primary" disabled={isSubmitting}>
+                                {isSubmitting ? t('consultation.loading') : 'Save & Complete'}
+                            </button>
+                        </>
+                    ) : (
+                        <button type="submit" form="consultation-form" className="btn btn-primary" disabled={isSubmitting}>
+                            {isSubmitting ? t('consultation.loading') : (isEditing ? t('consultation.submit_edit') : t('consultation.submit_add'))}
+                        </button>
+                    )}
                 </>
             }
         >
