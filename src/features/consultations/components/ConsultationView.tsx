@@ -107,7 +107,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationVie
                 size="lg"
                 footer={
                     <>
-                        {isSigned && c.record_status === 'active' && (
+                        {isSigned && c.record_status !== 'voided' && c.record_status !== 'entered_in_error' && (
                             <button
                                 type="button"
                                 className="btn btn-secondary"
