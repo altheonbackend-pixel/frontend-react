@@ -16,6 +16,7 @@ import {
 import '../../../shared/styles/DetailStyles.css';
 import './PatientDetail.css';
 import ConsultationForm from '../../consultations/components/ConsultationForm';
+import ConsultationView from '../../consultations/components/ConsultationView';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
 import ReferralMessageThread from '../../referrals/components/ReferralMessageThread';
@@ -104,6 +105,7 @@ const PatientDetails = () => {
 
     const [consultationToEdit, setConsultationToEdit] = useState<Consultation | null>(null);
     const [consultationFormIsDraft, setConsultationFormIsDraft] = useState(false);
+    const [viewingConsultation, setViewingConsultation] = useState<Consultation | null>(null);
     const [procedureToEdit, setProcedureToEdit] = useState<MedicalProcedure | null>(null);
     const [referralToEdit, setReferralToEdit] = useState<Referral | null>(null);
 
@@ -553,6 +555,7 @@ const PatientDetails = () => {
         setShowAllergyForm(false);
         setConsultationToEdit(null);
         setConsultationFormIsDraft(false);
+        setViewingConsultation(null);
         setProcedureToEdit(null);
         setReferralToEdit(null);
         fetchPatientDetails();
@@ -582,6 +585,7 @@ const PatientDetails = () => {
         setShowAllergyForm(false);
         setConsultationToEdit(null);
         setConsultationFormIsDraft(false);
+        setViewingConsultation(null);
         setProcedureToEdit(null);
         setReferralToEdit(null);
     };
@@ -618,9 +622,14 @@ const PatientDetails = () => {
             const isDraftParam = searchParams.get('draft') === 'true';
             handleTabChange('consultations');
             api.get(`/consultations/${openConsultId}/`).then(res => {
-                setConsultationToEdit(res.data);
-                setConsultationFormIsDraft(isDraftParam);
-                setShowConsultationForm(true);
+                const data = res.data;
+                if (data.consultation_status === 'signed') {
+                    setViewingConsultation(data);
+                } else {
+                    setConsultationToEdit(data);
+                    setConsultationFormIsDraft(isDraftParam);
+                    setShowConsultationForm(true);
+                }
             }).catch(() => {
                 // Consultation not found or no longer accessible — tab already switched
             });
@@ -629,7 +638,7 @@ const PatientDetails = () => {
     }, [searchParams]);
 
     // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
-    const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm;
+    const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm || !!viewingConsultation;
     useKeyboardShortcut({
         key: 'n',
         modifiers: ['ctrl'],
@@ -1266,6 +1275,18 @@ const PatientDetails = () => {
 
             {/* Forms (modal overlays) */}
             {showConsultationForm && <ConsultationForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} consultationToEdit={consultationToEdit} isDraft={consultationFormIsDraft} />}
+            {viewingConsultation && (
+                <ConsultationView
+                    consultation={viewingConsultation}
+                    onClose={() => setViewingConsultation(null)}
+                    onAmend={amended => {
+                        setViewingConsultation(null);
+                        setConsultationToEdit(amended);
+                        setConsultationFormIsDraft(false);
+                        setShowConsultationForm(true);
+                    }}
+                />
+            )}
             {showProcedureForm && <MedicalProcedureForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} procedureToEdit={procedureToEdit} />}
             {showReferralForm && <ReferralForm patientId={id!} onSuccess={handleSuccess} onClose={handleCancel} referralToEdit={referralToEdit ? { ...referralToEdit, comments: referralToEdit.comments ?? undefined } : null} />}
 
@@ -1656,7 +1677,19 @@ const PatientDetails = () => {
 
                                                         <div className="entry-actions">
                                                             {isOwnConsultation && (<>
-                                                            <button onClick={() => { setConsultationToEdit(c); setShowConsultationForm(true); }} className="edit-button action-button">Edit</button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (c.consultation_status === 'signed') {
+                                                                        setViewingConsultation(c);
+                                                                    } else {
+                                                                        setConsultationToEdit(c);
+                                                                        setShowConsultationForm(true);
+                                                                    }
+                                                                }}
+                                                                className="edit-button action-button"
+                                                            >
+                                                                {c.consultation_status === 'signed' ? 'View' : 'Edit'}
+                                                            </button>
                                                             <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
                                                             <button
                                                                 onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}

@@ -13,3 +13,6 @@ export const updateConsultation = (id: number, data: Record<string, unknown>) =>
 
 export const deleteConsultation = (id: number) =>
     api.delete(`/consultations/${id}/`);
+
+export const amendConsultation = (id: number, amendment_reason: string) =>
+    api.post(`/consultations/${id}/amend/`, { amendment_reason });

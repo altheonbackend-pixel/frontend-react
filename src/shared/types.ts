@@ -161,6 +161,8 @@ export interface Consultation {
     signed_at?: string | null;
     signed_by?: number | null;
     amendment_reason?: string | null;
+    amended_at?: string | null;
+    amended_by?: number | null;
     record_status?: 'active' | 'voided' | 'entered_in_error';
     voided_at?: string | null;
     void_reason?: string | null;
