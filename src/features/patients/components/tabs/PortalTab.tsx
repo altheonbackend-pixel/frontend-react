@@ -76,59 +76,8 @@ const PortalTab = ({
 
     return (
         <div className="tab-panel" style={{ display: 'grid', gap: '1.5rem' }}>
-            {/* ── Appointments section ── */}
-            <div className="tab-section">
-                <div className="tab-panel-header">
-                    <h3>Appointments</h3>
-                    <button
-                        className="btn-add-primary"
-                        onClick={() => navigate(`/appointments?patient_id=${id}`)}
-                    >
-                        + Book Appointment
-                    </button>
-                </div>
-                {appointmentsLoading ? (
-                    <TabSkeleton rows={3} />
-                ) : patientAppointments.length === 0 ? (
-                    <p className="muted">No appointments on record for this patient.</p>
-                ) : (
-                    <ul className="detail-list">
-                        {patientAppointments
-                            .slice()
-                            .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
-                            .map(appt => (
-                                <li key={appt.id} className="detail-list-item">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                            <strong>{new Date(appt.appointment_date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
-                                            {appt.appointment_type && (
-                                                <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
-                                                    {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
-                                                </span>
-                                            )}
-                                            {appt.rescheduled_from_date && (
-                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
-                                                    ↩ Rescheduled
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className={`status-badge status-${appt.status}`}>{appt.status_display || appt.status}</span>
-                                    </div>
-                                    {appt.reason_for_appointment && (
-                                        <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
-                                    )}
-                                    {appt.cancellation_reason && (
-                                        <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>Cancellation note:</strong> {appt.cancellation_reason}</div>
-                                    )}
-                                </li>
-                            ))
-                        }
-                    </ul>
-                )}
-            </div>
-
             {/* ── Appointment Requests section ── */}
-            <div className="tab-section tab-section--divider">
+            <div className="tab-section">
                 <div className="tab-panel-header">
                     <h3>
                         Appointment Requests
@@ -198,6 +147,57 @@ const PortalTab = ({
                             </div>
                         ))}
                     </div>
+                )}
+            </div>
+
+            {/* ── Appointments section ── */}
+            <div className="tab-section tab-section--divider">
+                <div className="tab-panel-header">
+                    <h3>Appointments</h3>
+                    <button
+                        className="btn-add-primary"
+                        onClick={() => navigate(`/appointments?patient_id=${id}`)}
+                    >
+                        + Book Appointment
+                    </button>
+                </div>
+                {appointmentsLoading ? (
+                    <TabSkeleton rows={3} />
+                ) : patientAppointments.length === 0 ? (
+                    <p className="muted">No appointments on record for this patient.</p>
+                ) : (
+                    <ul className="detail-list">
+                        {patientAppointments
+                            .slice()
+                            .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
+                            .map(appt => (
+                                <li key={appt.id} className="detail-list-item">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                            <strong>{new Date(appt.appointment_date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                                            {appt.appointment_type && (
+                                                <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
+                                                    {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
+                                                </span>
+                                            )}
+                                            {appt.rescheduled_from_date && (
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+                                                    ↩ Rescheduled
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className={`status-badge status-${appt.status}`}>{appt.status_display || appt.status}</span>
+                                    </div>
+                                    {appt.reason_for_appointment && (
+                                        <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                                    )}
+                                    {appt.cancellation_reason && (
+                                        <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>Cancellation note:</strong> {appt.cancellation_reason}</div>
+                                    )}
+                                </li>
+                            ))
+                        }
+                    </ul>
                 )}
             </div>
 
