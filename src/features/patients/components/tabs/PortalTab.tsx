@@ -156,7 +156,7 @@ const PortalTab = ({
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason}</div>
                                         {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Note: {req.notes}</div>}
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
                                         <button
                                             type="button"
                                             className="btn btn-success btn-sm"
@@ -172,6 +172,13 @@ const PortalTab = ({
                                             disabled={requestActionLoading}
                                         >
                                             Decline
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary btn-sm"
+                                            onClick={() => navigate(`/appointments?patient=${id}`)}
+                                        >
+                                            View →
                                         </button>
                                     </div>
                                 </div>

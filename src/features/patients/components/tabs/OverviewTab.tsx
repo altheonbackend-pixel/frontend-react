@@ -41,6 +41,7 @@ interface OverviewTabProps {
     handleAcknowledgeAlert: (alertId: number) => void;
     setExpandedConsultIds: (v: Set<number>) => void;
     patientAppointments: PatientAppointment[];
+    appointmentsLoading: boolean;
     pendingRequests: any[];
 }
 
@@ -58,6 +59,7 @@ const OverviewTab = ({
     handleAcknowledgeAlert,
     setExpandedConsultIds,
     patientAppointments,
+    appointmentsLoading,
     pendingRequests,
 }: OverviewTabProps) => {
     const navigate = useNavigate();
@@ -234,7 +236,9 @@ const OverviewTab = ({
                             </button>
                         </div>
                         <div className="pt-card-body">
-                            {upcomingAppointment ? (
+                            {appointmentsLoading ? (
+                                <p className="muted" style={{ fontStyle: 'italic' }}>Loading…</p>
+                            ) : upcomingAppointment ? (
                                 <>
                                     <div className="pt-appt-date">
                                         {new Date(upcomingAppointment.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

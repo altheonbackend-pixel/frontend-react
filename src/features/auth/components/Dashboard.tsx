@@ -9,7 +9,7 @@ import api from '../../../shared/services/api';
 import { queryKeys } from '../../../shared/queryKeys';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Avatar } from '../../../shared/components/Avatar';
-import { toast } from '../../../shared/components/ui';
+import { toast, Dialog } from '../../../shared/components/ui';
 import type { LabResult } from '../../../shared/types';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
@@ -88,12 +88,10 @@ function Dashboard() {
     const qc = useQueryClient();
     usePageTitle(t('pages.dashboard', 'Dashboard'));
 
-    const [activeTaskTab, setActiveTaskTab] = useState<TaskTab>('labs');
+    const [activeTaskTab, setActiveTaskTab] = useState<TaskTab>('requests');
     const [vitalAlertDismissed, setVitalAlertDismissed] = useState(false);
     const [rejectLabModal, setRejectLabModal] = useState<{ id: number; testName: string } | null>(null);
-    const [rejectLabReason, setRejectLabReason] = useState('');
     const [rejectApptModal, setRejectApptModal] = useState<{ id: number; patientName: string } | null>(null);
-    const [rejectApptReason, setRejectApptReason] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
 
     const { data, isLoading } = useQuery({
@@ -164,25 +162,6 @@ function Dashboard() {
         }
     };
 
-    const handleRejectLab = async () => {
-        if (!rejectLabModal) return;
-        if (!rejectLabReason.trim()) { toast.error('Please provide a rejection reason.'); return; }
-        const { id, testName } = rejectLabModal;
-        setRejectLabModal(null);
-        setRejectLabReason('');
-        removeLab(id);
-        try {
-            setActionLoading(true);
-            await api.post(`/lab-results/${id}/review/`, { action: 'reject', rejection_reason: rejectLabReason });
-            toast.success(`Lab "${testName}" rejected.`);
-            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
-        } catch {
-            toast.error('Failed to reject lab.');
-            qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     const handleApproveAppt = async (apptId: number) => {
         removeRequest(apptId);
@@ -200,26 +179,6 @@ function Dashboard() {
         }
     };
 
-    const handleRejectAppt = async () => {
-        if (!rejectApptModal) return;
-        if (!rejectApptReason.trim()) { toast.error('Please provide a reason.'); return; }
-        const { id, patientName } = rejectApptModal;
-        setRejectApptModal(null);
-        setRejectApptReason('');
-        removeRequest(id);
-        try {
-            setActionLoading(true);
-            await api.post(`/appointments/${id}/reject/`, { reason: rejectApptReason });
-            toast.success(`Request from ${patientName} declined.`);
-            qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
-            qc.invalidateQueries({ queryKey: ['appointments'] });
-        } catch {
-            toast.error('Failed to decline.');
-            qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
-        } finally {
-            setActionLoading(false);
-        }
-    };
 
     // ── render ─────────────────────────────────────────────────────────────────
     return (
@@ -360,7 +319,7 @@ function Dashboard() {
                         </div>
 
                         <div className="db-tabs">
-                            {(['labs', 'requests'] as TaskTab[]).map(tab => (
+                            {(['requests', 'labs'] as TaskTab[]).map(tab => (
                                 <button
                                     key={tab}
                                     type="button"
@@ -483,64 +442,61 @@ function Dashboard() {
             )}
 
             {/* ── Reject Lab modal ── */}
-            {rejectLabModal && (
-                <div className="modal-overlay" onClick={() => setRejectLabModal(null)}>
-                    <div className="modal-dialog" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Reject Lab: {rejectLabModal.testName}</h3>
-                            <button className="modal-close" onClick={() => setRejectLabModal(null)}>✕</button>
-                        </div>
-                        <div className="modal-body">
-                            <label style={{ fontWeight: 600, fontSize: '0.875rem', display: 'block', marginBottom: '0.375rem' }}>
-                                Rejection reason <span style={{ color: 'var(--danger)' }}>*</span>
-                            </label>
-                            <textarea
-                                value={rejectLabReason}
-                                onChange={e => setRejectLabReason(e.target.value)}
-                                rows={3}
-                                style={{ width: '100%', boxSizing: 'border-box' }}
-                                placeholder="Explain why this document cannot be accepted…"
-                            />
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary btn-sm" onClick={() => setRejectLabModal(null)}>Cancel</button>
-                            <button className="btn btn-danger btn-sm" disabled={actionLoading} onClick={handleRejectLab}>
-                                {actionLoading ? 'Saving…' : 'Reject'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={!!rejectLabModal}
+                onClose={() => setRejectLabModal(null)}
+                onConfirm={async (reason) => {
+                    if (!rejectLabModal) return;
+                    const { id, testName } = rejectLabModal;
+                    setRejectLabModal(null);
+                    removeLab(id);
+                    setActionLoading(true);
+                    try {
+                        await api.post(`/lab-results/${id}/review/`, { action: 'reject', rejection_reason: reason ?? '' });
+                        toast.success(`Lab "${testName}" rejected.`);
+                        qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+                    } catch {
+                        toast.error('Failed to reject lab.');
+                        qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
+                    } finally {
+                        setActionLoading(false);
+                    }
+                }}
+                title={`Reject Lab: ${rejectLabModal?.testName ?? ''}`}
+                tone="danger"
+                confirmLabel="Reject"
+                reasonLabel="Rejection reason"
+                requireReason
+            />
 
             {/* ── Reject Appointment Request modal ── */}
-            {rejectApptModal && (
-                <div className="modal-overlay" onClick={() => setRejectApptModal(null)}>
-                    <div className="modal-dialog" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">Decline — {rejectApptModal.patientName}</h3>
-                            <button className="modal-close" onClick={() => setRejectApptModal(null)}>✕</button>
-                        </div>
-                        <div className="modal-body">
-                            <label style={{ fontWeight: 600, fontSize: '0.875rem', display: 'block', marginBottom: '0.375rem' }}>
-                                Reason for declining <span style={{ color: 'var(--danger)' }}>*</span>
-                            </label>
-                            <textarea
-                                value={rejectApptReason}
-                                onChange={e => setRejectApptReason(e.target.value)}
-                                rows={3}
-                                style={{ width: '100%', boxSizing: 'border-box' }}
-                                placeholder="Reason for declining this request…"
-                            />
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-secondary btn-sm" onClick={() => setRejectApptModal(null)}>Cancel</button>
-                            <button className="btn btn-danger btn-sm" disabled={actionLoading} onClick={handleRejectAppt}>
-                                {actionLoading ? 'Saving…' : 'Decline'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog
+                open={!!rejectApptModal}
+                onClose={() => setRejectApptModal(null)}
+                onConfirm={async (reason) => {
+                    if (!rejectApptModal) return;
+                    const { id, patientName } = rejectApptModal;
+                    setRejectApptModal(null);
+                    removeRequest(id);
+                    setActionLoading(true);
+                    try {
+                        await api.post(`/appointments/${id}/reject/`, { reason: reason ?? '' });
+                        toast.success(`Request from ${patientName} declined.`);
+                        qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
+                        qc.invalidateQueries({ queryKey: ['appointments'] });
+                    } catch {
+                        toast.error('Failed to decline.');
+                        qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
+                    } finally {
+                        setActionLoading(false);
+                    }
+                }}
+                title={`Decline — ${rejectApptModal?.patientName ?? ''}`}
+                tone="danger"
+                confirmLabel="Decline"
+                reasonLabel="Reason for declining"
+                requireReason
+            />
         </div>
     );
 }

@@ -217,7 +217,7 @@ const PatientDetails = () => {
             const res = await api.get('/appointments/', { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('portal'),
+        enabled: !!id,
         staleTime: 2 * 60 * 1000,
     });
 
@@ -300,7 +300,7 @@ const PatientDetails = () => {
             const raw: PendingReq[] = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
             return raw.filter(r => r.patient_id === id);
         },
-        enabled: loadedTabs.has('portal') && !!id,
+        enabled: !!id,
         staleTime: 60_000,
     });
 
@@ -1172,6 +1172,7 @@ const PatientDetails = () => {
                         handleAcknowledgeAlert={handleAcknowledgeAlert}
                         setExpandedConsultIds={setExpandedConsultIds}
                         patientAppointments={patientAppointments}
+                        appointmentsLoading={appointmentsLoading}
                         pendingRequests={pendingRequests}
                     />
                 )}
