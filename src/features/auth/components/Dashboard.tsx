@@ -364,7 +364,7 @@ function Dashboard() {
                                                     type="button"
                                                     className="btn-task-reject"
                                                     disabled={actionLoading}
-                                                    onClick={() => { setRejectLabModal({ id: lab.id, testName: lab.test_name }); setRejectLabReason(''); }}
+                                                    onClick={() => setRejectLabModal({ id: lab.id, testName: lab.test_name })}
                                                 >
                                                     Reject
                                                 </button>
@@ -406,7 +406,7 @@ function Dashboard() {
                                                     type="button"
                                                     className="btn-task-reject"
                                                     disabled={actionLoading}
-                                                    onClick={() => { setRejectApptModal({ id: req.id, patientName: req.patient_name }); setRejectApptReason(''); }}
+                                                    onClick={() => setRejectApptModal({ id: req.id, patientName: req.patient_name })}
                                                 >
                                                     Decline
                                                 </button>
