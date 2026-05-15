@@ -87,13 +87,6 @@ export default function PatientAppointments() {
         }
     }, [slotsData, slotsLoading, availableSlots.length, doctorAvailable]);
 
-    // Same auto-open for reschedule slot picker.
-    useEffect(() => {
-        if (rsSlotsData && !rsSlotsLoading && (rsAvailableSlots.length === 0 || !rsDoctorAvailable)) {
-            setRsNextDatesOpen(true);
-        }
-    }, [rsSlotsData, rsSlotsLoading, rsAvailableSlots.length, rsDoctorAvailable]);
-
     const { data: rsSlotsData, isFetching: rsSlotsLoading, isError: rsSlotsError } = useQuery({
         queryKey: ['patient', 'rs-slots', rescheduleTarget?.doctorId, rsPickDate],
         queryFn: () => patientPortalService.getAvailableSlots(rescheduleTarget!.doctorId, rsPickDate),
@@ -103,6 +96,13 @@ export default function PatientAppointments() {
     });
     const rsAvailableSlots = rsSlotsData?.slots ?? [];
     const rsDoctorAvailable = rsSlotsData?.doctor_available ?? false;
+
+    // Same auto-open for reschedule slot picker.
+    useEffect(() => {
+        if (rsSlotsData && !rsSlotsLoading && (rsAvailableSlots.length === 0 || !rsDoctorAvailable)) {
+            setRsNextDatesOpen(true);
+        }
+    }, [rsSlotsData, rsSlotsLoading, rsAvailableSlots.length, rsDoctorAvailable]);
 
     const { data: rsNextDatesData, isFetching: rsNextDatesLoading } = useQuery({
         queryKey: ['patient', 'rs-next-dates', rescheduleTarget?.doctorId],
