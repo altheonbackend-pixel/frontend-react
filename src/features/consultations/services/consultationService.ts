@@ -16,3 +16,6 @@ export const deleteConsultation = (id: number) =>
 
 export const amendConsultation = (id: number, amendment_reason: string) =>
     api.post(`/consultations/${id}/amend/`, { amendment_reason });
+
+export const dismissFollowUp = (id: number, reason: string) =>
+    api.post(`/consultations/${id}/dismiss-follow-up/`, { reason });

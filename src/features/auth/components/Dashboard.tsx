@@ -1,19 +1,16 @@
 // src/features/auth/components/Dashboard.tsx
-// Phase 1: Action Center — Outstanding Tasks panel + Today's Schedule + vital alerts banner
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { queryKeys } from '../../../shared/queryKeys';
-import { StatCard } from '../../../shared/components/StatCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Avatar } from '../../../shared/components/Avatar';
-import { SectionCard } from '../../../shared/components/SectionCard';
 import { toast } from '../../../shared/components/ui';
-import type { LabResult, FollowUpConsultation } from '../../../shared/types';
+import type { LabResult } from '../../../shared/types';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 
 interface DashboardStats {
@@ -25,7 +22,6 @@ interface DashboardStats {
     pending_referrals: number;
     pending_patient_requests: number;
     scheduled_appointments: number;
-    follow_up_today: number;
     new_patients_this_week: number;
     new_consultations_this_week: number;
     pending_lab_reviews: number;
@@ -63,10 +59,9 @@ interface DashboardData {
     stats: DashboardStats;
     upcoming_appointments: UpcomingAppt[];
     recent_patients: RecentPatient[];
-    due_followups: FollowUpConsultation[];
 }
 
-type TaskTab = 'labs' | 'requests' | 'followups';
+type TaskTab = 'labs' | 'requests';
 
 function getGreeting(timezone?: string | null): string {
     const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -79,50 +74,17 @@ function getGreeting(timezone?: string | null): string {
     return 'Good evening';
 }
 
-// Inline SVG icons
-const PatientIcon = () => (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-);
-const CalendarIcon = () => (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <rect x="3" y="4" width="18" height="18" rx="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-    </svg>
-);
-const StethIcon = () => (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/>
-        <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/>
-        <circle cx="20" cy="10" r="2"/>
-    </svg>
-);
-const ChatIcon = () => (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-    </svg>
-);
-const ListIcon = () => (
-    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-        <line x1="8" y1="6" x2="21" y2="6"/>
-        <line x1="8" y1="12" x2="21" y2="12"/>
-        <line x1="8" y1="18" x2="21" y2="18"/>
-        <line x1="3" y1="6" x2="3.01" y2="6"/>
-        <line x1="3" y1="12" x2="3.01" y2="12"/>
-        <line x1="3" y1="18" x2="3.01" y2="18"/>
-    </svg>
-);
+function fmtApptTime(iso: string) {
+    const d = new Date(iso);
+    return {
+        hour: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        day:  d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    };
+}
 
 function Dashboard() {
     const { t } = useTranslation();
     const { user, profile } = useAuth();
-    const navigate = useNavigate();
     const qc = useQueryClient();
     usePageTitle(t('pages.dashboard', 'Dashboard'));
 
@@ -140,7 +102,7 @@ function Dashboard() {
             const res = await api.get('/dashboard/');
             return res.data;
         },
-        staleTime: 60 * 1000,
+        staleTime: 60_000,
     });
 
     const { data: pendingLabReviews = [] } = useQuery<LabResult[]>({
@@ -161,26 +123,32 @@ function Dashboard() {
         staleTime: 30_000,
     });
 
-    const stats = data?.stats;
+    const stats                = data?.stats;
     const upcomingAppointments = data?.upcoming_appointments ?? [];
-    const recentPatients = data?.recent_patients ?? [];
-    const followUps = data?.due_followups ?? [];
+    const recentPatients       = data?.recent_patients ?? [];
 
-    const timezone = ((profile as unknown) as Record<string, unknown> | null)?.timezone as string | null ?? null;
-    const todayStr = new Date().toLocaleDateString('en-GB', {
+    const timezone   = ((profile as unknown) as Record<string, unknown> | null)?.timezone as string | null ?? null;
+    const todayStr   = new Date().toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
         ...(timezone ? { timeZone: timezone } : {}),
     });
-    const doctorName = user?.full_name ?? profile?.full_name ?? '';
-    const hasAnyTasks = pendingLabReviews.length > 0 || appointmentRequests.length > 0 || followUps.length > 0;
-    const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0 && !hasAnyTasks;
+    const doctorName  = user?.full_name ?? profile?.full_name ?? '';
+    const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0 &&
+                        pendingLabReviews.length === 0 && appointmentRequests.length === 0;
 
-    const removeLab = (labId: number) =>
-        qc.setQueryData<LabResult[]>(['labs', 'pending-review'], old => old?.filter(l => l.id !== labId));
+    const taskTabCounts: Record<TaskTab, number> = {
+        labs:     pendingLabReviews.length,
+        requests: appointmentRequests.length,
+    };
 
-    const removeRequest = (apptId: number) =>
-        qc.setQueryData<PendingRequest[]>(['appointments', 'pending-requests'], old => old?.filter(r => r.id !== apptId));
+    // ── optimistic helpers ─────────────────────────────────────────────────────
+    const removeLab = (id: number) =>
+        qc.setQueryData<LabResult[]>(['labs', 'pending-review'], old => old?.filter(l => l.id !== id));
 
+    const removeRequest = (id: number) =>
+        qc.setQueryData<PendingRequest[]>(['appointments', 'pending-requests'], old => old?.filter(r => r.id !== id));
+
+    // ── action handlers ────────────────────────────────────────────────────────
     const handleAcceptLab = async (labId: number) => {
         removeLab(labId);
         try {
@@ -225,7 +193,7 @@ function Dashboard() {
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
             qc.invalidateQueries({ queryKey: ['appointments'] });
         } catch {
-            toast.error('Failed to approve appointment.');
+            toast.error('Failed to approve.');
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
         } finally {
             setActionLoading(false);
@@ -242,35 +210,34 @@ function Dashboard() {
         try {
             setActionLoading(true);
             await api.post(`/appointments/${id}/reject/`, { reason: rejectApptReason });
-            toast.success(`Request from ${patientName} rejected.`);
+            toast.success(`Request from ${patientName} declined.`);
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
             qc.invalidateQueries({ queryKey: ['appointments'] });
         } catch {
-            toast.error('Failed to reject.');
+            toast.error('Failed to decline.');
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
         } finally {
             setActionLoading(false);
         }
     };
 
-    const taskTabCounts: Record<TaskTab, number> = {
-        labs: pendingLabReviews.length,
-        requests: appointmentRequests.length,
-        followups: followUps.length,
-    };
-
+    // ── render ─────────────────────────────────────────────────────────────────
     return (
         <div>
-            {/* Greeting */}
-            <div className="dashboard-greeting">
-                <h1>{getGreeting(timezone)}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.</h1>
-                <div className="dashboard-date">{todayStr}</div>
+            {/* ── Greeting ── */}
+            <div className="db-header">
+                <div>
+                    <h1 className="db-greeting">
+                        {getGreeting(timezone)}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.
+                    </h1>
+                    <div className="db-date">{todayStr}</div>
+                </div>
             </div>
 
-            {/* Vital alerts banner */}
+            {/* ── Vital alerts banner ── */}
             {!vitalAlertDismissed && (stats?.vital_alert_patients ?? 0) > 0 && (() => {
-                const count = stats!.vital_alert_patients;
-                const list = stats!.vital_alert_patient_list ?? [];
+                const count  = stats!.vital_alert_patients;
+                const list   = stats!.vital_alert_patient_list ?? [];
                 const single = count === 1 && list[0];
                 return (
                     <div className="vital-alerts-banner">
@@ -283,308 +250,239 @@ function Dashboard() {
                         </div>
                         {single
                             ? <Link to={`/patients/${single.id}`} className="vital-alerts-link">View Patient →</Link>
-                            : <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review Patients →</Link>
+                            : <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review →</Link>
                         }
                         <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label="Dismiss">✕</button>
                     </div>
                 );
             })()}
 
-            {/* Stats grid */}
-            <div className="stats-grid">
-                <StatCard
-                    icon={<PatientIcon />}
-                    label={t('dashboard.stats.patients', 'Total Patients')}
-                    value={isLoading ? '…' : stats?.total_patients ?? 0}
-                    variant="default"
-                    href="/patients"
-                />
-                <StatCard
-                    icon={<StethIcon />}
-                    label={t('dashboard.stats.consultations', 'Consultations')}
-                    value={isLoading ? '…' : stats?.total_consultations ?? 0}
-                    variant="success"
-                />
-                <StatCard
-                    icon={<CalendarIcon />}
-                    label={t('dashboard.stats.appointments', 'Appointments')}
-                    value={isLoading ? '…' : stats?.total_appointments ?? 0}
-                    variant="default"
-                    href="/appointments"
-                />
-                <StatCard
-                    icon={<ChatIcon />}
-                    label={t('dashboard.stats.pending_referrals', 'Pending Referrals')}
-                    value={isLoading ? '…' : stats?.pending_referrals ?? 0}
-                    variant={stats?.pending_referrals ? 'warning' : 'default'}
-                    href="/referrals"
-                />
-                <StatCard
-                    icon={<ListIcon />}
-                    label={t('dashboard.stats.procedures', 'Procedures')}
-                    value={isLoading ? '…' : stats?.total_procedures ?? 0}
-                    variant="default"
-                />
-                {(stats?.pending_patient_requests ?? 0) > 0 && (
-                    <StatCard
-                        icon={<CalendarIcon />}
-                        label="Patient Appointment Requests"
-                        value={isLoading ? '…' : stats?.pending_patient_requests ?? 0}
-                        variant="warning"
-                        href="/appointments?section=requests"
-                    />
-                )}
-            </div>
+            {/* ── KPI row ── */}
+            <div className="db-kpi-row">
+                <Link to="/patients" className="db-kpi">
+                    <div className="db-kpi-num">{isLoading ? '—' : stats?.total_patients ?? 0}</div>
+                    <div className="db-kpi-label">Total Patients</div>
+                </Link>
 
-            {/* Quick actions */}
-            <div className="quick-actions">
-                <Link to="/patients/add" className="btn btn-primary btn-sm">+ New Patient</Link>
-                <Link to="/appointments" className="btn btn-secondary btn-sm">+ New Appointment</Link>
-                <Link to="/referrals" className="btn btn-secondary btn-sm">+ New Referral</Link>
-                <Link to="/my-stats" className="btn btn-ghost btn-sm">My Stats →</Link>
-            </div>
+                <Link to="/appointments" className="db-kpi">
+                    <div className="db-kpi-num">{isLoading ? '—' : stats?.scheduled_appointments ?? 0}</div>
+                    <div className="db-kpi-label">Upcoming Appointments</div>
+                </Link>
 
-            {/* Empty state for new doctors */}
-            {isNewDoctor && (
-                <div className="section-card" style={{ marginBottom: '1rem' }}>
-                    <div className="section-card-body">
-                        <div className="empty-state">
-                            <div className="empty-state-icon">🏥</div>
-                            <div className="empty-state-title">{t('dashboard.empty.title', 'Welcome to Altheon Connect!')}</div>
-                            <div className="empty-state-subtitle">{t('dashboard.empty.subtitle', "You're all set up. Start by adding your first patient.")}</div>
-                            <Link to="/patients/add" className="btn btn-primary" style={{ marginTop: '0.5rem' }}>
-                                Add your first patient →
-                            </Link>
-                        </div>
+                <Link
+                    to="/referrals"
+                    className={`db-kpi${(stats?.pending_referrals ?? 0) > 0 ? ' db-kpi--warn' : ''}`}
+                >
+                    <div className={`db-kpi-num${(stats?.pending_referrals ?? 0) > 0 ? ' db-kpi-num--warn' : ''}`}>
+                        {isLoading ? '—' : stats?.pending_referrals ?? 0}
                     </div>
+                    <div className="db-kpi-label">Pending Referrals</div>
+                </Link>
+
+                <Link
+                    to="/lab-results"
+                    className={`db-kpi${(stats?.pending_lab_reviews ?? 0) > 0 ? ' db-kpi--warn' : ''}`}
+                >
+                    <div className={`db-kpi-num${(stats?.pending_lab_reviews ?? 0) > 0 ? ' db-kpi-num--warn' : ''}`}>
+                        {isLoading ? '—' : stats?.pending_lab_reviews ?? 0}
+                    </div>
+                    <div className="db-kpi-label">Lab Reviews</div>
+                </Link>
+            </div>
+
+            {/* ── Quick actions ── */}
+            <div className="db-quick">
+                <Link to="/patients/add"  className="btn btn-primary btn-sm">+ New Patient</Link>
+                <Link to="/appointments"  className="btn btn-secondary btn-sm">+ Appointment</Link>
+                <Link to="/referrals"     className="btn btn-secondary btn-sm">+ Referral</Link>
+            </div>
+
+            {/* ── New-doctor welcome ── */}
+            {isNewDoctor && (
+                <div className="db-welcome">
+                    <div className="db-welcome-icon">🏥</div>
+                    <div className="db-welcome-title">{t('dashboard.empty.title', 'Welcome to Altheon Connect!')}</div>
+                    <div className="db-welcome-sub">{t('dashboard.empty.subtitle', "You're all set up. Start by adding your first patient.")}</div>
+                    <Link to="/patients/add" className="btn btn-primary">Add your first patient →</Link>
                 </div>
             )}
 
-            {/* Action grid: Outstanding Tasks + Today's Schedule */}
+            {/* ── Main grid: Schedule + Needs Attention ── */}
             {!isNewDoctor && (
-                <div className="dashboard-action-grid">
-                    {/* Outstanding Tasks */}
-                    <div className="section-card dashboard-tasks-card">
-                        <div className="section-card-header">
-                            <span className="section-card-title">Outstanding Tasks</span>
+                <div className="db-main">
+
+                    {/* Today's Schedule */}
+                    <div className="db-panel">
+                        <div className="db-panel-head">
+                            <span className="db-panel-title">Upcoming</span>
+                            <Link to="/appointments" className="db-panel-link">View all →</Link>
                         </div>
-                        <div className="task-tabs">
-                            {(['labs', 'requests', 'followups'] as TaskTab[]).map(tab => (
+
+                        {isLoading ? (
+                            <div className="db-schedule-empty">Loading…</div>
+                        ) : upcomingAppointments.length === 0 ? (
+                            <div className="db-schedule-empty">No upcoming appointments</div>
+                        ) : (
+                            <ul className="db-schedule-list">
+                                {upcomingAppointments.map(a => {
+                                    const { hour, day } = fmtApptTime(a.appointment_date);
+                                    return (
+                                        <li key={a.id} className="db-schedule-item">
+                                            <div className="db-schedule-time">
+                                                <div className="db-schedule-hour">{hour}</div>
+                                                <div className="db-schedule-day">{day}</div>
+                                            </div>
+                                            <div className="db-schedule-info">
+                                                {a.patient_details ? (
+                                                    <Link
+                                                        to={`/patients/${a.patient_details.unique_id}`}
+                                                        className="db-schedule-patient"
+                                                    >
+                                                        {a.patient_details.first_name} {a.patient_details.last_name}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="db-schedule-patient">Patient</span>
+                                                )}
+                                                <div className="db-schedule-reason">{a.reason_for_appointment}</div>
+                                            </div>
+                                            <StatusBadge status={a.status} label={a.status_display} />
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Needs Attention */}
+                    <div className="db-panel">
+                        <div className="db-panel-head">
+                            <span className="db-panel-title">Needs Attention</span>
+                        </div>
+
+                        <div className="db-tabs">
+                            {(['labs', 'requests'] as TaskTab[]).map(tab => (
                                 <button
                                     key={tab}
                                     type="button"
-                                    className={`task-tab-btn${activeTaskTab === tab ? ' active' : ''}`}
+                                    className={`db-tab-btn${activeTaskTab === tab ? ' active' : ''}`}
                                     onClick={() => setActiveTaskTab(tab)}
                                 >
-                                    {tab === 'labs' ? 'Lab Reviews' : tab === 'requests' ? 'Appt Requests' : 'Follow-ups'}
+                                    {tab === 'labs' ? 'Lab Reviews' : 'Appt Requests'}
                                     {taskTabCounts[tab] > 0 && (
-                                        <span className="task-tab-count">{taskTabCounts[tab]}</span>
+                                        <span className="db-tab-count">{taskTabCounts[tab]}</span>
                                     )}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="section-card-body" style={{ padding: 0 }}>
-                            {/* Lab Reviews tab */}
-                            {activeTaskTab === 'labs' && (
-                                pendingLabReviews.length === 0 ? (
-                                    <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-                                        <div className="empty-state-icon">✅</div>
-                                        <div className="empty-state-title">No pending lab reviews</div>
-                                    </div>
-                                ) : (
-                                    <ul className="dashboard-task-list">
-                                        {pendingLabReviews.map(lab => (
-                                            <li key={lab.id} className="dashboard-task-item">
-                                                <div className="task-item-info">
-                                                    <div className="task-item-title">{lab.test_name}</div>
-                                                    <div className="task-item-meta">
-                                                        Patient: {lab.patient} ·{' '}
-                                                        {new Date(lab.test_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                                    </div>
+                        {/* Lab Reviews */}
+                        {activeTaskTab === 'labs' && (
+                            pendingLabReviews.length === 0 ? (
+                                <div className="db-task-empty">
+                                    <div className="db-task-empty-icon">✅</div>
+                                    No pending lab reviews
+                                </div>
+                            ) : (
+                                <ul className="db-task-list">
+                                    {pendingLabReviews.map(lab => (
+                                        <li key={lab.id} className="db-task-item">
+                                            <div className="db-task-info">
+                                                <div className="db-task-title">{lab.test_name}</div>
+                                                <div className="db-task-meta">
+                                                    {lab.patient} · {new Date(lab.test_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                                                 </div>
-                                                <div className="task-item-actions">
-                                                    <button
-                                                        type="button"
-                                                        className="btn-task-accept"
-                                                        disabled={actionLoading}
-                                                        onClick={() => handleAcceptLab(lab.id)}
-                                                    >
-                                                        Accept
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="btn-task-reject"
-                                                        disabled={actionLoading}
-                                                        onClick={() => { setRejectLabModal({ id: lab.id, testName: lab.test_name }); setRejectLabReason(''); }}
-                                                    >
-                                                        Reject
-                                                    </button>
-                                                    <Link to={`/patients/${lab.patient}`} className="btn-task-view">View →</Link>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )
-                            )}
+                                            </div>
+                                            <div className="db-task-actions">
+                                                <button
+                                                    type="button"
+                                                    className="btn-task-accept"
+                                                    disabled={actionLoading}
+                                                    onClick={() => handleAcceptLab(lab.id)}
+                                                >
+                                                    Accept
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-task-reject"
+                                                    disabled={actionLoading}
+                                                    onClick={() => { setRejectLabModal({ id: lab.id, testName: lab.test_name }); setRejectLabReason(''); }}
+                                                >
+                                                    Reject
+                                                </button>
+                                                <Link to={`/patients/${lab.patient}`} className="btn-task-view">View →</Link>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )
+                        )}
 
-                            {/* Appointment Requests tab */}
-                            {activeTaskTab === 'requests' && (
-                                appointmentRequests.length === 0 ? (
-                                    <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-                                        <div className="empty-state-icon">✅</div>
-                                        <div className="empty-state-title">No pending appointment requests</div>
-                                    </div>
-                                ) : (
-                                    <ul className="dashboard-task-list">
-                                        {appointmentRequests.map(req => (
-                                            <li key={req.id} className="dashboard-task-item">
-                                                <div className="task-item-info">
-                                                    <div className="task-item-title">{req.patient_name}</div>
-                                                    <div className="task-item-meta">
-                                                        {new Date(req.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} ·{' '}
-                                                        {req.reason}
-                                                    </div>
+                        {/* Appointment Requests */}
+                        {activeTaskTab === 'requests' && (
+                            appointmentRequests.length === 0 ? (
+                                <div className="db-task-empty">
+                                    <div className="db-task-empty-icon">✅</div>
+                                    No pending appointment requests
+                                </div>
+                            ) : (
+                                <ul className="db-task-list">
+                                    {appointmentRequests.map(req => (
+                                        <li key={req.id} className="db-task-item">
+                                            <div className="db-task-info">
+                                                <div className="db-task-title">{req.patient_name}</div>
+                                                <div className="db-task-meta">
+                                                    {new Date(req.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · {req.reason}
                                                 </div>
-                                                <div className="task-item-actions">
-                                                    <button
-                                                        type="button"
-                                                        className="btn-task-accept"
-                                                        disabled={actionLoading}
-                                                        onClick={() => handleApproveAppt(req.id)}
-                                                    >
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className="btn-task-reject"
-                                                        disabled={actionLoading}
-                                                        onClick={() => { setRejectApptModal({ id: req.id, patientName: req.patient_name }); setRejectApptReason(''); }}
-                                                    >
-                                                        Decline
-                                                    </button>
-                                                    <Link to={`/patients/${req.patient_id}`} className="btn-task-view">View →</Link>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )
-                            )}
-
-                            {/* Follow-ups Due tab */}
-                            {activeTaskTab === 'followups' && (
-                                followUps.length === 0 ? (
-                                    <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-                                        <div className="empty-state-icon">✅</div>
-                                        <div className="empty-state-title">No follow-ups due</div>
-                                    </div>
-                                ) : (
-                                    <ul className="dashboard-task-list">
-                                        {followUps.map(f => {
-                                            const isOverdue = new Date(f.follow_up_date) < new Date();
-                                            return (
-                                                <li key={f.id} className="dashboard-task-item">
-                                                    <div className="task-item-info">
-                                                        <div className="task-item-title">{f.patient_name || f.patient}</div>
-                                                        <div className="task-item-meta">
-                                                            <span style={{ color: isOverdue ? 'var(--danger)' : 'var(--text-muted)', fontWeight: isOverdue ? 700 : 400 }}>
-                                                                {isOverdue ? '⚠ Overdue · ' : ''}
-                                                                {new Date(f.follow_up_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                                            </span>
-                                                            {' · '}{f.reason_for_consultation}
-                                                        </div>
-                                                    </div>
-                                                    <div className="task-item-actions">
-                                                        <button
-                                                            type="button"
-                                                            className="btn-task-accept"
-                                                            onClick={() => navigate(`/appointments?patient_id=${f.patient}`)}
-                                                        >
-                                                            Book Appt
-                                                        </button>
-                                                    </div>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                )
-                            )}
-                        </div>
-
-                        {activeTaskTab === 'followups' && followUps.length > 0 && (
-                            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' }}>
-                                <Link to="/appointments?is_follow_up=true" style={{ fontSize: '0.8125rem', color: 'var(--accent)' }}>View follow-up appointments →</Link>
-                            </div>
+                                            </div>
+                                            <div className="db-task-actions">
+                                                <button
+                                                    type="button"
+                                                    className="btn-task-accept"
+                                                    disabled={actionLoading}
+                                                    onClick={() => handleApproveAppt(req.id)}
+                                                >
+                                                    Approve
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="btn-task-reject"
+                                                    disabled={actionLoading}
+                                                    onClick={() => { setRejectApptModal({ id: req.id, patientName: req.patient_name }); setRejectApptReason(''); }}
+                                                >
+                                                    Decline
+                                                </button>
+                                                <Link to={`/patients/${req.patient_id}`} className="btn-task-view">View →</Link>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )
                         )}
                     </div>
 
-                    {/* Today's Schedule */}
-                    <SectionCard
-                        title="Today's Schedule"
-                        action={<Link to="/appointments" style={{ fontSize: '0.8125rem', color: 'var(--accent)' }}>View all →</Link>}
-                        loading={isLoading}
-                        empty={{ title: 'No upcoming appointments', subtitle: 'New appointments will appear here.' }}
-                    >
-                        <ul className="dashboard-panel-list">
-                            {upcomingAppointments.map(a => {
-                                const apptDate = new Date(a.appointment_date);
-                                return (
-                                    <li key={a.id} className="dashboard-panel-item" style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
-                                        <div style={{ flexShrink: 0, textAlign: 'center', minWidth: 48 }}>
-                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                                                {apptDate.toLocaleDateString('en-GB', { month: 'short' })}
-                                            </div>
-                                            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                                                {apptDate.getDate()}
-                                            </div>
-                                        </div>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                                                {a.patient_details
-                                                    ? <Link to={`/patients/${a.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{a.patient_details.first_name} {a.patient_details.last_name}</Link>
-                                                    : 'Patient'}
-                                            </div>
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {a.reason_for_appointment}
-                                            </div>
-                                        </div>
-                                        <StatusBadge status={a.status} label={a.status_display} />
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    </SectionCard>
                 </div>
             )}
 
-            {/* Recent patients */}
-            {!isNewDoctor && (
-                <SectionCard
-                    title="Recent Patients"
-                    action={<Link to="/patients" style={{ fontSize: '0.8125rem', color: 'var(--accent)' }}>View all →</Link>}
-                    loading={isLoading}
-                    empty={{ title: 'No patients yet', subtitle: 'Recently viewed patients will appear here.' }}
-                >
-                    <ul className="dashboard-panel-list">
+            {/* ── Recent Patients ── */}
+            {!isNewDoctor && recentPatients.length > 0 && (
+                <div className="db-panel" style={{ marginBottom: '1.5rem' }}>
+                    <div className="db-panel-head">
+                        <span className="db-panel-title">Recent Patients</span>
+                        <Link to="/patients" className="db-panel-link">View all →</Link>
+                    </div>
+                    <div className="db-recent-grid">
                         {recentPatients.map(p => (
-                            <li key={p.unique_id} className="dashboard-panel-item" style={{ paddingLeft: '0.75rem', paddingRight: '0.75rem' }}>
+                            <Link key={p.unique_id} to={`/patients/${p.unique_id}`} className="db-recent-item">
                                 <Avatar name={`${p.first_name} ${p.last_name}`} size="sm" />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <Link
-                                        to={`/patients/${p.unique_id}`}
-                                        style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', textDecoration: 'none' }}
-                                    >
-                                        {p.first_name} {p.last_name}
-                                    </Link>
-                                </div>
+                                <span className="db-recent-name">{p.first_name} {p.last_name}</span>
                                 <StatusBadge status={p.status} label={p.status_display} />
-                            </li>
+                            </Link>
                         ))}
-                    </ul>
-                </SectionCard>
+                    </div>
+                </div>
             )}
 
-            {/* Reject lab modal */}
+            {/* ── Reject Lab modal ── */}
             {rejectLabModal && (
                 <div className="modal-overlay" onClick={() => setRejectLabModal(null)}>
                     <div className="modal-dialog" onClick={e => e.stopPropagation()}>
@@ -614,12 +512,12 @@ function Dashboard() {
                 </div>
             )}
 
-            {/* Reject appointment modal */}
+            {/* ── Reject Appointment Request modal ── */}
             {rejectApptModal && (
                 <div className="modal-overlay" onClick={() => setRejectApptModal(null)}>
                     <div className="modal-dialog" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3 className="modal-title">Decline Request — {rejectApptModal.patientName}</h3>
+                            <h3 className="modal-title">Decline — {rejectApptModal.patientName}</h3>
                             <button className="modal-close" onClick={() => setRejectApptModal(null)}>✕</button>
                         </div>
                         <div className="modal-body">

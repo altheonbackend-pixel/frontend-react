@@ -144,6 +144,8 @@ export interface Consultation {
     diagnosis: string | null;
     icd_code: string | null;
     follow_up_date: string | null;
+    follow_up_dismissed?: boolean;
+    follow_up_dismissal_reason?: string;
     weight: number | null;
     height: number | null;
     height_unit: string;

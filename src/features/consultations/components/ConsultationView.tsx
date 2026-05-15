@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
-import { amendConsultation } from '../services/consultationService';
+import { amendConsultation, dismissFollowUp } from '../services/consultationService';
 import type { Consultation } from '../../../shared/types';
 
 interface ConsultationViewProps {
@@ -9,6 +9,8 @@ interface ConsultationViewProps {
     onClose: () => void;
     /** Called with the amended consultation after a successful amend — caller should open edit form */
     onAmend: (amended: Consultation) => void;
+    /** Called after a follow-up is dismissed — caller should invalidate the consultations query */
+    onFollowUpDismissed?: () => void;
 }
 
 const FREQ_LABELS: Record<string, string> = {
@@ -37,10 +39,25 @@ function fmtDateTime(iso: string | null | undefined) {
     });
 }
 
-const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationViewProps) => {
+const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismissed }: ConsultationViewProps) => {
     const [amendOpen, setAmendOpen] = useState(false);
+    const [dismissOpen, setDismissOpen] = useState(false);
+    const [dismissed, setDismissed] = useState(c.follow_up_dismissed ?? false);
 
     const isSigned = c.consultation_status === 'signed';
+
+    const handleDismissConfirm = async (reason?: string) => {
+        try {
+            await dismissFollowUp(c.id, reason!);
+            setDismissed(true);
+            setDismissOpen(false);
+            toast.success('Follow-up dismissed. No further reminders will be sent.');
+            onFollowUpDismissed?.();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to dismiss follow-up.'));
+            throw err;
+        }
+    };
 
     const handleAmendConfirm = async (reason?: string) => {
         try {
@@ -297,7 +314,28 @@ const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationVie
                                 Follow-up &amp; Patient Notes
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {c.follow_up_date && <ViewField label="Follow-up Date" value={fmtDate(c.follow_up_date)} />}
+                                {c.follow_up_date && (
+                                    <div>
+                                        <ViewField label="Follow-up Date" value={fmtDate(c.follow_up_date)} />
+                                        {dismissed ? (
+                                            <div style={{ marginTop: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                Dismissed{c.follow_up_dismissal_reason ? `: ${c.follow_up_dismissal_reason}` : ''}
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => setDismissOpen(true)}
+                                                style={{
+                                                    marginTop: '6px', fontSize: '0.78rem', color: 'var(--text-muted)',
+                                                    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                                                    textDecoration: 'underline',
+                                                }}
+                                            >
+                                                Dismiss follow-up
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 {c.patient_summary && <ViewField label="Patient Summary" value={c.patient_summary} block />}
                                 {c.patient_instructions && <ViewField label="Patient Instructions" value={c.patient_instructions} block />}
                             </div>
@@ -316,6 +354,18 @@ const ConsultationView = ({ consultation: c, onClose, onAmend }: ConsultationVie
                 confirmLabel="Confirm Amendment"
                 reasonLabel="Amendment reason"
                 reasonPlaceholder="e.g. Incorrect diagnosis code entered"
+                requireReason
+            />
+
+            <Dialog
+                open={dismissOpen}
+                onClose={() => setDismissOpen(false)}
+                onConfirm={handleDismissConfirm}
+                title="Dismiss Follow-up"
+                message="This will stop all further reminder emails for this follow-up. Use when the follow-up is no longer needed (e.g. patient recovered, transferred care)."
+                confirmLabel="Dismiss Follow-up"
+                reasonLabel="Reason for dismissal"
+                reasonPlaceholder="e.g. Patient recovered, no longer required"
                 requireReason
             />
         </>

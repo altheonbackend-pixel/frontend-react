@@ -1285,6 +1285,10 @@ const PatientDetails = () => {
                         setConsultationFormIsDraft(false);
                         setShowConsultationForm(true);
                     }}
+                    onFollowUpDismissed={() => {
+                        queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+                        setViewingConsultation(null);
+                    }}
                 />
             )}
             {showProcedureForm && <MedicalProcedureForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} procedureToEdit={procedureToEdit} />}

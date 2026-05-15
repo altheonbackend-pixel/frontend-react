@@ -492,8 +492,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     }
                 }
 
-                // Prompt follow-up appointment for new or draft consultations (not true edits)
-                if ((!isEditing || isDraft) && data.follow_up_date) {
+                // Prompt follow-up booking for new, draft, or amended consultations
+                // where a date is set but no appointment has been linked yet.
+                const alreadyHasFollowUp = !!consultationToEdit?.follow_up_appointment;
+                if ((!isEditing || isDraft || isAmended) && data.follow_up_date && !alreadyHasFollowUp) {
                     const apptType = data.consultation_type === 'telemedicine' ? 'telemedicine' : 'in_person';
                     setFollowUpType(apptType);
                     setPendingFollowUp({
