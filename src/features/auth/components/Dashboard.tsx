@@ -451,7 +451,7 @@ function Dashboard() {
                                                 >
                                                     Decline
                                                 </button>
-                                                <Link to={`/patients/${req.patient_id}`} className="btn-task-view">View →</Link>
+                                                <Link to={`/patients/${req.patient_id}?tab=portal`} className="btn-task-view">View →</Link>
                                             </div>
                                         </li>
                                     ))}

@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, ReferenceLine, Legend,
-} from 'recharts';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useKeyboardShortcut } from '../../../shared/hooks/useKeyboardShortcut';
 import {
@@ -19,11 +15,6 @@ import ConsultationForm from '../../consultations/components/ConsultationForm';
 import ConsultationView from '../../consultations/components/ConsultationView';
 import MedicalProcedureForm from '../../procedures/components/MedicalProcedureForm';
 import ReferralForm from '../../referrals/components/ReferralForm';
-import ReferralMessageThread from '../../referrals/components/ReferralMessageThread';
-import ReferralSnapshotView from '../../referrals/components/ReferralSnapshotView';
-import ReferralEventTimeline from '../../referrals/components/ReferralEventTimeline';
-import ReferralSLABadge from '../../referrals/components/ReferralSLABadge';
-import { recallReferral } from '../../referrals/services/referralService';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
@@ -32,21 +23,17 @@ import { type LabResult, type Prescription } from '../../../shared/types';
 import { type SavedRx } from '../../consultations/components/ConsultationForm';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
-import { TabSkeleton } from '../../../shared/components/SectionCard';
-import AttachmentList from '../../../shared/components/AttachmentList';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 
-type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'actions' | 'admin' | 'workqueue';
+import OverviewTab from './tabs/OverviewTab';
+import ConsultationsTab from './tabs/ConsultationsTab';
+import LabsTab from './tabs/LabsTab';
+import MedicationsTab from './tabs/MedicationsTab';
+import HistoryTab from './tabs/HistoryTab';
+import PortalTab from './tabs/PortalTab';
 
-const COMMON_ALLERGENS = [
-    'Penicillin', 'Amoxicillin', 'Amoxicillin-Clavulanate', 'Ampicillin', 'Cephalexin',
-    'Sulfonamides', 'Trimethoprim-Sulfamethoxazole', 'Aspirin', 'Ibuprofen', 'Naproxen',
-    'Diclofenac', 'Codeine', 'Morphine', 'Tramadol', 'Latex',
-    'Peanuts', 'Tree Nuts', 'Milk', 'Eggs', 'Wheat', 'Soy', 'Fish', 'Shellfish',
-    'Sesame', 'Bee Venom', 'Wasp Venom', 'Pollen', 'Dust Mites', 'Mold',
-    'Cat Dander', 'Dog Dander', 'Nickel', 'Contrast Dye', 'Tetanus Toxoid',
-];
+type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'portal';
 
 interface VitalsPoint {
     id: number;
@@ -60,28 +47,6 @@ interface VitalsPoint {
     bp_diastolic: number | null;
     blood_pressure_display?: string | null;
 }
-
-// ── Shared tooltip style for all vitals Recharts ────────────────────────────
-const VITALS_TOOLTIP_STYLE = {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border-default)',
-    borderRadius: 'var(--radius-md)',
-    fontSize: 12,
-};
-
-const SEVERITY_COLORS: Record<string, string> = {
-    mild: '#38a169',
-    moderate: '#d69e2e',
-    severe: '#e53e3e',
-    life_threatening: '#742a2a',
-};
-
-const CONDITION_STATUS_COLORS: Record<string, string> = {
-    active: '#e53e3e',
-    chronic: '#d69e2e',
-    in_remission: '#3182ce',
-    resolved: '#38a169',
-};
 
 const PatientDetails = () => {
     const { t } = useTranslation();
@@ -127,10 +92,7 @@ const PatientDetails = () => {
     const [recallSubmitting, setRecallSubmitting] = useState(false);
     const [openThreadReferralId, setOpenThreadReferralId] = useState<number | null>(null);
 
-    // Consultations tab: list vs charts view
     const [consultView, setConsultView] = useState<'list' | 'charts'>('list');
-
-    // Collapsible consultation entries
     const [expandedConsultIds, setExpandedConsultIds] = useState<Set<number>>(new Set());
     const pendingScrollConsultIdRef = useRef<number | null>(null);
     const toggleConsult = (consultId: number) =>
@@ -140,22 +102,18 @@ const PatientDetails = () => {
             return next;
         });
 
-    // Medications: active-only vs all toggle
     const [showAllMeds, setShowAllMeds] = useState(false);
-
-    // Labs: show unreleased (visible_to_patient=false) filter
     const [showUnreleasedOnly, setShowUnreleasedOnly] = useState(false);
 
-    // Vitals charts: toggle per-vital visibility
     const [visibleVitals, setVisibleVitals] = useState({
         bp: true, spo2: true, temperature: true, weight: true,
     });
     const toggleVital = (key: keyof typeof visibleVitals) =>
         setVisibleVitals(prev => ({ ...prev, [key]: !prev[key] }));
+
     const [confirmDeleteConditionId, setConfirmDeleteConditionId] = useState<number | null>(null);
     const [confirmDeleteAllergyId, setConfirmDeleteAllergyId] = useState<number | null>(null);
 
-    // Inline condition form state
     const [conditionForm, setConditionForm] = useState({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false });
     const [editingConditionId, setEditingConditionId] = useState<number | null>(null);
     const [allergyForm, setAllergyForm] = useState({ allergen: '', reaction_type: 'drug', severity: 'moderate', reaction_description: '', is_active: true, visible_to_patient: true });
@@ -171,22 +129,17 @@ const PatientDetails = () => {
     const [vitalAcknowledging, setVitalAcknowledging] = useState(false);
     const [dismissedVitalAlerts, setDismissedVitalAlerts] = useState<Set<number>>(new Set());
 
-    // Lab sub-tabs (Orders vs Results)
     const [labSubTab, setLabSubTab] = useState<'orders' | 'results'>('results');
-
-    // Lab Results
     const [showLabForm, setShowLabForm] = useState(false);
     const [editingLabId, setEditingLabId] = useState<number | null>(null);
     const [labForm, setLabForm] = useState({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
     const [labFormLoading, setLabFormLoading] = useState(false);
     const [confirmDeleteLabId, setConfirmDeleteLabId] = useState<number | null>(null);
 
-    // Lab Orders (Wave 6)
     const [showLabOrderForm, setShowLabOrderForm] = useState(false);
     const [labOrderForm, setLabOrderForm] = useState({ test_name: '', order_date: '', priority: 'routine', notes: '' });
     const [labOrderFormLoading, setLabOrderFormLoading] = useState(false);
 
-    // Lazy-loaded tab data via TanStack Query (fetched only when tab is first activated)
     const { data: vitalsTrend = [], isLoading: vitalsLoading } = useQuery<VitalsPoint[]>({
         queryKey: ['patients', id, 'vitals'],
         queryFn: async () => {
@@ -217,7 +170,6 @@ const PatientDetails = () => {
         staleTime: 2 * 60 * 1000,
     });
 
-    // Clinical Alerts (Wave 7A)
     const { data: clinicalAlerts = [], isLoading: alertsLoading } = useQuery<any[]>({
         queryKey: ['patients', id, 'clinical-alerts'],
         queryFn: async () => {
@@ -265,11 +217,10 @@ const PatientDetails = () => {
             const res = await api.get('/appointments/', { params: { patient_id: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('admin'),
+        enabled: loadedTabs.has('portal'),
         staleTime: 2 * 60 * 1000,
     });
 
-    // BUG-03: consultations, procedures, referrals — lazy-loaded when tab is first activated
     const { data: consultationsData = [], isLoading: consultationsLoading } = useQuery<Consultation[]>({
         queryKey: ['patients', id, 'consultations'],
         queryFn: async () => {
@@ -286,7 +237,7 @@ const PatientDetails = () => {
             const res = await api.get(`/medical-procedures/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('actions'),
+        enabled: loadedTabs.has('history'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -296,11 +247,10 @@ const PatientDetails = () => {
             const res = await api.get(`/referrals/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('actions'),
+        enabled: loadedTabs.has('history'),
         staleTime: 2 * 60 * 1000,
     });
 
-    // Portal tab state
     const [portalInviteEmail, setPortalInviteEmail] = useState('');
     const [portalInviteSending, setPortalInviteSending] = useState(false);
     const [portalSettingsSaving, setPortalSettingsSaving] = useState(false);
@@ -311,13 +261,10 @@ const PatientDetails = () => {
     const [shareLabId, setShareLabId] = useState<number | null>(null);
     const [shareLabNote, setShareLabNote] = useState('');
     const [previewLabId, setPreviewLabId] = useState<number | null>(null);
-    // Medication reconciliation modal — opens after a consultation is saved with prescriptions
     const [reconcileRx, setReconcileRx] = useState<SavedRx[] | null>(null);
     const [reconcileCheckedNew, setReconcileCheckedNew] = useState<Set<number>>(new Set());
     const [reconcileCheckedCurrent, setReconcileCheckedCurrent] = useState<Set<number>>(new Set());
     const [reconcileLoading, setReconcileLoading] = useState(false);
-    // Tracks whether the initial pre-check for the current modal opening has been done.
-    // Prevents refetches from overwriting the doctor's manual unchecks.
     const reconcilePreCheckedRef = useRef(false);
     const [reviewLabId, setReviewLabId] = useState<number | null>(null);
     const [reviewAction, setReviewAction] = useState<'accept' | 'reject'>('accept');
@@ -341,7 +288,7 @@ const PatientDetails = () => {
                 primary_contact_email: string | null;
             };
         },
-        enabled: loadedTabs.has('admin') && !!id,
+        enabled: loadedTabs.has('portal') && !!id,
         staleTime: 60_000,
     });
 
@@ -353,7 +300,7 @@ const PatientDetails = () => {
             const raw: PendingReq[] = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
             return raw.filter(r => r.patient_id === id);
         },
-        enabled: loadedTabs.has('admin') && !!id,
+        enabled: loadedTabs.has('portal') && !!id,
         staleTime: 60_000,
     });
 
@@ -488,10 +435,8 @@ const PatientDetails = () => {
         }
     };
 
-    // Tab refs for mobile scrollIntoView
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-    // Quick Note
     const [quickNote, setQuickNote] = useState('');
     const [quickNoteSaving, setQuickNoteSaving] = useState(false);
     const [quickNoteLoaded, setQuickNoteLoaded] = useState(false);
@@ -505,10 +450,6 @@ const PatientDetails = () => {
         }
     }, [id, isAuthenticated]);
 
-    // Pre-check all active medications exactly once when the modal first opens.
-    // We guard with a ref so that subsequent refetches of the medications query
-    // (which happen right after the consultation is saved) do NOT reset any
-    // manual unchecks the doctor has already made.
     useEffect(() => {
         if (reconcileRx !== null && medications.length > 0 && !reconcilePreCheckedRef.current) {
             reconcilePreCheckedRef.current = true;
@@ -563,15 +504,11 @@ const PatientDetails = () => {
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'procedures'] });
         queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
 
-        // For every new consultation (savedRx defined, even if empty), open the
-        // medication reconciliation modal so the doctor can review the active list.
         if (savedRx !== undefined) {
-            // Reset the pre-check guard for this new modal session
             reconcilePreCheckedRef.current = false;
             setReconcileCheckedNew(new Set(savedRx.map(rx => rx.id)));
-            setReconcileCheckedCurrent(new Set()); // useEffect will fill once query loads
+            setReconcileCheckedCurrent(new Set());
             setReconcileRx(savedRx);
-            // Ensure medications query is enabled and fresh (tab may not be loaded yet)
             setLoadedTabs(prev => new Set([...prev, 'medications']));
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'medications'] });
         }
@@ -590,7 +527,6 @@ const PatientDetails = () => {
         setReferralToEdit(null);
     };
 
-    // handleTabChange: mark tab as loaded (triggers useQuery for that tab on first activation)
     const handleTabChange = (tab: Tab) => {
         setActiveTab(tab);
         setLoadedTabs(prev => new Set([...prev, tab]));
@@ -598,21 +534,17 @@ const PatientDetails = () => {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     };
 
-    // Navigate to a specific consultation: switch to consultations tab, expand it, then scroll to it
     const navigateToConsultation = (consultId: number) => {
         pendingScrollConsultIdRef.current = consultId;
         setExpandedConsultIds(prev => new Set([...prev, consultId]));
         handleTabChange('consultations');
     };
 
-    // Deep-link handler: ?tab=<name>&open_consultation=<id>
-    // Fired from the Appointments page when the doctor clicks Start/Resume/View Consultation.
-    // The ref guard prevents re-opening the form if the doctor closes it while the URL hasn't changed.
     useEffect(() => {
         const tabParam = searchParams.get('tab') as Tab | null;
         const openConsultId = searchParams.get('open_consultation');
 
-        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'actions', 'admin', 'workqueue'];
+        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'portal'];
         if (tabParam && validTabs.includes(tabParam)) {
             handleTabChange(tabParam);
         }
@@ -631,13 +563,12 @@ const PatientDetails = () => {
                     setShowConsultationForm(true);
                 }
             }).catch(() => {
-                // Consultation not found or no longer accessible — tab already switched
+                // Tab already switched — consultation may no longer be accessible
             });
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [searchParams]);
 
-    // Keyboard shortcuts: Ctrl/Cmd+N → new consultation, Esc → close open forms
     const anyFormOpen = showConsultationForm || showProcedureForm || showReferralForm || !!viewingConsultation;
     useKeyboardShortcut({
         key: 'n',
@@ -651,15 +582,12 @@ const PatientDetails = () => {
         onKeyDown: handleCancel,
     });
 
-    // Reset quick note and loadedTabs when navigating to a different patient
-    // (TanStack Query automatically scopes cached data per patient via query keys)
     useEffect(() => {
         setQuickNote('');
         setQuickNoteLoaded(false);
         setLoadedTabs(new Set(['overview']));
     }, [id]);
 
-    // Scroll to a specific consultation once the tab is active and data is loaded
     useEffect(() => {
         const targetId = pendingScrollConsultIdRef.current;
         if (!targetId || activeTab !== 'consultations' || consultationsData.length === 0) return;
@@ -754,7 +682,6 @@ const PatientDetails = () => {
         }
     };
 
-    // Prescription stop modal state (Wave 7B)
     const [stopRxId, setStopRxId] = useState<number | null>(null);
     const [stopRxReason, setStopRxReason] = useState('');
     const [stopRxCode, setStopRxCode] = useState('other');
@@ -781,7 +708,6 @@ const PatientDetails = () => {
         }
     };
 
-    // Acknowledge alert handler (Wave 7A)
     const handleAcknowledgeAlert = async (alertId: number) => {
         try {
             await api.post(`/clinical-alerts/${alertId}/acknowledge/`, {});
@@ -906,7 +832,6 @@ const PatientDetails = () => {
     };
 
     const handleMarkPrescriptionInactive = (rxId: number) => {
-        // Wave 7B: open the stop modal instead of directly patching is_active
         setStopRxId(rxId);
         setStopRxReason('');
         setStopRxCode('other');
@@ -1014,117 +939,26 @@ const PatientDetails = () => {
 
     const canWrite = patient.status === 'active';
 
-    const LAB_STATUS_COLORS_MAP: Record<string, string> = {
-        normal: '#38a169', abnormal: '#d69e2e', critical: '#e53e3e', pending: '#718096',
-    };
-
-    const renderLabRow = (lab: LabResult) => (
-        <li key={lab.id} className="detail-list-item">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <div>
-                    <strong>{lab.test_name}</strong>
-                    <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {new Date(lab.test_date).toLocaleDateString()}
-                    </span>
-                    {lab.submitted_by_patient && (
-                        <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
-                            Patient Upload
-                        </span>
-                    )}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' }}>
-                            Pending Review
-                        </span>
-                    )}
-                    {lab.submitted_by_patient && lab.review_status === 'accepted' && (
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' }}>
-                            Accepted
-                        </span>
-                    )}
-                    {lab.submitted_by_patient && lab.review_status === 'rejected' && (
-                        <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' }}>
-                            Rejected
-                        </span>
-                    )}
-                    {!lab.submitted_by_patient && (
-                        <span style={{
-                            fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px',
-                            background: LAB_STATUS_COLORS_MAP[lab.status] + '22',
-                            color: LAB_STATUS_COLORS_MAP[lab.status],
-                            border: `1px solid ${LAB_STATUS_COLORS_MAP[lab.status]}`,
-                        }}>
-                            {lab.status_display || lab.status}
-                        </span>
-                    )}
-                </div>
-            </div>
-            {!lab.submitted_by_patient && (lab.result_value || lab.unit) && (
-                <div className="info-item">
-                    <strong>Result:</strong> {lab.result_value} {lab.unit}
-                    {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
-                </div>
-            )}
-            {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
-            {lab.file_attachments && lab.file_attachments.length > 0 && (
-                <AttachmentList attachments={lab.file_attachments} />
-            )}
-            <div className="entry-actions">
-                {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
-                    <button
-                        onClick={() => { setReviewLabId(lab.id); setReviewAction('accept'); setReviewRejectionReason(''); }}
-                        className="action-button"
-                        style={{ color: 'var(--accent)', fontWeight: 600 }}
-                    >
-                        Review
-                    </button>
-                )}
-                {!lab.submitted_by_patient && (
-                    <>
-                        <button onClick={() => {
-                            setEditingLabId(lab.id);
-                            setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
-                            setShowLabForm(true);
-                        }} className="edit-button action-button">Edit</button>
-                        <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
-                        <button
-                            onClick={() => setPreviewLabId(lab.id)}
-                            className="action-button"
-                            style={{ color: 'var(--text-secondary)' }}
-                        >
-                            Preview as patient
-                        </button>
-                        <button
-                            onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
-                            className="action-button"
-                            style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                        >
-                            {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
-                        </button>
-                    </>
-                )}
-            </div>
-        </li>
-    );
-
     const activeAllergies = patient.allergy_records?.filter(a => a.is_active) || [];
     const lifeThreateningAllergies = activeAllergies.filter(a => a.severity === 'life_threatening');
     const severeAllergies = activeAllergies.filter(a => a.severity === 'severe');
     const hasAllergyAlert = lifeThreateningAllergies.length > 0 || severeAllergies.length > 0;
 
     const historyCount = (patient.conditions?.length || 0) + (patient.allergy_records?.length || 0) || undefined;
-    const actionsCount = (patient.medical_procedures?.length || 0) + (patient.referrals?.length || 0) || undefined;
-    const workQueueCount = clinicalAlerts.filter(a => a.is_open).length || undefined;
+    const draftCount = (patient.consultations || []).filter((c: any) =>
+        c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
+    ).length;
+    const pendingLabOrderCount = labOrders.filter(
+        o => o.order_status !== 'cancelled' && o.order_status !== 'resulted'
+    ).length;
+
     const TABS: { key: Tab; label: string; count?: number }[] = [
-        { key: 'overview', label: 'Overview' },
-        { key: 'consultations', label: 'Visits', count: patient.consultations?.length },
-        { key: 'labs', label: 'Orders & Results', count: labResults.length || patient.lab_results?.length },
-        { key: 'medications', label: 'Medications', count: medications.length || undefined },
-        { key: 'history', label: 'Problems & Allergies', count: historyCount },
-        { key: 'actions', label: 'Procedures & Referrals', count: actionsCount },
-        { key: 'admin', label: 'Portal', count: pendingRequests.length || undefined },
-        { key: 'workqueue', label: 'Work Queue', count: workQueueCount },
+        { key: 'overview',      label: 'Overview' },
+        { key: 'consultations', label: 'Consultations', count: draftCount || undefined },
+        { key: 'labs',          label: 'Labs',           count: pendingLabOrderCount || undefined },
+        { key: 'medications',   label: 'Medications',    count: medications.length || undefined },
+        { key: 'history',       label: 'History',        count: historyCount },
+        { key: 'portal',        label: 'Portal',         count: pendingRequests.length || undefined },
     ];
 
     return (
@@ -1158,7 +992,6 @@ const PatientDetails = () => {
                         </div>
                     </div>
                 </div>
-                {/* Status banner — shown for non-active patients above the action strip */}
                 {patient.status === 'inactive' && (
                     <div className="patient-status-banner patient-status-banner--inactive">
                         <span className="patient-status-banner__icon">⚠</span>
@@ -1177,78 +1010,73 @@ const PatientDetails = () => {
                         <span>Patient is <strong>deceased</strong> — this record is read-only.</span>
                     </div>
                 )}
-                {/* Action strip — scrollable horizontal row, never makes page wider */}
-                {(() => {
-                    return (
-                        <div className="patient-action-strip">
-                            <button
-                                onClick={() => { if (canWrite) { setShowConsultationForm(true); setConsultationToEdit(null); handleTabChange('consultations'); } }}
-                                className={`strip-btn strip-btn--primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                disabled={!canWrite}
-                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
-                            >
-                                + Consultation
-                            </button>
-                            <button
-                                onClick={() => { if (canWrite) { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('actions'); } }}
-                                className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                disabled={!canWrite}
-                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
-                            >
-                                + Referral
-                            </button>
-                            <button
-                                onClick={() => { if (canWrite) { setShowConditionForm(true); handleTabChange('history'); } }}
-                                className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                disabled={!canWrite}
-                                title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
-                            >
-                                + Condition
-                            </button>
-                            <button onClick={handleExportPdf} className="strip-btn">
-                                PDF
-                            </button>
-                            <div className="strip-dropdown" ref={dropdownRef}>
-                                <button
-                                    onClick={() => setShowDropdown(!showDropdown)}
-                                    className="strip-btn"
-                                    aria-label="More actions"
-                                    aria-expanded={showDropdown}
-                                    aria-haspopup="menu"
-                                >
-                                    More ▾
-                                </button>
-                                {showDropdown && (
-                                    <ul className="dropdown-menu">
-                                        {(profile?.access_level ?? 1) >= 2 && (
-                                            <li>
-                                                <button
-                                                    onClick={() => { if (canWrite) { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('actions'); } }}
-                                                    className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
-                                                    disabled={!canWrite}
-                                                >
-                                                    + Add Procedure
-                                                </button>
-                                            </li>
-                                        )}
-                                        <li>
-                                            <button
-                                                onClick={() => { if (canWrite) { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('history'); } }}
-                                                className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
-                                                disabled={!canWrite}
-                                            >
-                                                + Add Allergy
-                                            </button>
-                                        </li>
-                                    </ul>
+                <div className="patient-action-strip">
+                    <button
+                        onClick={() => { if (canWrite) { setShowConsultationForm(true); setConsultationToEdit(null); handleTabChange('consultations'); } }}
+                        className={`strip-btn strip-btn--primary${!canWrite ? ' strip-btn--disabled' : ''}`}
+                        disabled={!canWrite}
+                        title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                    >
+                        + Consultation
+                    </button>
+                    <button
+                        onClick={() => { if (canWrite) { setShowReferralForm(true); setReferralToEdit(null); handleTabChange('history'); } }}
+                        className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
+                        disabled={!canWrite}
+                        title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                    >
+                        + Referral
+                    </button>
+                    <button
+                        onClick={() => { if (canWrite) { setShowConditionForm(true); handleTabChange('history'); } }}
+                        className={`strip-btn${!canWrite ? ' strip-btn--disabled' : ''}`}
+                        disabled={!canWrite}
+                        title={!canWrite ? 'Clinical records are locked for this patient' : undefined}
+                    >
+                        + Condition
+                    </button>
+                    <button onClick={handleExportPdf} className="strip-btn">
+                        PDF
+                    </button>
+                    <div className="strip-dropdown" ref={dropdownRef}>
+                        <button
+                            onClick={() => setShowDropdown(!showDropdown)}
+                            className="strip-btn"
+                            aria-label="More actions"
+                            aria-expanded={showDropdown}
+                            aria-haspopup="menu"
+                        >
+                            More ▾
+                        </button>
+                        {showDropdown && (
+                            <ul className="dropdown-menu">
+                                {(profile?.access_level ?? 1) >= 2 && (
+                                    <li>
+                                        <button
+                                            onClick={() => { if (canWrite) { setShowProcedureForm(true); setProcedureToEdit(null); setShowDropdown(false); handleTabChange('history'); } }}
+                                            className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
+                                            disabled={!canWrite}
+                                        >
+                                            + Add Procedure
+                                        </button>
+                                    </li>
                                 )}
-                            </div>
-                        </div>
-                    );
-                })()}
+                                <li>
+                                    <button
+                                        onClick={() => { if (canWrite) { setShowAllergyForm(true); setShowDropdown(false); handleTabChange('history'); } }}
+                                        className={`action-button dropdown-item${!canWrite ? ' dropdown-item--disabled' : ''}`}
+                                        disabled={!canWrite}
+                                    >
+                                        + Add Allergy
+                                    </button>
+                                </li>
+                            </ul>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Quick Note — pinned, visible only to this doctor */}
+            {/* Quick Note */}
             <div className="quick-note-bar">
                 <span className="quick-note-label">📌 My Note:</span>
                 <input
@@ -1273,7 +1101,7 @@ const PatientDetails = () => {
                 </div>
             )}
 
-            {/* Forms (modal overlays) */}
+            {/* Form overlays */}
             {showConsultationForm && <ConsultationForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} consultationToEdit={consultationToEdit} isDraft={consultationFormIsDraft} />}
             {viewingConsultation && (
                 <ConsultationView
@@ -1294,7 +1122,7 @@ const PatientDetails = () => {
             {showProcedureForm && <MedicalProcedureForm patientId={id!} onSuccess={handleSuccess} onCancel={handleCancel} procedureToEdit={procedureToEdit} />}
             {showReferralForm && <ReferralForm patientId={id!} onSuccess={handleSuccess} onClose={handleCancel} referralToEdit={referralToEdit ? { ...referralToEdit, comments: referralToEdit.comments ?? undefined } : null} />}
 
-            {/* Tabs */}
+            {/* Tab bar */}
             <div className="patient-tabs" role="tablist" aria-label="Patient record sections">
                 {TABS.map((tab, idx) => (
                     <button
@@ -1329,1816 +1157,195 @@ const PatientDetails = () => {
                 id={`panel-${activeTab}`}
                 aria-labelledby={`tab-${activeTab}`}
             >
-                {/* Overview Tab */}
                 {activeTab === 'overview' && (
-                    <div className="tab-panel">
-                        {/* Vital alert banner */}
-                        {(() => {
-                            const latest = patient.consultations?.[0];
-                            if (!latest?.has_vital_alerts || dismissedVitalAlerts.has(latest.id)) return null;
-                            const reasons = latest.vital_alert_reasons ?? [];
-                            const handleAcknowledge = async () => {
-                                setVitalAcknowledging(true);
-                                try {
-                                    setDismissedVitalAlerts(prev => new Set([...prev, latest.id]));
-                                    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
-                                    toast.success('Vital alert acknowledged.');
-                                } catch {
-                                    toast.error('Failed to acknowledge alert.');
-                                } finally {
-                                    setVitalAcknowledging(false);
-                                }
-                            };
-                            return (
-                                <div className="vital-alert-banner">
-                                    <span className="vital-alert-icon">⚠</span>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <strong>Vital Alert</strong> — {new Date(latest.consultation_date).toLocaleDateString()}
-                                        <div className="vital-alert-chips">
-                                            {reasons.map((r, i) => <span key={i} className="vital-alert-chip">{r}</span>)}
-                                        </div>
-                                    </div>
-                                    <button className="btn-ghost-sm" onClick={() => {
-                                        setExpandedConsultIds(new Set([latest.id]));
-                                        handleTabChange('consultations');
-                                    }}>View →</button>
-                                    <button className="btn-ghost-sm" disabled={vitalAcknowledging} onClick={handleAcknowledge}>
-                                        {vitalAcknowledging ? '…' : 'Acknowledge'}
-                                    </button>
-                                </div>
-                            );
-                        })()}
-
-                        {/* Clinical Alerts banner (Wave 7A) */}
-                        {!alertsLoading && clinicalAlerts.length > 0 && (
-                            <div style={{ marginBottom: 'var(--space-3)' }}>
-                                {clinicalAlerts.map((alert: any) => (
-                                    <div key={alert.id} className="vital-alert-banner" style={{ borderColor: alert.severity === 'critical' ? 'var(--error)' : 'var(--warning)' }}>
-                                        <span className="vital-alert-icon">🔔</span>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <strong>{alert.title}</strong>
-                                            {alert.body && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{alert.body}</div>}
-                                        </div>
-                                        <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>Acknowledge</button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Snapshot strip — latest vitals */}
-                        {(() => {
-                            const c = patient.consultations?.[0];
-                            if (!c) return null;
-                            const chips = [
-                                c.blood_pressure_display ? { label: 'BP', value: c.blood_pressure_display, warn: (c.bp_systolic ?? 0) >= 140 } : null,
-                                c.sp2 ? { label: 'SpO₂', value: `${c.sp2}%`, warn: Number(c.sp2) < 94 } : null,
-                                c.temperature ? { label: 'Temp', value: `${c.temperature}°C`, warn: Number(c.temperature) > 38.5 } : null,
-                                c.weight ? { label: 'Wt', value: `${c.weight} kg`, warn: false } : null,
-                            ].filter(Boolean) as { label: string; value: string; warn: boolean }[];
-                            if (!chips.length) return null;
-                            return (
-                                <div className="snapshot-strip">
-                                    <span className="snapshot-label">Latest vitals — {new Date(c.consultation_date).toLocaleDateString()}</span>
-                                    <div className="snapshot-chips">
-                                        {chips.map(chip => (
-                                            <span key={chip.label} className={`snapshot-chip${chip.warn ? ' snapshot-chip--warn' : ''}`}>
-                                                <span className="snapshot-chip-label">{chip.label}</span>
-                                                {chip.value}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
-                        <div className="overview-grid">
-                            <div className="patient-details-card detail-info-group">
-                                <h3>Personal Information</h3>
-                                <div className="info-item"><strong>DOB:</strong> {patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}</div>
-                                <div className="info-item"><strong>Age:</strong> {patient.age || 'N/A'}</div>
-                                <div className="info-item"><strong>Blood Group:</strong> {patient.blood_group || 'N/A'}</div>
-                                <div className="info-item"><strong>Address:</strong> {patient.address || 'N/A'}</div>
-                                <div className="info-item"><strong>Email:</strong> {patient.email || 'N/A'}</div>
-                                <div className="info-item"><strong>Phone:</strong> {patient.phone_number || 'N/A'}</div>
-                                <div className="info-item"><strong>Emergency Contact:</strong> {patient.emergency_contact_name || 'N/A'} {patient.emergency_contact_number ? `(${patient.emergency_contact_number})` : ''}</div>
-                            </div>
-
-                            {/* Medical Background card — conditions + allergies */}
-                            <div className="patient-details-card detail-info-group">
-                                <h3>Active Conditions ({patient.conditions?.filter(c => c.status === 'active' || c.status === 'chronic').length || 0})</h3>
-                                {patient.conditions?.filter(c => c.status !== 'resolved').slice(0, 3).map(c => (
-                                    <div key={c.id} className="mini-condition">
-                                        <span className="condition-dot" style={{ background: CONDITION_STATUS_COLORS[c.status] }} />
-                                        <span>{c.name}</span>
-                                        <span className="condition-status-label">{c.status_display || c.status}</span>
-                                    </div>
-                                ))}
-                                {!patient.conditions?.length && <p className="muted">No conditions recorded.</p>}
-                                {activeAllergies.length > 0 && (
-                                    <>
-                                        <hr style={{ margin: '0.75rem 0', borderColor: 'var(--border-subtle)' }} />
-                                        <h3 style={{ marginTop: 0 }}>Allergies ({activeAllergies.length})</h3>
-                                        {activeAllergies.slice(0, 2).map(a => (
-                                            <div key={a.id} className="mini-allergy">
-                                                <span className="severity-dot" style={{ background: SEVERITY_COLORS[a.severity] }} />
-                                                {a.allergen}
-                                                <span className="allergy-type-label">{a.reaction_type_display || a.reaction_type}</span>
-                                            </div>
-                                        ))}
-                                        {activeAllergies.length > 2 && (
-                                            <p className="muted" style={{ fontSize: 'var(--text-xs)', margin: '4px 0 0' }}>+{activeAllergies.length - 2} more</p>
-                                        )}
-                                    </>
-                                )}
-                                <button className="btn-view-all" onClick={() => handleTabChange('history')}>View Medical History →</button>
-                            </div>
-
-                            <div className="patient-details-card detail-info-group">
-                                <h3>Recent Consultations</h3>
-                                {patient.consultations?.slice(0, 3).map(c => (
-                                    <div key={c.id} className="mini-consultation">
-                                        <div className="mini-consult-date">{new Date(c.consultation_date).toLocaleDateString()}</div>
-                                        <div className="mini-consult-reason">{c.reason_for_consultation}</div>
-                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</div>}
-                                    </div>
-                                ))}
-                                {!patient.consultations?.length && <p className="muted">No consultations yet.</p>}
-                                <button className="btn-view-all" onClick={() => handleTabChange('consultations')}>View all consultations →</button>
-                            </div>
-
-                            {/* Active Medications card — only shown when medications tab has been loaded */}
-                            {medications.length > 0 && (
-                                <div className="patient-details-card detail-info-group">
-                                    <h3>Active Medications ({medications.length})</h3>
-                                    {medications.slice(0, 3).map(rx => (
-                                        <div key={rx.id} className="mini-medication">
-                                            <span className="med-name">{rx.medication_name}</span>
-                                            <span className="med-detail">{rx.dosage} · {rx.frequency_display || rx.frequency}</span>
-                                        </div>
-                                    ))}
-                                    <button className="btn-view-all" onClick={() => handleTabChange('medications')}>View all →</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <OverviewTab
+                        patient={patient}
+                        id={id!}
+                        medications={medications}
+                        clinicalAlerts={clinicalAlerts}
+                        alertsLoading={alertsLoading}
+                        dismissedVitalAlerts={dismissedVitalAlerts}
+                        setDismissedVitalAlerts={setDismissedVitalAlerts}
+                        vitalAcknowledging={vitalAcknowledging}
+                        setVitalAcknowledging={setVitalAcknowledging}
+                        handleTabChange={tab => handleTabChange(tab as Tab)}
+                        handleAcknowledgeAlert={handleAcknowledgeAlert}
+                        setExpandedConsultIds={setExpandedConsultIds}
+                        patientAppointments={patientAppointments}
+                        pendingRequests={pendingRequests}
+                    />
                 )}
-
-                {/* Consultations Tab — List view + Charts (vitals) view */}
                 {activeTab === 'consultations' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Consultations</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <div className="view-toggle">
-                                    <button
-                                        type="button"
-                                        className={`view-toggle-btn${consultView === 'list' ? ' active' : ''}`}
-                                        onClick={() => setConsultView('list')}
-                                    >List</button>
-                                    <button
-                                        type="button"
-                                        className={`view-toggle-btn${consultView === 'charts' ? ' active' : ''}`}
-                                        onClick={() => setConsultView('charts')}
-                                    >Vitals Charts</button>
-                                </div>
-                                {consultView === 'list' && (
-                                    <button
-                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                        disabled={!canWrite}
-                                        title={!canWrite ? 'Patient record is read-only' : undefined}
-                                        onClick={() => { if (canWrite) { setConsultationToEdit(null); setShowConsultationForm(true); } }}
-                                    >+ Add</button>
-                                )}
-                            </div>
-                        </div>
-
-                        {consultView === 'list' ? (
-                            consultationsLoading ? (
-                                <TabSkeleton rows={4} />
-                            ) : consultationsData.length > 0 ? (
-                                <ul className="detail-list">
-                                    {consultationsData.map(c => {
-                                        const isExpanded = expandedConsultIds.has(c.id);
-                                        const isOwnConsultation = c.doctor === profile?.id;
-                                        return (
-                                            <li key={c.id} id={`consult-entry-${c.id}`} className="consultation-entry detail-list-item">
-                                                <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
-                                                    <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
-                                                    <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
-                                                    {c.consultation_status && c.consultation_status !== 'signed' && (
-                                                        <span className="consult-type-badge" style={{
-                                                            background: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
-                                                            color: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-dark)' : 'var(--text-muted)',
-                                                            border: '1px solid currentColor',
-                                                        }}>
-                                                            {c.consultation_status === 'draft' ? 'Draft' : c.consultation_status === 'in_progress' ? 'In Progress' : c.consultation_status}
-                                                        </span>
-                                                    )}
-                                                    <span className="consult-summary-reason">{c.reason_for_consultation}</span>
-                                                    {!isOwnConsultation && c.doctor_name && (
-                                                        <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
-                                                            Dr. {c.doctor_name}
-                                                        </span>
-                                                    )}
-                                                    {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</span>}
-                                                    {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
-                                                    <span className="consult-expand-icon">{isExpanded ? '▲' : '▼'}</span>
-                                                </button>
-                                                {isExpanded && (
-                                                    <div className="consult-expanded">
-
-                                                        {/* Clinical */}
-                                                        <div className="consult-section">
-                                                            <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
-                                                            {c.symptoms?.length > 0 && (
-                                                                <div className="info-item">
-                                                                    <strong>Symptoms:</strong>
-                                                                    <div className="symptoms-display">
-                                                                        {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                            {c.diagnosis && (
-                                                                <div className="info-item">
-                                                                    <strong>Diagnosis:</strong> {c.diagnosis}
-                                                                    {c.icd_code && <span className="consult-icd-badge">{c.icd_code}</span>}
-                                                                </div>
-                                                            )}
-                                                            {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
-                                                        </div>
-
-                                                        {/* Vitals */}
-                                                        {(c.weight || c.height || c.temperature || c.sp2 || c.bp_systolic || c.bp_diastolic) && (
-                                                            <div className="consult-section">
-                                                                <div className="consult-section-title">Vitals</div>
-                                                                <div className="vitals-row">
-                                                                    {c.weight && <span className="vital-chip">Weight: {c.weight} kg</span>}
-                                                                    {c.height && <span className="vital-chip">Height: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
-                                                                    {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
-                                                                    {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
-                                                                    {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`} mmHg</span>}
-                                                                </div>
-                                                                {c.has_vital_alerts && c.vital_alert_reasons && c.vital_alert_reasons.length > 0 && (
-                                                                    <div className="consult-vital-alerts">
-                                                                        {c.vital_alert_reasons.map(r => <span key={r} className="vital-alert-chip">⚠ {r}</span>)}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )}
-
-                                                        {/* Prescriptions */}
-                                                        {c.prescriptions && c.prescriptions.length > 0 && (
-                                                            <div className="consult-section">
-                                                                <div className="consult-section-title">Medications Prescribed</div>
-                                                                <ul className="consult-rx-list">
-                                                                    {c.prescriptions.map(rx => (
-                                                                        <li key={rx.id} className="consult-rx-item">
-                                                                            <div className="consult-rx-header">
-                                                                                <span className="consult-rx-name">{rx.medication_name}</span>
-                                                                                <span className={`consult-rx-status ${rx.is_active ? 'consult-rx-status--active' : 'consult-rx-status--inactive'}`}>
-                                                                                    {rx.is_active ? 'Active' : 'Inactive'}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="consult-rx-detail">
-                                                                                {rx.dosage} · {rx.frequency}
-                                                                                {rx.duration_days ? ` · ${rx.duration_days} days` : ''}
-                                                                            </div>
-                                                                            {rx.instructions && <div className="consult-rx-instructions">{rx.instructions}</div>}
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Lab Tests */}
-                                                        {c.lab_results && c.lab_results.length > 0 && (
-                                                            <div className="consult-section">
-                                                                <div className="consult-section-title">Lab Tests Ordered</div>
-                                                                <ul className="consult-lab-list">
-                                                                    {c.lab_results.map(lab => (
-                                                                        <li key={lab.id} className="consult-lab-item">
-                                                                            <div className="consult-lab-header">
-                                                                                <span className="consult-lab-name">{lab.test_name}</span>
-                                                                                <span className={`consult-lab-status consult-lab-status--${lab.status}`}>{lab.status}</span>
-                                                                            </div>
-                                                                            <div className="consult-lab-meta">
-                                                                                {new Date(lab.test_date).toLocaleDateString()}
-                                                                                {(lab.result_value || lab.result_value_text) && (
-                                                                                    <span className="consult-lab-result">
-                                                                                        {lab.result_value_text || lab.result_value}{lab.unit ? ` ${lab.unit}` : ''}
-                                                                                        {lab.reference_range ? ` (ref: ${lab.reference_range})` : ''}
-                                                                                    </span>
-                                                                                )}
-                                                                            </div>
-                                                                            {lab.notes && <div className="consult-lab-notes">{lab.notes}</div>}
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Procedures */}
-                                                        {c.procedures && c.procedures.length > 0 && (
-                                                            <div className="consult-section">
-                                                                <div className="consult-section-title">Procedures Performed</div>
-                                                                <ul className="consult-proc-list">
-                                                                    {c.procedures.map(proc => (
-                                                                        <li key={proc.id} className="consult-proc-item">
-                                                                            <div className="consult-proc-header">
-                                                                                <span className="consult-proc-name">{proc.procedure_type}</span>
-                                                                                {proc.procedure_category && <span className="consult-proc-category">{proc.procedure_category}</span>}
-                                                                                <span className="consult-proc-date">{new Date(proc.procedure_date).toLocaleDateString()}</span>
-                                                                            </div>
-                                                                            {proc.result && <div className="consult-proc-result">{proc.result}</div>}
-                                                                        </li>
-                                                                    ))}
-                                                                </ul>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Follow-up & Patient Instructions */}
-                                                        {(c.follow_up_date || c.patient_summary || c.patient_instructions) && (
-                                                            <div className="consult-section">
-                                                                {c.follow_up_date && (
-                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '6px' }}>
-                                                                        <div className="follow-up-chip" style={{ display: 'inline-flex' }}>
-                                                                            Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
-                                                                        </div>
-                                                                        <button
-                                                                            type="button"
-                                                                            className="btn btn-ghost btn-sm"
-                                                                            style={{ fontSize: '0.78rem', padding: '2px 8px' }}
-                                                                            onClick={() => navigate(`/appointments?patient_id=${id}`)}
-                                                                        >
-                                                                            Book appointment →
-                                                                        </button>
-                                                                    </div>
-                                                                )}
-                                                                {c.patient_summary && <div className="info-item"><strong>Patient Summary:</strong> {c.patient_summary}</div>}
-                                                                {c.patient_instructions && <div className="info-item"><strong>Instructions:</strong> {c.patient_instructions}</div>}
-                                                            </div>
-                                                        )}
-
-                                                        <div className="entry-actions">
-                                                            {isOwnConsultation && (<>
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (c.consultation_status === 'signed') {
-                                                                        setViewingConsultation(c);
-                                                                    } else {
-                                                                        setConsultationToEdit(c);
-                                                                        setShowConsultationForm(true);
-                                                                    }
-                                                                }}
-                                                                className="edit-button action-button"
-                                                            >
-                                                                {c.consultation_status === 'signed' ? 'View' : 'Edit'}
-                                                            </button>
-                                                            <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
-                                                            <button
-                                                                onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
-                                                                className="action-button"
-                                                                style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                                            >
-                                                                {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
-                                                            </button>
-                                                            </>)}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            ) : <p className="muted">No consultations recorded.</p>
-                        ) : (
-                            /* Charts view — vitals trend */
-                            vitalsLoading ? (
-                                <TabSkeleton rows={3} />
-                            ) : vitalsTrend.length === 0 ? (
-                                <div className="empty-state">
-                                    <div className="empty-state-icon">📈</div>
-                                    <div className="empty-state-title">No vitals recorded yet</div>
-                                    <div className="empty-state-subtitle">Vitals are captured during consultations.</div>
-                                </div>
-                            ) : (() => {
-                                const chartData = vitalsTrend.map(v => ({
-                                    ...v,
-                                    label: new Date(v.consultation_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-                                }));
-                                const last = vitalsTrend[vitalsTrend.length - 1];
-                                const bpData    = chartData.filter(v => v.bp_systolic !== null || v.bp_diastolic !== null);
-                                const spo2Data  = chartData.filter(v => v.sp2 !== null);
-                                const tempData  = chartData.filter(v => v.temperature !== null);
-                                const weightData = chartData.filter(v => v.weight !== null);
-                                return (
-                                    <div>
-                                        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-                                            {([
-                                                { key: 'bp', label: 'Blood Pressure' },
-                                                { key: 'spo2', label: 'SpO₂' },
-                                                { key: 'temperature', label: 'Temperature' },
-                                                { key: 'weight', label: 'Weight' },
-                                            ] as const).map(({ key, label }) => (
-                                                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                                                    <input type="checkbox" checked={visibleVitals[key]} onChange={() => toggleVital(key)} />
-                                                    {label}
-                                                </label>
-                                            ))}
-                                        </div>
-                                        {visibleVitals.bp && bpData.length > 0 && (
-                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                                <div className="section-card-header">
-                                                    <span className="section-card-title">Blood Pressure (mmHg)</span>
-                                                    {(last.bp_systolic || last.bp_diastolic) && (
-                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg</span>
-                                                    )}
-                                                </div>
-                                                <div className="section-card-body" style={{ height: 220 }}>
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart data={bpData}>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <YAxis domain={[60, 200]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                            <ReferenceLine y={180} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Crisis', fontSize: 10, fill: 'var(--danger)' }} />
-                                                            <ReferenceLine y={90} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Hypotension', fontSize: 10, fill: 'var(--warning)' }} />
-                                                            <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Systolic" connectNulls />
-                                                            <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name="Diastolic" connectNulls />
-                                                            <Legend />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {visibleVitals.spo2 && spo2Data.length > 0 && (
-                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                                <div className="section-card-header">
-                                                    <span className="section-card-title">SpO₂ (%)</span>
-                                                    {last.sp2 && (
-                                                        <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.sp2}%</span>
-                                                    )}
-                                                </div>
-                                                <div className="section-card-body" style={{ height: 220 }}>
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart data={spo2Data}>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <YAxis domain={[80, 100]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                            <ReferenceLine y={94} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Low SpO₂', fontSize: 10, fill: 'var(--warning)' }} />
-                                                            <Line type="monotone" dataKey="sp2" stroke="var(--success)" strokeWidth={2} dot={{ r: 3 }} name="SpO₂ %" connectNulls />
-                                                            <Legend />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {visibleVitals.temperature && tempData.length > 0 && (
-                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                                <div className="section-card-header">
-                                                    <span className="section-card-title">Temperature (°C)</span>
-                                                    {last.temperature && (
-                                                        <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.temperature}°C</span>
-                                                    )}
-                                                </div>
-                                                <div className="section-card-body" style={{ height: 220 }}>
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart data={tempData}>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <YAxis domain={[34, 42]} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                            <ReferenceLine y={38.5} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Fever', fontSize: 10, fill: 'var(--danger)' }} />
-                                                            <ReferenceLine y={35.5} stroke="var(--info)" strokeDasharray="4 4" label={{ value: 'Hypothermia', fontSize: 10, fill: 'var(--info)' }} />
-                                                            <Line type="monotone" dataKey="temperature" stroke="var(--warning)" strokeWidth={2} dot={{ r: 3 }} name="Temp °C" connectNulls />
-                                                            <Legend />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {visibleVitals.weight && weightData.length > 0 && (
-                                            <div className="section-card" style={{ marginBottom: '1rem' }}>
-                                                <div className="section-card-header">
-                                                    <span className="section-card-title">Weight (kg)</span>
-                                                    {last.weight && (
-                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.weight} kg</span>
-                                                    )}
-                                                </div>
-                                                <div className="section-card-body" style={{ height: 220 }}>
-                                                    <ResponsiveContainer width="100%" height="100%">
-                                                        <LineChart data={weightData}>
-                                                            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                                                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                                                            <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
-                                                            <Line type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Weight kg" connectNulls />
-                                                            <Legend />
-                                                        </LineChart>
-                                                    </ResponsiveContainer>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })()
-                        )}
-                    </div>
+                    <ConsultationsTab
+                        patient={patient}
+                        id={id!}
+                        consultationsData={consultationsData}
+                        consultationsLoading={consultationsLoading}
+                        vitalsTrend={vitalsTrend}
+                        vitalsLoading={vitalsLoading}
+                        consultView={consultView}
+                        setConsultView={setConsultView}
+                        expandedConsultIds={expandedConsultIds}
+                        setExpandedConsultIds={setExpandedConsultIds}
+                        toggleConsult={toggleConsult}
+                        canWrite={canWrite}
+                        profile={profile}
+                        visibleVitals={visibleVitals}
+                        toggleVital={toggleVital}
+                        setConsultationToEdit={setConsultationToEdit}
+                        setShowConsultationForm={setShowConsultationForm}
+                        setViewingConsultation={setViewingConsultation}
+                        setConfirmDeleteConsultationId={setConfirmDeleteConsultationId}
+                        setShareConsultationId={setShareConsultationId}
+                        setShareConsultationSummary={setShareConsultationSummary}
+                    />
                 )}
-
-                {/* History Tab — Conditions + Allergies */}
-                {activeTab === 'history' && (
-                    <div className="tab-panel">
-                        {/* ── Conditions section ── */}
-                        <div className="tab-section">
-                            <div className="tab-panel-header">
-                                <h3>Conditions <span className="section-count">({patient.conditions?.length || 0})</span></h3>
-                                <button
-                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                    disabled={!canWrite}
-                                    title={!canWrite ? 'Patient record is read-only' : undefined}
-                                    onClick={() => { if (canWrite) setShowConditionForm(!showConditionForm); }}
-                                >+ Add Condition</button>
-                            </div>
-                        {showConditionForm && (
-                            <form onSubmit={handleConditionSubmit} className="inline-form">
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Condition Name *</label>
-                                        <input required value={conditionForm.name} onChange={e => setConditionForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Type 2 Diabetes" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>ICD Code</label>
-                                        <input value={conditionForm.icd_code} onChange={e => setConditionForm(p => ({ ...p, icd_code: e.target.value }))} placeholder="e.g. E11" />
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Status</label>
-                                        <select value={conditionForm.status} onChange={e => setConditionForm(p => ({ ...p, status: e.target.value }))}>
-                                            <option value="active">Active</option>
-                                            <option value="chronic">Chronic</option>
-                                            <option value="in_remission">In Remission</option>
-                                            <option value="resolved">Resolved</option>
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Onset Date</label>
-                                        <input type="date" value={conditionForm.onset_date} onChange={e => setConditionForm(p => ({ ...p, onset_date: e.target.value }))} />
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Notes</label>
-                                    <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm(p => ({ ...p, notes: e.target.value }))} />
-                                </div>
-                                <div className="form-group form-checkbox">
-                                    <label>
-                                        <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                        {' '}Visible to patient on portal
-                                    </label>
-                                </div>
-                                <div className="form-actions">
-                                    <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Condition'}</button>
-                                    <button type="button" onClick={() => setShowConditionForm(false)} className="cancel-button">Cancel</button>
-                                </div>
-                            </form>
-                        )}
-                        {patient.conditions?.length ? (
-                            <div className="conditions-grid">
-                                {patient.conditions.map(c => (
-                                    <div key={c.id} className="condition-card">
-                                        {editingConditionId === c.id ? (
-                                            <form onSubmit={handleConditionSubmit} className="inline-form">
-                                                <div className="form-row">
-                                                    <div className="form-group">
-                                                        <label>Name *</label>
-                                                        <input required value={conditionForm.name} onChange={e => setConditionForm(p => ({ ...p, name: e.target.value }))} />
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>ICD Code</label>
-                                                        <input value={conditionForm.icd_code} onChange={e => setConditionForm(p => ({ ...p, icd_code: e.target.value }))} />
-                                                    </div>
-                                                </div>
-                                                <div className="form-row">
-                                                    <div className="form-group">
-                                                        <label>Status</label>
-                                                        <select value={conditionForm.status} onChange={e => setConditionForm(p => ({ ...p, status: e.target.value }))}>
-                                                            <option value="active">Active</option>
-                                                            <option value="chronic">Chronic</option>
-                                                            <option value="resolved">Resolved</option>
-                                                            <option value="in_remission">In Remission</option>
-                                                        </select>
-                                                    </div>
-                                                    <div className="form-group">
-                                                        <label>Onset Date</label>
-                                                        <input type="date" value={conditionForm.onset_date} onChange={e => setConditionForm(p => ({ ...p, onset_date: e.target.value }))} />
-                                                    </div>
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Notes</label>
-                                                    <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm(p => ({ ...p, notes: e.target.value }))} />
-                                                </div>
-                                                <div className="form-group form-checkbox">
-                                                    <label>
-                                                        <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                                        {' '}Visible to patient on portal
-                                                    </label>
-                                                </div>
-                                                <div className="form-actions">
-                                                    <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</button>
-                                                    <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false }); }} className="cancel-button">Cancel</button>
-                                                </div>
-                                            </form>
-                                        ) : (
-                                            <>
-                                                <div className="condition-card-header">
-                                                    <div>
-                                                        <span className="condition-name">{c.name}</span>
-                                                        {c.icd_code && <span className="icd-code">{c.icd_code}</span>}
-                                                    </div>
-                                                    <span className="condition-status" style={{ background: CONDITION_STATUS_COLORS[c.status] + '22', color: CONDITION_STATUS_COLORS[c.status], border: `1px solid ${CONDITION_STATUS_COLORS[c.status]}` }}>
-                                                        {c.status_display || c.status}
-                                                    </span>
-                                                </div>
-                                                {c.onset_date && <div className="condition-meta">Since: {new Date(c.onset_date).toLocaleDateString()}</div>}
-                                                {c.notes && <p className="condition-notes">{c.notes}</p>}
-                                                <div className="entry-actions">
-                                                    <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '', visible_to_patient: c.visible_to_patient ?? false }); }} className="action-button">Edit</button>
-                                                    <button
-                                                        onClick={() => handleToggleVisibleToPatient('conditions', c.id, c.visible_to_patient ?? false)}
-                                                        className="action-button"
-                                                        style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                                    >
-                                                        {c.visible_to_patient ? '✓ Patient can see' : 'Show to patient'}
-                                                    </button>
-                                                    <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">Delete</button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        ) : <p className="muted">No conditions recorded.</p>}
-                        </div>{/* end conditions section */}
-
-                        {/* ── Allergies section ── */}
-                        <div className="tab-section tab-section--divider">
-                            <div className="tab-panel-header">
-                                <h3>Allergies <span className="section-count">({activeAllergies.length} active)</span></h3>
-                                <button
-                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                    disabled={!canWrite}
-                                    title={!canWrite ? 'Patient record is read-only' : undefined}
-                                    onClick={() => { if (canWrite) setShowAllergyForm(!showAllergyForm); }}
-                                >+ Add Allergy</button>
-                            </div>
-                        {showAllergyForm && (
-                            <form onSubmit={handleAllergySubmit} className="inline-form">
-                                <div className="form-row">
-                                    <div className="form-group" style={{ position: 'relative' }}>
-                                        <label>Allergen *</label>
-                                        <input
-                                            required
-                                            value={allergyForm.allergen}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setAllergyForm(p => ({ ...p, allergen: val }));
-                                                if (val.length >= 2) {
-                                                    setAllergenSuggestions(
-                                                        COMMON_ALLERGENS.filter(a => a.toLowerCase().includes(val.toLowerCase())).slice(0, 8)
-                                                    );
-                                                    setShowAllergenSuggestions(true);
-                                                } else {
-                                                    setAllergenSuggestions([]);
-                                                    setShowAllergenSuggestions(false);
-                                                }
-                                            }}
-                                            onBlur={() => setTimeout(() => setShowAllergenSuggestions(false), 150)}
-                                            autoComplete="off"
-                                            placeholder="e.g. Penicillin"
-                                        />
-                                        {showAllergenSuggestions && allergenSuggestions.length > 0 && (
-                                            <ul className="allergen-suggestions-dropdown">
-                                                {allergenSuggestions.map(a => (
-                                                    <li key={a}>
-                                                        <button type="button" onMouseDown={() => {
-                                                            setAllergyForm(p => ({ ...p, allergen: a }));
-                                                            setShowAllergenSuggestions(false);
-                                                            setAllergenSuggestions([]);
-                                                        }}>
-                                                            {a}
-                                                        </button>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Type</label>
-                                        <select value={allergyForm.reaction_type} onChange={e => setAllergyForm(p => ({ ...p, reaction_type: e.target.value }))}>
-                                            <option value="drug">Drug</option>
-                                            <option value="food">Food</option>
-                                            <option value="environmental">Environmental</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Severity</label>
-                                    <select value={allergyForm.severity} onChange={e => setAllergyForm(p => ({ ...p, severity: e.target.value }))}>
-                                        <option value="mild">Mild</option>
-                                        <option value="moderate">Moderate</option>
-                                        <option value="severe">Severe</option>
-                                        <option value="life_threatening">Life Threatening</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label>Reaction Description</label>
-                                    <textarea rows={2} value={allergyForm.reaction_description} onChange={e => setAllergyForm(p => ({ ...p, reaction_description: e.target.value }))} />
-                                </div>
-                                <div className="form-group form-checkbox">
-                                    <label>
-                                        <input type="checkbox" checked={allergyForm.visible_to_patient} onChange={e => setAllergyForm(p => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                        {' '}Visible to patient on portal
-                                    </label>
-                                </div>
-                                <div className="form-actions">
-                                    <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Allergy'}</button>
-                                    <button type="button" onClick={() => setShowAllergyForm(false)} className="cancel-button">Cancel</button>
-                                </div>
-                            </form>
-                        )}
-                        {patient.allergy_records?.length ? (
-                            <div className="allergies-list">
-                                {patient.allergy_records.map(a => (
-                                    <div key={a.id} className={`allergy-card${!a.is_active ? ' inactive' : ''}`}>
-                                        <div className="allergy-card-header">
-                                            <div>
-                                                <span className="allergen-name">{a.allergen}</span>
-                                                <span className="allergy-type">{a.reaction_type_display || a.reaction_type}</span>
-                                            </div>
-                                            <span className="severity-badge" style={{ background: SEVERITY_COLORS[a.severity] + '22', color: SEVERITY_COLORS[a.severity], border: `1px solid ${SEVERITY_COLORS[a.severity]}` }}>
-                                                {a.severity_display || a.severity}
-                                            </span>
-                                        </div>
-                                        {a.reaction_description && <p className="allergy-desc">{a.reaction_description}</p>}
-                                        {!a.is_active && <span className="inactive-label">Inactive</span>}
-                                        <div className="entry-actions">
-                                            <button onClick={() => handleToggleAllergy(a.id, a.is_active)} className="action-button">
-                                                {a.is_active ? 'Deactivate' : 'Activate'}
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleVisibleToPatient('allergies', a.id, a.visible_to_patient ?? true)}
-                                                className="action-button"
-                                                style={{ color: a.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
-                                            >
-                                                {a.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
-                                            </button>
-                                            <button onClick={() => setConfirmDeleteAllergyId(a.id)} className="delete-button action-button">Delete</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : <p className="muted">No allergies recorded.</p>}
-                        </div>{/* end allergies section */}
-                    </div>
-                )}
-
-                {/* Actions Tab — Procedures + Referrals */}
-                {activeTab === 'actions' && (
-                    <div className="tab-panel">
-                        {/* ── Procedures section ── */}
-                        <div className="tab-section">
-                            <div className="tab-panel-header">
-                                <h3>Procedures <span className="section-count">({patient.medical_procedures?.length || 0})</span></h3>
-                                {(profile?.access_level ?? 1) >= 2 && (
-                                    <button
-                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                        disabled={!canWrite}
-                                        title={!canWrite ? 'Patient record is read-only' : undefined}
-                                        onClick={() => { if (canWrite) { setProcedureToEdit(null); setShowProcedureForm(true); } }}
-                                    >+ Add Procedure</button>
-                                )}
-                            </div>
-                            {proceduresLoading ? (
-                                <TabSkeleton rows={4} />
-                            ) : proceduresData.length > 0 ? (
-                                <ul className="detail-list">
-                                    {proceduresData.map(p => (
-                                        <li key={p.id} className="procedure-entry detail-list-item">
-                                            <h4>{p.procedure_type} — {new Date(p.procedure_date).toLocaleDateString()}</h4>
-                                            {p.result && <div className="info-item"><strong>Result:</strong> {p.result}</div>}
-                                            {p.attachments && (
-                                                <button onClick={() => downloadFile(p.attachments, `procedure_${p.id}`)} className="download-link">Download attachment</button>
-                                            )}
-                                            <div className="entry-actions">
-                                                <button onClick={() => { setProcedureToEdit(p); setShowProcedureForm(true); }} className="edit-button action-button">Edit</button>
-                                                <button onClick={() => setConfirmDeleteProcedureId(p.id)} className="delete-button action-button">Delete</button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : <p className="muted">No procedures recorded.</p>}
-                        </div>{/* end procedures section */}
-
-                        {/* ── Referrals section ── */}
-                        <div className="tab-section tab-section--divider">
-                            <div className="tab-panel-header">
-                                <h3>Referrals <span className="section-count">({patient.referrals?.length || 0})</span></h3>
-                                <button
-                                    className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                    disabled={!canWrite}
-                                    title={!canWrite ? 'Patient record is read-only' : undefined}
-                                    onClick={() => { if (canWrite) { setReferralToEdit(null); setShowReferralForm(true); } }}
-                                >+ Add Referral</button>
-                            </div>
-                            {referralsLoading ? (
-                                <TabSkeleton rows={4} />
-                            ) : referralsData.length > 0 ? (
-                                <ul className="detail-list">
-                                    {referralsData.map(r => {
-                                        const isReferringDoctor = profile?.id === r.referred_by;
-                                        const isReceivingDoctor = profile?.id === r.referred_to;
-                                        const canSubmitResult = isReceivingDoctor && ['accepted', 'in_progress'].includes(r.status);
-                                        const canCancel = isReferringDoctor && ['pending', 'accepted'].includes(r.status);
-                                        const canRecall = isReferringDoctor && ['pending', 'accepted', 'in_progress', 'returned'].includes(r.status);
-                                        const canEdit = isReferringDoctor && ['draft', 'pending', 'returned'].includes(r.status);
-                                        const canDelete = isReferringDoctor && ['draft', 'pending', 'rejected', 'cancelled', 'recalled', 'expired'].includes(r.status);
-                                        const isReturnedToMe = isReferringDoctor && r.status === 'returned';
-                                        const showResultForm = resultFormReferralId === r.id;
-                                        const showCancelForm = cancelFormReferralId === r.id;
-                                        const showRecallForm = recallFormReferralId === r.id;
-                                        return (
-                                            <li key={r.id} className="referral-entry detail-list-item">
-                                                {/* SLA breached banner */}
-                                                {r.sla_breached && (
-                                                    <div style={{ background: 'var(--color-danger-bg, #fef2f2)', color: 'var(--color-danger, #dc2626)', fontSize: '0.78rem', fontWeight: 600, padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)', marginBottom: '0.5rem' }}>
-                                                        ⚠ SLA breached — response overdue
-                                                    </div>
-                                                )}
-                                                {/* Returned banner */}
-                                                {isReturnedToMe && (
-                                                    <div style={{ background: 'var(--color-warning-bg, #fffbeb)', border: '1px solid var(--color-warning, #f59e0b)', borderRadius: 'var(--radius-sm)', padding: '0.45rem 0.65rem', marginBottom: '0.5rem', fontSize: '0.82rem' }}>
-                                                        <strong>Specialist returned for more information.</strong>
-                                                        {r.return_reason && <span> "{r.return_reason}"</span>}
-                                                        {r.return_requested_info && (
-                                                            <div style={{ marginTop: '0.25rem' }}><strong>Needs:</strong> {r.return_requested_info}</div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Header row */}
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.25rem' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                        <h4 style={{ margin: 0 }}>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
-                                                        {r.is_draft && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Draft</span>}
-                                                        {r.referral_type_display && (
-                                                            <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
-                                                                {r.referral_type_display}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        {r.sla_due_at && !r.sla_breached && r.urgency !== 'routine' && (
-                                                            <ReferralSLABadge sla_due_at={r.sla_due_at} sla_breached={false} urgency={r.urgency} />
-                                                        )}
-                                                        <span className={`status-badge status-${r.status}`}>{r.status_display || r.status}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="info-item"><strong>Referred by:</strong> {r.referred_by_details?.full_name || '—'}</div>
-                                                <div className="info-item"><strong>Referred to:</strong> {r.referred_to_details?.full_name || (r.is_external ? `${r.external_doctor_name || 'External'} · ${r.external_hospital}` : '—')}</div>
-                                                <div className="info-item"><strong>Specialty:</strong> {r.specialty_display || r.specialty_requested}</div>
-                                                <div className="info-item"><strong>Urgency:</strong> {r.urgency_display || r.urgency}</div>
-                                                <div className="info-item"><strong>Reason:</strong> {r.reason_for_referral}</div>
-                                                {r.comments && <div className="info-item"><strong>Referral note:</strong> {r.comments}</div>}
-
-                                                {/* Lifecycle timestamps */}
-                                                <div className="info-item" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
-                                                    {r.accepted_at && <span>Accepted {new Date(r.accepted_at).toLocaleDateString()}</span>}
-                                                    {r.in_progress_at && <span>In Progress {new Date(r.in_progress_at).toLocaleDateString()}</span>}
-                                                    {r.returned_at && <span>Returned {new Date(r.returned_at).toLocaleDateString()}</span>}
-                                                    {r.completed_at && <span>Completed {new Date(r.completed_at).toLocaleDateString()}</span>}
-                                                    {r.rejected_at && <span>Rejected {new Date(r.rejected_at).toLocaleDateString()}</span>}
-                                                    {r.cancelled_at && <span>Cancelled {new Date(r.cancelled_at).toLocaleDateString()}</span>}
-                                                    {r.recalled_at && <span>Recalled {new Date(r.recalled_at).toLocaleDateString()}</span>}
-                                                    {r.expired_at && <span>Expired {new Date(r.expired_at).toLocaleDateString()}</span>}
-                                                </div>
-
-                                                {r.response_notes && (
-                                                    <div className="info-item"><strong>Response note:</strong> {r.response_notes}</div>
-                                                )}
-                                                {r.cancellation_reason && (
-                                                    <div className="info-item" style={{ color: 'var(--text-muted)' }}><strong>Cancellation reason:</strong> {r.cancellation_reason}</div>
-                                                )}
-                                                {r.recall_reason && (
-                                                    <div className="info-item" style={{ color: 'var(--text-muted)' }}><strong>Recall reason:</strong> {r.recall_reason}</div>
-                                                )}
-
-                                                {/* Clinical result */}
-                                                {r.result ? (
-                                                    <div className="info-item" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', marginTop: '0.5rem' }}>
-                                                        <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                                                            Specialist Result
-                                                            {r.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {new Date(r.result_submitted_at).toLocaleDateString()}</span>}
-                                                        </div>
-                                                        <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{r.result}</div>
-                                                    </div>
-                                                ) : (
-                                                    canSubmitResult && !showResultForm && (
-                                                        <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.5rem 0 0' }}>No result submitted yet.</p>
-                                                    )
-                                                )}
-
-                                                {/* Inline result form */}
-                                                {canSubmitResult && (
-                                                    <div style={{ marginTop: '0.75rem' }}>
-                                                        {showResultForm ? (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                                <textarea
-                                                                    className="textarea"
-                                                                    rows={4}
-                                                                    placeholder="Clinical findings, diagnosis, recommendations…"
-                                                                    value={resultText}
-                                                                    onChange={e => setResultText(e.target.value)}
-                                                                    autoFocus
-                                                                />
-                                                                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
-                                                                    Submitting a result marks this referral as completed.
-                                                                </p>
-                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                                    <button
-                                                                        className="btn btn-primary btn-sm"
-                                                                        disabled={!resultText.trim() || resultSubmitting}
-                                                                        onClick={async () => {
-                                                                            setResultSubmitting(true);
-                                                                            try {
-                                                                                await api.post(`/referrals/${r.id}/result/`, { result: resultText.trim() });
-                                                                                toast.success('Result submitted. Referral marked as completed.');
-                                                                                setResultFormReferralId(null);
-                                                                                setResultText('');
-                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
-                                                                            } catch (err) {
-                                                                                toast.error(parseApiError(err, 'Could not submit result.'));
-                                                                            } finally {
-                                                                                setResultSubmitting(false);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        {resultSubmitting ? 'Saving…' : 'Submit & Complete'}
-                                                                    </button>
-                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setResultFormReferralId(null); setResultText(''); }}>
-                                                                        Cancel
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                className="btn btn-ghost btn-sm"
-                                                                onClick={() => { setResultText(r.result || ''); setResultFormReferralId(r.id); }}
-                                                            >
-                                                                {r.result ? '✎ Update Result' : '+ Submit Result'}
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Cancel form */}
-                                                {canCancel && (
-                                                    <div style={{ marginTop: '0.75rem' }}>
-                                                        {showCancelForm ? (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                                <textarea
-                                                                    className="textarea"
-                                                                    rows={2}
-                                                                    placeholder="Cancellation reason (optional)…"
-                                                                    value={cancelReason}
-                                                                    onChange={e => setCancelReason(e.target.value)}
-                                                                    autoFocus
-                                                                />
-                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                                    <button
-                                                                        className="btn btn-sm"
-                                                                        style={{ background: 'var(--error)', color: '#fff', border: 'none' }}
-                                                                        disabled={cancelSubmitting}
-                                                                        onClick={async () => {
-                                                                            setCancelSubmitting(true);
-                                                                            try {
-                                                                                await api.post(`/referrals/${r.id}/cancel/`, { reason: cancelReason.trim() });
-                                                                                toast.success('Referral cancelled.');
-                                                                                setCancelFormReferralId(null);
-                                                                                setCancelReason('');
-                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
-                                                                            } catch (err) {
-                                                                                toast.error(parseApiError(err, 'Could not cancel referral.'));
-                                                                            } finally {
-                                                                                setCancelSubmitting(false);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        {cancelSubmitting ? 'Cancelling…' : 'Confirm Cancel'}
-                                                                    </button>
-                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setCancelFormReferralId(null); setCancelReason(''); }}>
-                                                                        Keep Referral
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                className="btn btn-ghost btn-sm"
-                                                                style={{ color: 'var(--error)' }}
-                                                                onClick={() => setCancelFormReferralId(r.id)}
-                                                            >
-                                                                Cancel Referral
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Recall form */}
-                                                {canRecall && !showCancelForm && (
-                                                    <div style={{ marginTop: '0.5rem' }}>
-                                                        {showRecallForm ? (
-                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                                                <textarea
-                                                                    className="textarea"
-                                                                    rows={2}
-                                                                    placeholder="Recall reason (optional)…"
-                                                                    value={recallReason}
-                                                                    onChange={e => setRecallReason(e.target.value)}
-                                                                    autoFocus
-                                                                />
-                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                                    <button
-                                                                        className="btn btn-sm"
-                                                                        style={{ background: 'var(--color-warning, #f59e0b)', color: '#fff', border: 'none' }}
-                                                                        disabled={recallSubmitting}
-                                                                        onClick={async () => {
-                                                                            setRecallSubmitting(true);
-                                                                            try {
-                                                                                await recallReferral(r.id, recallReason.trim() || undefined);
-                                                                                toast.success('Referral recalled.');
-                                                                                setRecallFormReferralId(null);
-                                                                                setRecallReason('');
-                                                                                queryClient.invalidateQueries({ queryKey: ['patients', id, 'referrals'] });
-                                                                            } catch (err) {
-                                                                                toast.error(parseApiError(err, 'Could not recall referral.'));
-                                                                            } finally {
-                                                                                setRecallSubmitting(false);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                        {recallSubmitting ? 'Recalling…' : 'Confirm Recall'}
-                                                                    </button>
-                                                                    <button className="btn btn-ghost btn-sm" onClick={() => { setRecallFormReferralId(null); setRecallReason(''); }}>
-                                                                        Keep Referral
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                className="btn btn-ghost btn-sm"
-                                                                style={{ color: 'var(--color-warning, #b45309)' }}
-                                                                onClick={() => setRecallFormReferralId(r.id)}
-                                                            >
-                                                                Recall Referral
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* Snapshot + Timeline (lazy) */}
-                                                {!r.is_draft && (
-                                                    <ReferralSnapshotView referralId={r.id} />
-                                                )}
-                                                <ReferralEventTimeline referralId={r.id} />
-
-                                                {/* Message thread */}
-                                                {!r.is_draft && !r.is_external && (
-                                                    <div style={{ marginTop: '0.5rem' }}>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-ghost btn-sm"
-                                                            style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}
-                                                            onClick={() => setOpenThreadReferralId(openThreadReferralId === r.id ? null : r.id)}
-                                                        >
-                                                            {openThreadReferralId === r.id ? '▾ Hide Messages' : '▸ Messages'}
-                                                        </button>
-                                                        {openThreadReferralId === r.id && profile?.id !== undefined && (
-                                                            <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.5rem' }}>
-                                                                <ReferralMessageThread referralId={r.id} currentDoctorId={profile.id} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                <div className="entry-actions">
-                                                    {canEdit && (
-                                                        <button onClick={() => { setReferralToEdit(r); setShowReferralForm(true); }} className="edit-button action-button">Edit</button>
-                                                    )}
-                                                    {canDelete && (
-                                                        <button onClick={() => setConfirmDeleteReferralId(r.id)} className="delete-button action-button">Delete</button>
-                                                    )}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            ) : <p className="muted">No referrals recorded.</p>}
-                        </div>{/* end referrals section */}
-                    </div>
-                )}
-
-                {/* Admin Tab — Appointments + Portal */}
-                {activeTab === 'admin' && (
-                    <div className="tab-panel">
-                        {/* ── Appointments section ── */}
-                        <div className="tab-section">
-                            <div className="tab-panel-header">
-                                <h3>Appointments</h3>
-                                <button
-                                    className="btn-add-primary"
-                                    onClick={() => navigate(`/appointments?patient_id=${id}`)}
-                                >
-                                    + Book Appointment
-                                </button>
-                            </div>
-                            {appointmentsLoading ? (
-                                <TabSkeleton rows={3} />
-                            ) : patientAppointments.length === 0 ? (
-                                <p className="muted">No appointments on record for this patient.</p>
-                            ) : (
-                                <ul className="detail-list">
-                                    {patientAppointments
-                                        .slice()
-                                        .sort((a, b) => new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime())
-                                        .map(appt => (
-                                            <li key={appt.id} className="detail-list-item">
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                        <strong>{new Date(appt.appointment_date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
-                                                        {appt.appointment_type && (
-                                                            <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
-                                                                {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
-                                                            </span>
-                                                        )}
-                                                        {appt.rescheduled_from_date && (
-                                                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
-                                                                ↩ Rescheduled
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <span className={`status-badge status-${appt.status}`}>{appt.status_display || appt.status}</span>
-                                                </div>
-                                                {appt.reason_for_appointment && (
-                                                    <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
-                                                )}
-                                                {appt.cancellation_reason && (
-                                                    <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>Cancellation note:</strong> {appt.cancellation_reason}</div>
-                                                )}
-                                            </li>
-                                        ))
-                                    }
-                                </ul>
-                            )}
-                        </div>{/* end appointments section */}
-
-                    </div>
-                )}
-
                 {activeTab === 'labs' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>Labs</h3>
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <div className="view-toggle">
-                                    <button type="button" className={`view-toggle-btn${labSubTab === 'results' ? ' active' : ''}`} onClick={() => setLabSubTab('results')}>Results</button>
-                                    <button type="button" className={`view-toggle-btn${labSubTab === 'orders' ? ' active' : ''}`} onClick={() => setLabSubTab('orders')}>
-                                        Orders {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length > 0 && (
-                                            <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
-                                                {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length}
-                                            </span>
-                                        )}
-                                    </button>
-                                </div>
-                                {labSubTab === 'results' && (
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                        <div className="view-toggle">
-                                            <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>All</button>
-                                            <button type="button" className={`view-toggle-btn${showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(true)}>
-                                                Unreleased {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
-                                                    <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
-                                                        {labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        </div>
-                                        <button
-                                            className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                            disabled={!canWrite}
-                                            title={!canWrite ? 'Patient record is read-only' : undefined}
-                                            onClick={() => {
-                                                if (!canWrite) return;
-                                                setEditingLabId(null);
-                                                setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
-                                                setShowLabForm(true);
-                                            }}
-                                        >+ Add Result</button>
-                                    </div>
-                                )}
-                                {labSubTab === 'orders' && (
-                                    <button
-                                        className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
-                                        disabled={!canWrite}
-                                        title={!canWrite ? 'Patient record is read-only' : undefined}
-                                        onClick={() => { if (!canWrite) return; setShowLabOrderForm(true); }}
-                                    >+ Add Order</button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Lab Orders sub-tab */}
-                        {labSubTab === 'orders' && (
-                            <>
-                                {showLabOrderForm && (
-                                    <form onSubmit={handleLabOrderSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Test Name *</label>
-                                                <input required value={labOrderForm.test_name} onChange={e => setLabOrderForm(p => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c" />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Order Date *</label>
-                                                <input type="date" required value={labOrderForm.order_date} onChange={e => setLabOrderForm(p => ({ ...p, order_date: e.target.value }))} />
-                                            </div>
-                                        </div>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Priority</label>
-                                                <select value={labOrderForm.priority} onChange={e => setLabOrderForm(p => ({ ...p, priority: e.target.value }))}>
-                                                    <option value="routine">Routine</option>
-                                                    <option value="urgent">Urgent</option>
-                                                    <option value="stat">STAT</option>
-                                                </select>
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Notes</label>
-                                                <input value={labOrderForm.notes} onChange={e => setLabOrderForm(p => ({ ...p, notes: e.target.value }))} />
-                                            </div>
-                                        </div>
-                                        <div className="form-actions">
-                                            <button type="submit" disabled={labOrderFormLoading}>{labOrderFormLoading ? 'Saving...' : 'Save Order'}</button>
-                                            <button type="button" onClick={() => setShowLabOrderForm(false)} className="cancel-button">Cancel</button>
-                                        </div>
-                                    </form>
-                                )}
-                                {labOrdersLoading ? <TabSkeleton rows={3} /> : labOrders.length === 0 ? (
-                                    <p className="muted">No lab orders on record.</p>
-                                ) : (
-                                    <ul className="detail-list">
-                                        {labOrders.map(order => (
-                                            <li key={order.id} className="detail-list-item">
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <div>
-                                                        <strong>{order.test_name}</strong>
-                                                        <span style={{ marginLeft: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{order.order_date}</span>
-                                                        <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: order.order_status === 'resulted' ? 'var(--success-bg)' : order.order_status === 'cancelled' ? 'var(--error-bg)' : 'var(--warning-bg)' }}>{order.order_status_display || order.order_status}</span>
-                                                        {order.priority !== 'routine' && <span style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}>{order.priority_display || order.priority}</span>}
-                                                    </div>
-                                                    {order.order_status !== 'cancelled' && order.order_status !== 'resulted' && canWrite && (
-                                                        <button className="btn-secondary btn-sm" onClick={() => handleCancelLabOrder(order.id)}>Cancel</button>
-                                                    )}
-                                                </div>
-                                                {order.notes && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{order.notes}</p>}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </>
-                        )}
-
-                        {/* Lab Results sub-tab */}
-                        {labSubTab === 'results' && (<>
-                        {showLabForm && (
-                            <form onSubmit={handleLabSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Test Name *</label>
-                                        <input required value={labForm.test_name} onChange={e => setLabForm(p => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c, TSH" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Date *</label>
-                                        <input type="date" required value={labForm.test_date} onChange={e => setLabForm(p => ({ ...p, test_date: e.target.value }))} />
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Result Value</label>
-                                        <input value={labForm.result_value} onChange={e => setLabForm(p => ({ ...p, result_value: e.target.value }))} placeholder="e.g. 5.4" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Unit</label>
-                                        <input value={labForm.unit} onChange={e => setLabForm(p => ({ ...p, unit: e.target.value }))} placeholder="e.g. mmol/L, g/dL" />
-                                    </div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Reference Range</label>
-                                        <input value={labForm.reference_range} onChange={e => setLabForm(p => ({ ...p, reference_range: e.target.value }))} placeholder="e.g. 3.5–5.5" />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Status</label>
-                                        <select value={labForm.status} onChange={e => setLabForm(p => ({ ...p, status: e.target.value }))}>
-                                            <option value="pending">Pending</option>
-                                            <option value="normal">Normal</option>
-                                            <option value="abnormal">Abnormal</option>
-                                            <option value="critical">Critical</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Notes</label>
-                                    <textarea rows={2} value={labForm.notes} onChange={e => setLabForm(p => ({ ...p, notes: e.target.value }))} />
-                                </div>
-                                <div className="form-actions">
-                                    <button type="submit" disabled={labFormLoading}>{labFormLoading ? 'Saving...' : (editingLabId ? 'Update' : 'Save')}</button>
-                                    <button type="button" onClick={() => setShowLabForm(false)} className="cancel-button">Cancel</button>
-                                </div>
-                            </form>
-                        )}
-                        {labsLoading ? (
-                            <TabSkeleton rows={3} />
-                        ) : (() => {
-                            const filteredLabs = showUnreleasedOnly
-                                ? labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient)
-                                : labResults;
-                            if (filteredLabs.length === 0) {
-                                return <p className="muted">{showUnreleasedOnly ? 'No unreleased lab results.' : 'No lab results recorded.'}</p>;
-                            }
-                            return (
-                                <>
-                                    {/* Pending review section — pinned at top (only in All view) */}
-                                    {!showUnreleasedOnly && (() => {
-                                        const pending = filteredLabs.filter(l => l.submitted_by_patient && l.review_status === 'pending_review');
-                                        if (!pending.length) return null;
-                                        return (
-                                            <div className="pending-review-section">
-                                                <div className="pending-review-header">⏳ Needs Review ({pending.length})</div>
-                                                <ul className="detail-list" style={{ margin: 0 }}>
-                                                    {pending.map(lab => renderLabRow(lab))}
-                                                </ul>
-                                            </div>
-                                        );
-                                    })()}
-                                    {/* Rest of labs */}
-                                    <ul className="detail-list">
-                                        {filteredLabs
-                                            .filter(l => showUnreleasedOnly || !(l.submitted_by_patient && l.review_status === 'pending_review'))
-                                            .map(lab => renderLabRow(lab))}
-                                    </ul>
-                                </>
-                            );
-                        })()}
-                        </>)}
-                    </div>
+                    <LabsTab
+                        id={id!}
+                        labResults={labResults}
+                        labsLoading={labsLoading}
+                        labOrders={labOrders}
+                        labOrdersLoading={labOrdersLoading}
+                        labSubTab={labSubTab}
+                        setLabSubTab={setLabSubTab}
+                        showUnreleasedOnly={showUnreleasedOnly}
+                        setShowUnreleasedOnly={setShowUnreleasedOnly}
+                        showLabForm={showLabForm}
+                        setShowLabForm={setShowLabForm}
+                        editingLabId={editingLabId}
+                        setEditingLabId={setEditingLabId}
+                        labForm={labForm}
+                        setLabForm={setLabForm}
+                        labFormLoading={labFormLoading}
+                        handleLabSubmit={handleLabSubmit}
+                        showLabOrderForm={showLabOrderForm}
+                        setShowLabOrderForm={setShowLabOrderForm}
+                        labOrderForm={labOrderForm}
+                        setLabOrderForm={setLabOrderForm}
+                        labOrderFormLoading={labOrderFormLoading}
+                        handleLabOrderSubmit={handleLabOrderSubmit}
+                        handleCancelLabOrder={handleCancelLabOrder}
+                        canWrite={canWrite}
+                        setConfirmDeleteLabId={setConfirmDeleteLabId}
+                        setReviewLabId={setReviewLabId}
+                        setReviewAction={setReviewAction}
+                        setReviewRejectionReason={setReviewRejectionReason}
+                        setShareLabId={setShareLabId}
+                        setShareLabNote={setShareLabNote}
+                        setPreviewLabId={setPreviewLabId}
+                    />
                 )}
-
-                {/* Medications Tab */}
                 {activeTab === 'medications' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header">
-                            <h3>{showAllMeds ? 'All Medications' : 'Active Medications'}</h3>
-                            <div className="view-toggle">
-                                <button type="button" className={`view-toggle-btn${!showAllMeds ? ' active' : ''}`} onClick={() => setShowAllMeds(false)}>Active</button>
-                                <button type="button" className={`view-toggle-btn${showAllMeds ? ' active' : ''}`} onClick={() => setShowAllMeds(true)}>All</button>
-                            </div>
-                        </div>
-                        {medsLoading ? (
-                            <TabSkeleton rows={3} />
-                        ) : displayedMeds.length === 0 ? (
-                            <p className="muted">{showAllMeds ? 'No medications on record.' : 'No active medications on record.'}</p>
-                        ) : (
-                            <ul className="detail-list">
-                                {displayedMeds.map(rx => (
-                                    <li key={rx.id} className="detail-list-item" style={{ opacity: rx.is_active ? 1 : 0.55 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                            <strong>{rx.medication_name}</strong>
-                                            {rx.is_active ? (
-                                                <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success)' }}>
-                                                    Active
-                                                </span>
-                                            ) : (
-                                                <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
-                                                    Inactive
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="info-item"><strong>Dosage:</strong> {rx.dosage}</div>
-                                        <div className="info-item"><strong>Frequency:</strong> {rx.frequency_display || rx.frequency}</div>
-                                        {rx.duration_days && <div className="info-item"><strong>Duration:</strong> {rx.duration_days} days</div>}
-                                        {rx.instructions && <div className="info-item"><strong>Instructions:</strong> {rx.instructions}</div>}
-                                        <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                            Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
-                                        </div>
-                                        <div className="entry-actions">
-                                            {rx.is_active ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleToggleVisibleToPatient('prescriptions', rx.id, rx.visible_to_patient ?? true)}
-                                                        className="action-button"
-                                                        style={{ color: rx.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
-                                                    >
-                                                        {rx.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleMarkPrescriptionInactive(rx.id)}
-                                                        className="action-button"
-                                                        style={{ color: 'var(--text-muted)' }}
-                                                    >
-                                                        Mark Inactive
-                                                    </button>
-                                                    {rx.consultation && (
-                                                        <button
-                                                            onClick={() => navigateToConsultation(rx.consultation!)}
-                                                            className="action-button"
-                                                            style={{ color: 'var(--accent)' }}
-                                                        >
-                                                            View Consultation →
-                                                        </button>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleMarkPrescriptionActive(rx.id)}
-                                                        className="action-button"
-                                                        style={{ color: 'var(--color-success-dark)' }}
-                                                    >
-                                                        Mark Active
-                                                    </button>
-                                                    {rx.consultation && (
-                                                        <button
-                                                            onClick={() => navigateToConsultation(rx.consultation!)}
-                                                            className="action-button"
-                                                            style={{ color: 'var(--accent)' }}
-                                                        >
-                                                            View Consultation →
-                                                        </button>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
+                    <MedicationsTab
+                        id={id!}
+                        medications={medications}
+                        allMedications={allMedications}
+                        medsLoading={medsLoading}
+                        displayedMeds={displayedMeds}
+                        showAllMeds={showAllMeds}
+                        setShowAllMeds={setShowAllMeds}
+                        handleToggleVisibleToPatient={handleToggleVisibleToPatient}
+                        handleMarkPrescriptionInactive={handleMarkPrescriptionInactive}
+                        handleMarkPrescriptionActive={handleMarkPrescriptionActive}
+                        navigateToConsultation={navigateToConsultation}
+                    />
                 )}
-
-                {/* Portal section — admin tab, second panel */}
-                {activeTab === 'admin' && (
-                    <div className="tab-panel" style={{ paddingTop: 0 }}>
-                    <div className="tab-section tab-section--divider" style={{ display: 'grid', gap: '1.25rem' }}>
-                        <div className="tab-panel-header"><h3>Patient Portal</h3></div>
-                        {portalLoading ? (
-                            <TabSkeleton rows={4} />
-                        ) : (
-                            <>
-                                {/* ── Portal Status Card ── */}
-                                <div className="section-card">
-                                    <div className="section-card-header">
-                                        <span className="section-card-title">Portal access</span>
-                                        {portalStatus && (
-                                            <span className={`portal-status-badge ${
-                                                portalStatus.claim_status === 'claimed' ? 'portal-status-badge--active'
-                                                : portalStatus.claim_status === 'invited' ? 'portal-status-badge--invited'
-                                                : portalStatus.portal_enabled ? 'portal-status-badge--pending'
-                                                : 'portal-status-badge--inactive'
-                                            }`}>
-                                                {portalStatus.claim_status === 'claimed' ? '● Active'
-                                                    : portalStatus.claim_status === 'invited' ? '⏳ Invited — awaiting claim'
-                                                    : portalStatus.portal_enabled ? '⏳ Enabled — not yet claimed'
-                                                    : '○ Not enabled'}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="section-card-body">
-                                        {portalStatus ? (
-                                            <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                                {portalStatus.primary_contact_email && (
-                                                    <div className="info-item"><strong>Portal email:</strong> {portalStatus.primary_contact_email}</div>
-                                                )}
-                                                {portalStatus.invited_at && (
-                                                    <div className="info-item"><strong>Invited:</strong> {new Date(portalStatus.invited_at).toLocaleDateString()}</div>
-                                                )}
-                                                {portalStatus.claimed_at && (
-                                                    <div className="info-item"><strong>Claimed:</strong> {new Date(portalStatus.claimed_at).toLocaleDateString()}</div>
-                                                )}
-
-                                                {/* Invite form — only show if not yet claimed */}
-                                                {portalStatus.claim_status !== 'claimed' && (
-                                                    <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                                                        <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
-                                                            <label htmlFor="portalInviteEmail" style={{ fontSize: '0.8rem' }}>
-                                                                {portalStatus.claim_status === 'invited' ? 'Re-send invitation to' : 'Send portal invitation to'}
-                                                            </label>
-                                                            <input
-                                                                id="portalInviteEmail"
-                                                                type="email"
-                                                                value={portalInviteEmail || portalStatus.primary_contact_email || patient.email || ''}
-                                                                onChange={e => setPortalInviteEmail(e.target.value)}
-                                                                placeholder="patient@example.com"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-primary btn-sm"
-                                                            onClick={handlePortalInvite}
-                                                            disabled={portalInviteSending}
-                                                            style={{ marginBottom: '1px' }}
-                                                        >
-                                                            {portalInviteSending ? 'Sending…'
-                                                                : portalStatus.claim_status === 'invited' ? 'Resend invite'
-                                                                : 'Send invite'}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                                                <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
-                                                    <label htmlFor="portalInviteEmailNew" style={{ fontSize: '0.8rem' }}>Send portal invitation</label>
-                                                    <input
-                                                        id="portalInviteEmailNew"
-                                                        type="email"
-                                                        value={portalInviteEmail || patient.email || ''}
-                                                        onChange={e => setPortalInviteEmail(e.target.value)}
-                                                        placeholder={patient.email || 'patient@example.com'}
-                                                    />
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-primary btn-sm"
-                                                    onClick={handlePortalInvite}
-                                                    disabled={portalInviteSending}
-                                                    style={{ marginBottom: '1px' }}
-                                                >
-                                                    {portalInviteSending ? 'Sending…' : 'Send invite'}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* ── Pending appointment requests ── */}
-                                <div className="section-card">
-                                    <div className="section-card-header">
-                                        <span className="section-card-title">
-                                            Appointment requests
-                                            {pendingRequests.length > 0 && (
-                                                <span className="tab-count" style={{ marginLeft: '0.5rem' }}>{pendingRequests.length}</span>
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="section-card-body">
-                                        {pendingRequestsLoading ? (
-                                            <TabSkeleton rows={2} />
-                                        ) : pendingRequests.length === 0 ? (
-                                            <p className="muted">No pending appointment requests from this patient.</p>
-                                        ) : (
-                                            <div style={{ display: 'grid', gap: '0.875rem' }}>
-                                                {pendingRequests.map(req => (
-                                                    <div key={req.id} style={{ padding: '0.875rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', display: 'grid', gap: '0.5rem' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                                                            <div>
-                                                                <div style={{ fontWeight: 700 }}>{new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-                                                                {req.appointment_type && (
-                                                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                                                                        {req.appointment_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
-                                                                    </div>
-                                                                )}
-                                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason}</div>
-                                                                {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Note: {req.notes}</div>}
-                                                            </div>
-                                                            <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-success btn-sm"
-                                                                    onClick={() => handleApproveRequest(req.id)}
-                                                                    disabled={requestActionLoading}
-                                                                >
-                                                                    Approve
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-danger-outline btn-sm"
-                                                                    onClick={() => { setRejectRequestId(req.id); setRejectReason(''); }}
-                                                                    disabled={requestActionLoading}
-                                                                >
-                                                                    Decline
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
-                                                                Instructions for patient (optional)
-                                                            </label>
-                                                            <input
-                                                                type="text"
-                                                                className="input-field"
-                                                                style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
-                                                                placeholder="e.g. Please fast for 2 hours before the visit"
-                                                                value={approveInstructions[req.id] ?? ''}
-                                                                onChange={e => setApproveInstructions(prev => ({ ...prev, [req.id]: e.target.value }))}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* ── Sharing settings ── */}
-                                {portalStatus?.claim_status === 'claimed' && (
-                                    <div className="section-card">
-                                        <div className="section-card-header">
-                                            <span className="section-card-title">Sharing settings</span>
-                                            {portalSettingsSaving && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Saving…</span>}
-                                        </div>
-                                        <div className="section-card-body" style={{ display: 'grid', gap: '0.5rem' }}>
-                                            {([
-                                                ['share_consultations_by_default', 'Share visit summaries by default'],
-                                                ['share_labs_by_default', 'Share lab results by default'],
-                                                ['share_prescriptions_by_default', 'Share medications by default'],
-                                                ['share_conditions_by_default', 'Share conditions by default'],
-                                                ['share_allergies_by_default', 'Share allergies by default'],
-                                            ] as [string, string][]).map(([field, label]) => {
-                                                const val = (portalStatus as Record<string, unknown>)[field] as boolean | undefined;
-                                                return (
-                                                    <div key={field} className="portal-toggle-row">
-                                                        <div>
-                                                            <div className="portal-toggle-label">{label}</div>
-                                                        </div>
-                                                        <button
-                                                            type="button"
-                                                            className={`btn btn-sm ${val ? 'btn-primary' : 'btn-secondary'}`}
-                                                            onClick={() => handlePortalSettingToggle(field, !!val)}
-                                                            disabled={portalSettingsSaving}
-                                                        >
-                                                            {val ? 'On' : 'Off'}
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                            <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
-                                                {sharingPreview === null ? (
-                                                    <button type="button" className="btn btn-sm btn-secondary" onClick={checkSharingDefaults}>
-                                                        Check existing hidden records
-                                                    </button>
-                                                ) : sharingPreview.total_hidden === 0 ? (
-                                                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                                                        All existing records already match your sharing defaults.
-                                                    </span>
-                                                ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                                                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                                                            <strong>{sharingPreview.total_hidden}</strong> existing record(s) are hidden but would be shared under current defaults.
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            className="btn btn-sm btn-primary"
-                                                            onClick={applyAllSharingDefaults}
-                                                            disabled={applyingDefaults}
-                                                        >
-                                                            {applyingDefaults ? 'Applying…' : 'Apply to existing records'}
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* ── Reject request dialog ── */}
-                                <Dialog
-                                    open={rejectRequestId !== null}
-                                    tone="danger"
-                                    title="Decline appointment request"
-                                    message={
-                                        <div>
-                                            <p style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                                                The patient will be notified. Optionally provide a reason.
-                                            </p>
-                                            <textarea
-                                                rows={3}
-                                                value={rejectReason}
-                                                onChange={e => setRejectReason(e.target.value)}
-                                                placeholder="e.g. Doctor unavailable on that date — please request another time."
-                                                style={{ width: '100%', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.875rem' }}
-                                            />
-                                        </div>
-                                    }
-                                    confirmLabel="Decline request"
-                                    cancelLabel="Keep pending"
-                                    onConfirm={() => { if (rejectRequestId) handleRejectRequest(rejectRequestId, rejectReason); }}
-                                    onClose={() => { setRejectRequestId(null); setRejectReason(''); }}
-                                />
-                            </>
-                        )}
-                    </div>
-                    </div>
+                {activeTab === 'history' && (
+                    <HistoryTab
+                        patient={patient}
+                        id={id!}
+                        canWrite={canWrite}
+                        profile={profile}
+                        proceduresData={proceduresData}
+                        proceduresLoading={proceduresLoading}
+                        referralsData={referralsData}
+                        referralsLoading={referralsLoading}
+                        showConditionForm={showConditionForm}
+                        setShowConditionForm={setShowConditionForm}
+                        showAllergyForm={showAllergyForm}
+                        setShowAllergyForm={setShowAllergyForm}
+                        conditionForm={conditionForm}
+                        setConditionForm={setConditionForm}
+                        editingConditionId={editingConditionId}
+                        setEditingConditionId={setEditingConditionId}
+                        allergyForm={allergyForm}
+                        setAllergyForm={setAllergyForm}
+                        allergenSuggestions={allergenSuggestions}
+                        setAllergenSuggestions={setAllergenSuggestions}
+                        showAllergenSuggestions={showAllergenSuggestions}
+                        setShowAllergenSuggestions={setShowAllergenSuggestions}
+                        formLoading={formLoading}
+                        handleConditionSubmit={handleConditionSubmit}
+                        handleAllergySubmit={handleAllergySubmit}
+                        handleToggleAllergy={handleToggleAllergy}
+                        handleToggleVisibleToPatient={handleToggleVisibleToPatient}
+                        setConfirmDeleteConditionId={setConfirmDeleteConditionId}
+                        setConfirmDeleteAllergyId={setConfirmDeleteAllergyId}
+                        setConfirmDeleteProcedureId={setConfirmDeleteProcedureId}
+                        setConfirmDeleteReferralId={setConfirmDeleteReferralId}
+                        setProcedureToEdit={setProcedureToEdit}
+                        setShowProcedureForm={setShowProcedureForm}
+                        setReferralToEdit={setReferralToEdit}
+                        setShowReferralForm={setShowReferralForm}
+                        downloadFile={downloadFile}
+                        resultFormReferralId={resultFormReferralId}
+                        setResultFormReferralId={setResultFormReferralId}
+                        resultText={resultText}
+                        setResultText={setResultText}
+                        resultSubmitting={resultSubmitting}
+                        setResultSubmitting={setResultSubmitting}
+                        cancelFormReferralId={cancelFormReferralId}
+                        setCancelFormReferralId={setCancelFormReferralId}
+                        cancelReason={cancelReason}
+                        setCancelReason={setCancelReason}
+                        cancelSubmitting={cancelSubmitting}
+                        setCancelSubmitting={setCancelSubmitting}
+                        recallFormReferralId={recallFormReferralId}
+                        setRecallFormReferralId={setRecallFormReferralId}
+                        recallReason={recallReason}
+                        setRecallReason={setRecallReason}
+                        recallSubmitting={recallSubmitting}
+                        setRecallSubmitting={setRecallSubmitting}
+                        openThreadReferralId={openThreadReferralId}
+                        setOpenThreadReferralId={setOpenThreadReferralId}
+                    />
                 )}
-
-                {/* Work Queue tab (Wave 8) */}
-                {activeTab === 'workqueue' && (
-                    <div className="tab-panel">
-                        <div className="tab-panel-header"><h3>Work Queue</h3></div>
-
-                        {/* Open Clinical Alerts */}
-                        <div className="section-card" style={{ marginBottom: 'var(--space-4)' }}>
-                            <div className="section-card-header"><span className="section-card-title">Open Alerts</span></div>
-                            <div className="section-card-body">
-                                {alertsLoading ? <TabSkeleton rows={2} /> : clinicalAlerts.length === 0 ? (
-                                    <p className="muted">No open alerts.</p>
-                                ) : (
-                                    <ul className="detail-list">
-                                        {clinicalAlerts.map((alert: any) => (
-                                            <li key={alert.id} className="detail-list-item">
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                    <div>
-                                                        <strong>{alert.title}</strong>
-                                                        <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: alert.severity === 'critical' ? 'var(--error-bg)' : 'var(--warning-bg)' }}>{alert.severity}</span>
-                                                        {alert.body && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 2 }}>{alert.body}</div>}
-                                                    </div>
-                                                    <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>Acknowledge</button>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Unsigned Draft Consultations */}
-                        <div className="section-card" style={{ marginBottom: 'var(--space-4)' }}>
-                            <div className="section-card-header"><span className="section-card-title">Unsigned Drafts</span></div>
-                            <div className="section-card-body">
-                                {(() => {
-                                    const drafts = (patient.consultations || []).filter((c: any) =>
-                                        c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
-                                    );
-                                    if (!drafts.length) return <p className="muted">No unsigned drafts.</p>;
-                                    return (
-                                        <ul className="detail-list">
-                                            {drafts.map((c: any) => (
-                                                <li key={c.id} className="detail-list-item">
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                                                        <div>
-                                                            <strong>{new Date(c.consultation_date).toLocaleDateString()}</strong>
-                                                            <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg)' }}>
-                                                                {c.consultation_status}
-                                                            </span>
-                                                            {c.reason_for_consultation && <span style={{ marginLeft: 8, color: 'var(--text-muted)', fontSize: '0.85rem' }}>{c.reason_for_consultation}</span>}
-                                                        </div>
-                                                        <button className="btn-ghost-sm" onClick={() => handleTabChange('consultations')}>Open →</button>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-
-                        {/* Pending Lab Orders */}
-                        <div className="section-card">
-                            <div className="section-card-header"><span className="section-card-title">Pending Lab Orders</span></div>
-                            <div className="section-card-body">
-                                {labOrdersLoading ? <TabSkeleton rows={2} /> : (() => {
-                                    const pending = labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted');
-                                    if (!pending.length) return <p className="muted">No pending lab orders.</p>;
-                                    return (
-                                        <ul className="detail-list">
-                                            {pending.map(o => (
-                                                <li key={o.id} className="detail-list-item">
-                                                    <strong>{o.test_name}</strong>
-                                                    <span style={{ marginLeft: 8, fontSize: '0.75rem' }}>{o.order_date}</span>
-                                                    <span style={{ marginLeft: 8, fontSize: '0.75rem', padding: '2px 6px', borderRadius: '4px', background: 'var(--warning-bg)' }}>{o.order_status_display || o.order_status}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    );
-                                })()}
-                            </div>
-                        </div>
-                    </div>
+                {activeTab === 'portal' && (
+                    <PortalTab
+                        id={id!}
+                        patientEmail={patient.email || undefined}
+                        patientAppointments={patientAppointments}
+                        appointmentsLoading={appointmentsLoading}
+                        pendingRequests={pendingRequests}
+                        pendingRequestsLoading={pendingRequestsLoading}
+                        portalStatus={portalStatus}
+                        portalLoading={portalLoading}
+                        portalInviteEmail={portalInviteEmail}
+                        setPortalInviteEmail={setPortalInviteEmail}
+                        portalInviteSending={portalInviteSending}
+                        portalSettingsSaving={portalSettingsSaving}
+                        sharingPreview={sharingPreview}
+                        applyingDefaults={applyingDefaults}
+                        approveInstructions={approveInstructions}
+                        setApproveInstructions={setApproveInstructions}
+                        requestActionLoading={requestActionLoading}
+                        rejectRequestId={rejectRequestId}
+                        setRejectRequestId={setRejectRequestId}
+                        rejectReason={rejectReason}
+                        setRejectReason={setRejectReason}
+                        handlePortalInvite={handlePortalInvite}
+                        handlePortalSettingToggle={handlePortalSettingToggle}
+                        checkSharingDefaults={checkSharingDefaults}
+                        applyAllSharingDefaults={applyAllSharingDefaults}
+                        handleApproveRequest={handleApproveRequest}
+                        handleRejectRequest={handleRejectRequest}
+                    />
                 )}
             </div>
         </div>
 
-        {/* Void reason textarea — shared across void dialogs */}
+        {/* Void reason — shared across all void dialogs */}
         {(() => {
             const voidReasonInput = (
                 <div style={{ marginTop: '0.75rem' }}>
@@ -3198,7 +1405,7 @@ const PatientDetails = () => {
             );
         })()}
 
-        {/* Share consultation with patient modal */}
+        {/* Share consultation modal */}
         <Modal
             open={shareConsultationId !== null}
             onClose={() => { setShareConsultationId(null); setShareConsultationSummary(''); }}
@@ -3225,7 +1432,7 @@ const PatientDetails = () => {
             </div>
         </Modal>
 
-        {/* Release lab result to patient modal */}
+        {/* Release lab result modal */}
         <Modal
             open={shareLabId !== null}
             onClose={() => { setShareLabId(null); setShareLabNote(''); }}
@@ -3315,7 +1522,7 @@ const PatientDetails = () => {
             );
         })()}
 
-        {/* Review patient-uploaded lab document modal */}
+        {/* Review lab document modal */}
         <Modal
             open={reviewLabId !== null}
             onClose={() => { setReviewLabId(null); setReviewRejectionReason(''); }}
@@ -3366,6 +1573,7 @@ const PatientDetails = () => {
             </div>
         </Modal>
 
+        {/* Status change modal */}
         <Modal
             open={pendingStatus !== null}
             onClose={() => { setPendingStatus(null); setStatusTransitionReasonCode(''); setStatusTransitionDeathDate(''); setStatusTransitionDestination(''); }}
@@ -3440,7 +1648,7 @@ const PatientDetails = () => {
             </div>
         </Modal>
 
-        {/* ── Medication Reconciliation Modal ──────────────────────────────── */}
+        {/* Medication Reconciliation Modal */}
         <Modal
             open={reconcileRx !== null}
             onClose={() => { reconcilePreCheckedRef.current = false; setReconcileRx(null); }}
@@ -3464,11 +1672,9 @@ const PatientDetails = () => {
                             if (!reconcileRx) return;
                             setReconcileLoading(true);
                             try {
-                                // Deactivate new Rx that were unchecked
                                 const deactivateNew = reconcileRx
                                     .filter(rx => !reconcileCheckedNew.has(rx.id))
                                     .map(rx => rx.id);
-                                // Deactivate existing meds that were unchecked
                                 const deactivateCurrent = medications
                                     .filter(rx => !reconcileCheckedCurrent.has(rx.id))
                                     .map(rx => rx.id);
@@ -3501,8 +1707,6 @@ const PatientDetails = () => {
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
                         Review what this patient is currently taking. Check prescriptions to keep them active; uncheck anything that should be removed.
                     </p>
-
-                    {/* New prescriptions from this consultation — only if any were added */}
                     {reconcileRx.length > 0 ? (
                         <div>
                             <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
@@ -3534,8 +1738,6 @@ const PatientDetails = () => {
                             No prescriptions were added in this consultation.
                         </div>
                     )}
-
-                    {/* Currently active medications */}
                     <div>
                         <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                             Currently active medications
@@ -3571,7 +1773,7 @@ const PatientDetails = () => {
             )}
         </Modal>
 
-        {/* Stop Prescription Modal (Wave 7B) */}
+        {/* Stop Prescription Modal */}
         <Modal
             open={stopRxId !== null}
             onClose={() => { setStopRxId(null); setStopRxReason(''); }}
