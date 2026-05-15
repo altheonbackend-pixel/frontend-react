@@ -1172,7 +1172,6 @@ const PatientDetails = () => {
                         setExpandedConsultIds={setExpandedConsultIds}
                         patientAppointments={patientAppointments}
                         appointmentsLoading={appointmentsLoading}
-                        pendingRequests={pendingRequests}
                     />
                 )}
                 {activeTab === 'consultations' && (
@@ -1201,7 +1200,6 @@ const PatientDetails = () => {
                 )}
                 {activeTab === 'labs' && (
                     <LabsTab
-                        id={id!}
                         labResults={labResults}
                         labsLoading={labsLoading}
                         labOrders={labOrders}
@@ -1237,9 +1235,6 @@ const PatientDetails = () => {
                 )}
                 {activeTab === 'medications' && (
                     <MedicationsTab
-                        id={id!}
-                        medications={medications}
-                        allMedications={allMedications}
                         medsLoading={medsLoading}
                         displayedMeds={displayedMeds}
                         showAllMeds={showAllMeds}

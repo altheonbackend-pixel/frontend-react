@@ -2,9 +2,6 @@ import { type Prescription } from '../../../../shared/types';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
 
 interface MedicationsTabProps {
-    id: string;
-    medications: Prescription[];
-    allMedications: Prescription[];
     medsLoading: boolean;
     displayedMeds: Prescription[];
     showAllMeds: boolean;
@@ -16,9 +13,6 @@ interface MedicationsTabProps {
 }
 
 const MedicationsTab = ({
-    id,
-    medications,
-    allMedications,
     medsLoading,
     displayedMeds,
     showAllMeds,

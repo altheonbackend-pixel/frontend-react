@@ -7,7 +7,6 @@ const LAB_STATUS_COLORS_MAP: Record<string, string> = {
 };
 
 interface LabsTabProps {
-    id: string;
     labResults: LabResult[];
     labsLoading: boolean;
     labOrders: any[];
@@ -42,7 +41,6 @@ interface LabsTabProps {
 }
 
 const LabsTab = ({
-    id,
     labResults,
     labsLoading,
     labOrders,

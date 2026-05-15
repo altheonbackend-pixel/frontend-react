@@ -42,7 +42,6 @@ interface OverviewTabProps {
     setExpandedConsultIds: (v: Set<number>) => void;
     patientAppointments: PatientAppointment[];
     appointmentsLoading: boolean;
-    pendingRequests: any[];
 }
 
 const OverviewTab = ({
@@ -60,7 +59,6 @@ const OverviewTab = ({
     setExpandedConsultIds,
     patientAppointments,
     appointmentsLoading,
-    pendingRequests,
 }: OverviewTabProps) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
