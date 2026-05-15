@@ -24,7 +24,6 @@ import { type SavedRx } from '../../consultations/components/ConsultationForm';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
-import { queryKeys } from '../../../shared/queryKeys';
 
 import OverviewTab from './tabs/OverviewTab';
 import ConsultationsTab from './tabs/ConsultationsTab';
@@ -1187,7 +1186,6 @@ const PatientDetails = () => {
                         consultView={consultView}
                         setConsultView={setConsultView}
                         expandedConsultIds={expandedConsultIds}
-                        setExpandedConsultIds={setExpandedConsultIds}
                         toggleConsult={toggleConsult}
                         canWrite={canWrite}
                         profile={profile}

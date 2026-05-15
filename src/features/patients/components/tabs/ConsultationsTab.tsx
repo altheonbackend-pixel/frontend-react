@@ -5,9 +5,6 @@ import {
 } from 'recharts';
 import { type PatientWithHistory, type Consultation } from '../../../../shared/types';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
-import { toast, parseApiError } from '../../../../shared/components/ui';
-import api from '../../../../shared/services/api';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface VitalsPoint {
     id: number;
@@ -39,7 +36,6 @@ interface ConsultationsTabProps {
     consultView: 'list' | 'charts';
     setConsultView: (v: 'list' | 'charts') => void;
     expandedConsultIds: Set<number>;
-    setExpandedConsultIds: (v: Set<number>) => void;
     toggleConsult: (id: number) => void;
     canWrite: boolean;
     profile: any;
@@ -63,7 +59,6 @@ const ConsultationsTab = ({
     consultView,
     setConsultView,
     expandedConsultIds,
-    setExpandedConsultIds,
     toggleConsult,
     canWrite,
     profile,
