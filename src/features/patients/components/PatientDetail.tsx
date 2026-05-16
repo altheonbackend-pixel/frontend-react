@@ -364,8 +364,42 @@ const PatientDetails = () => {
             setShareConsultationId(null);
             setShareConsultationSummary('');
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+            fetchPatientDetails();
         } catch (err) {
             toast.error(parseApiError(err, 'Failed to share consultation.'));
+        }
+    };
+
+    const handleHideConsultation = async (consultationId: number) => {
+        try {
+            await api.post(`/consultations/${consultationId}/hide-from-patient/`, {});
+            toast.success('Consultation hidden from patient portal.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+            fetchPatientDetails();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to hide consultation.'));
+        }
+    };
+
+    const handleShowConsultation = async (consultationId: number) => {
+        try {
+            await api.post(`/consultations/${consultationId}/share-with-patient/`, {});
+            toast.success('Consultation visible to patient.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+            fetchPatientDetails();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to update visibility.'));
+        }
+    };
+
+    const handleSignConsultation = async (consultationId: number) => {
+        try {
+            await api.post(`/consultations/${consultationId}/sign/`, {});
+            toast.success('Consultation signed.');
+            queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+            fetchPatientDetails();
+        } catch (err) {
+            toast.error(parseApiError(err, 'Failed to sign consultation.'));
         }
     };
 
@@ -1196,6 +1230,9 @@ const PatientDetails = () => {
                         setConfirmDeleteConsultationId={setConfirmDeleteConsultationId}
                         setShareConsultationId={setShareConsultationId}
                         setShareConsultationSummary={setShareConsultationSummary}
+                        handleSignConsultation={handleSignConsultation}
+                        handleHideConsultation={handleHideConsultation}
+                        handleShowConsultation={handleShowConsultation}
                     />
                 )}
                 {activeTab === 'labs' && (

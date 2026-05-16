@@ -47,6 +47,9 @@ interface ConsultationsTabProps {
     setConfirmDeleteConsultationId: (id: number | null) => void;
     setShareConsultationId: (id: number | null) => void;
     setShareConsultationSummary: (s: string) => void;
+    handleSignConsultation: (id: number) => void;
+    handleHideConsultation: (id: number) => void;
+    handleShowConsultation: (id: number) => void;
 }
 
 const ConsultationsTab = ({
@@ -70,12 +73,25 @@ const ConsultationsTab = ({
     setConfirmDeleteConsultationId,
     setShareConsultationId,
     setShareConsultationSummary,
+    handleSignConsultation,
+    handleHideConsultation,
+    handleShowConsultation,
 }: ConsultationsTabProps) => {
     const navigate = useNavigate();
 
     const draftConsultations = (patient.consultations || []).filter(
         (c: any) => c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
     );
+
+    // First active (non-voided) consultation is the "latest" — only it gets follow-up actions
+    const latestActiveId = consultationsData.find(
+        c => c.record_status === 'active' || !c.record_status
+    )?.id;
+
+    const openEdit = (c: Consultation) => {
+        setConsultationToEdit(c);
+        setShowConsultationForm(true);
+    };
 
     return (
         <div className="tab-panel">
@@ -119,32 +135,76 @@ const ConsultationsTab = ({
                             {consultationsData.map(c => {
                                 const isExpanded = expandedConsultIds.has(c.id);
                                 const isOwnConsultation = c.doctor === profile?.id;
+                                const isVoided = c.record_status === 'voided' || c.record_status === 'entered_in_error';
+                                const isLatest = c.id === latestActiveId;
+                                const isDraft = c.consultation_status === 'draft' || c.consultation_status === 'in_progress' || c.consultation_status === 'amended';
+                                const isSigned = c.consultation_status === 'signed';
+
                                 return (
-                                    <li key={c.id} id={`consult-entry-${c.id}`} className="consultation-entry detail-list-item">
-                                        <button className="consult-summary-row" onClick={() => toggleConsult(c.id)} aria-expanded={isExpanded}>
-                                            <span className="consult-summary-date">{new Date(c.consultation_date).toLocaleDateString()}</span>
+                                    <li
+                                        key={c.id}
+                                        id={`consult-entry-${c.id}`}
+                                        className="consultation-entry detail-list-item"
+                                        style={isVoided ? { opacity: 0.55 } : undefined}
+                                    >
+                                        {/* ── Collapsed row ── */}
+                                        <div
+                                            className="consult-summary-row"
+                                            onClick={() => toggleConsult(c.id)}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-expanded={isExpanded}
+                                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') toggleConsult(c.id); }}
+                                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.625rem 0' }}
+                                        >
+                                            <span className="consult-summary-date">
+                                                {new Date(c.consultation_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
                                             <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
-                                            {c.consultation_status && c.consultation_status !== 'signed' && (
+                                            {c.consultation_status && c.consultation_status !== 'signed' && !isVoided && (
                                                 <span className="consult-type-badge" style={{
-                                                    background: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
-                                                    color: (c.consultation_status === 'draft' || c.consultation_status === 'in_progress') ? 'var(--color-warning-dark)' : 'var(--text-muted)',
+                                                    background: isDraft ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
+                                                    color: isDraft ? 'var(--color-warning-dark)' : 'var(--text-muted)',
                                                     border: '1px solid currentColor',
                                                 }}>
-                                                    {c.consultation_status === 'draft' ? 'Draft' : c.consultation_status === 'in_progress' ? 'In Progress' : c.consultation_status}
+                                                    {c.consultation_status === 'draft' ? 'Draft'
+                                                        : c.consultation_status === 'in_progress' ? 'In Progress'
+                                                        : c.consultation_status === 'amended' ? 'Amended'
+                                                        : c.consultation_status}
                                                 </span>
                                             )}
-                                            <span className="consult-summary-reason">{c.reason_for_consultation}</span>
+                                            {isVoided && (
+                                                <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
+                                                    Voided
+                                                </span>
+                                            )}
+                                            <span className="consult-summary-reason" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                {c.reason_for_consultation}
+                                            </span>
                                             {!isOwnConsultation && c.doctor_name && (
                                                 <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
                                                     Dr. {c.doctor_name}
                                                 </span>
                                             )}
-                                            {c.follow_up_date && <span className="follow-up-chip" style={{ flexShrink: 0 }}>↩ {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</span>}
                                             {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
-                                            <span className="consult-expand-icon">{isExpanded ? '▲' : '▼'}</span>
-                                        </button>
+                                            {/* Quick-action buttons for drafts — stop propagation so expand doesn't fire */}
+                                            {isOwnConsultation && isDraft && !isExpanded && canWrite && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-primary btn-sm"
+                                                    style={{ fontSize: '0.75rem', padding: '2px 10px', flexShrink: 0 }}
+                                                    onClick={e => { e.stopPropagation(); openEdit(c); }}
+                                                >
+                                                    Open →
+                                                </button>
+                                            )}
+                                            <span className="consult-expand-icon" style={{ marginLeft: 'auto', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
+                                        </div>
+
+                                        {/* ── Expanded body ── */}
                                         {isExpanded && (
                                             <div className="consult-expanded">
+                                                {/* Clinical details */}
                                                 <div className="consult-section">
                                                     <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
                                                     {c.symptoms?.length > 0 && (
@@ -162,8 +222,15 @@ const ConsultationsTab = ({
                                                         </div>
                                                     )}
                                                     {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
+                                                    {c.amendment_reason && (
+                                                        <div className="info-item" style={{ background: 'var(--color-warning-light)', borderRadius: 'var(--radius-sm)', padding: '0.375rem 0.5rem', marginTop: '0.5rem' }}>
+                                                            <strong style={{ color: 'var(--color-warning-dark)' }}>Amendment:</strong> {c.amendment_reason}
+                                                            {c.amended_at && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({new Date(c.amended_at).toLocaleDateString()})</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
 
+                                                {/* Vitals */}
                                                 {(c.weight || c.height || c.temperature || c.sp2 || c.bp_systolic || c.bp_diastolic) && (
                                                     <div className="consult-section">
                                                         <div className="consult-section-title">Vitals</div>
@@ -171,7 +238,7 @@ const ConsultationsTab = ({
                                                             {c.weight && <span className="vital-chip">Weight: {c.weight} kg</span>}
                                                             {c.height && <span className="vital-chip">Height: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
                                                             {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
-                                                            {c.sp2 && <span className="vital-chip">SpO2: {c.sp2}%</span>}
+                                                            {c.sp2 && <span className="vital-chip">SpO₂: {c.sp2}%</span>}
                                                             {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`} mmHg</span>}
                                                         </div>
                                                         {c.has_vital_alerts && c.vital_alert_reasons && c.vital_alert_reasons.length > 0 && (
@@ -182,6 +249,7 @@ const ConsultationsTab = ({
                                                     </div>
                                                 )}
 
+                                                {/* Prescriptions */}
                                                 {c.prescriptions && c.prescriptions.length > 0 && (
                                                     <div className="consult-section">
                                                         <div className="consult-section-title">Medications Prescribed</div>
@@ -205,6 +273,7 @@ const ConsultationsTab = ({
                                                     </div>
                                                 )}
 
+                                                {/* Lab results */}
                                                 {c.lab_results && c.lab_results.length > 0 && (
                                                     <div className="consult-section">
                                                         <div className="consult-section-title">Lab Tests Ordered</div>
@@ -231,6 +300,7 @@ const ConsultationsTab = ({
                                                     </div>
                                                 )}
 
+                                                {/* Procedures */}
                                                 {c.procedures && c.procedures.length > 0 && (
                                                     <div className="consult-section">
                                                         <div className="consult-section-title">Procedures Performed</div>
@@ -249,53 +319,159 @@ const ConsultationsTab = ({
                                                     </div>
                                                 )}
 
-                                                {(c.follow_up_date || c.patient_summary || c.patient_instructions) && (
+                                                {/* Patient summary / instructions */}
+                                                {(c.patient_summary || c.patient_instructions) && (
                                                     <div className="consult-section">
-                                                        {c.follow_up_date && (
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '6px' }}>
-                                                                <div className="follow-up-chip" style={{ display: 'inline-flex' }}>
-                                                                    Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    className="btn btn-ghost btn-sm"
-                                                                    style={{ fontSize: '0.78rem', padding: '2px 8px' }}
-                                                                    onClick={() => navigate(`/appointments?patient_id=${id}`)}
-                                                                >
-                                                                    Book appointment →
-                                                                </button>
-                                                            </div>
-                                                        )}
                                                         {c.patient_summary && <div className="info-item"><strong>Patient Summary:</strong> {c.patient_summary}</div>}
                                                         {c.patient_instructions && <div className="info-item"><strong>Instructions:</strong> {c.patient_instructions}</div>}
                                                     </div>
                                                 )}
 
-                                                <div className="entry-actions">
-                                                    {isOwnConsultation && (<>
+                                                {/* Follow-up section */}
+                                                {c.follow_up_date && (
+                                                    <div className="consult-section">
+                                                        <div className="consult-section-title">Follow-up</div>
+                                                        {isLatest ? (
+                                                            /* Latest consultation — show actionable follow-up controls */
+                                                            c.follow_up_dismissed ? (
+                                                                <p className="muted" style={{ margin: 0, fontSize: '0.875rem' }}>
+                                                                    Follow-up dismissed
+                                                                    {c.follow_up_dismissal_reason ? ` — ${c.follow_up_dismissal_reason}` : ''}
+                                                                </p>
+                                                            ) : c.follow_up_appointment_info ? (
+                                                                /* Appointment already booked */
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                    <span className="follow-up-chip">
+                                                                        Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-ghost btn-sm"
+                                                                        style={{ fontSize: '0.78rem', padding: '2px 8px' }}
+                                                                        onClick={() => navigate(`/appointments?patient_id=${id}`)}
+                                                                    >
+                                                                        Appt booked ({c.follow_up_appointment_info.status}) →
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                /* No appointment yet — show "Book follow-up" */
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                    <span className="follow-up-chip">
+                                                                        Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="btn btn-ghost btn-sm"
+                                                                        style={{ fontSize: '0.78rem', padding: '2px 8px' }}
+                                                                        onClick={() => navigate(`/appointments?patient_id=${id}`)}
+                                                                    >
+                                                                        Book follow-up →
+                                                                    </button>
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            /* Older consultation — read-only chip only */
+                                                            <span className="follow-up-chip" style={{ display: 'inline-flex' }}>
+                                                                Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* ── Action bar ── */}
+                                                {isOwnConsultation && !isVoided && (
+                                                    <div className="entry-actions" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                        {isDraft && (<>
+                                                            <button
+                                                                type="button"
+                                                                className="edit-button action-button"
+                                                                onClick={() => openEdit(c)}
+                                                            >Edit</button>
+                                                            <button
+                                                                type="button"
+                                                                className="btn btn-primary btn-sm"
+                                                                onClick={() => handleSignConsultation(c.id)}
+                                                            >Sign</button>
+                                                        </>)}
+                                                        {isSigned && (<>
+                                                            <button
+                                                                type="button"
+                                                                className="edit-button action-button"
+                                                                onClick={() => setViewingConsultation(c)}
+                                                            >View</button>
+                                                            <button
+                                                                type="button"
+                                                                className="action-button"
+                                                                onClick={() => setViewingConsultation(c)}
+                                                            >Amend</button>
+                                                        </>)}
                                                         <button
-                                                            onClick={() => {
-                                                                if (c.consultation_status === 'signed') {
-                                                                    setViewingConsultation(c);
-                                                                } else {
-                                                                    setConsultationToEdit(c);
-                                                                    setShowConsultationForm(true);
-                                                                }
-                                                            }}
-                                                            className="edit-button action-button"
-                                                        >
-                                                            {c.consultation_status === 'signed' ? 'View' : 'Edit'}
-                                                        </button>
-                                                        <button onClick={() => setConfirmDeleteConsultationId(c.id)} className="delete-button action-button">Delete</button>
-                                                        <button
-                                                            onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                            type="button"
                                                             className="action-button"
-                                                            style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
-                                                        >
-                                                            {c.visible_to_patient ? '✓ Shared' : 'Share with patient'}
-                                                        </button>
-                                                    </>)}
-                                                </div>
+                                                            style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}
+                                                            onClick={() => setConfirmDeleteConsultationId(c.id)}
+                                                        >Void</button>
+                                                    </div>
+                                                )}
+                                                {isOwnConsultation && isVoided && (
+                                                    <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                        Voided{c.void_reason ? ` — ${c.void_reason}` : ''}
+                                                    </div>
+                                                )}
+
+                                                {/* ── Sharing status (signed only) ── */}
+                                                {isOwnConsultation && isSigned && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.625rem', paddingTop: '0.625rem', borderTop: '1px solid var(--border-subtle)' }}>
+                                                        {c.visible_to_patient ? (
+                                                            c.share_with_patient_at ? (<>
+                                                                <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>
+                                                                    ✓ Shared with patient
+                                                                </span>
+                                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                    {new Date(c.share_with_patient_at).toLocaleDateString()}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button"
+                                                                    style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
+                                                                    onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                                >Edit summary</button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button"
+                                                                    style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
+                                                                    onClick={() => handleHideConsultation(c.id)}
+                                                                >Hide</button>
+                                                            </>) : (<>
+                                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                                    Visible to patient
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button"
+                                                                    style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
+                                                                    onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
+                                                                >Add patient summary</button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="action-button"
+                                                                    style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
+                                                                    onClick={() => handleHideConsultation(c.id)}
+                                                                >Hide from patient</button>
+                                                            </>)
+                                                        ) : (<>
+                                                            <span style={{ fontSize: '0.8rem', color: 'var(--warning)', fontWeight: 600 }}>
+                                                                Hidden from patient
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="action-button"
+                                                                style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
+                                                                onClick={() => handleShowConsultation(c.id)}
+                                                            >Make visible</button>
+                                                        </>)}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </li>

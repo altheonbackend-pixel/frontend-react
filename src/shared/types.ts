@@ -158,8 +158,10 @@ export interface Consultation {
     has_vital_alerts?: boolean;
     vital_alert_reasons?: string[];
     visible_to_patient: boolean;
+    share_with_patient_at?: string | null;
     patient_summary: string | null;
     patient_instructions: string | null;
+    follow_up_appointment_info?: { id: number; status: string; appointment_date: string } | null;
     consultation_status?: 'draft' | 'in_progress' | 'signed' | 'amended' | 'voided' | 'entered_in_error';
     signed_at?: string | null;
     signed_by?: number | null;
