@@ -188,6 +188,8 @@ function App() {
                                 <Route path="/patient/account"       element={<ErrorBoundary resetKey={location.pathname}><PatientAccount /></ErrorBoundary>} />
                                 <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
                                 <Route path="/patient/doctor/:id"    element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
+                                {/* Phase 5: patient-side telehealth video room (reuses the same component as the doctor side) */}
+                                <Route path="/patient/telehealth/:appointmentId" element={<ErrorBoundary resetKey={location.pathname}><TelehealthRoom /></ErrorBoundary>} />
                                 {/* Legacy route redirects — keep for backward compatibility */}
                                 <Route path="/patient/visits"       element={<Navigate to="/patient/health?tab=visits"       replace />} />
                                 <Route path="/patient/medications"  element={<Navigate to="/patient/health?tab=medications"  replace />} />

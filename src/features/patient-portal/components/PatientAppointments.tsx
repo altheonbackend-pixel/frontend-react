@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
@@ -8,6 +8,7 @@ import { Modal, toast } from '../../../shared/components/ui';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { TelehealthJoinButton } from '../../appointments/components/TelehealthJoinButton';
 import { parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
@@ -18,6 +19,7 @@ const PAST_STATUSES = ['completed', 'cancelled', 'rejected', 'no_show', 'resched
 
 export default function PatientAppointments() {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     usePageTitle(t('patient_portal.appointments.document_title'));
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
@@ -307,8 +309,17 @@ export default function PatientAppointments() {
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>{t('patient_portal.appointments.visit_type')}</div>
-                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                                            {item.appointment_type === 'telemedicine' ? t('patient_portal.appointments.type.telemedicine') : t('patient_portal.appointments.type.in_person')}
+                                        <div style={{ color: 'var(--text-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span>
+                                                {item.appointment_type === 'telemedicine' ? t('patient_portal.appointments.type.telemedicine') : t('patient_portal.appointments.type.in_person')}
+                                            </span>
+                                            {item.appointment_type === 'telemedicine'
+                                                && ['scheduled', 'confirmed', 'in_progress'].includes(item.status) && (
+                                                <TelehealthJoinButton
+                                                    appointmentId={item.id}
+                                                    onJoin={() => navigate(`/patient/telehealth/${item.id}`)}
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                     <div>

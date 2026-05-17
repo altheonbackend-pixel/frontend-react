@@ -16,6 +16,7 @@ import { Dialog, Modal, toast, parseApiError } from '../../../shared/components/
 import { queryKeys } from '../../../shared/queryKeys';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import { TelehealthJoinButton } from './TelehealthJoinButton';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import '../styles/Appointments.css';
@@ -548,6 +549,13 @@ const Appointments = () => {
                                                     ? <span style={{ fontSize: '0.72rem', background: 'var(--color-info-light)', color: 'var(--color-info-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
                                                     : <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
                                                 }
+                                                {appt.appointment_type === 'telemedicine'
+                                                    && ['scheduled', 'confirmed', 'in_progress'].includes(appt.status) && (
+                                                    <TelehealthJoinButton
+                                                        appointmentId={appt.id}
+                                                        onJoin={() => navigate(`/telehealth/${appt.id}`)}
+                                                    />
+                                                )}
                                                 {appt.is_follow_up && (
                                                     <span
                                                         style={{ fontSize: '0.72rem', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
