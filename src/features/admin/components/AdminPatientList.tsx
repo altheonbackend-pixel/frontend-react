@@ -4,6 +4,7 @@ import api from '../../../shared/services/api';
 import { Dialog, toast, parseApiError } from '../../../shared/components/ui';
 import PageLoader from '../../../shared/components/PageLoader';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import '../styles/AdminDoctorList.css';
 
 interface DeletedPatient {
@@ -23,6 +24,7 @@ interface EraseTarget {
 const AdminPatientList = () => {
     usePageTitle('Deleted Patients — Admin');
     const queryClient = useQueryClient();
+    const { formatDate } = useFormatDateTime();
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [eraseTarget, setEraseTarget] = useState<EraseTarget | null>(null);
@@ -148,7 +150,7 @@ const AdminPatientList = () => {
                                     </td>
                                     <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                                         {patient.deleted_at
-                                            ? new Date(patient.deleted_at).toLocaleDateString()
+                                            ? formatDate(patient.deleted_at)
                                             : '—'}
                                     </td>
                                     <td>

@@ -3,6 +3,7 @@ import { TabSkeleton } from '../../../../shared/components/SectionCard';
 import { toast, parseApiError } from '../../../../shared/components/ui';
 import api from '../../../../shared/services/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 import ReferralMessageThread from '../../../referrals/components/ReferralMessageThread';
 import ReferralSnapshotView from '../../../referrals/components/ReferralSnapshotView';
 import ReferralEventTimeline from '../../../referrals/components/ReferralEventTimeline';
@@ -149,6 +150,7 @@ const HistoryTab = ({
     setOpenThreadReferralId,
 }: HistoryTabProps) => {
     const queryClient = useQueryClient();
+    const { formatDate } = useFormatDateTime();
     const activeAllergies = patient.allergy_records?.filter(a => a.is_active) || [];
 
     return (
@@ -264,7 +266,7 @@ const HistoryTab = ({
                                                 {c.status_display || c.status}
                                             </span>
                                         </div>
-                                        {c.onset_date && <div className="condition-meta">Since: {new Date(c.onset_date).toLocaleDateString()}</div>}
+                                        {c.onset_date && <div className="condition-meta">Since: {formatDate(c.onset_date)}</div>}
                                         {c.notes && <p className="condition-notes">{c.notes}</p>}
                                         <div className="entry-actions">
                                             <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '', visible_to_patient: c.visible_to_patient ?? false }); }} className="action-button">Edit</button>
@@ -425,7 +427,7 @@ const HistoryTab = ({
                     <ul className="detail-list">
                         {proceduresData.map(p => (
                             <li key={p.id} className="procedure-entry detail-list-item">
-                                <h4>{p.procedure_type} — {new Date(p.procedure_date).toLocaleDateString()}</h4>
+                                <h4>{p.procedure_type} — {formatDate(p.procedure_date)}</h4>
                                 {p.result && <div className="info-item"><strong>Result:</strong> {p.result}</div>}
                                 {p.attachments && (
                                     <button onClick={() => downloadFile(p.attachments, `procedure_${p.id}`)} className="download-link">Download attachment</button>
@@ -486,7 +488,7 @@ const HistoryTab = ({
 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.25rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                            <h4 style={{ margin: 0 }}>{new Date(r.date_of_referral).toLocaleDateString()}</h4>
+                                            <h4 style={{ margin: 0 }}>{formatDate(r.date_of_referral)}</h4>
                                             {r.is_draft && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Draft</span>}
                                             {r.referral_type_display && (
                                                 <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
@@ -510,14 +512,14 @@ const HistoryTab = ({
                                     {r.comments && <div className="info-item"><strong>Referral note:</strong> {r.comments}</div>}
 
                                     <div className="info-item" style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
-                                        {r.accepted_at && <span>Accepted {new Date(r.accepted_at).toLocaleDateString()}</span>}
-                                        {r.in_progress_at && <span>In Progress {new Date(r.in_progress_at).toLocaleDateString()}</span>}
-                                        {r.returned_at && <span>Returned {new Date(r.returned_at).toLocaleDateString()}</span>}
-                                        {r.completed_at && <span>Completed {new Date(r.completed_at).toLocaleDateString()}</span>}
-                                        {r.rejected_at && <span>Rejected {new Date(r.rejected_at).toLocaleDateString()}</span>}
-                                        {r.cancelled_at && <span>Cancelled {new Date(r.cancelled_at).toLocaleDateString()}</span>}
-                                        {r.recalled_at && <span>Recalled {new Date(r.recalled_at).toLocaleDateString()}</span>}
-                                        {r.expired_at && <span>Expired {new Date(r.expired_at).toLocaleDateString()}</span>}
+                                        {r.accepted_at && <span>Accepted {formatDate(r.accepted_at)}</span>}
+                                        {r.in_progress_at && <span>In Progress {formatDate(r.in_progress_at)}</span>}
+                                        {r.returned_at && <span>Returned {formatDate(r.returned_at)}</span>}
+                                        {r.completed_at && <span>Completed {formatDate(r.completed_at)}</span>}
+                                        {r.rejected_at && <span>Rejected {formatDate(r.rejected_at)}</span>}
+                                        {r.cancelled_at && <span>Cancelled {formatDate(r.cancelled_at)}</span>}
+                                        {r.recalled_at && <span>Recalled {formatDate(r.recalled_at)}</span>}
+                                        {r.expired_at && <span>Expired {formatDate(r.expired_at)}</span>}
                                     </div>
 
                                     {r.response_notes && <div className="info-item"><strong>Response note:</strong> {r.response_notes}</div>}
@@ -528,7 +530,7 @@ const HistoryTab = ({
                                         <div className="info-item" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', marginTop: '0.5rem' }}>
                                             <div style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                                                 Specialist Result
-                                                {r.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {new Date(r.result_submitted_at).toLocaleDateString()}</span>}
+                                                {r.result_submitted_at && <span style={{ fontWeight: 400, marginLeft: 6 }}>· {formatDate(r.result_submitted_at)}</span>}
                                             </div>
                                             <div style={{ whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{r.result}</div>
                                         </div>

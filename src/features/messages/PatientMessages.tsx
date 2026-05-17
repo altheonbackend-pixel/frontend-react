@@ -13,6 +13,7 @@ import { toast } from '../../shared/components/ui';
 import { SmartTextarea } from '../../shared/components/SmartTextarea';
 import { Icon } from '../../shared/components/Icons';
 import { SkeletonList } from '../../shared/components/ui/Skeleton';
+import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
 
 interface Message {
     id: number; patient: string; doctor: number;
@@ -29,6 +30,7 @@ interface PatientThread { patient_id: string; patient_name: string; last_at: str
 export function PatientMessages() {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const { formatDateTime, formatDateTimeLong } = useFormatDateTime();
     const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
     const [draft, setDraft] = useState('');
     const [subject, setSubject] = useState('');
@@ -116,7 +118,7 @@ export function PatientMessages() {
                             <strong>{th.patient_name}</strong>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
                                 <small style={{ color: 'var(--text-muted)' }}>
-                                    {new Date(th.last_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' })}
+                                    {formatDateTime(th.last_at)}
                                 </small>
                                 {th.unread > 0 && <span className="db-tab-count">{th.unread}</span>}
                             </div>
@@ -148,7 +150,7 @@ export function PatientMessages() {
                                     <small style={{
                                         display: 'block', marginTop: 4,
                                         opacity: 0.7, fontSize: '0.7rem',
-                                    }}>{new Date(m.created_at).toLocaleString()}{m.urgency !== 'routine' ? ` · ${m.urgency}` : ''}</small>
+                                    }}>{formatDateTimeLong(m.created_at)}{m.urgency !== 'routine' ? ` · ${m.urgency}` : ''}</small>
                                 </li>
                             );
                         })}

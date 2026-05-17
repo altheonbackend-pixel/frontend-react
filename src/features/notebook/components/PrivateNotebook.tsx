@@ -8,11 +8,13 @@ import Dialog from '../../../shared/components/ui/Dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../../shared/services/api';
 import { PageHeader } from '../../../shared/components/PageHeader';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 const NOTEBOOK_KEY = ['notebook', 'list'] as const;
 
 function PrivateNotebook() {
     const queryClient = useQueryClient();
+    const { formatDate } = useFormatDateTime();
     const [activeId, setActiveId] = useState<number | null>(null);
     const [formData, setFormData] = useState({ title: '', content: '' });
     const [isNew, setIsNew] = useState(false);
@@ -168,7 +170,7 @@ function PrivateNotebook() {
                                 <div className="notebook-entry-title">{entry.title}</div>
                                 <div className="notebook-entry-preview">{entry.content.slice(0, 60)}</div>
                                 <div className="notebook-entry-date">
-                                    {new Date(entry.updated_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    {formatDate(entry.updated_at)}
                                 </div>
                             </div>
                         ))}

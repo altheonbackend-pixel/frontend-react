@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { Icon } from '../../../shared/components/Icons';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface Props {
     appointmentId: number;
@@ -21,6 +22,7 @@ interface JoinResponse {
 
 export function TelehealthJoinButton({ appointmentId, onJoin, refreshIntervalMs = 30_000 }: Props) {
     const { t } = useTranslation();
+    const { formatTime } = useFormatDateTime();
     const [state, setState] = useState<JoinResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -52,7 +54,7 @@ export function TelehealthJoinButton({ appointmentId, onJoin, refreshIntervalMs 
     if (!state.can_join) {
         return (
             <span className="badge badge-muted" title={state.why_not || ''}>
-                <Icon name="clock" size={14} /> {t('telehealth.locked', 'Opens')} {new Date(state.window_opens_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <Icon name="clock" size={14} /> {t('telehealth.locked', 'Opens')} {formatTime(state.window_opens_at)}
             </span>
         );
     }

@@ -16,6 +16,7 @@ import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { Avatar } from '../../../shared/components/Avatar';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { toast } from '../../../shared/components/ui';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 const PAGE_SIZE = 20;
 
@@ -40,6 +41,7 @@ const Patients = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
+    const { formatDate } = useFormatDateTime();
 
     const vitalAlertFilter = searchParams.get('vital_alert_recent') === 'true';
 
@@ -288,7 +290,7 @@ const Patients = () => {
                                                         </div>
                                                         {patient.date_of_birth && (
                                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                                DOB: {new Date(patient.date_of_birth).toLocaleDateString('en-GB')}
+                                                                DOB: {formatDate(patient.date_of_birth)}
                                                             </div>
                                                         )}
                                                     </div>

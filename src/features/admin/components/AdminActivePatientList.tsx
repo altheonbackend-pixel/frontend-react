@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import '../styles/AdminDoctorList.css';
 
 interface ActivePatient {
@@ -31,6 +32,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 const AdminActivePatientList = () => {
     usePageTitle('Active Patients — Admin');
+    const { formatDate } = useFormatDateTime();
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
 
@@ -110,9 +112,7 @@ const AdminActivePatientList = () => {
                                         {patient.primary_doctor ?? '—'}
                                     </td>
                                     <td style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                                        {new Date(patient.created_at).toLocaleDateString('en-GB', {
-                                            day: 'numeric', month: 'short', year: 'numeric',
-                                        })}
+                                        {formatDate(patient.created_at)}
                                     </td>
                                 </tr>
                             ))}

@@ -8,6 +8,7 @@ import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService, type PatientPortalSettings, type ProfileUpdateRequest } from '../services/patientPortalService';
 import { normalizePortalLanguage } from '../utils/i18n';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 const EDITABLE_FIELDS = [
     'phone_number',
@@ -61,6 +62,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     const { t, i18n } = useTranslation();
     usePageTitle(t('patient_portal.settings.document_title'));
     const queryClient = useQueryClient();
+    const { formatDate } = useFormatDateTime();
     const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [pwError, setPwError] = useState('');
 
@@ -287,7 +289,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                                     <div key={r.id} style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {new Date(r.created_at).toLocaleDateString()}
+                                                {formatDate(r.created_at)}
                                             </span>
                                             <span style={{ ...badge.style, padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', fontWeight: 600 }}>
                                                 {t(badge.labelKey)}

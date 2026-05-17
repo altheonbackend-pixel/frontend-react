@@ -11,6 +11,7 @@ import { Pagination } from '../../../shared/components/Pagination';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import api from '../../../shared/services/api';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface AuditEntry {
     id: number;
@@ -24,6 +25,7 @@ const Profile = () => {
     const { t } = useTranslation();
     usePageTitle(t('pages.profile', 'Profile'));
     const { profile, authIsLoading } = useAuth();
+    const { formatDateTime } = useFormatDateTime();
     const [activityPage, setActivityPage] = useState(1);
     const PAGE_SIZE = 10;
 
@@ -247,10 +249,7 @@ const Profile = () => {
                                                         {entry.ip_address || '—'}
                                                     </td>
                                                     <td style={{ padding: '0.5rem 1rem', color: 'var(--text-muted)', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                                        {new Date(entry.timestamp).toLocaleString(undefined, {
-                                                            month: 'short', day: 'numeric',
-                                                            hour: '2-digit', minute: '2-digit',
-                                                        })}
+                                                        {formatDateTime(entry.timestamp)}
                                                     </td>
                                                 </tr>
                                             ))}

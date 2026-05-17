@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { type PatientWithHistory, type Consultation } from '../../../../shared/types';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
 interface VitalsPoint {
     id: number;
@@ -78,6 +79,7 @@ const ConsultationsTab = ({
     handleShowConsultation,
 }: ConsultationsTabProps) => {
     const navigate = useNavigate();
+    const { formatDate, formatDayMonth } = useFormatDateTime();
 
     const draftConsultations = (patient.consultations || []).filter(
         (c: any) => c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
@@ -158,7 +160,7 @@ const ConsultationsTab = ({
                                             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', padding: '0.625rem 0' }}
                                         >
                                             <span className="consult-summary-date">
-                                                {new Date(c.consultation_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                {formatDate(c.consultation_date)}
                                             </span>
                                             <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
                                             {c.consultation_status && c.consultation_status !== 'signed' && !isVoided && (
@@ -225,7 +227,7 @@ const ConsultationsTab = ({
                                                     {c.amendment_reason && (
                                                         <div className="info-item" style={{ background: 'var(--color-warning-light)', borderRadius: 'var(--radius-sm)', padding: '0.375rem 0.5rem', marginTop: '0.5rem' }}>
                                                             <strong style={{ color: 'var(--color-warning-dark)' }}>Amendment:</strong> {c.amendment_reason}
-                                                            {c.amended_at && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({new Date(c.amended_at).toLocaleDateString()})</span>}
+                                                            {c.amended_at && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({formatDate(c.amended_at)})</span>}
                                                         </div>
                                                     )}
                                                 </div>
@@ -285,7 +287,7 @@ const ConsultationsTab = ({
                                                                         <span className={`consult-lab-status consult-lab-status--${lab.status}`}>{lab.status}</span>
                                                                     </div>
                                                                     <div className="consult-lab-meta">
-                                                                        {new Date(lab.test_date).toLocaleDateString()}
+                                                                        {formatDate(lab.test_date)}
                                                                         {(lab.result_value || lab.result_value_text) && (
                                                                             <span className="consult-lab-result">
                                                                                 {lab.result_value_text || lab.result_value}{lab.unit ? ` ${lab.unit}` : ''}
@@ -310,7 +312,7 @@ const ConsultationsTab = ({
                                                                     <div className="consult-proc-header">
                                                                         <span className="consult-proc-name">{proc.procedure_type}</span>
                                                                         {proc.procedure_category && <span className="consult-proc-category">{proc.procedure_category}</span>}
-                                                                        <span className="consult-proc-date">{new Date(proc.procedure_date).toLocaleDateString()}</span>
+                                                                        <span className="consult-proc-date">{formatDate(proc.procedure_date)}</span>
                                                                     </div>
                                                                     {proc.result && <div className="consult-proc-result">{proc.result}</div>}
                                                                 </li>
@@ -342,7 +344,7 @@ const ConsultationsTab = ({
                                                                 /* Appointment already booked */
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                     <span className="follow-up-chip">
-                                                                        Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                        Follow-up: {formatDate(c.follow_up_date)}
                                                                     </span>
                                                                     <button
                                                                         type="button"
@@ -357,7 +359,7 @@ const ConsultationsTab = ({
                                                                 /* No appointment yet — show "Book follow-up" */
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                     <span className="follow-up-chip">
-                                                                        Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                        Follow-up: {formatDate(c.follow_up_date)}
                                                                     </span>
                                                                     <button
                                                                         type="button"
@@ -372,7 +374,7 @@ const ConsultationsTab = ({
                                                         ) : (
                                                             /* Older consultation — read-only chip only */
                                                             <span className="follow-up-chip" style={{ display: 'inline-flex' }}>
-                                                                Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}
+                                                                Follow-up: {formatDate(c.follow_up_date)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -428,7 +430,7 @@ const ConsultationsTab = ({
                                                                     ✓ Shared with patient
                                                                 </span>
                                                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                                                    {new Date(c.share_with_patient_at).toLocaleDateString()}
+                                                                    {formatDate(c.share_with_patient_at)}
                                                                 </span>
                                                                 <button
                                                                     type="button"
@@ -492,7 +494,7 @@ const ConsultationsTab = ({
                 ) : (() => {
                     const chartData = vitalsTrend.map(v => ({
                         ...v,
-                        label: new Date(v.consultation_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+                        label: formatDayMonth(v.consultation_date),
                     }));
                     const last = vitalsTrend[vitalsTrend.length - 1];
                     const bpData    = chartData.filter(v => v.bp_systolic !== null || v.bp_diastolic !== null);

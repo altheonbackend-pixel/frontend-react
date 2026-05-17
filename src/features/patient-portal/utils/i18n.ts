@@ -1,4 +1,10 @@
 import type { TFunction } from 'i18next';
+import {
+    formatDate as sharedFormatDate,
+    formatDateTime as sharedFormatDateTime,
+    formatRelative as sharedFormatRelative,
+    formatTime as sharedFormatTime,
+} from '../../../shared/utils/datetime';
 
 export const PATIENT_PORTAL_LANGUAGES = ['en', 'fr'] as const;
 export type PatientPortalLanguage = typeof PATIENT_PORTAL_LANGUAGES[number];
@@ -11,6 +17,10 @@ export function isSupportedPortalLanguage(language?: string | null): language is
     return PATIENT_PORTAL_LANGUAGES.includes(language as PatientPortalLanguage);
 }
 
+// Thin adapters over the shared datetime utils so existing patient-portal
+// callers keep working without churn. New code should call the shared
+// formatters directly, or use `useFormatDateTime()` from shared/hooks.
+
 export function formatPortalDate(
     value: string | number | Date,
     language: string | undefined,
@@ -20,33 +30,21 @@ export function formatPortalDate(
 }
 
 export function formatPortalDateTime(value: string | number | Date, language: string | undefined, timeZone?: string) {
-    return formatPortalDate(value, language, {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-        ...(timeZone ? { timeZone } : {}),
-    });
+    return sharedFormatDateTime(value, { locale: normalizePortalLanguage(language), timeZone });
 }
 
 export function formatPortalTime(value: string | number | Date, language: string | undefined, timeZone?: string) {
-    return formatPortalDate(value, language, {
-        hour: '2-digit',
-        minute: '2-digit',
-        ...(timeZone ? { timeZone } : {}),
-    });
+    return sharedFormatTime(value, { locale: normalizePortalLanguage(language), timeZone });
 }
 
 export function formatPortalRelativeTime(value: string | number | Date, language: string | undefined) {
-    const diffMs = new Date(value).getTime() - Date.now();
-    const absMs = Math.abs(diffMs);
-    const formatter = new Intl.RelativeTimeFormat(normalizePortalLanguage(language), { numeric: 'auto' });
+    return sharedFormatRelative(value, { locale: normalizePortalLanguage(language) });
+}
 
-    if (absMs < 60_000) return formatter.format(0, 'minute');
-    if (absMs < 3_600_000) return formatter.format(Math.round(diffMs / 60_000), 'minute');
-    if (absMs < 86_400_000) return formatter.format(Math.round(diffMs / 3_600_000), 'hour');
-    return formatter.format(Math.round(diffMs / 86_400_000), 'day');
+// Retained for explicit "long date with year" use cases. Most callers should
+// migrate to the shared `formatDate` directly.
+export function formatPortalLongDate(value: string | number | Date, language: string | undefined, timeZone?: string) {
+    return sharedFormatDate(value, { locale: normalizePortalLanguage(language), timeZone });
 }
 
 export function humanizeEnum(value: string) {

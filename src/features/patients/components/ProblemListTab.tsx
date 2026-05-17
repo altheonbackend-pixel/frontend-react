@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import api from '../../../shared/services/api';
 import { SkeletonList } from '../../../shared/components/ui/Skeleton';
 import { Icon } from '../../../shared/components/Icons';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface ProblemItem {
     condition: { id: number; name: string; icd_code: string; status: string; onset_date: string | null; notes: string };
@@ -16,6 +17,7 @@ interface ProblemItem {
 
 export function ProblemListTab({ patientId }: { patientId: string }) {
     const { t } = useTranslation();
+    const { formatDate } = useFormatDateTime();
     const { data, isLoading } = useQuery({
         queryKey: ['problem-list', patientId],
         queryFn: async () => (await api.get<{ problems: ProblemItem[] }>(`/patients/${patientId}/problem-list/`)).data,
@@ -61,7 +63,7 @@ export function ProblemListTab({ patientId }: { patientId: string }) {
                             {p.recent_consultations.length === 0
                                 ? <Empty />
                                 : p.recent_consultations.map(c => (
-                                    <li key={c.id}><Link to={`/patients/${patientId}?consultation=${c.id}`}>{new Date(c.consultation_date).toLocaleDateString()}</Link>
+                                    <li key={c.id}><Link to={`/patients/${patientId}?consultation=${c.id}`}>{formatDate(c.consultation_date)}</Link>
                                     <small style={{ display: 'block', color: 'var(--text-muted)' }}>{(c.diagnosis || c.assessment || '').slice(0, 60)}</small></li>
                                 ))
                             }
@@ -83,7 +85,7 @@ export function ProblemListTab({ patientId }: { patientId: string }) {
                                 : p.related_referrals.map(r => (
                                     <li key={r.id}>
                                         <Link to={`/referrals/${r.id}`}>{r.specialty_requested}</Link>
-                                        <small style={{ display: 'block', color: 'var(--text-muted)' }}>{r.status} · {new Date(r.date_of_referral).toLocaleDateString()}</small>
+                                        <small style={{ display: 'block', color: 'var(--text-muted)' }}>{r.status} · {formatDate(r.date_of_referral)}</small>
                                     </li>
                                 ))
                             }

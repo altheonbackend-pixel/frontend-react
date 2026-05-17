@@ -3,6 +3,7 @@ import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import { amendConsultation, dismissFollowUp } from '../services/consultationService';
 import type { Consultation } from '../../../shared/types';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface ConsultationViewProps {
     consultation: Consultation;
@@ -24,22 +25,11 @@ const FREQ_LABELS: Record<string, string> = {
     weekly: 'Weekly',
 };
 
-function fmtDate(iso: string | null | undefined) {
-    if (!iso) return '—';
-    return new Date(iso.includes('T') ? iso : iso + 'T00:00:00').toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-    });
-}
-
-function fmtDateTime(iso: string | null | undefined) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
-}
-
 const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismissed }: ConsultationViewProps) => {
+    const { formatDate, formatDateTime } = useFormatDateTime();
+    const fmtDate = (iso: string | null | undefined) => iso ? formatDate(iso) : '—';
+    const fmtDateTime = (iso: string | null | undefined) => iso ? formatDateTime(iso) : '—';
+
     const [amendOpen, setAmendOpen] = useState(false);
     const [dismissOpen, setDismissOpen] = useState(false);
     const [dismissed, setDismissed] = useState(c.follow_up_dismissed ?? false);

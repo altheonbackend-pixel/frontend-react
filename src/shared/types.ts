@@ -22,6 +22,8 @@ export interface DoctorProfile {
     address: string | null;
     email_verified?: boolean;
     next_available: string | null;
+    timezone?: string | null;
+    locale?: string | null;
 }
 
 export interface SpecialtyChoice {

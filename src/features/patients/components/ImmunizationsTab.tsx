@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { toast } from '../../../shared/components/ui';
 import { Icon } from '../../../shared/components/Icons';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface Immunization {
     id: number;
@@ -42,6 +43,7 @@ const VACCINE_PRESETS: { name: string; cvx: string }[] = [
 export function ImmunizationsTab({ patientId }: { patientId: string }) {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const { formatDate } = useFormatDateTime();
     const [showAdd, setShowAdd] = useState(false);
     const [draft, setDraft] = useState({
         vaccine_name: '', cvx_code: '',
@@ -153,7 +155,7 @@ export function ImmunizationsTab({ patientId }: { patientId: string }) {
                         <tr key={i.id} style={{ borderTop: '1px solid var(--border-default)' }}>
                             <td style={{ padding: 8 }}>{i.vaccine_name}</td>
                             <td style={{ padding: 8 }}>{i.cvx_code || '—'}</td>
-                            <td style={{ padding: 8 }}>{new Date(i.administered_at).toLocaleDateString()}</td>
+                            <td style={{ padding: 8 }}>{formatDate(i.administered_at)}</td>
                             <td style={{ padding: 8 }}>{i.lot_number || '—'}</td>
                             <td style={{ padding: 8 }}>{i.administered_by_name}</td>
                         </tr>

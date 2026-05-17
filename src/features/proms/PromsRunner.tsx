@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../shared/services/api';
 import { toast } from '../../shared/components/ui';
 import { SkeletonList } from '../../shared/components/ui/Skeleton';
+import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
 
 interface QChoice { label: string; value: number; }
 interface QItem { id: string; text: string; choices: QChoice[]; }
@@ -28,6 +29,7 @@ interface Response {
 export function PromsRunner({ patientId }: { patientId: string }) {
     const { t } = useTranslation();
     const qc = useQueryClient();
+    const { formatDateTime } = useFormatDateTime();
     const [selectedQ, setSelectedQ] = useState<Questionnaire | null>(null);
     const [answers, setAnswers] = useState<Record<string, number>>({});
 
@@ -163,7 +165,7 @@ export function PromsRunner({ patientId }: { patientId: string }) {
                     <li key={r.id} style={{ padding: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
                         <strong>{r.questionnaire_name}</strong>: {r.total_score} ({r.severity_band})
                         <small style={{ marginLeft: 8, color: 'var(--text-muted)' }}>
-                            {new Date(r.completed_at).toLocaleString()}
+                            {formatDateTime(r.completed_at)}
                         </small>
                     </li>
                 ))}

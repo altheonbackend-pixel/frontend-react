@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { toast } from '../../../shared/components/ui';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 type Status = {
     enrolled: boolean;
@@ -30,6 +31,7 @@ type Status = {
 
 export function TwoFactorSetup() {
     const { t } = useTranslation();
+    const { formatDateTimeLong } = useFormatDateTime();
     const [status, setStatus] = useState<Status | null>(null);
     const [loading, setLoading] = useState(false);
     const [enrollment, setEnrollment] = useState<{ secret: string; uri: string } | null>(null);
@@ -191,7 +193,7 @@ export function TwoFactorSetup() {
                     <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
                         ✅ 2FA enrolled. Last used:{' '}
                         {status.last_used_at
-                            ? new Date(status.last_used_at).toLocaleString()
+                            ? formatDateTimeLong(status.last_used_at)
                             : 'never'}
                         {' · '}Backup codes left: {status.backup_codes_remaining}
                     </p>

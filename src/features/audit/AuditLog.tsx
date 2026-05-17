@@ -4,6 +4,7 @@ import { SectionCard, TabSkeleton } from '../../shared/components/SectionCard';
 import { usePageTitle } from '../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../shared/queryKeys';
 import api from '../../shared/services/api';
+import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
 
 interface AuditEntry {
     id: number;
@@ -17,15 +18,10 @@ interface AuditEntry {
     timestamp: string;
 }
 
-function formatTimestamp(value: string) {
-    return new Date(value).toLocaleString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
-}
-
 export default function AuditLog() {
     usePageTitle('My Activity Log');
+    const { formatDateTimeLong } = useFormatDateTime();
+    const formatTimestamp = (value: string) => formatDateTimeLong(value, { appendTzLabel: true });
 
     const { data: entries = [], isLoading, isError } = useQuery<AuditEntry[]>({
         queryKey: queryKeys.audit.myActivity(),

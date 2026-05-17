@@ -5,18 +5,11 @@
 //     current user (doctor OR patient).
 //   - Backend `GET /telehealth/<id>/join/` returns call ID + joinability gate.
 //   - Frontend uses `@stream-io/video-react-sdk` to actually open the room.
-//   - The component is INTENTIONALLY pluggable: if `@stream-io/video-react-sdk`
-//     is not yet installed, we render a "Install GetStream SDK" call-to-action
-//     and fall back to the legacy `telehealth_room_url` (Jitsi/Daily) so the
-//     feature is never blocked on the JS install. This keeps the route
-//     usable in CI / staging without API keys.
+//     The SDK is bundled as a separate chunk via dynamic import, so it only
+//     loads on telehealth routes. If the import fails at runtime, we fall
+//     back to the legacy `telehealth_room_url` (Jitsi/Daily).
 //
-// Install steps (run once at the repo root):
-//
-//     cd frontend-react
-//     npm install @stream-io/video-react-sdk
-//
-// Then set `STREAM_API_KEY` + `STREAM_API_SECRET` in the Django env and
+// Backend env: set `STREAM_API_KEY` + `STREAM_API_SECRET` in Django and
 // `TELEHEALTH_PROVIDER=getstream` (already the default).
 //
 // The component handles a clinical-grade UX:
@@ -30,6 +23,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { toast } from '../../../shared/components/ui';
 import { Icon } from '../../../shared/components/Icons';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 // GetStream Video SDK is optional at install time. Until the package is
 // installed (`npm i @stream-io/video-react-sdk`) we type it as `any` so
@@ -73,6 +67,7 @@ interface TelehealthCallProps {
 
 export function TelehealthCall({ appointmentId, role, minimized, onToggleMinimize, onEnd }: TelehealthCallProps) {
     const { t } = useTranslation();
+    const { formatDateTimeLong } = useFormatDateTime();
     const [creds, setCreds] = useState<TelehealthCredentials | null>(null);
     const [join, setJoin] = useState<TelehealthJoin | null>(null);
     const [loading, setLoading] = useState(true);
@@ -102,18 +97,14 @@ export function TelehealthCall({ appointmentId, role, minimized, onToggleMinimiz
         return () => { cancelled = true; };
     }, [appointmentId]);
 
-    // Try to dynamically import the GetStream SDK. If the package isn't installed
-    // (no `npm i` yet), we fall back to a "Open external room" link so the
-    // appointment still has a working video path.
+    // Dynamically import the GetStream SDK so it's split into its own chunk
+    // and not loaded on routes that don't use video. The package is a
+    // declared dependency, so Vite resolves and bundles it at build time.
     useEffect(() => {
         if (!creds?.configured || !join?.can_join) return;
         (async () => {
             try {
-                // Dynamic + variable so Vite doesn't try to resolve the
-                // optional dep at build time. Falls back to fallback URL
-                // when the SDK isn't installed.
-                const pkg = '@stream-io/video-react-sdk';
-                const mod = await import(/* @vite-ignore */ pkg);
+                const mod = await import('@stream-io/video-react-sdk');
                 setSdk(mod);
             } catch {
                 setSdkUnavailable(true);
@@ -151,7 +142,7 @@ export function TelehealthCall({ appointmentId, role, minimized, onToggleMinimiz
                 <Icon name="video" size={48} />
                 <h3>{t('telehealth.gate.title', 'Telehealth visit')}</h3>
                 <p>{join?.why_not || t('telehealth.gate.locked', 'Room not yet open.')}</p>
-                <small>{t('telehealth.gate.window', 'Window opens')} {new Date(join?.window_opens_at || '').toLocaleString()}</small>
+                <small>{t('telehealth.gate.window', 'Window opens')} {formatDateTimeLong(join?.window_opens_at || '', { appendTzLabel: true })}</small>
             </div>
         );
     }

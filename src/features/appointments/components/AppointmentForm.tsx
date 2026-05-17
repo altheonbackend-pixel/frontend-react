@@ -6,6 +6,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { type Patient, type Appointment } from '../../../shared/types';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import { appointmentSchema, type AppointmentFormData } from '../appointmentSchema';
 import '../styles/AppointmentForm.css';
 
@@ -34,11 +35,14 @@ interface AppointmentFormProps {
     onCancel: () => void;
 }
 
-const toDateInputValue = (d: Date) => d.toISOString().slice(0, 10);
-
 const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess, onCancel }: AppointmentFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
+    const { formatDateTimeLong, toIsoDateInTz } = useFormatDateTime();
+    // YYYY-MM-DD in the doctor's tz — matches what the backend's day-slots
+    // endpoint expects, so a doctor in Karachi clicking "today" never asks
+    // the server for "yesterday in UTC".
+    const toDateInputValue = (d: Date) => toIsoDateInTz(d);
     const [patients, setPatients] = useState<Patient[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -221,10 +225,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                         <div className="form-group">
                             <label>Date &amp; Time</label>
                             <div className="input" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
-                                {new Date(appointment.appointment_date).toLocaleString('en-GB', {
-                                    weekday: 'short', day: 'numeric', month: 'short',
-                                    year: 'numeric', hour: '2-digit', minute: '2-digit',
-                                })}
+                                {formatDateTimeLong(appointment.appointment_date, { appendTzLabel: true })}
                             </div>
                             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                                 To change the date or time, use the <strong>Reschedule</strong> option.

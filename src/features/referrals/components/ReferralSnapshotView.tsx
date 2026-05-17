@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/queryKeys';
 import { getSnapshot } from '../services/referralService';
 import { type ReferralSnapshot } from '../../../shared/types';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface Props {
     referralId: number;
@@ -24,6 +25,7 @@ const EmptyNote = ({ text }: { text: string }) => (
 );
 
 const ReferralSnapshotView = ({ referralId }: Props) => {
+    const { formatDate, formatDateTime } = useFormatDateTime();
     const [open, setOpen] = useState(false);
 
     const { data: snapshot, isLoading, isError } = useQuery<ReferralSnapshot>({
@@ -62,7 +64,7 @@ const ReferralSnapshotView = ({ referralId }: Props) => {
                     {snapshot && (
                         <>
                             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                                Captured {new Date(snapshot.captured_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                                Captured {formatDateTime(snapshot.captured_at)}
                             </div>
 
                             <Section title="Active Medications">
@@ -112,7 +114,7 @@ const ReferralSnapshotView = ({ referralId }: Props) => {
                                 {snapshot.recent_lab_results.length === 0 ? <EmptyNote text="None recorded" /> : (
                                     <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
                                         {snapshot.recent_lab_results.map((l, i) => (
-                                            <li key={i}><strong>{l.test_name}</strong>: {l.result}{l.units ? ` ${l.units}` : ''} — {new Date(l.date).toLocaleDateString('en-GB')}</li>
+                                            <li key={i}><strong>{l.test_name}</strong>: {l.result}{l.units ? ` ${l.units}` : ''} — {formatDate(l.date)}</li>
                                         ))}
                                     </ul>
                                 )}

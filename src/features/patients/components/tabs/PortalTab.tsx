@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
 import { Dialog } from '../../../../shared/components/ui';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
 interface PatientAppointment {
     id: number;
@@ -73,6 +74,7 @@ const PortalTab = ({
     handleRejectRequest,
 }: PortalTabProps) => {
     const navigate = useNavigate();
+    const { formatDate, formatDateTime } = useFormatDateTime();
 
     return (
         <div className="tab-panel" style={{ display: 'grid', gap: '1.5rem' }}>
@@ -96,7 +98,7 @@ const PortalTab = ({
                             <div key={req.id} style={{ padding: '0.875rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', display: 'grid', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                     <div>
-                                        <div style={{ fontWeight: 700 }}>{new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                                        <div style={{ fontWeight: 700 }}>{formatDateTime(req.appointment_date)}</div>
                                         {req.appointment_type && (
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
                                                 {req.appointment_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
@@ -174,14 +176,14 @@ const PortalTab = ({
                                 <li key={appt.id} className="detail-list-item">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                            <strong>{new Date(appt.appointment_date).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
+                                            <strong>{formatDateTime(appt.appointment_date)}</strong>
                                             {appt.appointment_type && (
                                                 <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
                                                     {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
                                                 </span>
                                             )}
                                             {appt.rescheduled_from_date && (
-                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}>
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${formatDate(appt.rescheduled_from_date)}`}>
                                                     ↩ Rescheduled
                                                 </span>
                                             )}
@@ -233,10 +235,10 @@ const PortalTab = ({
                                             <div className="info-item"><strong>Portal email:</strong> {portalStatus.primary_contact_email}</div>
                                         )}
                                         {portalStatus.invited_at && (
-                                            <div className="info-item"><strong>Invited:</strong> {new Date(portalStatus.invited_at).toLocaleDateString()}</div>
+                                            <div className="info-item"><strong>Invited:</strong> {formatDate(portalStatus.invited_at)}</div>
                                         )}
                                         {portalStatus.claimed_at && (
-                                            <div className="info-item"><strong>Claimed:</strong> {new Date(portalStatus.claimed_at).toLocaleDateString()}</div>
+                                            <div className="info-item"><strong>Claimed:</strong> {formatDate(portalStatus.claimed_at)}</div>
                                         )}
                                         {portalStatus.claim_status !== 'claimed' && (
                                             <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>

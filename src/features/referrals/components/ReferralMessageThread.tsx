@@ -6,6 +6,7 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { getMessages, sendMessage, deleteMessage } from '../services/referralService';
 import { type ReferralMessage } from '../../../shared/types';
 import { toast } from '../../../shared/components/ui';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface Props {
     referralId: number;
@@ -14,6 +15,7 @@ interface Props {
 
 const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
     const queryClient = useQueryClient();
+    const { formatTime, formatDayMonth } = useFormatDateTime();
     const [body, setBody] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -91,9 +93,9 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                                     )}
                                     {msg.is_deleted ? 'This message was deleted.' : msg.body}
                                     <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem', textAlign: isOwn ? 'right' : 'left' }}>
-                                        {new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                        {formatTime(msg.created_at)}
                                         {' · '}
-                                        {new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                        {formatDayMonth(msg.created_at)}
                                     </div>
                                 </div>
                                 {isOwn && !msg.is_deleted && (

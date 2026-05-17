@@ -12,6 +12,7 @@ import { Avatar } from '../../../shared/components/Avatar';
 import { toast, Dialog } from '../../../shared/components/ui';
 import type { LabResult } from '../../../shared/types';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface DashboardStats {
     total_patients: number;
@@ -74,19 +75,12 @@ function getGreeting(t: (k: string, d: string) => string, timezone?: string | nu
     return t('dashboard.greeting.evening', 'Good evening');
 }
 
-function fmtApptTime(iso: string) {
-    const d = new Date(iso);
-    return {
-        hour: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        day:  d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    };
-}
-
 function Dashboard() {
     const { t } = useTranslation();
     const { user, profile } = useAuth();
     const qc = useQueryClient();
     usePageTitle(t('pages.dashboard', 'Dashboard'));
+    const { formatTime, formatDayMonth, formatDateShort, formatDateLong } = useFormatDateTime();
 
     const [activeTaskTab, setActiveTaskTab] = useState<TaskTab>('requests');
     const [vitalAlertDismissed, setVitalAlertDismissed] = useState(false);
@@ -125,11 +119,8 @@ function Dashboard() {
     const upcomingAppointments = data?.upcoming_appointments ?? [];
     const recentPatients       = data?.recent_patients ?? [];
 
-    const timezone   = ((profile as unknown) as Record<string, unknown> | null)?.timezone as string | null ?? null;
-    const todayStr   = new Date().toLocaleDateString('en-GB', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-        ...(timezone ? { timeZone: timezone } : {}),
-    });
+    const timezone   = profile?.timezone ?? null;
+    const todayStr   = formatDateLong(new Date());
     const doctorName  = user?.full_name ?? profile?.full_name ?? '';
     const isNewDoctor = !isLoading && (stats?.total_patients ?? 0) === 0 &&
                         pendingLabReviews.length === 0 && appointmentRequests.length === 0;
@@ -284,12 +275,11 @@ function Dashboard() {
                         ) : (
                             <ul className="db-schedule-list">
                                 {upcomingAppointments.map(a => {
-                                    const { hour, day } = fmtApptTime(a.appointment_date);
                                     return (
                                         <li key={a.id} className="db-schedule-item">
                                             <div className="db-schedule-time">
-                                                <div className="db-schedule-hour">{hour}</div>
-                                                <div className="db-schedule-day">{day}</div>
+                                                <div className="db-schedule-hour">{formatTime(a.appointment_date)}</div>
+                                                <div className="db-schedule-day">{formatDayMonth(a.appointment_date)}</div>
                                             </div>
                                             <div className="db-schedule-info">
                                                 {a.patient_details ? (
@@ -350,7 +340,7 @@ function Dashboard() {
                                             <div className="db-task-info">
                                                 <div className="db-task-title">{lab.test_name}</div>
                                                 <div className="db-task-meta">
-                                                    {lab.patient} · {new Date(lab.test_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                                    {lab.patient} · {formatDayMonth(lab.test_date)}
                                                 </div>
                                             </div>
                                             <div className="db-task-actions">
@@ -392,7 +382,7 @@ function Dashboard() {
                                             <div className="db-task-info">
                                                 <div className="db-task-title">{req.patient_name}</div>
                                                 <div className="db-task-meta">
-                                                    {new Date(req.appointment_date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })} · {req.reason}
+                                                    {formatDateShort(req.appointment_date)} · {req.reason}
                                                 </div>
                                             </div>
                                             <div className="db-task-actions">

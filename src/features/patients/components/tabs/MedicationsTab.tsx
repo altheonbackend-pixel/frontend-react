@@ -1,5 +1,6 @@
 import { type Prescription } from '../../../../shared/types';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
 interface MedicationsTabProps {
     medsLoading: boolean;
@@ -22,6 +23,7 @@ const MedicationsTab = ({
     handleMarkPrescriptionActive,
     navigateToConsultation,
 }: MedicationsTabProps) => {
+    const { formatDate } = useFormatDateTime();
     return (
         <div className="tab-panel">
             <div className="tab-panel-header">
@@ -56,7 +58,7 @@ const MedicationsTab = ({
                             {rx.duration_days && <div className="info-item"><strong>Duration:</strong> {rx.duration_days} days</div>}
                             {rx.instructions && <div className="info-item"><strong>Instructions:</strong> {rx.instructions}</div>}
                             <div className="info-item" style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                                Prescribed: {new Date(rx.prescribed_at).toLocaleDateString()}
+                                Prescribed: {formatDate(rx.prescribed_at)}
                             </div>
                             <div className="entry-actions">
                                 {rx.is_active ? (

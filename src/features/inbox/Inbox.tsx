@@ -17,6 +17,7 @@ import api from '../../shared/services/api';
 import { Icon } from '../../shared/components/Icons';
 import { SkeletonList } from '../../shared/components/ui/Skeleton';
 import { toast } from '../../shared/components/ui';
+import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
 
 type Tab = 'tasks' | 'alerts' | 'followups' | 'referrals' | 'messages' | 'gaps';
 
@@ -63,6 +64,7 @@ export function Inbox() {
     const { t } = useTranslation();
     const qc = useQueryClient();
     const navigate = useNavigate();
+    const { formatDate } = useFormatDateTime();
     const [tab, setTab] = useState<Tab>('tasks');
 
     const tasks = useQuery({
@@ -142,7 +144,7 @@ export function Inbox() {
                             <Link to={`/patients/${t.patient}`} style={{ flex: 1 }}>
                                 <strong>{t.title}</strong>
                                 <small style={{ display: 'block', color: 'var(--text-muted)' }}>
-                                    {t.patient_name} · due {new Date(t.due_date).toLocaleDateString()}
+                                    {t.patient_name} · due {formatDate(t.due_date)}
                                     {t.is_overdue && <span className="badge badge-danger" style={{ marginLeft: 6 }}>{t.kind}</span>}
                                 </small>
                             </Link>
@@ -244,7 +246,7 @@ export function Inbox() {
                             <Link to={`/patients/${g.patient}`} style={{ flex: 1 }}>
                                 <strong>{g.patient_name} — {g.measure_display}</strong>
                                 <small style={{ display: 'block', color: 'var(--text-muted)' }}>
-                                    {g.rationale}{g.next_due ? ` · due ${new Date(g.next_due).toLocaleDateString()}` : ''}
+                                    {g.rationale}{g.next_due ? ` · due ${formatDate(g.next_due)}` : ''}
                                 </small>
                             </Link>
                         </li>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../shared/services/api';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface AuditEntry {
     id: number;
@@ -40,14 +41,9 @@ const ACTION_CHOICES = [
     { value: 'other', label: 'Other' },
 ];
 
-function formatTimestamp(value: string) {
-    return new Date(value).toLocaleString('en-GB', {
-        day: 'numeric', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-    });
-}
-
 export default function AdminAuditLog() {
+    const { formatDateTimeLong } = useFormatDateTime();
+    const formatTimestamp = (value: string) => formatDateTimeLong(value, { appendTzLabel: true });
     const [filters, setFilters] = useState({ doctor: '', action: '', target: '', date_from: '', date_to: '' });
     const [applied, setApplied] = useState(filters);
 

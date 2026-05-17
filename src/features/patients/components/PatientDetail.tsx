@@ -24,6 +24,7 @@ import { type SavedRx } from '../../consultations/components/ConsultationForm';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { Avatar } from '../../../shared/components/Avatar';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 import OverviewTab from './tabs/OverviewTab';
 import ConsultationsTab from './tabs/ConsultationsTab';
@@ -53,6 +54,7 @@ const PatientDetails = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { isAuthenticated, profile, logout } = useAuth();
+    const { formatDate } = useFormatDateTime();
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -1524,7 +1526,7 @@ const PatientDetails = () => {
                                     </span>
                                 </div>
                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                    {new Date(previewLab.test_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    {formatDate(previewLab.test_date)}
                                 </div>
                                 {(previewLab.result_value || previewLab.result_value_text) && (
                                     <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>

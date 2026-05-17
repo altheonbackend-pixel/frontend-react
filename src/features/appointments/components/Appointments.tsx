@@ -8,6 +8,7 @@ import 'react-calendar/dist/Calendar.css';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Appointment, type Patient } from '../../../shared/types';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -50,6 +51,7 @@ const Appointments = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
+    const { formatDate, formatDateLong, formatDayMonth, formatTime, formatDateTime, toIsoDateInTz } = useFormatDateTime();
 
     const patientIdParam = searchParams.get('patient_id') ?? undefined;
     const sectionParam = searchParams.get('section');
@@ -285,7 +287,7 @@ const Appointments = () => {
         return null;
     };
 
-    const dateHeading = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const dateHeading = formatDateLong(date);
 
     return (
         <>
@@ -325,7 +327,7 @@ const Appointments = () => {
                                         )}
                                     </div>
                                     <div className="request-card__meta">
-                                        {new Date(req.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        {formatDateTime(req.appointment_date)}
                                         {' · '}{req.appointment_type?.replace(/_/g, ' ')}
                                     </div>
                                     {req.reason && (
@@ -377,9 +379,9 @@ const Appointments = () => {
                             onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setDate(d); }}
                         >← Prev</button>
                         <span className="section-card-title" style={{ fontSize: '0.95rem' }}>
-                            {weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            {formatDayMonth(weekStart)}
                             {' — '}
-                            {weekDays[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {formatDate(weekDays[6])}
                         </span>
                         <button
                             className="btn btn-ghost btn-sm"
@@ -393,8 +395,11 @@ const Appointments = () => {
                                 {weekDays.map(day => {
                                     const dayStr = toYYYYMMDD(day);
                                     const isToday = dayStr === toYYYYMMDD(new Date());
+                                    // Bucket appointments into calendar cells using the *user's*
+                                    // timezone (doctor's clinic tz when set, else browser tz) so a
+                                    // 22:00 appointment doesn't slide into the next day's column.
                                     const dayAppts = weekAppointments.filter(a =>
-                                        new Date(a.appointment_date).toLocaleDateString('en-CA') === dayStr
+                                        toIsoDateInTz(a.appointment_date) === dayStr
                                     );
                                     return (
                                         <div
@@ -410,7 +415,7 @@ const Appointments = () => {
                                             onClick={() => { setDate(day); setViewMode('day'); }}
                                         >
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: isToday ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                                                {day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}
+                                                {new Intl.DateTimeFormat('en', { weekday: 'short' }).format(day).toUpperCase()}
                                                 <br />
                                                 <span style={{ fontSize: '1rem', color: isToday ? 'var(--accent)' : 'var(--text-primary)' }}>
                                                     {day.getDate()}
@@ -429,7 +434,7 @@ const Appointments = () => {
                                                     >
                                                         <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pName}</div>
                                                         <div style={{ opacity: 0.75 }}>
-                                                            {new Date(appt.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            {formatTime(appt.appointment_date)}
                                                         </div>
                                                     </div>
                                                 );
@@ -544,7 +549,7 @@ const Appointments = () => {
                                                 <StatusBadge status={appt.status} label={appt.status_display} />
                                             </div>
                                             <div className="card-meta" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                                <span>🕐 {apptDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span>🕐 {formatTime(apptDate)}</span>
                                                 {appt.appointment_type === 'telemedicine'
                                                     ? <span style={{ fontSize: '0.72rem', background: 'var(--color-info-light)', color: 'var(--color-info-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
                                                     : <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
@@ -559,14 +564,14 @@ const Appointments = () => {
                                                 {appt.is_follow_up && (
                                                     <span
                                                         style={{ fontSize: '0.72rem', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
-                                                        title={appt.follow_up_source_info ? `Follow-up from consultation on ${new Date(appt.follow_up_source_info.consultation_date + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Follow-up appointment'}
+                                                        title={appt.follow_up_source_info ? `Follow-up from consultation on ${formatDate(appt.follow_up_source_info.consultation_date)}` : 'Follow-up appointment'}
                                                     >
                                                         ↩ Follow-up
                                                     </span>
                                                 )}
                                                 {appt.rescheduled_from_date && (
                                                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
-                                                        title={`Rescheduled from ${new Date(appt.rescheduled_from_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}>
+                                                        title={`Rescheduled from ${formatDayMonth(appt.rescheduled_from_date)}`}>
                                                         ↩ Rescheduled
                                                     </span>
                                                 )}

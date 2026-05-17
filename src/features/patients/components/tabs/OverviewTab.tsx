@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { type PatientWithHistory, type Prescription } from '../../../../shared/types';
 import { toast } from '../../../../shared/components/ui';
 import { queryKeys } from '../../../../shared/queryKeys';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
 const CONDITION_STATUS_COLORS: Record<string, string> = {
     active: '#e53e3e',
@@ -62,6 +63,7 @@ const OverviewTab = ({
 }: OverviewTabProps) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const { formatDate, formatDateTime } = useFormatDateTime();
 
     const activeAllergies = patient.allergy_records?.filter(a => a.is_active) || [];
 
@@ -93,7 +95,7 @@ const OverviewTab = ({
                     <div className="vital-alert-banner">
                         <span className="vital-alert-icon">⚠</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong>Vital Alert</strong> — {new Date(latest.consultation_date).toLocaleDateString()}
+                            <strong>Vital Alert</strong> — {formatDate(latest.consultation_date)}
                             <div className="vital-alert-chips">
                                 {reasons.map((r, i) => <span key={i} className="vital-alert-chip">{r}</span>)}
                             </div>
@@ -138,7 +140,7 @@ const OverviewTab = ({
                 if (!chips.length) return null;
                 return (
                     <div className="snapshot-strip">
-                        <span className="snapshot-label">Latest vitals — {new Date(c.consultation_date).toLocaleDateString()}</span>
+                        <span className="snapshot-label">Latest vitals — {formatDate(c.consultation_date)}</span>
                         <div className="snapshot-chips">
                             {chips.map(chip => (
                                 <span key={chip.label} className={`snapshot-chip${chip.warn ? ' snapshot-chip--warn' : ''}`}>
@@ -162,7 +164,7 @@ const OverviewTab = ({
                         <div className="pt-card-body">
                             <div className="pt-info-row">
                                 <span className="pt-info-label">Date of Birth</span>
-                                <span>{patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : 'N/A'}</span>
+                                <span>{patient.date_of_birth ? formatDate(patient.date_of_birth) : 'N/A'}</span>
                             </div>
                             <div className="pt-info-row">
                                 <span className="pt-info-label">Age</span>
@@ -207,9 +209,9 @@ const OverviewTab = ({
                             {patient.consultations?.length ? (
                                 patient.consultations.slice(0, 3).map(c => (
                                     <div key={c.id} className="mini-consultation">
-                                        <div className="mini-consult-date">{new Date(c.consultation_date).toLocaleDateString()}</div>
+                                        <div className="mini-consult-date">{formatDate(c.consultation_date)}</div>
                                         <div className="mini-consult-reason">{c.reason_for_consultation}</div>
-                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {new Date(c.follow_up_date + 'T00:00:00').toLocaleDateString()}</div>}
+                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {formatDate(c.follow_up_date)}</div>}
                                     </div>
                                 ))
                             ) : (
@@ -239,7 +241,7 @@ const OverviewTab = ({
                             ) : upcomingAppointment ? (
                                 <>
                                     <div className="pt-appt-date">
-                                        {new Date(upcomingAppointment.appointment_date).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                        {formatDateTime(upcomingAppointment.appointment_date)}
                                     </div>
                                     <div className="pt-appt-meta">{upcomingAppointment.reason_for_appointment}</div>
                                     {upcomingAppointment.appointment_type && (

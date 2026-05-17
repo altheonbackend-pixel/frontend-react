@@ -6,10 +6,12 @@ import '../styles/Appointments.css';
 import api from '../../../shared/services/api';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 const DeletedAppointments = () => {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const { isAuthenticated } = useAuth();
+    const { formatDateTimeLong } = useFormatDateTime();
     const [deletedAppointments, setDeletedAppointments] = useState<Array<{
         id: number;
         patient_details: { first_name: string; last_name: string };
@@ -72,8 +74,8 @@ const DeletedAppointments = () => {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', fontSize: '0.875rem' }}>
                                 <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Patient</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{appt.patient_details.first_name} {appt.patient_details.last_name}</div></div>
                                 <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doctor</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{appt.doctor_details.full_name}</div></div>
-                                <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Original Date</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{new Date(appt.appointment_date).toLocaleString(i18n.language)}</div></div>
-                                <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deleted On</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{new Date(appt.deletion_date).toLocaleString(i18n.language)}</div></div>
+                                <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Original Date</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{formatDateTimeLong(appt.appointment_date)}</div></div>
+                                <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Deleted On</span><div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>{formatDateTimeLong(appt.deletion_date)}</div></div>
                                 <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Reason</span><div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{t(`delete_appointment.reason.${appt.deletion_reason}`, appt.deletion_reason)}</div></div>
                                 {appt.deletion_comment && (
                                     <div><span style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Comment</span><div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{appt.deletion_comment}</div></div>

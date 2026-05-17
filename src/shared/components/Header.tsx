@@ -8,6 +8,7 @@ import Logo from './Logo';
 import NotificationBell from './NotificationBell';
 import api from '../../shared/services/api';
 import { toast } from './ui';
+import { useFormatDateTime } from '../hooks/useUserTimezone';
 interface SearchResult {
     unique_id: string;
     first_name: string;
@@ -18,6 +19,7 @@ interface SearchResult {
 const Header = () => {
     const { isAuthenticated, user, profile, logout, emailVerified, userType } = useAuth();
     const { t, i18n } = useTranslation();
+    const { formatDate } = useFormatDateTime();
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate();
 
@@ -110,7 +112,7 @@ const Header = () => {
                                     <li key={p.unique_id}>
                                         <button type="button" onClick={() => handleSearchSelect(p)}>
                                             <span className="hsearch-name">{p.first_name} {p.last_name}</span>
-                                            {p.date_of_birth && <span className="hsearch-dob">{new Date(p.date_of_birth).toLocaleDateString()}</span>}
+                                            {p.date_of_birth && <span className="hsearch-dob">{formatDate(p.date_of_birth)}</span>}
                                         </button>
                                     </li>
                                 ))}

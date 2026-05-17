@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/queryKeys';
 import { getEvents } from '../services/referralService';
 import { type ReferralEvent } from '../../../shared/types';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
 interface Props {
     referralId: number;
@@ -34,6 +35,7 @@ const dot = (status: string) => ({
 
 const ReferralEventTimeline = ({ referralId }: Props) => {
     const [open, setOpen] = useState(false);
+    const { formatDateTime } = useFormatDateTime();
 
     const { data: events = [], isLoading, isError } = useQuery<ReferralEvent[]>({
         queryKey: queryKeys.referrals.events(referralId),
@@ -89,7 +91,7 @@ const ReferralEventTimeline = ({ referralId }: Props) => {
                                         )}
                                     </div>
                                     <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                                        {ev.actor_label} · {new Date(ev.timestamp).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                                        {ev.actor_label} · {formatDateTime(ev.timestamp)}
                                     </div>
                                 </div>
                             </div>

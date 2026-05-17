@@ -8,6 +8,7 @@ import { type DoctorProfile, type DoctorScheduleDay } from '../../../shared/type
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
 import { profileSchema, type ProfileFormData } from '../profileSchema';
+import { formatTime } from '../../../shared/utils/datetime';
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -34,11 +35,7 @@ const TIMEZONES = [
 ];
 
 function getCurrentTimeInTz(tz: string) {
-    try {
-        return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
-    } catch {
-        return '';
-    }
+    return formatTime(new Date(), { timeZone: tz });
 }
 
 interface DayOff { id: number; date: string; reason: string }

@@ -10,6 +10,7 @@ import api from '../../../shared/services/api';
 import type { AxiosResponse } from 'axios';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import { useNavigationBlocker } from '../../../shared/hooks/useNavigationBlocker';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
 import { FailedPrescriptionsPanel, type RxItem } from './FailedPrescriptionsPanel';
 import { DrugAutocomplete, type DrugChoice, type SafetyResult } from './DrugAutocomplete';
@@ -75,6 +76,7 @@ interface ConsultationFormProps {
 }
 
 const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false }: ConsultationFormProps) => {
+    const { formatTime, formatDayMonth } = useFormatDateTime();
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
     const queryClient = useQueryClient();
@@ -143,7 +145,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         if (consultationToEdit) return;
         const entry = loadDraft();
         if (!entry) return;
-        const savedAt = new Date(entry.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const savedAt = formatTime(entry.savedAt);
         setDraftPrompt({ savedAt, entry });
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -1185,7 +1187,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 />
                                 {rxDraft.duration_days && parseInt(rxDraft.duration_days, 10) > 0 && (
                                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        until {new Date(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                        until {formatDayMonth(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5)}
                                     </span>
                                 )}
                             </div>

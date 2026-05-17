@@ -13,6 +13,7 @@ import { PageHeader } from '../../../shared/components/PageHeader';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { Modal, toast } from '../../../shared/components/ui';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import ReferralForm from './ReferralForm';
 import ReferralSLABadge from './ReferralSLABadge';
 import ReferralMessageThread from './ReferralMessageThread';
@@ -62,6 +63,7 @@ const ReferralSlotPicker = ({
     urgency: string;
 }) => {
     const { t } = useTranslation();
+    const { formatDateShort } = useFormatDateTime();
     const [slots, setSlots] = useState<SlotInfo[]>([]);
     const [loadingSlots, setLoadingSlots] = useState(false);
     const [dayOff, setDayOff] = useState(false);
@@ -124,7 +126,7 @@ const ReferralSlotPicker = ({
                             onClick={() => { onDateSelect(d); onSlotSelect(''); }}
                             style={{ ...pillBase, ...(isSelected ? pillSelected : {}) }}
                         >
-                            {new Date(d + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            {formatDateShort(d)}
                         </button>
                     );
                 })}
@@ -244,6 +246,7 @@ const RespondModal = ({
     referral, onClose, onDone,
 }: { referral: Referral; onClose: () => void; onDone: (updated: Referral) => void; }) => {
     const { t } = useTranslation();
+    const { formatDateTime } = useFormatDateTime();
 
     const ALLOWED_RESPOND_OPTIONS: Record<string, Array<{ value: string; label: string }>> = {
         pending:  [
@@ -361,10 +364,7 @@ const RespondModal = ({
                     const urgency = referral.urgency ?? 'routine';
                     const deadlineHours = URGENCY_DEADLINE_HOURS[urgency] ?? 720;
                     const deadlineDate = new Date(Date.now() + deadlineHours * 60 * 60 * 1000);
-                    const deadlineStr = deadlineDate.toLocaleDateString(undefined, {
-                        weekday: 'short', day: 'numeric', month: 'short',
-                        hour: '2-digit', minute: '2-digit',
-                    });
+                    const deadlineStr = formatDateTime(deadlineDate);
 
                     const urgencyStyles: Record<string, { bg: string; border: string; color: string; icon: string }> = {
                         emergency: { bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)',  color: 'var(--color-danger-dark)',   icon: '🚨' },
@@ -487,6 +487,7 @@ const ReferralsList = () => {
     const { t } = useTranslation();
     const { profile } = useAuth();
     const queryClient = useQueryClient();
+    const { formatDate, formatTime } = useFormatDateTime();
 
     const [tab, setTab] = useState<Tab>('all');
     const [statusFilter, setStatusFilter] = useState('');
@@ -680,7 +681,7 @@ const ReferralsList = () => {
                                     </div>
                                     <div className="referral-card__status">
                                         <span className="card-meta">
-                                            {new Date(referral.date_of_referral).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            {formatDate(referral.date_of_referral)}
                                         </span>
                                         {urgency !== 'routine' && referral.sla_due_at && !referral.sla_breached && (
                                             <ReferralSLABadge sla_due_at={referral.sla_due_at} sla_breached={false} urgency={urgency} />
@@ -709,12 +710,8 @@ const ReferralsList = () => {
                                         <span>
                                             {t('referrals.list.card.linked_appointment', { defaultValue: 'Appointment' })}:{' '}
                                             <strong>
-                                                {new Date(referral.linked_appointment_details.appointment_date).toLocaleDateString(undefined, {
-                                                    day: 'numeric', month: 'short', year: 'numeric',
-                                                })}{' '}
-                                                {new Date(referral.linked_appointment_details.appointment_date).toLocaleTimeString(undefined, {
-                                                    hour: '2-digit', minute: '2-digit',
-                                                })}
+                                                {formatDate(referral.linked_appointment_details.appointment_date)}{' '}
+                                                {formatTime(referral.linked_appointment_details.appointment_date)}
                                             </strong>
                                             {' · '}
                                             {referral.linked_appointment_details.status_display}

@@ -1,6 +1,7 @@
 import { type LabResult } from '../../../../shared/types';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
 import AttachmentList from '../../../../shared/components/AttachmentList';
+import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
 const LAB_STATUS_COLORS_MAP: Record<string, string> = {
     normal: '#38a169', abnormal: '#d69e2e', critical: '#e53e3e', pending: '#718096',
@@ -73,6 +74,7 @@ const LabsTab = ({
     setShareLabNote,
     setPreviewLabId,
 }: LabsTabProps) => {
+    const { formatDate } = useFormatDateTime();
     const pendingOrders = labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted');
 
     const renderLabRow = (lab: LabResult) => (
@@ -81,7 +83,7 @@ const LabsTab = ({
                 <div>
                     <strong>{lab.test_name}</strong>
                     <span style={{ marginLeft: '8px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                        {new Date(lab.test_date).toLocaleDateString()}
+                        {formatDate(lab.test_date)}
                     </span>
                     {lab.submitted_by_patient && (
                         <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
