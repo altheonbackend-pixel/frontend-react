@@ -591,3 +591,101 @@ input[type="checkbox"][role="switch"]:checked::after { left: calc(100% - 1.125re
 @media (max-width: 480px) {
   .slot-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ══ SYMPTOM CHIPS ═══════════════════════════════════════════════════
+   These were previously only defined in PatientDetail.css, which meant
+   they disappeared when the form was rendered anywhere else (telehealth
+   side panel, etc.). Moved here so they ship with the form. */
+
+.symptoms-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.symptom-chip {
+    padding: 5px 12px;
+    border: 1.5px solid var(--border-default);
+    border-radius: 999px;
+    background: var(--bg-base);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.13s ease, border-color 0.13s ease, color 0.13s ease;
+    font-family: var(--font-body);
+    line-height: 1.2;
+}
+
+.symptom-chip:hover {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.symptom-chip.active {
+    background: var(--accent-lighter);
+    border-color: var(--accent);
+    color: var(--accent-hover);
+}
+
+.custom-symptom-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.custom-symptom-row input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: var(--font-body);
+    background: var(--bg-base);
+}
+
+.custom-symptom-row input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.add-chip-btn {
+    padding: 6px 14px;
+    background: var(--text-secondary);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-body);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.add-chip-btn:hover { background: var(--text-primary); }
+
+.custom-chip {
+    position: relative;
+    padding-right: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chip-remove {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--border-strong);
+    padding: 0;
+    line-height: 1;
+}
+
+.chip-remove:hover { color: var(--text-primary); }
