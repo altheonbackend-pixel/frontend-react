@@ -263,9 +263,17 @@ body:has(.th-stage--full) .page-content {
     background: #111;
 }
 
+/* `contain` keeps the full face visible even when the tile is narrow
+   (e.g. when the consultation form panel is open). Stream's default
+   is cover, which crops aggressively when the aspect ratio changes. */
 .th-video video {
     background: #000;
-    object-fit: cover;
+    object-fit: contain !important;
+}
+
+.th-video .str-video__participant-view video,
+.th-video .str-video__video {
+    object-fit: contain !important;
 }
 
 /* Participant name badge — Stream renders the name as a small chip */
@@ -300,6 +308,8 @@ body:has(.th-stage--full) .page-content {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
     box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
 }
 
