@@ -1,5 +1,7 @@
 // Full-page wrapper for /telehealth/:appointmentId.
-// Doctor uses this when joining a visit from the appointment row.
+// Doctor (or patient on /patient/telehealth/:id) uses this to join a visit.
+// The actual UI is rendered by <TelehealthCall/>, which is position:fixed and
+// covers the app sidebar/header for an immersive call experience.
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,18 +16,18 @@ export function TelehealthRoom() {
     const { userType } = useAuth();
     const [minimized, setMinimized] = useState(false);
     const id = Number(appointmentId);
-    if (!id) return <div className="page-wrapper">{t('telehealth.bad_id', 'Invalid appointment.')}</div>;
+    if (!id) {
+        return <div className="page-wrapper">{t('telehealth.bad_id', 'Invalid appointment.')}</div>;
+    }
 
     return (
-        <div className="page-wrapper" style={{ paddingTop: 0 }}>
-            <TelehealthCall
-                appointmentId={id}
-                role={userType === 'patient' ? 'patient' : 'doctor'}
-                minimized={minimized}
-                onToggleMinimize={() => setMinimized(m => !m)}
-                onEnd={() => navigate('/appointments')}
-            />
-        </div>
+        <TelehealthCall
+            appointmentId={id}
+            role={userType === 'patient' ? 'patient' : 'doctor'}
+            minimized={minimized}
+            onToggleMinimize={() => setMinimized(m => !m)}
+            onEnd={() => navigate(userType === 'patient' ? '/patient/appointments' : '/appointments')}
+        />
     );
 }
 
