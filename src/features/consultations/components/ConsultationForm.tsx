@@ -73,9 +73,12 @@ interface ConsultationFormProps {
     consultationToEdit?: Consultation | null;
     /** True when opened from start_consultation — treat as new but PUT to existing draft id */
     isDraft?: boolean;
+    /** When true, render inline (no Drawer wrapper) — used by the telehealth side panel
+        where the host already provides chrome/header/close. */
+    embedded?: boolean;
 }
 
-const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false }: ConsultationFormProps) => {
+const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false, embedded = false }: ConsultationFormProps) => {
     const { formatTime, formatDayMonth } = useFormatDateTime();
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
@@ -792,13 +795,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 setDraftPrompt(null);
             }}
         />
-        <Drawer
-            open
-            onClose={handleCancel}
-            title={isEditing && !isDraft ? t('consultation.title_edit') : t('consultation.title_add')}
-            size="lg"
-            dirty={isDirty || failedRx.length > 0}
-            footer={
+        {(() => {
+            const footerButtons = (
                 <>
                     <button type="button" onClick={handleCancel} className="cancel-button" disabled={isSubmitting}>
                         {t('consultation.cancel')}
@@ -818,8 +816,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         </button>
                     )}
                 </>
-            }
-        >
+            );
+            const formBody = (
             <form id="consultation-form" onSubmit={handleSubmit(onSubmit)} className="form">
                 {/* Consultation date */}
                 <div className="form-group">
@@ -1327,7 +1325,30 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     }
                 />
             </form>
-        </Drawer>
+            );
+
+            if (embedded) {
+                return (
+                    <div className="consultation-form-embedded">
+                        <div className="consultation-form-embedded__body">{formBody}</div>
+                        <div className="consultation-form-embedded__footer">{footerButtons}</div>
+                    </div>
+                );
+            }
+
+            return (
+                <Drawer
+                    open
+                    onClose={handleCancel}
+                    title={isEditing && !isDraft ? t('consultation.title_edit') : t('consultation.title_add')}
+                    size="lg"
+                    dirty={isDirty || failedRx.length > 0}
+                    footer={footerButtons}
+                >
+                    {formBody}
+                </Drawer>
+            );
+        })()}
         </>
     );
 };

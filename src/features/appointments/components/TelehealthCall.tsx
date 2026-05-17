@@ -356,9 +356,9 @@ function CallStageInner({ sdk, join, role, minimized, onToggleMinimize, onEnd, j
                 </div>
 
                 {role === 'doctor' && notesOpen && !minimized && join.patient_id && (
-                    <aside className="th-panel" aria-label={t('telehealth.notes_panel', 'Consultation notes')}>
+                    <aside className="th-panel" aria-label={t('telehealth.notes_panel', 'Consultation form')}>
                         <div className="th-panel__head">
-                            <h3>{t('telehealth.notes_title', 'Consultation notes')}</h3>
+                            <h3>{t('telehealth.notes_title', 'Consultation form')}</h3>
                             <button
                                 type="button"
                                 className="th-iconbtn th-iconbtn--ghost"
@@ -371,9 +371,10 @@ function CallStageInner({ sdk, join, role, minimized, onToggleMinimize, onEnd, j
                         <div className="th-panel__body">
                             <Suspense fallback={<div className="th-panel__loading">{t('common.loading', 'Loading…')}</div>}>
                                 <ConsultationForm
+                                    embedded
                                     patientId={String(join.patient_id)}
                                     onSuccess={() => {
-                                        toast.success(t('telehealth.notes_saved', 'Notes saved.'));
+                                        toast.success(t('telehealth.notes_saved', 'Consultation saved.'));
                                     }}
                                     onCancel={() => setNotesOpen(false)}
                                 />
@@ -424,7 +425,7 @@ function CallStageInner({ sdk, join, role, minimized, onToggleMinimize, onEnd, j
                             aria-pressed={notesOpen}
                         >
                             <NotesIcon />
-                            <span>{notesOpen ? t('telehealth.close_notes', 'Hide notes') : t('telehealth.open_notes', 'Open notes')}</span>
+                            <span>{notesOpen ? t('telehealth.close_notes', 'Hide consultation form') : t('telehealth.open_notes', 'Open consultation form')}</span>
                         </button>
                     </div>
                 )}
