@@ -3179,3 +3179,93 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   CR-P4-05: Print stylesheet — hides the app shell and renders the
+   `.print-target` surface cleanly. Mark non-print chrome with `.no-print`.
+   ────────────────────────────────────────────────────────────────────── */
+@media print {
+  html, body, #root {
+    height: auto !important;
+    background: white !important;
+    color: black !important;
+  }
+  .app-sidebar, .app-sidebar-overlay,
+  .app-mobile-topbar, .doctor-bottom-nav,
+  .no-print, [aria-label="Toggle navigation"] {
+    display: none !important;
+  }
+  .app-main, .page-content, main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .print-target {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 1cm !important;
+    background: white !important;
+    color: black !important;
+  }
+  .print-target h1, .print-target h2, .print-target h3 {
+    color: black !important;
+    page-break-after: avoid;
+  }
+  .print-target a { color: black !important; text-decoration: underline; }
+  .print-target table { page-break-inside: auto; border-collapse: collapse; }
+  .print-target tr { page-break-inside: avoid; page-break-after: auto; }
+  .print-target .card,
+  .print-target .section-card {
+    box-shadow: none !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    border: 1px solid #d1d5db !important;
+    page-break-inside: avoid;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  button, .btn,
+  input[type="checkbox"], input[type="radio"] { display: none !important; }
+  .print-target button.show-on-print,
+  .print-target .btn.show-on-print { display: inline-block !important; }
+  @page { size: letter; margin: 0.75in; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   CR-P4-03: Skeleton shimmer animation — used by <Skeleton>.
+   ────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  display: block;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   CR-P4-04: Focus visibility — every interactive element gets a
+   consistent 2px focus ring keyed off the brand --border-focus token.
+   Override anywhere with `outline: 2px solid var(--border-focus)`.
+   ────────────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--border-focus, #818cf8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Drug-autocomplete dropdown — small style polish so the popover
+   reads as a card, not a raw list. */
+.drug-autocomplete-list li:hover,
+.drug-autocomplete-list li:focus {
+  background: var(--accent-lighter, #f3f0ff);
+}

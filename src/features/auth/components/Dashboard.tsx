@@ -63,15 +63,15 @@ interface DashboardData {
 
 type TaskTab = 'labs' | 'requests';
 
-function getGreeting(timezone?: string | null): string {
+function getGreeting(t: (k: string, d: string) => string, timezone?: string | null): string {
     const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const hour = parseInt(
         new Intl.DateTimeFormat('en', { hour: 'numeric', hour12: false, hourCycle: 'h23', timeZone: tz }).format(new Date()),
         10,
     );
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dashboard.greeting.morning', 'Good morning');
+    if (hour < 17) return t('dashboard.greeting.afternoon', 'Good afternoon');
+    return t('dashboard.greeting.evening', 'Good evening');
 }
 
 function fmtApptTime(iso: string) {
@@ -168,11 +168,11 @@ function Dashboard() {
         try {
             setActionLoading(true);
             await api.post(`/appointments/${apptId}/approve/`, {});
-            toast.success('Appointment approved.');
+            toast.success(t('dashboard.toast.appointment_approved', 'Appointment approved.'));
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
             qc.invalidateQueries({ queryKey: ['appointments'] });
         } catch {
-            toast.error('Failed to approve.');
+            toast.error(t('dashboard.toast.approve_failed', 'Failed to approve.'));
             qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
         } finally {
             setActionLoading(false);
@@ -187,7 +187,7 @@ function Dashboard() {
             <div className="db-header">
                 <div>
                     <h1 className="db-greeting">
-                        {getGreeting(timezone)}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.
+                        {getGreeting(t, timezone)}{doctorName ? `, Dr. ${doctorName.split(' ')[0]}` : ''}.
                     </h1>
                     <div className="db-date">{todayStr}</div>
                 </div>
@@ -203,15 +203,15 @@ function Dashboard() {
                         <span className="vital-alerts-icon">⚠</span>
                         <div className="vital-alerts-text">
                             {single
-                                ? <><strong>{single.name}</strong> has a recent vital alert.</>
-                                : <><strong>{count} patients</strong> have recent vital alerts in the last 30 days.</>
+                                ? <><strong>{single.name}</strong> {t('dashboard.vital_alerts.single', 'has a recent vital alert.')}</>
+                                : <><strong>{count} {t('common.patients', 'patients')}</strong> {t('dashboard.vital_alerts.multi', 'have recent vital alerts in the last 30 days.')}</>
                             }
                         </div>
                         {single
-                            ? <Link to={`/patients/${single.id}`} className="vital-alerts-link">View Patient →</Link>
-                            : <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">Review →</Link>
+                            ? <Link to={`/patients/${single.id}`} className="vital-alerts-link">{t('dashboard.vital_alerts.view_patient', 'View Patient →')}</Link>
+                            : <Link to="/patients?vital_alert_recent=true" className="vital-alerts-link">{t('dashboard.vital_alerts.review', 'Review →')}</Link>
                         }
-                        <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label="Dismiss">✕</button>
+                        <button className="vital-alerts-dismiss" onClick={() => setVitalAlertDismissed(true)} aria-label={t('common.dismiss', 'Dismiss')}>✕</button>
                     </div>
                 );
             })()}
@@ -220,12 +220,12 @@ function Dashboard() {
             <div className="db-kpi-row">
                 <Link to="/patients" className="db-kpi">
                     <div className="db-kpi-num">{isLoading ? '—' : stats?.total_patients ?? 0}</div>
-                    <div className="db-kpi-label">Total Patients</div>
+                    <div className="db-kpi-label">{t('dashboard.kpi.total_patients', 'Total Patients')}</div>
                 </Link>
 
                 <Link to="/appointments" className="db-kpi">
                     <div className="db-kpi-num">{isLoading ? '—' : stats?.scheduled_appointments ?? 0}</div>
-                    <div className="db-kpi-label">Upcoming Appointments</div>
+                    <div className="db-kpi-label">{t('dashboard.kpi.upcoming_appointments', 'Upcoming Appointments')}</div>
                 </Link>
 
                 <Link
@@ -235,7 +235,7 @@ function Dashboard() {
                     <div className={`db-kpi-num${(stats?.pending_referrals ?? 0) > 0 ? ' db-kpi-num--warn' : ''}`}>
                         {isLoading ? '—' : stats?.pending_referrals ?? 0}
                     </div>
-                    <div className="db-kpi-label">Pending Referrals</div>
+                    <div className="db-kpi-label">{t('dashboard.kpi.pending_referrals', 'Pending Referrals')}</div>
                 </Link>
 
                 <Link
@@ -245,15 +245,15 @@ function Dashboard() {
                     <div className={`db-kpi-num${(stats?.pending_lab_reviews ?? 0) > 0 ? ' db-kpi-num--warn' : ''}`}>
                         {isLoading ? '—' : stats?.pending_lab_reviews ?? 0}
                     </div>
-                    <div className="db-kpi-label">Lab Reviews</div>
+                    <div className="db-kpi-label">{t('dashboard.kpi.lab_reviews', 'Lab Reviews')}</div>
                 </Link>
             </div>
 
             {/* ── Quick actions ── */}
             <div className="db-quick">
-                <Link to="/patients/add"  className="btn btn-primary btn-sm">+ New Patient</Link>
-                <Link to="/appointments"  className="btn btn-secondary btn-sm">+ Appointment</Link>
-                <Link to="/referrals"     className="btn btn-secondary btn-sm">+ Referral</Link>
+                <Link to="/patients/add"  className="btn btn-primary btn-sm">{t('dashboard.quick.new_patient', '+ New Patient')}</Link>
+                <Link to="/appointments"  className="btn btn-secondary btn-sm">{t('dashboard.quick.new_appointment', '+ Appointment')}</Link>
+                <Link to="/referrals"     className="btn btn-secondary btn-sm">{t('dashboard.quick.new_referral', '+ Referral')}</Link>
             </div>
 
             {/* ── New-doctor welcome ── */}
@@ -262,7 +262,7 @@ function Dashboard() {
                     <div className="db-welcome-icon">🏥</div>
                     <div className="db-welcome-title">{t('dashboard.empty.title', 'Welcome to Altheon Connect!')}</div>
                     <div className="db-welcome-sub">{t('dashboard.empty.subtitle', "You're all set up. Start by adding your first patient.")}</div>
-                    <Link to="/patients/add" className="btn btn-primary">Add your first patient →</Link>
+                    <Link to="/patients/add" className="btn btn-primary">{t('dashboard.empty.cta', 'Add your first patient →')}</Link>
                 </div>
             )}
 
@@ -273,14 +273,14 @@ function Dashboard() {
                     {/* Today's Schedule */}
                     <div className="db-panel">
                         <div className="db-panel-head">
-                            <span className="db-panel-title">Upcoming</span>
-                            <Link to="/appointments" className="db-panel-link">View all →</Link>
+                            <span className="db-panel-title">{t('dashboard.panel.upcoming', 'Upcoming')}</span>
+                            <Link to="/appointments" className="db-panel-link">{t('common.view_all', 'View all →')}</Link>
                         </div>
 
                         {isLoading ? (
-                            <div className="db-schedule-empty">Loading…</div>
+                            <div className="db-schedule-empty">{t('common.loading', 'Loading…')}</div>
                         ) : upcomingAppointments.length === 0 ? (
-                            <div className="db-schedule-empty">No upcoming appointments</div>
+                            <div className="db-schedule-empty">{t('dashboard.panel.no_upcoming', 'No upcoming appointments')}</div>
                         ) : (
                             <ul className="db-schedule-list">
                                 {upcomingAppointments.map(a => {
@@ -300,7 +300,7 @@ function Dashboard() {
                                                         {a.patient_details.first_name} {a.patient_details.last_name}
                                                     </Link>
                                                 ) : (
-                                                    <span className="db-schedule-patient">Patient</span>
+                                                    <span className="db-schedule-patient">{t('common.patient', 'Patient')}</span>
                                                 )}
                                                 <div className="db-schedule-reason">{a.reason_for_appointment}</div>
                                             </div>
@@ -315,7 +315,7 @@ function Dashboard() {
                     {/* Needs Attention */}
                     <div className="db-panel">
                         <div className="db-panel-head">
-                            <span className="db-panel-title">Needs Attention</span>
+                            <span className="db-panel-title">{t('dashboard.panel.needs_attention', 'Needs Attention')}</span>
                         </div>
 
                         <div className="db-tabs">
@@ -326,7 +326,9 @@ function Dashboard() {
                                     className={`db-tab-btn${activeTaskTab === tab ? ' active' : ''}`}
                                     onClick={() => setActiveTaskTab(tab)}
                                 >
-                                    {tab === 'labs' ? 'Lab Reviews' : 'Appt Requests'}
+                                    {tab === 'labs'
+                                        ? t('dashboard.tab.lab_reviews', 'Lab Reviews')
+                                        : t('dashboard.tab.appt_requests', 'Appt Requests')}
                                     {taskTabCounts[tab] > 0 && (
                                         <span className="db-tab-count">{taskTabCounts[tab]}</span>
                                     )}

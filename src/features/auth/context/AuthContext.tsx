@@ -138,6 +138,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 });
                 setProfile(profileData);
                 localStorage.setItem('user_type', 'doctor');
+                // Apply the doctor's saved locale (EN | FR) on session restore.
+                const savedLocale = (profileData?.locale || '').toLowerCase();
+                if (savedLocale === 'fr' || savedLocale === 'en') {
+                    const { default: i18n } = await import('../../../i18n');
+                    if (!i18n.language?.startsWith(savedLocale)) {
+                        await i18n.changeLanguage(savedLocale);
+                    }
+                }
             }
         } catch {
             // 401 after refresh attempt failed, or network error — treat as logged out.
@@ -230,6 +238,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // Fetch full doctor profile now that cookies are set
             const profileRes = await api.get('/profile/');
             setProfile(profileRes.data);
+            // Apply the doctor's saved locale (EN | FR) immediately on login.
+            const savedLocale = (profileRes.data?.locale || '').toLowerCase();
+            if (savedLocale === 'fr' || savedLocale === 'en') {
+                const { default: i18n } = await import('../../../i18n');
+                if (!i18n.language?.startsWith(savedLocale)) {
+                    await i18n.changeLanguage(savedLocale);
+                }
+            }
             navigate('/dashboard');
         }
     };

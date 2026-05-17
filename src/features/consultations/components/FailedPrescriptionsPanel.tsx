@@ -7,9 +7,18 @@ export interface RxItem {
     dosage: string;
     frequency: string;
     duration_days: number | null;
-    consultation: number;
-    patient: string;
+    consultation?: number;
+    patient?: string;
+    // Phase 1 fields — preferred when present.
+    patient_id?: string;
+    consultation_id?: number;
+    rxnorm_rxcui?: string;
+    custom_drug_name?: string;
     override_allergy_warning?: boolean;
+    safety_override?: {
+        allergy_overrides?: { allergen: string; matched_value: string; reason: string }[];
+        interaction_overrides?: { existing_drug_rxcui: string; reason: string }[];
+    };
 }
 
 interface Props {

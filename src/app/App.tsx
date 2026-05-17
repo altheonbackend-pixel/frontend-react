@@ -48,6 +48,12 @@ const EditProfile       = lazy(() => import('../features/profile/components/Edit
 const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
+const Inbox             = lazy(() => import('../features/inbox/Inbox'));
+const OverdueReports    = lazy(() => import('../features/inbox/OverdueReports'));
+const PatientMessages   = lazy(() => import('../features/messages/PatientMessages'));
+const SmartPhraseEditor = lazy(() => import('../features/profile/components/SmartPhraseEditor'));
+const SecuritySettings  = lazy(() => import('../features/profile/components/SecuritySettings'));
+const TelehealthRoom    = lazy(() => import('../features/appointments/components/TelehealthRoom'));
 const PatientDashboard     = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
 const PatientAppointments  = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
 const PatientHealthRecord  = lazy(() => import('../features/patient-portal/components/PatientHealthRecord'));
@@ -245,6 +251,13 @@ function App() {
                             <Route path="/profile"             element={<ErrorBoundary resetKey={location.pathname}><Profile /></ErrorBoundary>} />
                             <Route path="/edit-profile"        element={<ErrorBoundary resetKey={location.pathname}><EditProfile /></ErrorBoundary>} />
                             <Route path="/my-stats"            element={<ErrorBoundary resetKey={location.pathname}><Statistics /></ErrorBoundary>} />
+                            {/* Phase 5 new feature routes */}
+                            <Route path="/inbox"               element={<ErrorBoundary resetKey={location.pathname}><Inbox /></ErrorBoundary>} />
+                            <Route path="/reports/overdue"     element={<ErrorBoundary resetKey={location.pathname}><OverdueReports /></ErrorBoundary>} />
+                            <Route path="/messages"            element={<ErrorBoundary resetKey={location.pathname}><PatientMessages /></ErrorBoundary>} />
+                            <Route path="/profile/smart-phrases" element={<ErrorBoundary resetKey={location.pathname}><SmartPhraseEditor /></ErrorBoundary>} />
+                            <Route path="/profile/security"    element={<ErrorBoundary resetKey={location.pathname}><SecuritySettings /></ErrorBoundary>} />
+                            <Route path="/telehealth/:appointmentId" element={<ErrorBoundary resetKey={location.pathname}><TelehealthRoom /></ErrorBoundary>} />
                         </Route>
                     </Route>
 

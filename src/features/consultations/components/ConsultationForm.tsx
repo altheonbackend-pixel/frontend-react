@@ -12,6 +12,8 @@ import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import { useNavigationBlocker } from '../../../shared/hooks/useNavigationBlocker';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
 import { FailedPrescriptionsPanel, type RxItem } from './FailedPrescriptionsPanel';
+import { DrugAutocomplete, type DrugChoice, type SafetyResult } from './DrugAutocomplete';
+import { SafetyAlertModal } from './SafetyAlertModal';
 import '../styles/ConsultationForm.css';
 
 // ICD-10 suggestions come from the backend API (/api/icd10/search/?q=...) — 179+ codes
@@ -215,9 +217,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         enabled: !consultationToEdit || consultationToEdit?.consultation_status === 'amended',
     });
 
-    // Prescriptions for this visit — compact multi-medicine adder
-    type RxDraft = { medication_name: string; dosage: string; frequency: string; duration_days: string; overrideAllergy?: boolean };
-    const emptyRxDraft = (): RxDraft => ({ medication_name: '', dosage: '', frequency: 'once_daily', duration_days: '' });
+    // Prescriptions for this visit — compact multi-medicine adder.
+    // CR-P0-01 / CR-P0-02 / CR-P0-03: rxnorm_rxcui carries the coded drug
+    // identity (set by DrugAutocomplete picker). When present, the backend
+    // runs allergy + DDI + dose safety checks via the medications service.
+    // safety_override carries the doctor's documented justification for
+    // bypassing a blocking alert.
+    type SafetyOverridePayload = {
+        allergy_overrides?: { allergen: string; matched_value: string; reason: string }[];
+        interaction_overrides?: { existing_drug_rxcui: string; reason: string }[];
+    };
+    type RxDraft = {
+        medication_name: string;
+        rxnorm_rxcui?: string;
+        dosage: string;
+        frequency: string;
+        duration_days: string;
+        overrideAllergy?: boolean;
+        safety_override?: SafetyOverridePayload;
+    };
+    const emptyRxDraft = (): RxDraft => ({ medication_name: '', rxnorm_rxcui: '', dosage: '', frequency: 'once_daily', duration_days: '' });
     const [rxList, setRxList] = useState<RxDraft[]>([]);
     const [rxDraft, setRxDraft] = useState<RxDraft>(emptyRxDraft());
     const [failedRx, setFailedRx] = useState<RxItem[]>([]);
@@ -271,18 +290,64 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
     const updateProc = (id: string, field: keyof Omit<ProcedureDraft, 'id'>, value: string) =>
         setProcList(p => p.map(x => x.id === id ? { ...x, [field]: value } : x));
 
+    // Phase-1 RxNorm-coded safety preview, shown when the doctor finishes
+    // picking a drug. If blocking alerts come back, the SafetyAlertModal
+    // captures the override reason and adds the Rx with the override
+    // payload that the backend will record as an audit row.
+    const [pendingSafety, setPendingSafety] = useState<{
+        drug: DrugChoice; safety: SafetyResult; rx: RxDraft;
+    } | null>(null);
+
     const pushRxToList = () => {
         if (!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()) return;
-        const medLower = rxDraft.medication_name.trim().toLowerCase();
-        const conflicts = drugAllergies.filter(a =>
-            a.allergen.toLowerCase().includes(medLower) || medLower.includes(a.allergen.toLowerCase())
-        );
-        if (conflicts.length > 0) {
-            setAllergyOverrideDialog({ rx: rxDraft, conflicts });
-            return;
+
+        // If the drug is coded via RxNorm AND the safety preview already
+        // ran (returned via onDrugSelect), the modal-or-skip decision was
+        // made there. For legacy free-text names, fall back to the prior
+        // name-fuzzy allergy check.
+        if (!rxDraft.rxnorm_rxcui) {
+            const medLower = rxDraft.medication_name.trim().toLowerCase();
+            const conflicts = drugAllergies.filter(a =>
+                a.allergen.toLowerCase().includes(medLower) || medLower.includes(a.allergen.toLowerCase())
+            );
+            if (conflicts.length > 0) {
+                setAllergyOverrideDialog({ rx: rxDraft, conflicts });
+                return;
+            }
         }
         setRxList(prev => [...prev, { ...rxDraft }]);
         setRxDraft(emptyRxDraft());
+    };
+
+    const handleDrugSelect = (drug: DrugChoice | null, safety: SafetyResult | null) => {
+        if (!drug) {
+            setRxDraft(p => ({ ...p, medication_name: '', rxnorm_rxcui: '' }));
+            return;
+        }
+        const updatedDraft: RxDraft = {
+            ...rxDraft,
+            medication_name: drug.name,
+            rxnorm_rxcui: drug.rxcui,
+        };
+        setRxDraft(updatedDraft);
+        // If the live safety preview returned alerts, prompt the doctor
+        // with the override modal NOW — before they fill in dose.
+        if (safety && (safety.allergy_alerts.length || safety.interaction_alerts.length)) {
+            setPendingSafety({ drug, safety, rx: updatedDraft });
+        }
+    };
+
+    const handleSafetyModalConfirm = (payload: SafetyOverridePayload) => {
+        if (!pendingSafety) return;
+        setRxDraft(p => ({ ...p, safety_override: payload }));
+        setPendingSafety(null);
+    };
+
+    const handleSafetyModalCancel = () => {
+        if (!pendingSafety) return;
+        // User chose to NOT prescribe — clear the picker.
+        setRxDraft(p => ({ ...p, medication_name: '', rxnorm_rxcui: '', safety_override: undefined }));
+        setPendingSafety(null);
     };
 
     const confirmAllergyOverride = () => {
@@ -395,13 +460,16 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 let savedRx: SavedRx[] = [];
                 if (finalRxList.length > 0) {
                     const rxPayloads: RxItem[] = finalRxList.map(rx => ({
-                        patient: patientId,
-                        consultation: consultationId,
+                        patient_id: patientId,
+                        consultation_id: consultationId,
+                        rxnorm_rxcui: rx.rxnorm_rxcui ?? '',
+                        custom_drug_name: rx.rxnorm_rxcui ? '' : rx.medication_name,
                         medication_name: rx.medication_name,
                         dosage: rx.dosage,
                         frequency: rx.frequency,
                         duration_days: rx.duration_days ? parseInt(rx.duration_days, 10) : null,
                         ...(rx.overrideAllergy ? { override_allergy_warning: true } : {}),
+                        ...(rx.safety_override ? { safety_override: rx.safety_override } : {}),
                     }));
                     const results = await Promise.allSettled(
                         rxPayloads.map(rx => api.post('/prescriptions/', rx))
@@ -690,6 +758,17 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             onClose={() => setAllergyOverrideDialog(null)}
             onConfirm={confirmAllergyOverride}
         />
+
+        {/* CR-P0-02 / CR-P0-01: RxNorm-backed safety alert modal. Renders
+            when the live drug-safety preview returns allergy or DDI hits. */}
+        {pendingSafety && (
+            <SafetyAlertModal
+                drugName={pendingSafety.drug.name}
+                safety={pendingSafety.safety}
+                onCancel={handleSafetyModalCancel}
+                onConfirm={handleSafetyModalConfirm}
+            />
+        )}
         <Dialog
             open={!!draftPrompt}
             tone="info"
@@ -1050,19 +1129,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                             </div>
                         )}
 
-                        <div className="rx-adder">
-                            <input
-                                type="text"
-                                className="rx-adder-input"
-                                placeholder="Medication name"
-                                value={rxDraft.medication_name}
-                                onChange={e => setRxDraft(p => ({ ...p, medication_name: e.target.value }))}
-                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
-                            />
+                        <div className="rx-adder" style={{ flexWrap: 'wrap' }}>
+                            {/* CR-P0-02: RxNorm-backed drug picker. Replaces free-text
+                                medication name. Live safety preview runs on select. */}
+                            <div style={{ flex: '1 1 240px', minWidth: 240 }}>
+                                <DrugAutocomplete
+                                    patientId={patientId}
+                                    onSelect={handleDrugSelect}
+                                    placeholder={t('drug_autocomplete.placeholder', 'Search drug by name (e.g. amoxicillin)…')}
+                                />
+                                {rxDraft.rxnorm_rxcui && (
+                                    <small style={{ color: 'var(--text-muted, #6b7280)', fontSize: '0.7rem' }}>
+                                        RxCUI: {rxDraft.rxnorm_rxcui}
+                                        {rxDraft.safety_override && ' · override documented'}
+                                    </small>
+                                )}
+                            </div>
                             <input
                                 type="text"
                                 className="rx-adder-input rx-adder-dosage"
-                                placeholder="Dosage"
+                                placeholder={t('rx.dosage_placeholder', 'Dosage')}
                                 value={rxDraft.dosage}
                                 onChange={e => setRxDraft(p => ({ ...p, dosage: e.target.value }))}
                                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), pushRxToList())}
@@ -1072,14 +1158,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 value={rxDraft.frequency}
                                 onChange={e => setRxDraft(p => ({ ...p, frequency: e.target.value }))}
                             >
-                                <option value="once">Once</option>
-                                <option value="once_daily">Once daily</option>
-                                <option value="twice_daily">Twice daily</option>
-                                <option value="three_times_daily">3× daily</option>
-                                <option value="four_times_daily">4× daily</option>
-                                <option value="as_needed">PRN</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="other">Other</option>
+                                <option value="once">{t('rx.freq.once', 'Once')}</option>
+                                <option value="once_daily">{t('rx.freq.qd', 'Once daily (QD)')}</option>
+                                <option value="twice_daily">{t('rx.freq.bid', 'Twice daily (BID)')}</option>
+                                <option value="three_times_daily">{t('rx.freq.tid', 'Three times daily (TID)')}</option>
+                                <option value="four_times_daily">{t('rx.freq.qid', 'Four times daily (QID)')}</option>
+                                <option value="every_4h">{t('rx.freq.q4h', 'Every 4 hours (Q4H)')}</option>
+                                <option value="every_6h">{t('rx.freq.q6h', 'Every 6 hours (Q6H)')}</option>
+                                <option value="every_8h">{t('rx.freq.q8h', 'Every 8 hours (Q8H)')}</option>
+                                <option value="every_12h">{t('rx.freq.q12h', 'Every 12 hours (Q12H)')}</option>
+                                <option value="bedtime">{t('rx.freq.hs', 'At bedtime (HS)')}</option>
+                                <option value="as_needed">{t('rx.freq.prn', 'As needed (PRN)')}</option>
+                                <option value="weekly">{t('rx.freq.weekly', 'Weekly')}</option>
+                                <option value="other">{t('common.other', 'Other')}</option>
                             </select>
                             <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: '0 0 76px', minWidth: '66px' }}>
                                 <input
