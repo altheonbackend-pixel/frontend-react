@@ -103,6 +103,8 @@ export function TelehealthCall({ appointmentId, role, minimized, onToggleMinimiz
         if (!creds?.configured || !join?.can_join) return;
         (async () => {
             try {
+                // Stream ships its own stylesheet; without it, layouts render unstyled.
+                await import('@stream-io/video-react-sdk/dist/css/styles.css');
                 const mod = await import('@stream-io/video-react-sdk');
                 setSdk(mod);
             } catch {
@@ -290,15 +292,16 @@ interface CallStageInnerProps {
 
 function CallStageInner({ sdk, join, role, minimized, onToggleMinimize, onEnd, joined }: CallStageInnerProps) {
     const { t } = useTranslation();
-    const { SpeakerLayout, useCallStateHooks } = sdk;
+    const { SpeakerLayout, PaginatedGridLayout, useCallStateHooks } = sdk;
     const [notesOpen, setNotesOpen] = useState(false);
     const [confirmEnd, setConfirmEnd] = useState(false);
 
-    const { useMicrophoneState, useCameraState, useScreenShareState, useCallCallingState } = useCallStateHooks();
+    const { useMicrophoneState, useCameraState, useScreenShareState, useCallCallingState, useHasOngoingScreenShare } = useCallStateHooks();
     const mic = useMicrophoneState();
     const cam = useCameraState();
     const screen = useScreenShareState();
     const callingState = useCallCallingState?.();
+    const hasScreenShare = useHasOngoingScreenShare?.() ?? false;
 
     const remoteName = role === 'doctor' ? join.patient_name : `Dr. ${join.doctor_name}`;
     const subtitle = role === 'doctor' ? join.reason : t('telehealth.with_doctor', 'Telehealth visit');
@@ -339,7 +342,11 @@ function CallStageInner({ sdk, join, role, minimized, onToggleMinimize, onEnd, j
             {/* Main stage: video + optional side panel */}
             <div className="th-main">
                 <div className="th-video">
-                    <SpeakerLayout participantsBarPosition={minimized ? null : 'bottom'} />
+                    {hasScreenShare ? (
+                        <SpeakerLayout participantsBarPosition={minimized ? null : 'bottom'} />
+                    ) : (
+                        <PaginatedGridLayout groupSize={minimized ? 1 : 4} excludeLocalParticipant={false} pageArrowsVisible={false} />
+                    )}
                     {callingState && callingState !== 'joined' && (
                         <div className="th-connecting">
                             <div className="th-spinner" aria-hidden />

@@ -31,7 +31,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    /* Must beat .app-sidebar (z-index: 100), bottom nav (~90), and Cmd+K palette */
+    z-index: 9000;
 }
 
 .th-shell--center {
@@ -101,12 +102,28 @@
 .th-stage {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    /* Must beat .app-sidebar (z-index: 100), bottom nav, and floating overlays */
+    z-index: 9000;
     display: grid;
     grid-template-rows: auto 1fr auto;
     background: var(--th-bg);
     color: var(--th-text);
     overflow: hidden;
+}
+
+/* While telehealth is mounted, suppress the app shell behind it — even if
+   some ancestor created a stacking context the stage can't escape. */
+body:has(.th-stage--full) .app-sidebar,
+body:has(.th-stage--full) .app-sidebar-overlay,
+body:has(.th-stage--full) .app-mobile-topbar,
+body:has(.th-stage--full) .doctor-bottom-nav,
+body:has(.th-stage--full) .patient-bottom-nav {
+    display: none !important;
+}
+body:has(.th-stage--full) .app-main,
+body:has(.th-stage--full) .page-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
 }
 
 .th-stage--full {
@@ -119,10 +136,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
     padding: 0.875rem 1.25rem;
-    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
-    backdrop-filter: blur(6px);
-    z-index: 2;
+    background: rgba(11, 15, 23, 0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--th-border);
+    z-index: 5;
+    position: relative;
 }
 
 .th-topbar__left {
@@ -220,18 +240,41 @@
     min-height: 0;
     background: #000;
     overflow: hidden;
+    display: flex;
 }
 
-/* Make Stream's SpeakerLayout fill the available area. */
+/* Make Stream's layouts fill the available area. */
+.th-video > .str-video__paginated-grid-layout,
 .th-video > .str-video__speaker-layout,
-.th-video .str-video__speaker-layout__wrapper,
+.th-video [class*="str-video__paginated-grid-layout"],
 .th-video [class*="str-video__speaker-layout"] {
     width: 100%;
     height: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Round participant tile corners and give them subtle separation. */
+.th-video .str-video__participant-view {
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #111;
 }
 
 .th-video video {
     background: #000;
+    object-fit: cover;
+}
+
+/* Participant name badge — Stream renders the name as a small chip */
+.th-video .str-video__participant-details__name {
+    background: rgba(0, 0, 0, 0.55) !important;
+    color: #fff !important;
+    border-radius: 8px;
+    padding: 2px 8px !important;
+    font-size: 0.8rem !important;
 }
 
 .th-connecting {
@@ -301,10 +344,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1rem 1.25rem;
-    background: linear-gradient(0deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 100%);
-    backdrop-filter: blur(6px);
-    z-index: 2;
+    padding: 0.875rem 1.25rem;
+    background: rgba(11, 15, 23, 0.95);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--th-border);
+    z-index: 5;
+    position: relative;
 }
 
 .th-controls__group {
