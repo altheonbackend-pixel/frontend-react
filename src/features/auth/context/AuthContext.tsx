@@ -56,10 +56,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPatientProfile(null);
         setUserType(null);
         setIsAuthenticated(false);
+
+        // Don't redirect away from public pages. logout() is triggered both by
+        // explicit user action AND by the api.ts refresh-failure interceptor — in
+        // the latter case the user may just be a first-time visitor on the
+        // landing page who has no session at all, and a redirect to /login here
+        // would hijack their visit.
+        const { pathname } = window.location;
+        const patientPublicPaths = ['/patient/login', '/patient/register', '/patient/claim', '/patient/forgot-password', '/patient/reset-password', '/patient/complete-profile'];
+        const doctorPublicPaths = ['/', '/login', '/register', '/verify-email', '/complete-profile', '/forgot-password', '/reset-password'];
+        if (patientPublicPaths.includes(pathname) || doctorPublicPaths.includes(pathname)) {
+            return;
+        }
+
         // If the user is currently on any /patient/* route, always send them to the patient login.
         // This prevents a stale user_type='doctor' in localStorage from redirecting a visitor
         // who is on /patient/login to /login when the token refresh fails on page load.
-        const isPatient = effectiveType === 'patient' || window.location.pathname.startsWith('/patient/');
+        const isPatient = effectiveType === 'patient' || pathname.startsWith('/patient/');
         navigate(isPatient ? '/patient/login' : '/login', { replace: true });
     }, [navigate, profile, userType]);
 
@@ -156,11 +169,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setIsAuthenticated(false);
 
             const { pathname } = window.location;
-            const patientPublicPaths = ['/patient/login', '/patient/claim', '/patient/forgot-password', '/patient/reset-password'];
-            const doctorPublicPaths = ['/login', '/register', '/verify-email', '/complete-profile', '/forgot-password', '/reset-password'];
+            const patientPublicPaths = ['/patient/login', '/patient/register', '/patient/claim', '/patient/forgot-password', '/patient/reset-password', '/patient/complete-profile'];
+            const doctorPublicPaths = ['/', '/login', '/register', '/verify-email', '/complete-profile', '/forgot-password', '/reset-password'];
 
             if (patientPublicPaths.includes(pathname) || doctorPublicPaths.includes(pathname)) {
-                // Already on the correct public page — do not redirect
+                // Already on the correct public page (incl. the marketing landing at `/`) — do not redirect
             } else if (pathname.startsWith('/patient/') || storedType === 'patient') {
                 navigate('/patient/login', { replace: true });
             } else if (storedType) {

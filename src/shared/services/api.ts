@@ -62,8 +62,14 @@ api.interceptors.response.use(
         // the login endpoint returns 401 for bad credentials (not expiry), and
         // the refresh endpoint itself can't be refreshed. Without this guard the
         // interceptor swallows the real error and surfaces "Refresh token not found."
+        //
+        // Also skip the session-probe endpoint /me/: it's the unauthenticated-by-default
+        // check that AuthContext fires on mount. A 401 there just means "no session"; it
+        // must propagate to AuthContext's catch (which handles the public-page case
+        // correctly) instead of triggering the global logout redirect — otherwise a fresh
+        // visitor landing on `/` gets booted to `/login`.
         const url: string = original.url ?? '';
-        if (url.includes('/login/') || url.includes('/token/refresh/')) {
+        if (url.includes('/login/') || url.includes('/token/refresh/') || url.endsWith('/me/')) {
             return Promise.reject(error);
         }
 
