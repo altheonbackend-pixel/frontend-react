@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="Altheon Connect">
+  <title>Altheon Connect</title>
+  <defs>
+    <filter id="ecg-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="blurred"/>
+      <feMerge>
+        <feMergeNode in="blurred"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- A-frame legs -->
+  <line x1="20" y1="3.5" x2="3.5" y2="37" stroke="#1a2332" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="20" y1="3.5" x2="36.5" y2="37" stroke="#1a2332" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- ECG glow + crisp trace -->
+  <polyline filter="url(#ecg-glow)"
+    points="10.5,22 12,22 13,20.5 14,22 15.5,22 16.5,25.5 17.5,9.5 18.5,27.5 19.5,22 21,22 22.5,20.5 23.5,19.5 25,22 29.5,22"
+    fill="none" stroke="#22d3ee" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+  <polyline
+    points="10.5,22 12,22 13,20.5 14,22 15.5,22 16.5,25.5 17.5,9.5 18.5,27.5 19.5,22 21,22 22.5,20.5 23.5,19.5 25,22 29.5,22"
+    fill="none" stroke="#22d3ee" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

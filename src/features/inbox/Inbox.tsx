@@ -1,13 +1,14 @@
 // CR-P2-07 — Doctor task inbox.
 //
-// Combines five action surfaces in one place:
+// Combines action surfaces in one place:
 //   1. Open clinical alerts (critical labs, drug-allergy conflicts)
 //   2. Care-plan tasks (open + overdue)
 //   3. Overdue follow-ups
 //   4. Overdue referrals
-//   5. Unread patient messages
+//   5. Open care gaps
 //
-// Each row is one-click navigable; bulk-actionable where it makes sense.
+// The patient-messages tab is intentionally disabled — the feature is
+// hidden platform-wide until it is built end-to-end on the patient side.
 
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,7 +20,7 @@ import { SkeletonList } from '../../shared/components/ui/Skeleton';
 import { toast } from '../../shared/components/ui';
 import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
 
-type Tab = 'tasks' | 'alerts' | 'followups' | 'referrals' | 'messages' | 'gaps';
+type Tab = 'tasks' | 'alerts' | 'followups' | 'referrals' | 'gaps';
 
 interface CareTask {
     id: number; title: string; description: string;
@@ -40,11 +41,6 @@ interface OverdueReferral {
     specialty: string; urgency: string; status: string;
     sla_due_at: string; days_overdue: number; specialist: string;
 }
-interface PatientMsg {
-    id: number; patient: string; patient_name: string;
-    sender_type: string; subject: string; body: string;
-    urgency: string; is_read_by_recipient: boolean; created_at: string;
-}
 interface CareGap {
     id: number; patient: string; patient_name: string;
     measure_display: string; severity: string;
@@ -56,7 +52,6 @@ const TAB_LABEL: Record<Tab, string> = {
     alerts: 'Critical alerts',
     followups: 'Overdue follow-ups',
     referrals: 'Overdue referrals',
-    messages: 'Patient messages',
     gaps: 'Care gaps',
 };
 
@@ -83,10 +78,6 @@ export function Inbox() {
         queryKey: ['inbox', 'referrals-overdue'],
         queryFn: async () => (await api.get<{ overdue: OverdueReferral[]; count: number }>('/reports/overdue-referrals/')).data,
     });
-    const messages = useQuery({
-        queryKey: ['inbox', 'messages'],
-        queryFn: async () => (await api.get<{ results: PatientMsg[] } | PatientMsg[]>('/patient-messages/?unread=true')).data,
-    });
     const gaps = useQuery({
         queryKey: ['inbox', 'gaps'],
         queryFn: async () => (await api.get<{ results: CareGap[] } | CareGap[]>('/care-gaps/?open=true')).data,
@@ -104,11 +95,10 @@ export function Inbox() {
         alerts: toList<ClinicalAlert>(alerts.data).length,
         followups: toList<OverdueFollowup>(followups.data).length,
         referrals: toList<OverdueReferral>(overdueReferrals.data).length,
-        messages: toList<PatientMsg>(messages.data).length,
         gaps: toList<CareGap>(gaps.data).length,
-    }), [tasks.data, alerts.data, followups.data, overdueReferrals.data, messages.data, gaps.data]);
+    }), [tasks.data, alerts.data, followups.data, overdueReferrals.data, gaps.data]);
 
-    const total = counts.tasks + counts.alerts + counts.followups + counts.referrals + counts.messages;
+    const total = counts.tasks + counts.alerts + counts.followups + counts.referrals + counts.gaps;
 
     return (
         <div className="page-wrapper">
@@ -216,21 +206,6 @@ export function Inbox() {
                                 <small style={{ display: 'block', color: 'var(--text-muted)' }}>
                                     {r.status} · overdue by {r.days_overdue} days
                                 </small>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-            {tab === 'messages' && (
-                messages.isLoading ? <SkeletonList count={5} /> :
-                toList<PatientMsg>(messages.data).length === 0 ? <EmptyHint icon="mail" label={t('inbox.empty.messages', 'No unread patient messages')} /> :
-                <ul className="inbox-list">
-                    {toList<PatientMsg>(messages.data).map(m => (
-                        <li key={m.id} className={`inbox-row inbox-row--message inbox-row--sev-${m.urgency}`}>
-                            <Link to={`/messages?thread=${m.id}`} style={{ flex: 1 }}>
-                                <strong>{m.patient_name}{m.subject ? ` — ${m.subject}` : ''}</strong>
-                                <small style={{ display: 'block', color: 'var(--text-muted)' }}>{m.body.slice(0, 140)}</small>
                             </Link>
                         </li>
                     ))}

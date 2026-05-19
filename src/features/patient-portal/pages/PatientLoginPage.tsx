@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { parseApiError } from '../../../shared/components/ui/toast';
 import { toast } from '../../../shared/components/ui';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import Logo from '../../../shared/components/Logo';
 
 export default function PatientLoginPage() {
     const { t } = useTranslation();
@@ -37,15 +38,9 @@ export default function PatientLoginPage() {
     return (
         <div className="patient-auth-shell">
             <div className="patient-auth-left">
-                <div className="patient-auth-brand">
-                    <div className="patient-auth-logo">
-                        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                            <circle cx="18" cy="18" r="18" fill="var(--accent)" />
-                            <path d="M18 10v16M10 18h16" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-                        </svg>
-                    </div>
-                    <div className="patient-auth-brand-name">{t('patient_portal.brand.full')}</div>
-                </div>
+                <Link to="/" className="patient-auth-brand" aria-label={t('patient_portal.brand.full')}>
+                    <Logo size="md" variant="inverted" />
+                </Link>
                 <div className="patient-auth-left-body">
                     <div className="patient-auth-headline">{t('patient_portal.auth.headline')}</div>
                     <div className="patient-auth-sub">

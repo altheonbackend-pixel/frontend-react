@@ -25,9 +25,6 @@ export function AppLayout() {
                 qc.invalidateQueries({ queryKey: ['clinical-alerts'] });
                 qc.invalidateQueries({ queryKey: ['dashboard'] });
                 break;
-            case 'message':
-                qc.invalidateQueries({ queryKey: ['patient-messages'] });
-                break;
             case 'task':
                 qc.invalidateQueries({ queryKey: ['care-tasks'] });
                 qc.invalidateQueries({ queryKey: ['dashboard'] });

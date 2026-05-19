@@ -20,7 +20,7 @@ interface AppSidebarProps {
 type IconName =
     | 'dashboard' | 'patients' | 'appointments' | 'referrals'
     | 'notebook' | 'stats' | 'profile' | 'logout'
-    | 'tasks' | 'messages';
+    | 'tasks';
 
 const NAV_LINKS: Array<{
     to: string; icon: IconName; labelKey: string; label: string; badgeKey?: string;
@@ -29,7 +29,6 @@ const NAV_LINKS: Array<{
     { to: '/inbox',        icon: 'tasks',        labelKey: 'nav.inbox',        label: 'Inbox',         badgeKey: 'inbox' },
     { to: '/patients',     icon: 'patients',     labelKey: 'nav.patients',     label: 'Patients' },
     { to: '/appointments', icon: 'appointments', labelKey: 'nav.appointments', label: 'Appointments', badgeKey: 'appointments' },
-    { to: '/messages',     icon: 'messages',     labelKey: 'nav.messages',     label: 'Messages',     badgeKey: 'messages' },
     { to: '/referrals',    icon: 'referrals',    labelKey: 'nav.referrals',    label: 'Referrals',    badgeKey: 'referrals' },
     { to: '/notebook',     icon: 'notebook',     labelKey: 'nav.notebook',     label: 'Notebook' },
     { to: '/my-stats',     icon: 'stats',        labelKey: 'nav.stats',        label: 'My Stats' },
@@ -67,18 +66,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
         queryKey: ['appointments', 'pending-requests-count'],
         queryFn: async () => {
             const res = await api.get('/doctor/appointment-requests/');
-            const list = res.data.results ?? res.data;
-            return Array.isArray(list) ? list.length : 0;
-        },
-        staleTime: 30_000,
-        refetchInterval: 30_000,
-        enabled: userType === 'doctor',
-    });
-
-    const { data: unreadMessageCount = 0 } = useQuery<number>({
-        queryKey: ['messages', 'unread-count'],
-        queryFn: async () => {
-            const res = await api.get('/patient-messages/?unread=true');
             const list = res.data.results ?? res.data;
             return Array.isArray(list) ? list.length : 0;
         },
@@ -163,7 +150,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                     const badge =
                         link.badgeKey === 'referrals' ? referralBadgeCount :
                         link.badgeKey === 'appointments' ? pendingRequestCount :
-                        link.badgeKey === 'messages' ? unreadMessageCount :
                         link.badgeKey === 'inbox' ? inboxCount :
                         0;
                     return (

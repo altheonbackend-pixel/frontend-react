@@ -1499,6 +1499,24 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   color: white;
   border: 2px solid rgba(255,255,255,0.35);
 }
+.auth-split-logo-tile {
+  width: 96px;
+  height: 96px;
+  border-radius: 26px;
+  background: rgba(255,255,255,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255,255,255,0.40);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.auth-split-logo-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+}
 .auth-split-brand {
   text-align: center;
 }
@@ -2845,10 +2863,13 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   padding: 2.5rem;
 }
 .patient-auth-brand {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 3rem;
+  text-decoration: none;
+  color: inherit;
+  width: max-content;
 }
 .patient-auth-brand-name {
   font-size: 1rem;

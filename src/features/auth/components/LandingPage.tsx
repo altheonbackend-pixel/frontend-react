@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import axios from 'axios';
+import Logo from '../../../shared/components/Logo';
 
 const createLoginSchema = (t: TFunction) => z.object({
     email: z.string().email(t('login.error.valid_email')),
@@ -49,7 +50,9 @@ function LandingPage() {
         <div className="auth-split">
             {/* Left branding panel — hidden on mobile */}
             <div className="auth-split-left">
-                <div className="auth-split-monogram">A</div>
+                <Link to="/" className="auth-split-logo-tile" aria-label={t('brand.full')}>
+                    <Logo size="lg" showWordmark={false} variant="inverted" />
+                </Link>
 
                 <div className="auth-split-brand">
                     <div className="auth-split-title">{t('brand.full')}</div>

@@ -12,6 +12,7 @@ import ErrorBoundary from '../shared/components/ErrorBoundary';
 // Auth feature (tiny — loaded eagerly)
 import { useAuth } from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/auth/components/LandingPage';
+import Landing from '../features/auth/components/Landing';
 import Register from '../features/auth/components/Register';
 import VerifyEmail from '../features/auth/components/VerifyEmail';
 import CompleteProfile from '../features/auth/components/CompleteProfile';
@@ -50,7 +51,7 @@ const Statistics        = lazy(() => import('../features/statistics/components/S
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
 const Inbox             = lazy(() => import('../features/inbox/Inbox'));
 const OverdueReports    = lazy(() => import('../features/inbox/OverdueReports'));
-const PatientMessages   = lazy(() => import('../features/messages/PatientMessages'));
+// Messages feature intentionally disabled — backend kept for future re-enable.
 const SmartPhraseEditor = lazy(() => import('../features/profile/components/SmartPhraseEditor'));
 const SecuritySettings  = lazy(() => import('../features/profile/components/SecuritySettings'));
 const TelehealthRoom    = lazy(() => import('../features/appointments/components/TelehealthRoom'));
@@ -256,7 +257,6 @@ function App() {
                             {/* Phase 5 new feature routes */}
                             <Route path="/inbox"               element={<ErrorBoundary resetKey={location.pathname}><Inbox /></ErrorBoundary>} />
                             <Route path="/reports/overdue"     element={<ErrorBoundary resetKey={location.pathname}><OverdueReports /></ErrorBoundary>} />
-                            <Route path="/messages"            element={<ErrorBoundary resetKey={location.pathname}><PatientMessages /></ErrorBoundary>} />
                             <Route path="/profile/smart-phrases" element={<ErrorBoundary resetKey={location.pathname}><SmartPhraseEditor /></ErrorBoundary>} />
                             <Route path="/profile/security"    element={<ErrorBoundary resetKey={location.pathname}><SecuritySettings /></ErrorBoundary>} />
                             <Route path="/telehealth/:appointmentId" element={<ErrorBoundary resetKey={location.pathname}><TelehealthRoom /></ErrorBoundary>} />
@@ -264,7 +264,7 @@ function App() {
                     </Route>
 
                     {/* Default redirects */}
-                    <Route path="/" element={<Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />} />
+                    <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>
