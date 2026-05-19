@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { type PatientWithHistory, type Prescription } from '../../../../shared/types';
 import { toast } from '../../../../shared/components/ui';
 import { queryKeys } from '../../../../shared/queryKeys';
@@ -61,6 +62,7 @@ const OverviewTab = ({
     patientAppointments,
     appointmentsLoading,
 }: OverviewTabProps) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { formatDate, formatDateTime } = useFormatDateTime();
@@ -84,9 +86,9 @@ const OverviewTab = ({
                     try {
                         setDismissedVitalAlerts(new Set([...dismissedVitalAlerts, latest.id]));
                         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard() });
-                        toast.success('Vital alert acknowledged.');
+                        toast.success(t('patient_record.overview.toast.vital_acknowledged'));
                     } catch {
-                        toast.error('Failed to acknowledge alert.');
+                        toast.error(t('patient_record.overview.toast.vital_ack_failed'));
                     } finally {
                         setVitalAcknowledging(false);
                     }
@@ -95,7 +97,7 @@ const OverviewTab = ({
                     <div className="vital-alert-banner">
                         <span className="vital-alert-icon">⚠</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong>Vital Alert</strong> — {formatDate(latest.consultation_date)}
+                            <strong>{t('patient_record.overview.vital_alert')}</strong> - {formatDate(latest.consultation_date)}
                             <div className="vital-alert-chips">
                                 {reasons.map((r, i) => <span key={i} className="vital-alert-chip">{r}</span>)}
                             </div>
@@ -103,9 +105,9 @@ const OverviewTab = ({
                         <button className="btn-ghost-sm" onClick={() => {
                             setExpandedConsultIds(new Set([latest.id]));
                             handleTabChange('consultations');
-                        }}>View →</button>
+                        }}>{t('dashboard.actions.view')}</button>
                         <button className="btn-ghost-sm" disabled={vitalAcknowledging} onClick={handleAcknowledge}>
-                            {vitalAcknowledging ? '…' : 'Acknowledge'}
+                            {vitalAcknowledging ? '...' : t('patient_record.overview.acknowledge')}
                         </button>
                     </div>
                 );
@@ -121,7 +123,7 @@ const OverviewTab = ({
                                 <strong>{alert.title}</strong>
                                 {alert.body && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{alert.body}</div>}
                             </div>
-                            <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>Acknowledge</button>
+                            <button className="btn-ghost-sm" onClick={() => handleAcknowledgeAlert(alert.id)}>{t('patient_record.overview.acknowledge')}</button>
                         </div>
                     ))}
                 </div>
@@ -134,13 +136,13 @@ const OverviewTab = ({
                 const chips = [
                     c.blood_pressure_display ? { label: 'BP', value: c.blood_pressure_display, warn: (c.bp_systolic ?? 0) >= 140 } : null,
                     c.sp2 ? { label: 'SpO₂', value: `${c.sp2}%`, warn: Number(c.sp2) < 94 } : null,
-                    c.temperature ? { label: 'Temp', value: `${c.temperature}°C`, warn: Number(c.temperature) > 38.5 } : null,
-                    c.weight ? { label: 'Wt', value: `${c.weight} kg`, warn: false } : null,
+                    c.temperature ? { label: t('patient_record.vitals.temp_short'), value: `${c.temperature}°C`, warn: Number(c.temperature) > 38.5 } : null,
+                    c.weight ? { label: t('patient_record.vitals.weight_short'), value: `${c.weight} kg`, warn: false } : null,
                 ].filter(Boolean) as { label: string; value: string; warn: boolean }[];
                 if (!chips.length) return null;
                 return (
                     <div className="snapshot-strip">
-                        <span className="snapshot-label">Latest vitals — {formatDate(c.consultation_date)}</span>
+                        <span className="snapshot-label">{t('patient_record.overview.latest_vitals')} - {formatDate(c.consultation_date)}</span>
                         <div className="snapshot-chips">
                             {chips.map(chip => (
                                 <span key={chip.label} className={`snapshot-chip${chip.warn ? ' snapshot-chip--warn' : ''}`}>
@@ -159,38 +161,38 @@ const OverviewTab = ({
                     {/* Personal Info card */}
                     <div className="pt-card">
                         <div className="pt-card-head">
-                            <span className="pt-card-title">Personal Information</span>
+                            <span className="pt-card-title">{t('patient_record.overview.personal_information')}</span>
                         </div>
                         <div className="pt-card-body">
                             <div className="pt-info-row">
-                                <span className="pt-info-label">Date of Birth</span>
-                                <span>{patient.date_of_birth ? formatDate(patient.date_of_birth) : 'N/A'}</span>
+                                <span className="pt-info-label">{t('patient_detail.dob')}</span>
+                                <span>{patient.date_of_birth ? formatDate(patient.date_of_birth) : t('common.not_available')}</span>
                             </div>
                             <div className="pt-info-row">
-                                <span className="pt-info-label">Age</span>
-                                <span>{patient.age || 'N/A'}</span>
+                                <span className="pt-info-label">{t('patient_detail.age')}</span>
+                                <span>{patient.age || t('common.not_available')}</span>
                             </div>
                             <div className="pt-info-row">
-                                <span className="pt-info-label">Blood Group</span>
-                                <span>{patient.blood_group || 'N/A'}</span>
+                                <span className="pt-info-label">{t('patient_detail.blood_group')}</span>
+                                <span>{patient.blood_group || t('common.not_available')}</span>
                             </div>
                             <div className="pt-info-row">
-                                <span className="pt-info-label">Phone</span>
-                                <span>{patient.phone_number || 'N/A'}</span>
+                                <span className="pt-info-label">{t('patient_detail.phone')}</span>
+                                <span>{patient.phone_number || t('common.not_available')}</span>
                             </div>
                             <div className="pt-info-row">
-                                <span className="pt-info-label">Email</span>
-                                <span>{patient.email || 'N/A'}</span>
+                                <span className="pt-info-label">{t('patient_detail.email')}</span>
+                                <span>{patient.email || t('common.not_available')}</span>
                             </div>
                             {(patient.emergency_contact_name || patient.emergency_contact_number) && (
                                 <div className="pt-info-row">
-                                    <span className="pt-info-label">Emergency</span>
+                                    <span className="pt-info-label">{t('patient_record.overview.emergency')}</span>
                                     <span>{patient.emergency_contact_name || ''} {patient.emergency_contact_number ? `(${patient.emergency_contact_number})` : ''}</span>
                                 </div>
                             )}
                             {patient.address && (
                                 <div className="pt-info-row">
-                                    <span className="pt-info-label">Address</span>
+                                    <span className="pt-info-label">{t('patient_detail.address')}</span>
                                     <span>{patient.address}</span>
                                 </div>
                             )}
@@ -200,9 +202,9 @@ const OverviewTab = ({
                     {/* Recent Consultations card */}
                     <div className="pt-card">
                         <div className="pt-card-head">
-                            <span className="pt-card-title">Recent Consultations</span>
+                            <span className="pt-card-title">{t('patient_record.overview.recent_consultations')}</span>
                             <button className="pt-card-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => handleTabChange('consultations')}>
-                                View all →
+                                {t('common.view_all')}
                             </button>
                         </div>
                         <div className="pt-card-body">
@@ -211,11 +213,11 @@ const OverviewTab = ({
                                     <div key={c.id} className="mini-consultation">
                                         <div className="mini-consult-date">{formatDate(c.consultation_date)}</div>
                                         <div className="mini-consult-reason">{c.reason_for_consultation}</div>
-                                        {c.follow_up_date && <div className="follow-up-chip">Follow-up: {formatDate(c.follow_up_date)}</div>}
+                                        {c.follow_up_date && <div className="follow-up-chip">{t('patient_record.consultations.follow_up')}: {formatDate(c.follow_up_date)}</div>}
                                     </div>
                                 ))
                             ) : (
-                                <p className="muted">No consultations yet.</p>
+                                <p className="muted">{t('patient_record.overview.no_consultations')}</p>
                             )}
                         </div>
                     </div>
@@ -226,18 +228,18 @@ const OverviewTab = ({
                     {/* Next Appointment card */}
                     <div className={`pt-card${upcomingAppointment ? ' pt-appt-card' : ''}`}>
                         <div className="pt-card-head">
-                            <span className="pt-card-title">Next Appointment</span>
+                            <span className="pt-card-title">{t('patient_record.overview.next_appointment')}</span>
                             <button
                                 className="pt-card-link"
                                 style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                                 onClick={() => handleTabChange('portal')}
                             >
-                                All appointments →
+                                {t('patient_record.overview.all_appointments')}
                             </button>
                         </div>
                         <div className="pt-card-body">
                             {appointmentsLoading ? (
-                                <p className="muted" style={{ fontStyle: 'italic' }}>Loading…</p>
+                                <p className="muted" style={{ fontStyle: 'italic' }}>{t('common.loading')}</p>
                             ) : upcomingAppointment ? (
                                 <>
                                     <div className="pt-appt-date">
@@ -246,7 +248,7 @@ const OverviewTab = ({
                                     <div className="pt-appt-meta">{upcomingAppointment.reason_for_appointment}</div>
                                     {upcomingAppointment.appointment_type && (
                                         <div className="pt-appt-meta" style={{ marginTop: '0.25rem' }}>
-                                            {upcomingAppointment.appointment_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
+                                            {upcomingAppointment.appointment_type === 'telemedicine' ? t('appointments.type.telemedicine') : t('appointments.type.in_person')}
                                         </div>
                                     )}
                                     <span className={`status-badge status-${upcomingAppointment.status}`} style={{ marginTop: '0.5rem', display: 'inline-flex' }}>
@@ -255,13 +257,13 @@ const OverviewTab = ({
                                 </>
                             ) : (
                                 <>
-                                    <p className="pt-appt-none">No upcoming appointments.</p>
+                                    <p className="pt-appt-none">{t('patient_record.overview.no_upcoming_appointments')}</p>
                                     <button
                                         className="btn-add-primary"
                                         style={{ marginTop: '0.5rem', fontSize: '0.8rem', padding: '0.3rem 0.75rem' }}
                                         onClick={() => navigate(`/appointments?patient_id=${id}`)}
                                     >
-                                        Book →
+                                        {t('patient_record.overview.book')}
                                     </button>
                                 </>
                             )}
@@ -271,9 +273,9 @@ const OverviewTab = ({
                     {/* Conditions & Allergies card */}
                     <div className="pt-card">
                         <div className="pt-card-head">
-                            <span className="pt-card-title">Conditions & Allergies</span>
+                            <span className="pt-card-title">{t('patient_record.overview.conditions_allergies')}</span>
                             <button className="pt-card-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => handleTabChange('history')}>
-                                View History →
+                                {t('patient_record.overview.view_history')}
                             </button>
                         </div>
                         <div className="pt-card-body">
@@ -285,7 +287,7 @@ const OverviewTab = ({
                                 </div>
                             ))}
                             {!patient.conditions?.filter(c => c.status !== 'resolved').length && (
-                                <p className="muted" style={{ marginBottom: activeAllergies.length ? '0.5rem' : 0 }}>No active conditions.</p>
+                                <p className="muted" style={{ marginBottom: activeAllergies.length ? '0.5rem' : 0 }}>{t('patient_record.overview.no_active_conditions')}</p>
                             )}
                             {activeAllergies.length > 0 && (
                                 <>
@@ -298,12 +300,12 @@ const OverviewTab = ({
                                         </div>
                                     ))}
                                     {activeAllergies.length > 2 && (
-                                        <p className="muted" style={{ fontSize: 'var(--text-xs)', margin: '4px 0 0' }}>+{activeAllergies.length - 2} more</p>
+                                        <p className="muted" style={{ fontSize: 'var(--text-xs)', margin: '4px 0 0' }}>{t('patient_record.overview.more_count', { count: activeAllergies.length - 2 })}</p>
                                     )}
                                 </>
                             )}
                             {!activeAllergies.length && !patient.conditions?.length && (
-                                <p className="muted">No conditions or allergies recorded.</p>
+                                <p className="muted">{t('patient_record.overview.no_conditions_allergies')}</p>
                             )}
                         </div>
                     </div>
@@ -312,9 +314,9 @@ const OverviewTab = ({
                     {medications.length > 0 && (
                         <div className="pt-card">
                             <div className="pt-card-head">
-                                <span className="pt-card-title">Active Medications ({medications.length})</span>
+                                <span className="pt-card-title">{t('patient_record.overview.active_medications', { count: medications.length })}</span>
                                 <button className="pt-card-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => handleTabChange('medications')}>
-                                    View all →
+                                    {t('common.view_all')}
                                 </button>
                             </div>
                             <div className="pt-card-body">

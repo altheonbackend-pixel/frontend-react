@@ -1,23 +1,25 @@
 // src/features/auth/components/LandingPage.tsx
 // Phase 8: Split-screen auth layout
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import axios from 'axios';
 
-const loginSchema = z.object({
-    email: z.string().email('Please enter a valid email'),
-    password: z.string().min(1, 'Password is required'),
+const createLoginSchema = (t: TFunction) => z.object({
+    email: z.string().email(t('login.error.valid_email')),
+    password: z.string().min(1, t('login.error.password_required')),
 });
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = z.infer<ReturnType<typeof createLoginSchema>>;
 
 function LandingPage() {
     const { t } = useTranslation();
+    const loginSchema = useMemo(() => createLoginSchema(t), [t]);
     const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
 
@@ -50,22 +52,22 @@ function LandingPage() {
                 <div className="auth-split-monogram">A</div>
 
                 <div className="auth-split-brand">
-                    <div className="auth-split-title">Altheon Connect</div>
-                    <div className="auth-split-subtitle">Your complete clinical practice platform</div>
+                    <div className="auth-split-title">{t('brand.full')}</div>
+                    <div className="auth-split-subtitle">{t('landing.slogan')}</div>
                 </div>
 
                 <div className="auth-split-features">
                     <div className="auth-split-feature">
                         <div className="auth-split-feature-icon">✓</div>
-                        Patient records in one place
+                        {t('landing.feature_records')}
                     </div>
                     <div className="auth-split-feature">
                         <div className="auth-split-feature-icon">✓</div>
-                        Smart appointment scheduling
+                        {t('landing.feature_scheduling')}
                     </div>
                     <div className="auth-split-feature">
                         <div className="auth-split-feature-icon">✓</div>
-                        Secure referral network
+                        {t('landing.feature_referrals')}
                     </div>
                 </div>
             </div>
@@ -111,7 +113,7 @@ function LandingPage() {
                                     type="button"
                                     className="password-toggle"
                                     onClick={() => setShowPassword(p => !p)}
-                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                    aria-label={showPassword ? t('auth.hide_password') : t('auth.show_password')}
                                 >
                                     {showPassword ? (
                                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import './DoctorBottomNav.css';
 
 const Icons = {
@@ -67,6 +68,7 @@ const Icons = {
 };
 
 export function DoctorBottomNav() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [fabOpen, setFabOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
@@ -84,39 +86,39 @@ export function DoctorBottomNav() {
 
             {/* FAB quick-action sheet */}
             {fabOpen && (
-                <div className="doctor-fab-sheet" role="dialog" aria-label="Quick actions">
+                <div className="doctor-fab-sheet" role="dialog" aria-label={t('doctor_nav.quick_actions')}>
                     <button className="fab-sheet-item" onClick={() => quickAction('/patients')}>
                         {Icons.consultation}
-                        <span>New Consultation</span>
+                        <span>{t('doctor_nav.new_consultation')}</span>
                     </button>
                     <button className="fab-sheet-item" onClick={() => quickAction('/appointments')}>
                         {Icons.schedule}
-                        <span>New Appointment</span>
+                        <span>{t('doctor_nav.new_appointment')}</span>
                     </button>
                     <button className="fab-sheet-item" onClick={() => quickAction('/referrals')}>
                         {Icons.referral}
-                        <span>New Referral</span>
+                        <span>{t('doctor_nav.new_referral')}</span>
                     </button>
                 </div>
             )}
 
             {/* More drawer */}
             {moreOpen && (
-                <div className="doctor-more-drawer" role="dialog" aria-label="More options">
-                    <NavLink to="/my-stats"  className="more-drawer-item" onClick={closeAll}>{Icons.stats}   My Stats</NavLink>
-                    <NavLink to="/notebook"  className="more-drawer-item" onClick={closeAll}>{Icons.notebook} Notebook</NavLink>
-                    <NavLink to="/profile"   className="more-drawer-item" onClick={closeAll}>{Icons.profile}  Profile</NavLink>
+                <div className="doctor-more-drawer" role="dialog" aria-label={t('doctor_nav.more_options')}>
+                    <NavLink to="/my-stats"  className="more-drawer-item" onClick={closeAll}>{Icons.stats}   {t('nav.stats')}</NavLink>
+                    <NavLink to="/notebook"  className="more-drawer-item" onClick={closeAll}>{Icons.notebook} {t('nav.notebook')}</NavLink>
+                    <NavLink to="/profile"   className="more-drawer-item" onClick={closeAll}>{Icons.profile}  {t('nav.profile')}</NavLink>
                 </div>
             )}
 
-            <nav className="doctor-bottom-nav" aria-label="Mobile navigation">
+            <nav className="doctor-bottom-nav" aria-label={t('doctor_nav.mobile_navigation')}>
                 <NavLink
                     to="/dashboard"
                     className={({ isActive }) => `bottom-nav-item${isActive ? ' bottom-nav-item--active' : ''}`}
                     onClick={closeAll}
                 >
                     {Icons.home}
-                    <span>Home</span>
+                    <span>{t('nav.dashboard')}</span>
                 </NavLink>
 
                 <NavLink
@@ -125,14 +127,14 @@ export function DoctorBottomNav() {
                     onClick={closeAll}
                 >
                     {Icons.patients}
-                    <span>Patients</span>
+                    <span>{t('nav.patients')}</span>
                 </NavLink>
 
                 <button
                     type="button"
                     className={`bottom-nav-fab${fabOpen ? ' bottom-nav-fab--open' : ''}`}
                     onClick={() => { setFabOpen(o => !o); setMoreOpen(false); }}
-                    aria-label="Quick actions"
+                    aria-label={t('doctor_nav.quick_actions')}
                     aria-expanded={fabOpen}
                 >
                     {Icons.plus}
@@ -144,7 +146,7 @@ export function DoctorBottomNav() {
                     onClick={closeAll}
                 >
                     {Icons.schedule}
-                    <span>Schedule</span>
+                    <span>{t('nav.appointments')}</span>
                 </NavLink>
 
                 <button
@@ -154,7 +156,7 @@ export function DoctorBottomNav() {
                     aria-expanded={moreOpen}
                 >
                     {Icons.more}
-                    <span>More</span>
+                    <span>{t('doctor_nav.more')}</span>
                 </button>
             </nav>
         </>

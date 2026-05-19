@@ -143,10 +143,10 @@ function Dashboard() {
         try {
             setActionLoading(true);
             await api.post(`/lab-results/${labId}/review/`, { action: 'accept' });
-            toast.success('Lab accepted.');
+            toast.success(t('dashboard.toast.lab_accepted'));
             qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
         } catch {
-            toast.error('Failed to accept lab.');
+            toast.error(t('dashboard.toast.lab_accept_failed'));
             qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
         } finally {
             setActionLoading(false);
@@ -331,7 +331,7 @@ function Dashboard() {
                             pendingLabReviews.length === 0 ? (
                                 <div className="db-task-empty">
                                     <div className="db-task-empty-icon">✅</div>
-                                    No pending lab reviews
+                                    {t('dashboard.empty.no_lab_reviews')}
                                 </div>
                             ) : (
                                 <ul className="db-task-list">
@@ -350,7 +350,7 @@ function Dashboard() {
                                                     disabled={actionLoading}
                                                     onClick={() => handleAcceptLab(lab.id)}
                                                 >
-                                                    Accept
+                                                    {t('dashboard.actions.accept')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -358,9 +358,9 @@ function Dashboard() {
                                                     disabled={actionLoading}
                                                     onClick={() => setRejectLabModal({ id: lab.id, testName: lab.test_name })}
                                                 >
-                                                    Reject
+                                                    {t('dashboard.actions.reject')}
                                                 </button>
-                                                <Link to={`/patients/${lab.patient}`} className="btn-task-view">View →</Link>
+                                                <Link to={`/patients/${lab.patient}`} className="btn-task-view">{t('dashboard.actions.view')}</Link>
                                             </div>
                                         </li>
                                     ))}
@@ -373,7 +373,7 @@ function Dashboard() {
                             appointmentRequests.length === 0 ? (
                                 <div className="db-task-empty">
                                     <div className="db-task-empty-icon">✅</div>
-                                    No pending appointment requests
+                                    {t('dashboard.empty.no_appointment_requests')}
                                 </div>
                             ) : (
                                 <ul className="db-task-list">
@@ -392,7 +392,7 @@ function Dashboard() {
                                                     disabled={actionLoading}
                                                     onClick={() => handleApproveAppt(req.id)}
                                                 >
-                                                    Approve
+                                                    {t('dashboard.actions.approve')}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -400,9 +400,9 @@ function Dashboard() {
                                                     disabled={actionLoading}
                                                     onClick={() => setRejectApptModal({ id: req.id, patientName: req.patient_name })}
                                                 >
-                                                    Decline
+                                                    {t('dashboard.actions.decline')}
                                                 </button>
-                                                <Link to={`/patients/${req.patient_id}?tab=portal`} className="btn-task-view">View →</Link>
+                                                <Link to={`/patients/${req.patient_id}?tab=portal`} className="btn-task-view">{t('dashboard.actions.view')}</Link>
                                             </div>
                                         </li>
                                     ))}
@@ -418,8 +418,8 @@ function Dashboard() {
             {!isNewDoctor && recentPatients.length > 0 && (
                 <div className="db-panel" style={{ marginBottom: '1.5rem' }}>
                     <div className="db-panel-head">
-                        <span className="db-panel-title">Recent Patients</span>
-                        <Link to="/patients" className="db-panel-link">View all →</Link>
+                        <span className="db-panel-title">{t('dashboard.panel.recent_patients')}</span>
+                        <Link to="/patients" className="db-panel-link">{t('common.view_all')}</Link>
                     </div>
                     <div className="db-recent-grid">
                         {recentPatients.map(p => (
@@ -445,19 +445,19 @@ function Dashboard() {
                     setActionLoading(true);
                     try {
                         await api.post(`/lab-results/${id}/review/`, { action: 'reject', rejection_reason: reason ?? '' });
-                        toast.success(`Lab "${testName}" rejected.`);
+                        toast.success(t('dashboard.toast.lab_rejected', { testName }));
                         qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
                     } catch {
-                        toast.error('Failed to reject lab.');
+                        toast.error(t('dashboard.toast.lab_reject_failed'));
                         qc.invalidateQueries({ queryKey: ['labs', 'pending-review'] });
                     } finally {
                         setActionLoading(false);
                     }
                 }}
-                title={`Reject Lab: ${rejectLabModal?.testName ?? ''}`}
+                title={t('dashboard.modal.reject_lab_title', { testName: rejectLabModal?.testName ?? '' })}
                 tone="danger"
-                confirmLabel="Reject"
-                reasonLabel="Rejection reason"
+                confirmLabel={t('dashboard.actions.reject')}
+                reasonLabel={t('dashboard.modal.rejection_reason')}
                 requireReason
             />
 
@@ -473,20 +473,20 @@ function Dashboard() {
                     setActionLoading(true);
                     try {
                         await api.post(`/appointments/${id}/reject/`, { reason: reason ?? '' });
-                        toast.success(`Request from ${patientName} declined.`);
+                        toast.success(t('dashboard.toast.request_declined', { patientName }));
                         qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
                         qc.invalidateQueries({ queryKey: ['appointments'] });
                     } catch {
-                        toast.error('Failed to decline.');
+                        toast.error(t('dashboard.toast.decline_failed'));
                         qc.invalidateQueries({ queryKey: ['appointments', 'pending-requests'] });
                     } finally {
                         setActionLoading(false);
                     }
                 }}
-                title={`Decline — ${rejectApptModal?.patientName ?? ''}`}
+                title={t('dashboard.modal.decline_title', { patientName: rejectApptModal?.patientName ?? '' })}
                 tone="danger"
-                confirmLabel="Decline"
-                reasonLabel="Reason for declining"
+                confirmLabel={t('dashboard.actions.decline')}
+                reasonLabel={t('dashboard.modal.decline_reason')}
                 requireReason
             />
         </div>

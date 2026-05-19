@@ -85,10 +85,10 @@ const Header = () => {
                             <NavLink to="/dashboard" className="nav-item">{t('nav.dashboard')}</NavLink>
                             <NavLink to="/patients" className="nav-item">{t('nav.patients')}</NavLink>
                             <NavLink to="/appointments" className="nav-item">{t('nav.appointments')}</NavLink>
-                            <NavLink to="/referrals" className="nav-item">Referrals</NavLink>
-                            <NavLink to="/notebook" className="nav-item">Notebook</NavLink>
+                            <NavLink to="/referrals" className="nav-item">{t('nav.referrals')}</NavLink>
+                            <NavLink to="/notebook" className="nav-item">{t('nav.notebook')}</NavLink>
                             <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
-                            <NavLink to="/my-stats" className="nav-item">My Stats</NavLink>
+                            <NavLink to="/my-stats" className="nav-item">{t('nav.stats')}</NavLink>
                         </>
                     )}
                 </div>
@@ -100,7 +100,7 @@ const Header = () => {
                             id="global-patient-search"
                             type="text"
                             className="header-search-input"
-                            placeholder="Search patients... (⌘K)"
+                            placeholder={t('header.search_placeholder')}
                             value={searchQ}
                             onChange={handleSearchChange}
                             onFocus={() => searchQ.length >= 2 && setSearchOpen(true)}
@@ -154,7 +154,7 @@ const Header = () => {
                         <button
                             className="nav-hamburger"
                             onClick={() => setMenuOpen(o => !o)}
-                            aria-label="Toggle navigation"
+                            aria-label={t('header.toggle_navigation')}
                             aria-expanded={menuOpen}
                         >
                             <span />
@@ -167,19 +167,19 @@ const Header = () => {
             {/* Email verification banner — shown for doctors who haven't verified yet */}
             {isAuthenticated && userType === 'doctor' && !emailVerified && (
                 <div className="email-verification-banner" role="alert">
-                    <span>Please verify your email address to access patient records.</span>
+                    <span>{t('header.verify_email_banner')}</span>
                     <button
                         className="banner-resend-btn"
                         onClick={async () => {
                             try {
                                 await api.post('/auth/resend-verification/');
-                                toast.success('Verification email sent. Check your inbox.');
+                                toast.success(t('header.toast.verification_sent'));
                             } catch {
-                                toast.error('Could not send verification email. Try again later.');
+                                toast.error(t('header.toast.verification_failed'));
                             }
                         }}
                     >
-                        Resend verification email
+                        {t('header.resend_verification')}
                     </button>
                 </div>
             )}

@@ -1,6 +1,7 @@
 // src/features/referrals/components/ReferralEventTimeline.tsx
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/queryKeys';
 import { getEvents } from '../services/referralService';
@@ -34,6 +35,7 @@ const dot = (status: string) => ({
 });
 
 const ReferralEventTimeline = ({ referralId }: Props) => {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const { formatDateTime } = useFormatDateTime();
 
@@ -55,16 +57,16 @@ const ReferralEventTimeline = ({ referralId }: Props) => {
                 style={{ fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}
                 onClick={() => setOpen(o => !o)}
             >
-                {open ? '▾ Hide Audit Timeline' : '▸ View Audit Timeline'}
+                {open ? t('referrals.timeline.hide') : t('referrals.timeline.view')}
             </button>
 
             {open && (
                 <div style={{ marginTop: '0.5rem', paddingLeft: '0.25rem' }}>
-                    {isLoading && <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Loading…</div>}
-                    {isError && <div style={{ fontSize: '0.875rem', color: 'var(--color-danger)' }}>Failed to load events.</div>}
+                    {isLoading && <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>{t('common.loading')}</div>}
+                    {isError && <div style={{ fontSize: '0.875rem', color: 'var(--color-danger)' }}>{t('referrals.timeline.error')}</div>}
 
                     {!isLoading && !isError && events.length === 0 && (
-                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No events recorded.</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('referrals.timeline.empty')}</div>
                     )}
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -87,7 +89,7 @@ const ReferralEventTimeline = ({ referralId }: Props) => {
                                                 <span style={{ color: STATUS_COLOR[ev.to_status] ?? 'var(--text-muted)' }}>{ev.to_status}</span>
                                             </>
                                         ) : (
-                                            <span style={{ color: STATUS_COLOR[ev.to_status] ?? 'var(--text-muted)' }}>Created as {ev.to_status}</span>
+                                            <span style={{ color: STATUS_COLOR[ev.to_status] ?? 'var(--text-muted)' }}>{t('referrals.timeline.created_as', { status: ev.to_status })}</span>
                                         )}
                                     </div>
                                     <div style={{ fontSize: '0.77rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>

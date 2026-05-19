@@ -27,6 +27,45 @@ const COMMON_SYMPTOMS = [
     'Loss of appetite', 'Weight loss', 'Sweating', 'Chills', 'Rash',
 ];
 
+const COMMON_SYMPTOM_LABEL_KEYS: Record<string, string> = {
+    Fever: 'symptoms.fever',
+    Cough: 'symptoms.cough',
+    'Shortness of breath': 'symptoms.shortness_of_breath',
+    Fatigue: 'symptoms.fatigue',
+    Headache: 'symptoms.headache',
+    'Sore throat': 'symptoms.sore_throat',
+    'Runny nose': 'symptoms.runny_nose',
+    'Chest pain': 'symptoms.chest_pain',
+    Nausea: 'symptoms.nausea',
+    Vomiting: 'symptoms.vomiting',
+    Diarrhea: 'symptoms.diarrhea',
+    'Abdominal pain': 'symptoms.abdominal_pain',
+    'Back pain': 'symptoms.back_pain',
+    'Joint pain': 'symptoms.joint_pain',
+    Dizziness: 'symptoms.dizziness',
+    'Loss of appetite': 'symptoms.loss_of_appetite',
+    'Weight loss': 'symptoms.weight_loss',
+    Sweating: 'symptoms.sweating',
+    Chills: 'symptoms.chills',
+    Rash: 'symptoms.rash',
+};
+
+const RX_FREQUENCY_LABEL_KEYS: Record<string, string> = {
+    once: 'rx.freq.once',
+    once_daily: 'rx.freq.qd',
+    twice_daily: 'rx.freq.bid',
+    three_times_daily: 'rx.freq.tid',
+    four_times_daily: 'rx.freq.qid',
+    every_4h: 'rx.freq.q4h',
+    every_6h: 'rx.freq.q6h',
+    every_8h: 'rx.freq.q8h',
+    every_12h: 'rx.freq.q12h',
+    bedtime: 'rx.freq.hs',
+    as_needed: 'rx.freq.prn',
+    weekly: 'rx.freq.weekly',
+    other: 'common.other',
+};
+
 // Helper: convert empty string input to null for optional numeric fields
 const numericValueAs = (v: unknown) => (v === '' || v == null) ? null : Number(v);
 
@@ -483,7 +522,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     if (failed.length > 0) {
                         setFailedRx(failed);
                         // Don't call onSuccess yet — doctor must resolve failed prescriptions first
-                        toast.error(`${failed.length} prescription(s) could not be saved. Retry from the panel below.`);
+                        toast.error(t('consultation.toast.prescriptions_failed', { count: failed.length }));
                         clearDraft();
                         return;
                     }
@@ -517,7 +556,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         const labResults = await Promise.allSettled(labPayloads.map(l => api.post('/lab-orders/', l)));
                         const failedCount = labResults.filter(r => r.status === 'rejected').length;
                         if (failedCount > 0) {
-                            toast.error(`${failedCount} lab order(s) could not be saved — add them manually from the Labs tab.`);
+                            toast.error(t('consultation.toast.lab_orders_failed', { count: failedCount }));
                         }
                     }
                 }
@@ -536,7 +575,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         const procResults = await Promise.allSettled(procPayloads.map(p => api.post('/procedures/', p)));
                         const failedCount = procResults.filter(r => r.status === 'rejected').length;
                         if (failedCount > 0) {
-                            toast.error(`${failedCount} procedure(s) could not be saved — add them manually from the Procedures tab.`);
+                            toast.error(t('consultation.toast.procedures_failed', { count: failedCount }));
                         }
                     }
                 }
@@ -560,9 +599,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     try {
                         await api.post(`/consultations/${consultationId}/sign/`);
                         queryClient.invalidateQueries({ queryKey: ['appointments'] });
-                        toast.success(isAmended ? 'Amendment signed and consultation re-locked.' : 'Consultation signed and appointment completed.');
+                        toast.success(isAmended ? t('consultation.toast.amendment_signed') : t('consultation.toast.consultation_signed'));
                     } catch (signErr) {
-                        toast.error(parseApiError(signErr, 'Consultation saved but could not be signed. Please try again.'));
+                        toast.error(parseApiError(signErr, t('consultation.toast.sign_failed')));
                     }
                 }
 
@@ -574,7 +613,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     setFollowUpType(apptType);
                     setPendingFollowUp({
                         date: data.follow_up_date,
-                        reason: `Follow-up: ${data.reason_for_consultation}`,
+                        reason: t('consultation.follow_up_reason_prefix', { reason: data.reason_for_consultation }),
                         consultationId: response.data.id,
                         appointmentType: apptType,
                     });
@@ -619,9 +658,9 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             await api.patch(`/consultations/${pendingFollowUp.consultationId}/`, {
                 follow_up_appointment: apptRes.data.id,
             }).catch(() => {});
-            toast.success('Follow-up appointment scheduled. Patient notified to confirm.');
+            toast.success(t('consultation.toast.follow_up_scheduled'));
         } catch {
-            toast.error('Could not create follow-up appointment. You can create it manually from the Appointments page.');
+            toast.error(t('consultation.toast.follow_up_failed'));
         } finally {
             setCreatingFollowUp(false);
             setPendingFollowUp(null);
@@ -639,24 +678,31 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
     // ICD-10 field registration (custom onChange needed for typeahead)
     const icdCodeField = register('icd_code');
+    const symptomLabel = (symptom: string) => {
+        const key = COMMON_SYMPTOM_LABEL_KEYS[symptom];
+        return key ? t(key) : symptom;
+    };
+    const frequencyLabel = (frequency: string) => t(RX_FREQUENCY_LABEL_KEYS[frequency] ?? 'rx.freq.unknown', {
+        defaultValue: frequency.replace(/_/g, ' '),
+    });
 
     return (
         <>
         <Dialog
             open={vitalsConfirmOpen}
             tone="danger"
-            title="Critical vitals detected"
+            title={t('consultation.dialog.critical_vitals_title')}
             message={
                 <div>
-                    <p style={{ marginBottom: '0.5rem' }}>This consultation has the following critical readings:</p>
+                    <p style={{ marginBottom: '0.5rem' }}>{t('consultation.dialog.critical_vitals_body')}</p>
                     <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
                         {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
                     </ul>
-                    <p style={{ marginTop: '0.75rem' }}>Confirm to proceed with saving.</p>
+                    <p style={{ marginTop: '0.75rem' }}>{t('consultation.dialog.critical_vitals_confirm_hint')}</p>
                 </div>
             }
-            confirmLabel="Confirm and save"
-            cancelLabel="Go back and review"
+            confirmLabel={t('consultation.dialog.confirm_save')}
+            cancelLabel={t('consultation.dialog.review')}
             onConfirm={() => {
                 setVitalsConfirmOpen(false);
                 if (pendingSubmitData) doSubmit(pendingSubmitData);
@@ -666,12 +712,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         <Modal
             open={!!pendingFollowUp}
             onClose={() => { setPendingFollowUp(null); onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined); }}
-            title="Schedule Follow-up Appointment"
+            title={t('consultation.follow_up_modal.title')}
             size="sm"
             footer={
                 <>
                     <button type="button" className="cancel-button" onClick={() => { setPendingFollowUp(null); onSuccess(savedRxRef.current.length > 0 ? savedRxRef.current : undefined); }}>
-                        Skip for now
+                        {t('consultation.follow_up_modal.skip')}
                     </button>
                     <button
                         type="button"
@@ -679,19 +725,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         disabled={!followUpSelectedSlot || creatingFollowUp}
                         onClick={handleCreateFollowUpAppointment}
                     >
-                        {creatingFollowUp ? 'Creating…' : 'Create Appointment'}
+                        {creatingFollowUp ? t('consultation.follow_up_modal.creating') : t('consultation.follow_up_modal.create')}
                     </button>
                 </>
             }
         >
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Pick a date and available slot. The patient will be notified to confirm.
+                    {t('consultation.follow_up_modal.help')}
                 </p>
 
                 {/* Date */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Date</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>{t('common.date')}</label>
                     <input
                         type="date"
                         className="input"
@@ -703,23 +749,23 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {/* Appointment type */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Type</label>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>{t('appointments.form.type_label')}</label>
                     <select
                         className="input"
                         value={followUpType}
                         onChange={e => setFollowUpType(e.target.value as 'in_person' | 'telemedicine')}
                     >
-                        <option value="in_person">In Person</option>
-                        <option value="telemedicine">Telemedicine (Video)</option>
+                        <option value="in_person">{t('appointments.type.in_person')}</option>
+                        <option value="telemedicine">{t('appointments.type.telemedicine')}</option>
                     </select>
                 </div>
 
                 {/* Slot grid */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>Available Slots</label>
-                    {followUpSlotsLoading && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Loading slots…</div>}
-                    {!followUpSlotsLoading && followUpDayOff && <div style={{ fontSize: '0.85rem', color: 'var(--danger)' }}>Day off — choose a different date.</div>}
-                    {!followUpSlotsLoading && !followUpDayOff && followUpSlots.length === 0 && followUpDate && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No slots available for this date.</div>}
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.3rem' }}>{t('appointments.form.time_slot')}</label>
+                    {followUpSlotsLoading && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('appointments.form.loading_slots')}</div>}
+                    {!followUpSlotsLoading && followUpDayOff && <div style={{ fontSize: '0.85rem', color: 'var(--danger)' }}>{t('appointments.form.day_off')}</div>}
+                    {!followUpSlotsLoading && !followUpDayOff && followUpSlots.length === 0 && followUpDate && <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{t('appointments.form.no_slots_configured')}</div>}
                     {!followUpSlotsLoading && !followUpDayOff && followUpSlots.length > 0 && (
                         <div className="slot-grid">
                             {followUpSlots.map(slot => (
@@ -728,7 +774,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                     type="button"
                                     className={['slot-btn', `slot-${slot.status}`, followUpSelectedSlot === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
                                     disabled={slot.status !== 'free'}
-                                    title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
+                                    title={slot.status === 'booked' ? t('appointments.slot.booked_with', { name: slot.patient_name ?? '' }) : slot.time}
                                     onClick={() => setFollowUpSelectedSlot(slot.datetime)}
                                 >
                                     <span className="slot-time">{slot.time}</span>
@@ -742,24 +788,26 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         <Dialog
             open={showCloseWithFailedRxWarning}
             tone="danger"
-            title="Unsaved prescriptions"
-            message={`${failedRx.length} prescription(s) have not been saved. Closing now will permanently lose this data.`}
-            confirmLabel="Close and lose data"
-            cancelLabel="Go back and save"
+            title={t('consultation.dialog.unsaved_prescriptions_title')}
+            message={t('consultation.dialog.unsaved_prescriptions_body', { count: failedRx.length })}
+            confirmLabel={t('consultation.dialog.close_lose_data')}
+            cancelLabel={t('consultation.dialog.go_back_save')}
             onConfirm={() => { setFailedRx([]); setShowCloseWithFailedRxWarning(false); onCancel(); }}
             onClose={() => setShowCloseWithFailedRxWarning(false)}
         />
         <Dialog
             open={!!allergyOverrideDialog}
             tone="warning"
-            title="Allergy conflict detected"
+            title={t('consultation.dialog.allergy_conflict_title')}
             message={allergyOverrideDialog ? (
-                `${allergyOverrideDialog.rx.medication_name} may conflict with the patient's active drug ${allergyOverrideDialog.conflicts.length === 1 ? 'allergy' : 'allergies'}: ` +
-                allergyOverrideDialog.conflicts.map(c => `${c.allergen} (${c.severity})`).join(', ') +
-                '. Add anyway and document clinical justification in your notes?'
+                t('consultation.dialog.allergy_conflict_body', {
+                    medication: allergyOverrideDialog.rx.medication_name,
+                    allergies: allergyOverrideDialog.conflicts.map(c => `${c.allergen} (${c.severity})`).join(', '),
+                    count: allergyOverrideDialog.conflicts.length,
+                })
             ) : undefined}
-            confirmLabel="Add with override"
-            cancelLabel="Cancel"
+            confirmLabel={t('consultation.dialog.add_with_override')}
+            cancelLabel={t('common.cancel')}
             onClose={() => setAllergyOverrideDialog(null)}
             onConfirm={confirmAllergyOverride}
         />
@@ -777,10 +825,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         <Dialog
             open={!!draftPrompt}
             tone="info"
-            title="Restore unsaved draft?"
-            message={draftPrompt ? `You have an unsaved draft from ${draftPrompt.savedAt}. Do you want to restore it?` : undefined}
-            confirmLabel="Restore draft"
-            cancelLabel="Discard"
+            title={t('consultation.dialog.restore_draft_title')}
+            message={draftPrompt ? t('consultation.dialog.restore_draft_body', { time: draftPrompt.savedAt }) : undefined}
+            confirmLabel={t('consultation.dialog.restore_draft')}
+            cancelLabel={t('common.discard')}
             onClose={() => {
                 clearDraft();
                 draftRestoredRef.current = true;
@@ -804,10 +852,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     {(isDraft || isAmended) ? (
                         <>
                             <button type="submit" form="consultation-form" className="btn btn-secondary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : (isDraft ? 'Save Draft' : 'Save')}
+                                {isSubmitting ? t('consultation.loading') : (isDraft ? t('consultation.save_draft') : t('common.save'))}
                             </button>
                             <button type="button" onClick={handleSaveAndComplete} className="btn btn-primary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : (isAmended ? 'Save & Re-sign' : 'Save & Complete')}
+                                {isSubmitting ? t('consultation.loading') : (isAmended ? t('consultation.save_resign') : t('consultation.save_complete'))}
                             </button>
                         </>
                     ) : (
@@ -828,11 +876,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {/* Consultation type */}
                 <div className="form-group">
-                    <label htmlFor="consultation_type">Consultation Type</label>
+                    <label htmlFor="consultation_type">{t('consultation.type')}</label>
                     <select id="consultation_type" className="select-input" {...register('consultation_type')}>
-                        <option value="in_person">In Person</option>
-                        <option value="telemedicine">Telemedicine</option>
-                        <option value="home_visit">Home Visit</option>
+                        <option value="in_person">{t('appointments.type.in_person')}</option>
+                        <option value="telemedicine">{t('appointments.type.video')}</option>
+                        <option value="home_visit">{t('appointments.type.home_visit')}</option>
                     </select>
                 </div>
 
@@ -873,13 +921,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 </div>
                 <div className="form-row">
                     <div className="form-group">
-                        <label htmlFor="bp_systolic">BP Systolic (mmHg)</label>
+                        <label htmlFor="bp_systolic">{t('consultation.bp_systolic')}</label>
                         <input type="number" id="bp_systolic" className="input" min="50" max="300"
                             {...register('bp_systolic', { setValueAs: numericValueAs })} />
                         {errors.bp_systolic && <span className="field-error">{errors.bp_systolic.message}</span>}
                     </div>
                     <div className="form-group">
-                        <label htmlFor="bp_diastolic">BP Diastolic (mmHg)</label>
+                        <label htmlFor="bp_diastolic">{t('consultation.bp_diastolic')}</label>
                         <input type="number" id="bp_diastolic" className="input" min="30" max="200"
                             {...register('bp_diastolic', { setValueAs: numericValueAs })} />
                         {errors.bp_diastolic && <span className="field-error">{errors.bp_diastolic.message}</span>}
@@ -888,7 +936,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {hasVitalAlerts && (
                     <div className="vital-alerts-banner" role="alert">
-                        <strong>Clinical alert</strong>
+                        <strong>{t('consultation.clinical_alert')}</strong>
                         <ul>
                             {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
                         </ul>
@@ -901,8 +949,8 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 <div className="form-group visible-to-patient-toggle">
                     <label className="toggle-row">
                         <span className="toggle-label">
-                            Share with patient portal
-                            <span className="toggle-hint">Patient can see diagnosis, summary, and prescriptions when enabled</span>
+                            {t('consultation.share_with_patient')}
+                            <span className="toggle-hint">{t('consultation.share_with_patient_hint')}</span>
                         </span>
                         <input
                             type="checkbox"
@@ -916,25 +964,25 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 {watch('visible_to_patient') && (
                     <div style={{ background: 'var(--accent-lighter)', borderRadius: 'var(--radius-md)', padding: '0.875rem', margin: '0.75rem 0', display: 'grid', gap: '0.75rem' }}>
                         <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            Patient portal content
+                            {t('consultation.patient_portal_content')}
                         </div>
                         <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor="patient_summary">Patient-friendly summary</label>
+                            <label htmlFor="patient_summary">{t('consultation.patient_summary')}</label>
                             <textarea
                                 id="patient_summary"
                                 className="textarea"
                                 rows={3}
-                                placeholder="Plain-language summary of today's visit that the patient can read."
+                                placeholder={t('consultation.patient_summary_placeholder')}
                                 {...register('patient_summary')}
                             />
                         </div>
                         <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor="patient_instructions">Next steps / instructions for patient</label>
+                            <label htmlFor="patient_instructions">{t('consultation.patient_instructions')}</label>
                             <textarea
                                 id="patient_instructions"
                                 className="textarea"
                                 rows={2}
-                                placeholder="e.g. Take medication with food. Return in 2 weeks if no improvement."
+                                placeholder={t('consultation.patient_instructions_placeholder')}
                                 {...register('patient_instructions')}
                             />
                         </div>
@@ -953,7 +1001,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {/* Symptoms multi-select */}
                 <div className="form-group">
-                    <label>Symptoms</label>
+                    <label>{t('patient_record.consultations.symptoms')}</label>
                     <div className="symptoms-chips">
                         {COMMON_SYMPTOMS.map(s => (
                             <button
@@ -962,19 +1010,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 className={`symptom-chip${symptoms.includes(s) ? ' active' : ''}`}
                                 onClick={() => toggleSymptom(s)}
                             >
-                                {s}
+                                {symptomLabel(s)}
                             </button>
                         ))}
                     </div>
                     <div className="custom-symptom-row">
                         <input
                             type="text"
-                            placeholder="Add custom symptom..."
+                            placeholder={t('consultation.add_custom_symptom_placeholder')}
                             value={customSymptom}
                             onChange={e => setCustomSymptom(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustomSymptom())}
                         />
-                        <button type="button" onClick={addCustomSymptom} className="add-chip-btn">Add</button>
+                        <button type="button" onClick={addCustomSymptom} className="add-chip-btn">{t('patient_record.common.add')}</button>
                     </div>
                     {symptoms.filter(s => !COMMON_SYMPTOMS.includes(s)).map(s => (
                         <span key={s} className="symptom-chip active custom-chip">
@@ -991,12 +1039,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {/* ICD-10 code lookup */}
                 <div className="form-group" style={{ position: 'relative' }}>
-                    <label htmlFor="icd_code">ICD-10 Code <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85em' }}>(structured anchor for diagnosis)</span></label>
+                    <label htmlFor="icd_code">{t('consultation.icd_code')} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85em' }}>{t('consultation.icd_code_hint')}</span></label>
                     <input
                         id="icd_code"
                         type="text"
                         autoComplete="off"
-                        placeholder="e.g. J06.9 — or type condition name to search"
+                        placeholder={t('consultation.icd_code_placeholder')}
                         {...icdCodeField}
                         onChange={e => {
                             icdCodeField.onChange(e);
@@ -1054,14 +1102,14 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
                 {/* Follow-up date */}
                 <div className="form-group">
-                    <label htmlFor="follow_up_date">Follow-up Date</label>
+                    <label htmlFor="follow_up_date">{t('consultation.follow_up_date')}</label>
                     <input type="date" id="follow_up_date" min={new Date().toISOString().slice(0, 10)} {...register('follow_up_date')} />
                 </div>
 
                 {/* Drug allergy banner — shown above prescriptions when patient has active drug allergies */}
                 {!consultationToEdit && drugAllergies.length > 0 && (
                     <div style={{ background: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', borderRadius: 'var(--radius-md)', padding: '0.625rem 0.875rem', fontSize: '0.8125rem', color: 'var(--color-warning-dark)', lineHeight: 1.5 }}>
-                        <strong>Drug allergies:</strong>{' '}
+                        <strong>{t('consultation.drug_allergies')}:</strong>{' '}
                         {drugAllergies.map((a, i) => (
                             <span key={i}>
                                 {i > 0 && ' · '}
@@ -1075,7 +1123,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 {(!consultationToEdit || isDraft || isAmended) && (
                     <div className="rx-section">
                         <div className="rx-section-header">
-                            <span className="rx-section-label">Prescriptions this visit</span>
+                            <span className="rx-section-label">{t('consultation.prescriptions_this_visit')}</span>
                             {rxList.length > 0 && <span className="rx-count">{rxList.length}</span>}
                         </div>
 
@@ -1088,15 +1136,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                         <span className="rx-item-sep">·</span>
                                         <span className="rx-item-detail">{rx.dosage}</span>
                                         <span className="rx-item-sep">·</span>
-                                        <span className="rx-item-detail">{rx.frequency.replace(/_/g, ' ')}</span>
+                                        <span className="rx-item-detail">{frequencyLabel(rx.frequency)}</span>
                                         {rx.duration_days && <><span className="rx-item-sep">·</span><span className="rx-item-detail">{rx.duration_days}d</span></>}
-                                        {!rx.is_active && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px' }}>(stopped)</span>}
+                                        {!rx.is_active && <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px' }}>{t('consultation.stopped_parenthetical')}</span>}
                                         <button
                                             type="button"
                                             className="rx-remove"
                                             onClick={() => setDeletedRxIds(prev => [...prev, rx.id])}
-                                            aria-label="Remove prescription"
-                                            title="Remove from this consultation"
+                                            aria-label={t('consultation.remove_prescription')}
+                                            title={t('consultation.remove_from_consultation')}
                                         >×</button>
                                     </div>
                                 ))}
@@ -1109,12 +1157,12 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                     <div key={i} className="rx-item">
                                         <span className="rx-item-name">{rx.medication_name}</span>
                                         {rx.overrideAllergy && (
-                                            <span title="Allergy override" style={{ fontSize: '0.7rem', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderRadius: '4px', padding: '1px 5px', border: '1px solid var(--color-warning-border)' }}>⚠ allergy override</span>
+                                            <span title={t('consultation.allergy_override')} style={{ fontSize: '0.7rem', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', borderRadius: '4px', padding: '1px 5px', border: '1px solid var(--color-warning-border)' }}>⚠ {t('consultation.allergy_override')}</span>
                                         )}
                                         <span className="rx-item-sep">·</span>
                                         <span className="rx-item-detail">{rx.dosage}</span>
                                         <span className="rx-item-sep">·</span>
-                                        <span className="rx-item-detail">{rx.frequency.replace(/_/g, ' ')}</span>
+                                        <span className="rx-item-detail">{frequencyLabel(rx.frequency)}</span>
                                         {rx.duration_days && (
                                             <><span className="rx-item-sep">·</span><span className="rx-item-detail">{rx.duration_days}d</span></>
                                         )}
@@ -1122,7 +1170,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                             type="button"
                                             className="rx-remove"
                                             onClick={() => setRxList(p => p.filter((_, j) => j !== i))}
-                                            aria-label="Remove prescription"
+                                            aria-label={t('consultation.remove_prescription')}
                                         >×</button>
                                     </div>
                                 ))}
@@ -1141,7 +1189,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 {rxDraft.rxnorm_rxcui && (
                                     <small style={{ color: 'var(--text-muted, #6b7280)', fontSize: '0.7rem' }}>
                                         RxCUI: {rxDraft.rxnorm_rxcui}
-                                        {rxDraft.safety_override && ' · override documented'}
+                                        {rxDraft.safety_override && t('consultation.override_documented_suffix')}
                                     </small>
                                 )}
                             </div>
@@ -1176,7 +1224,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 <input
                                     type="number"
                                     className="rx-adder-input rx-adder-days"
-                                    placeholder="Days"
+                                    placeholder={t('consultation.days_placeholder')}
                                     min="1"
                                     value={rxDraft.duration_days}
                                     onChange={e => setRxDraft(p => ({ ...p, duration_days: e.target.value }))}
@@ -1185,7 +1233,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 />
                                 {rxDraft.duration_days && parseInt(rxDraft.duration_days, 10) > 0 && (
                                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        until {formatDayMonth(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5)}
+                                        {t('consultation.until_date', { date: formatDayMonth(Date.now() + parseInt(rxDraft.duration_days, 10) * 864e5) })}
                                     </span>
                                 )}
                             </div>
@@ -1195,10 +1243,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                 disabled={!rxDraft.medication_name.trim() || !rxDraft.dosage.trim()}
                                 onClick={pushRxToList}
                             >
-                                + Add
+                                {t('patient_record.common.add')}
                             </button>
                         </div>
-                        <p className="rx-hint">Prescriptions save automatically when you submit the consultation.</p>
+                        <p className="rx-hint">{t('consultation.prescriptions_auto_save_hint')}</p>
                     </div>
                 )}
 
@@ -1210,7 +1258,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                             className="consult-section-toggle"
                             onClick={() => { setLabsOpen(o => !o); if (!labsOpen && labList.length === 0) addLab(); }}
                         >
-                            {labsOpen ? '−' : '+'} Lab Tests Ordered
+                            {labsOpen ? '−' : '+'} {t('patient_record.consultations.lab_tests_ordered')}
                             {labList.filter(l => l.test_name.trim()).length > 0 && (
                                 <span className="consult-section-badge">{labList.filter(l => l.test_name.trim()).length}</span>
                             )}
@@ -1226,27 +1274,27 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                         <span className="input consult-inline-input consult-inline-notes" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'default', fontSize: '0.82rem' }}>
                                             {lr.status}
                                         </span>
-                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedLabIds(prev => [...prev, lr.id])} aria-label="Remove">×</button>
+                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedLabIds(prev => [...prev, lr.id])} aria-label={t('common.remove')}>×</button>
                                     </div>
                                 ))}
                                 {labList.map(item => (
                                     <div key={item.id} className="consult-inline-row">
                                         <input
                                             className="input consult-inline-input"
-                                            placeholder="Test name (e.g. HbA1c, CBC, Lipid panel)"
+                                            placeholder={t('consultation.lab_test_placeholder')}
                                             value={item.test_name}
                                             onChange={e => updateLab(item.id, 'test_name', e.target.value)}
                                         />
                                         <input
                                             className="input consult-inline-input consult-inline-notes"
-                                            placeholder="Notes (optional)"
+                                            placeholder={t('consultation.notes_optional_placeholder')}
                                             value={item.notes}
                                             onChange={e => updateLab(item.id, 'notes', e.target.value)}
                                         />
-                                        <button type="button" className="consult-remove-btn" onClick={() => removeLab(item.id)} aria-label="Remove">×</button>
+                                        <button type="button" className="consult-remove-btn" onClick={() => removeLab(item.id)} aria-label={t('common.remove')}>×</button>
                                     </div>
                                 ))}
-                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addLab}>+ Add test</button>
+                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addLab}>{t('consultation.add_test')}</button>
                             </div>
                         )}
                     </div>
@@ -1260,7 +1308,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                             className="consult-section-toggle"
                             onClick={() => { setProcsOpen(o => !o); if (!procsOpen && procList.length === 0) addProc(); }}
                         >
-                            {procsOpen ? '−' : '+'} Procedure Performed
+                            {procsOpen ? '−' : '+'} {t('patient_record.consultations.procedures_performed')}
                             {procList.filter(p => p.procedure_type.trim()).length > 0 && (
                                 <span className="consult-section-badge">{procList.filter(p => p.procedure_type.trim()).length}</span>
                             )}
@@ -1274,19 +1322,19 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                             {p.procedure_type}
                                         </span>
                                         <span className="consult-inline-select" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', fontSize: '0.82rem', padding: '0 8px' }}>
-                                            {p.procedure_category ?? 'diagnostic'}
+                                            {t(`consultation.procedure_category.${p.procedure_category ?? 'diagnostic'}`)}
                                         </span>
                                         <span className="input consult-inline-input consult-inline-notes" style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'default', fontSize: '0.82rem' }}>
                                             {p.result ?? ''}
                                         </span>
-                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedProcIds(prev => [...prev, p.id])} aria-label="Remove">×</button>
+                                        <button type="button" className="consult-remove-btn" onClick={() => setDeletedProcIds(prev => [...prev, p.id])} aria-label={t('common.remove')}>×</button>
                                     </div>
                                 ))}
                                 {procList.map(item => (
                                     <div key={item.id} className="consult-inline-row">
                                         <input
                                             className="input consult-inline-input"
-                                            placeholder="Procedure (e.g. Blood draw, Wound dressing, Vaccination)"
+                                            placeholder={t('consultation.procedure_placeholder')}
                                             value={item.procedure_type}
                                             onChange={e => updateProc(item.id, 'procedure_type', e.target.value)}
                                         />
@@ -1295,23 +1343,23 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                                             value={item.procedure_category}
                                             onChange={e => updateProc(item.id, 'procedure_category', e.target.value)}
                                         >
-                                            <option value="diagnostic">Diagnostic</option>
-                                            <option value="therapeutic">Therapeutic</option>
-                                            <option value="surgical">Surgical</option>
-                                            <option value="screening">Screening</option>
-                                            <option value="vaccination">Vaccination</option>
-                                            <option value="other">Other</option>
+                                            <option value="diagnostic">{t('consultation.procedure_category.diagnostic')}</option>
+                                            <option value="therapeutic">{t('consultation.procedure_category.therapeutic')}</option>
+                                            <option value="surgical">{t('consultation.procedure_category.surgical')}</option>
+                                            <option value="screening">{t('consultation.procedure_category.screening')}</option>
+                                            <option value="vaccination">{t('consultation.procedure_category.vaccination')}</option>
+                                            <option value="other">{t('common.other')}</option>
                                         </select>
                                         <input
                                             className="input consult-inline-input consult-inline-notes"
-                                            placeholder="Notes (optional)"
+                                            placeholder={t('consultation.notes_optional_placeholder')}
                                             value={item.notes}
                                             onChange={e => updateProc(item.id, 'notes', e.target.value)}
                                         />
-                                        <button type="button" className="consult-remove-btn" onClick={() => removeProc(item.id)} aria-label="Remove">×</button>
+                                        <button type="button" className="consult-remove-btn" onClick={() => removeProc(item.id)} aria-label={t('common.remove')}>×</button>
                                     </div>
                                 ))}
-                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addProc}>+ Add procedure</button>
+                                <button type="button" className="btn btn-ghost btn-sm consult-add-row-btn" onClick={addProc}>{t('consultation.add_procedure')}</button>
                             </div>
                         )}
                     </div>

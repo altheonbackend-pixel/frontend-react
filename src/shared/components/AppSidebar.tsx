@@ -116,17 +116,17 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
     const handleResendVerification = async () => {
         try {
             await api.post('/auth/resend-verification/');
-            toast.success('Verification email sent. Check your inbox.');
+            toast.success(t('header.toast.verification_sent'));
         } catch {
-            toast.error('Could not send verification email.');
+            toast.error(t('header.toast.verification_failed_short'));
         }
     };
 
-    const doctorName = profile?.full_name ?? user?.full_name ?? 'Doctor';
+    const doctorName = profile?.full_name ?? user?.full_name ?? t('common.doctor');
     const specialty = profile?.specialty_display ?? profile?.specialty ?? '';
 
     return (
-        <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label="Main navigation">
+        <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label={t('sidebar.main_navigation')}>
             {/* Brand */}
             <div className="sidebar-brand">
                 <div className="sidebar-brand-dot" />
@@ -146,19 +146,19 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
             {/* Email verification warning */}
             {userType === 'doctor' && !emailVerified && (
                 <div style={{ margin: '0.5rem', padding: '0.625rem 0.75rem', background: '#fef3c7', borderRadius: '0.5rem', fontSize: '0.75rem', color: '#92400e', lineHeight: 1.4 }}>
-                    📧 Verify your email.{' '}
+                    {t('sidebar.verify_email')}{' '}
                     <button
                         onClick={handleResendVerification}
                         style={{ background: 'none', border: 'none', color: '#92400e', textDecoration: 'underline', cursor: 'pointer', fontSize: 'inherit', padding: 0 }}
                     >
-                        Resend
+                        {t('sidebar.resend')}
                     </button>
                 </div>
             )}
 
             {/* Main nav */}
             <nav className="sidebar-nav" role="navigation">
-                <div className="sidebar-nav-section">Main</div>
+                <div className="sidebar-nav-section">{t('sidebar.main')}</div>
                 {NAV_LINKS.map(link => {
                     const badge =
                         link.badgeKey === 'referrals' ? referralBadgeCount :

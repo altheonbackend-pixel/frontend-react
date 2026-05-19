@@ -136,7 +136,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                 setSlots(res.data.slots);
             }
         } catch {
-            toast.error('Could not load time slots. Please try again.');
+            toast.error(t('appointments.form.error_slots'));
         } finally {
             setSlotsLoading(false);
         }
@@ -223,19 +223,19 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                     {/* Date + slot — locked in edit mode; use Reschedule to change */}
                     {appointment ? (
                         <div className="form-group">
-                            <label>Date &amp; Time</label>
+                            <label>{t('appointments.form.datetime_label')}</label>
                             <div className="input" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', cursor: 'not-allowed' }}>
                                 {formatDateTimeLong(appointment.appointment_date, { appendTzLabel: true })}
                             </div>
                             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                                To change the date or time, use the <strong>Reschedule</strong> option.
+                                {t('appointments.form.reschedule_hint_prefix')} <strong>{t('appointments.actions.reschedule')}</strong> {t('appointments.form.reschedule_hint_suffix')}
                             </p>
                         </div>
                     ) : (
                         <>
                             {/* Date picker */}
                             <div className="form-group">
-                                <label htmlFor="slot-date">Date</label>
+                                <label htmlFor="slot-date">{t('appointments.form.date_label')}</label>
                                 <input
                                     type="date"
                                     id="slot-date"
@@ -252,13 +252,13 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
 
                             {/* Slot grid */}
                             <div className="form-group">
-                                <label>Time slot</label>
-                                {slotsLoading && <div className="slots-loading">Loading available slots…</div>}
+                                <label>{t('appointments.form.time_slot')}</label>
+                                {slotsLoading && <div className="slots-loading">{t('appointments.form.loading_slots')}</div>}
                                 {!slotsLoading && dayOff && (
-                                    <div className="slots-day-off">Doctor is not available on this day.</div>
+                                    <div className="slots-day-off">{t('appointments.form.day_off')}</div>
                                 )}
                                 {!slotsLoading && !dayOff && slots.length === 0 && selectedDate && (
-                                    <div className="slots-day-off">No slots configured for this day.</div>
+                                    <div className="slots-day-off">{t('appointments.form.no_slots_configured')}</div>
                                 )}
                                 {!slotsLoading && slots.length > 0 && (
                                     <div className="slot-grid">
@@ -277,7 +277,7 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                                                     slot.status === 'booked'
                                                         ? `${slot.patient_name} — ${slot.reason}`
                                                         : slot.status === 'past'
-                                                        ? 'Past'
+                                                        ? t('appointments.slot.past')
                                                         : slot.time
                                                 }
                                             >
@@ -286,14 +286,14 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                                                     <span className="slot-patient">{slot.patient_name}</span>
                                                 )}
                                                 {slot.status === 'past' && (
-                                                    <span className="slot-label">Past</span>
+                                                    <span className="slot-label">{t('appointments.slot.past')}</span>
                                                 )}
                                             </button>
                                         ))}
                                     </div>
                                 )}
                                 {errors.appointment_date && !selectedSlot && (
-                                    <span className="field-error">Please select a time slot</span>
+                                    <span className="field-error">{t('appointments.form.select_time_slot')}</span>
                                 )}
                             </div>
                         </>
@@ -303,8 +303,8 @@ const AppointmentForm = ({ initialDate, appointment, initialPatientId, onSuccess
                     <div className="form-group">
                         <label htmlFor="appointment_type">{t('appointments.form.type_label', { defaultValue: 'Appointment type' })}</label>
                         <select id="appointment_type" className="select-input" {...register('appointment_type')}>
-                            <option value="in_person">In person</option>
-                            <option value="telemedicine">Telemedicine (video)</option>
+                            <option value="in_person">{t('appointments.type.in_person')}</option>
+                            <option value="telemedicine">{t('appointments.type.telemedicine')}</option>
                         </select>
                     </div>
 

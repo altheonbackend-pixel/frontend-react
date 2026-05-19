@@ -4,6 +4,7 @@
 // resetKey: pass location.pathname so a route change always resets stale error state.
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import i18n from '../../i18n';
 
 interface Props {
     children: ReactNode;
@@ -50,11 +51,11 @@ class ErrorBoundary extends Component<Props, State> {
             }
             return (
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
-                    <h2>Something went wrong</h2>
+                    <h2>{i18n.t('error_boundary.title')}</h2>
                     <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                        {this.state.error?.message ?? 'An unexpected error occurred.'}
+                        {this.state.error?.message ?? i18n.t('error_boundary.unexpected')}
                     </p>
-                    <button className="btn btn-primary btn-sm" onClick={this.handleReset}>Try again</button>
+                    <button className="btn btn-primary btn-sm" onClick={this.handleReset}>{i18n.t('common.try_again')}</button>
                 </div>
             );
         }

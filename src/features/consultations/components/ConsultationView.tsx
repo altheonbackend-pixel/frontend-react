@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import { amendConsultation, dismissFollowUp } from '../services/consultationService';
@@ -14,18 +15,19 @@ interface ConsultationViewProps {
     onFollowUpDismissed?: () => void;
 }
 
-const FREQ_LABELS: Record<string, string> = {
-    once_daily: 'Once daily',
-    twice_daily: 'Twice daily',
-    three_times_daily: 'Three times daily',
-    four_times_daily: 'Four times daily',
-    every_8_hours: 'Every 8 hours',
-    every_6_hours: 'Every 6 hours',
-    as_needed: 'As needed',
-    weekly: 'Weekly',
+const FREQ_LABEL_KEYS: Record<string, string> = {
+    once_daily: 'rx.freq.qd',
+    twice_daily: 'rx.freq.bid',
+    three_times_daily: 'rx.freq.tid',
+    four_times_daily: 'rx.freq.qid',
+    every_8_hours: 'rx.freq.q8h',
+    every_6_hours: 'rx.freq.q6h',
+    as_needed: 'rx.freq.prn',
+    weekly: 'rx.freq.weekly',
 };
 
 const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismissed }: ConsultationViewProps) => {
+    const { t } = useTranslation();
     const { formatDate, formatDateTime } = useFormatDateTime();
     const fmtDate = (iso: string | null | undefined) => iso ? formatDate(iso) : '—';
     const fmtDateTime = (iso: string | null | undefined) => iso ? formatDateTime(iso) : '—';
@@ -41,10 +43,10 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
             await dismissFollowUp(c.id, reason!);
             setDismissed(true);
             setDismissOpen(false);
-            toast.success('Follow-up dismissed. No further reminders will be sent.');
+            toast.success(t('consultation.view.toast.follow_up_dismissed'));
             onFollowUpDismissed?.();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to dismiss follow-up.'));
+            toast.error(parseApiError(err, t('consultation.view.toast.follow_up_dismiss_failed')));
             throw err;
         }
     };
@@ -52,11 +54,11 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
     const handleAmendConfirm = async (reason?: string) => {
         try {
             const res = await amendConsultation(c.id, reason!);
-            toast.success('Consultation unlocked for amendment.');
+            toast.success(t('consultation.view.toast.amend_unlocked'));
             setAmendOpen(false);
             onAmend(res.data as Consultation);
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to amend consultation.'));
+            toast.error(parseApiError(err, t('consultation.view.toast.amend_failed')));
             throw err; // re-throw so Dialog keeps its submitting state reset
         }
     };
@@ -75,7 +77,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                 onClose={onClose}
                 title={
                     <span>
-                        Consultation — {fmtDate(c.consultation_date)}
+                        {t('consultation.view.title', { date: fmtDate(c.consultation_date) })}
                         {isSigned && (
                             <span style={{
                                 marginLeft: '10px',
@@ -87,7 +89,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                 color: 'var(--color-success-dark, #065f46)',
                                 verticalAlign: 'middle',
                             }}>
-                                Signed
+                                {t('consultation.view.signed')}
                             </span>
                         )}
                         {c.consultation_status === 'amended' && (
@@ -101,7 +103,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                 color: 'var(--text-muted)',
                                 verticalAlign: 'middle',
                             }}>
-                                Amended
+                                {t('patient_record.consultations.amendment')}
                             </span>
                         )}
                     </span>
@@ -115,11 +117,11 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                 className="btn btn-secondary"
                                 onClick={() => setAmendOpen(true)}
                             >
-                                Amend Note
+                                {t('consultation.view.amend_note')}
                             </button>
                         )}
                         <button type="button" className="cancel-button" onClick={onClose}>
-                            Close
+                            {t('common.close')}
                         </button>
                     </>
                 }
@@ -139,13 +141,13 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                             gap: '4px',
                         }}>
                             {c.signed_at && (
-                                <span>Signed {fmtDateTime(c.signed_at)}</span>
+                                <span>{t('consultation.view.signed_at', { date: fmtDateTime(c.signed_at) })}</span>
                             )}
                             {c.amendment_reason && (
-                                <span>Amendment reason: <em>{c.amendment_reason}</em></span>
+                                <span>{t('consultation.view.amendment_reason')}: <em>{c.amendment_reason}</em></span>
                             )}
                             {c.amended_at && (
-                                <span>Amended {fmtDateTime(c.amended_at)}</span>
+                                <span>{t('consultation.view.amended_at', { date: fmtDateTime(c.amended_at) })}</span>
                             )}
                         </div>
                     )}
@@ -153,18 +155,18 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {/* Clinical section */}
                     <section>
                         <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                            Clinical Details
+                            {t('consultation.view.clinical_details')}
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
-                            <ViewField label="Date" value={fmtDate(c.consultation_date)} />
-                            <ViewField label="Type" value={c.consultation_type_display ?? c.consultation_type} />
-                            <ViewField label="Doctor" value={c.doctor_name ?? `#${c.doctor}`} />
+                            <ViewField label={t('common.date')} value={fmtDate(c.consultation_date)} />
+                            <ViewField label={t('consultation.type')} value={c.consultation_type_display ?? c.consultation_type} />
+                            <ViewField label={t('common.doctor')} value={c.doctor_name ?? `#${c.doctor}`} />
                         </div>
                         <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <ViewField label="Reason for Consultation" value={c.reason_for_consultation} block />
+                            <ViewField label={t('consultation.reason')} value={c.reason_for_consultation} block />
                             {c.symptoms && c.symptoms.length > 0 && (
                                 <div>
-                                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Symptoms</div>
+                                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>{t('patient_record.consultations.symptoms')}</div>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                                         {c.symptoms.map(s => (
                                             <span key={s} style={{
@@ -178,9 +180,9 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                     </div>
                                 </div>
                             )}
-                            <ViewField label="Diagnosis" value={c.diagnosis} block />
-                            {c.icd_code && <ViewField label="ICD-10 Code" value={c.icd_code} />}
-                            <ViewField label="Medical Report / Notes" value={c.medical_report} block />
+                            <ViewField label={t('consultation.diagnosis')} value={c.diagnosis} block />
+                            {c.icd_code && <ViewField label={t('consultation.icd_code')} value={c.icd_code} />}
+                            <ViewField label={t('consultation.view.medical_report_notes')} value={c.medical_report} block />
                         </div>
                     </section>
 
@@ -188,7 +190,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {(c.weight || c.height || c.sp2 || c.temperature || c.bp_systolic) && (
                         <section>
                             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                Vitals
+                                {t('patient_record.consultations.vitals')}
                             </h3>
                             {c.has_vital_alerts && c.vital_alert_reasons && c.vital_alert_reasons.length > 0 && (
                                 <div style={{
@@ -196,17 +198,17 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                     background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)',
                                     fontSize: '0.83rem',
                                 }}>
-                                    ⚠ Vital alerts: {c.vital_alert_reasons.join(', ')}
+                                    {t('consultation.view.vital_alerts', { reasons: c.vital_alert_reasons.join(', ') })}
                                 </div>
                             )}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px 24px' }}>
-                                {c.weight && <ViewField label="Weight" value={`${c.weight} kg`} />}
-                                {c.height && <ViewField label="Height" value={`${c.height} ${c.height_unit}`} />}
+                                {c.weight && <ViewField label={t('patient_record.vitals.weight')} value={`${c.weight} kg`} />}
+                                {c.height && <ViewField label={t('patient_record.vitals.height')} value={`${c.height} ${c.height_unit}`} />}
                                 {bmi && <ViewField label="BMI" value={bmi} />}
                                 {c.sp2 && <ViewField label="SpO₂" value={`${c.sp2}%`} />}
-                                {c.temperature && <ViewField label="Temperature" value={`${c.temperature} °C`} />}
+                                {c.temperature && <ViewField label={t('patient_record.vitals.temperature')} value={`${c.temperature} °C`} />}
                                 {(c.bp_systolic || c.blood_pressure_display) && (
-                                    <ViewField label="Blood Pressure" value={c.blood_pressure_display ?? `${c.bp_systolic}/${c.bp_diastolic}`} />
+                                    <ViewField label={t('patient_record.vitals.blood_pressure')} value={c.blood_pressure_display ?? `${c.bp_systolic}/${c.bp_diastolic}`} />
                                 )}
                             </div>
                         </section>
@@ -216,7 +218,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {c.prescriptions && c.prescriptions.length > 0 && (
                         <section>
                             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                Prescriptions
+                                {t('consultation.view.prescriptions')}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {c.prescriptions.map(rx => (
@@ -228,14 +230,14 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                     }}>
                                         <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{rx.medication_name}</div>
                                         <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                            {rx.dosage} · {FREQ_LABELS[rx.frequency] ?? rx.frequency}
-                                            {rx.duration_days ? ` · ${rx.duration_days} days` : ''}
+                                            {rx.dosage} · {t(FREQ_LABEL_KEYS[rx.frequency] ?? 'rx.freq.unknown', { defaultValue: rx.frequency })}
+                                            {rx.duration_days ? ` · ${t('consultation.view.duration_days', { count: rx.duration_days })}` : ''}
                                         </div>
                                         {rx.instructions && (
                                             <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>{rx.instructions}</div>
                                         )}
                                         {!rx.is_active && (
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>Stopped</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>{t('consultation.view.stopped')}</div>
                                         )}
                                     </div>
                                 ))}
@@ -247,7 +249,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {c.lab_results && c.lab_results.length > 0 && (
                         <section>
                             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                Lab Tests
+                                {t('consultation.view.lab_tests')}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {c.lab_results.map(lr => (
@@ -261,7 +263,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                         </div>
                                         {(lr.result_value || lr.result_value_text) && (
                                             <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                                                Result: {lr.result_value || lr.result_value_text}
+                                                {t('consultation.view.result')}: {lr.result_value || lr.result_value_text}
                                                 {lr.unit ? ` ${lr.unit}` : ''}
                                                 {lr.reference_range ? ` (ref: ${lr.reference_range})` : ''}
                                             </div>
@@ -277,7 +279,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {c.procedures && c.procedures.length > 0 && (
                         <section>
                             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                Procedures
+                                {t('patient_record.consultations.procedures_performed')}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {c.procedures.map(p => (
@@ -290,7 +292,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                             {fmtDate(p.procedure_date)}
                                             {p.procedure_category ? ` · ${p.procedure_category}` : ''}
                                         </div>
-                                        {p.result && <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>Result: {p.result}</div>}
+                                        {p.result && <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>{t('consultation.view.result')}: {p.result}</div>}
                                     </div>
                                 ))}
                             </div>
@@ -301,15 +303,15 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                     {(c.follow_up_date || c.patient_summary || c.patient_instructions) && (
                         <section>
                             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
-                                Follow-up &amp; Patient Notes
+                                {t('consultation.view.follow_up_patient_notes')}
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {c.follow_up_date && (
                                     <div>
-                                        <ViewField label="Follow-up Date" value={fmtDate(c.follow_up_date)} />
+                                        <ViewField label={t('consultation.follow_up_date')} value={fmtDate(c.follow_up_date)} />
                                         {dismissed ? (
                                             <div style={{ marginTop: '6px', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                Dismissed{c.follow_up_dismissal_reason ? `: ${c.follow_up_dismissal_reason}` : ''}
+                                                {t('consultation.view.dismissed')}{c.follow_up_dismissal_reason ? `: ${c.follow_up_dismissal_reason}` : ''}
                                             </div>
                                         ) : (
                                             <button
@@ -321,13 +323,13 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                                                     textDecoration: 'underline',
                                                 }}
                                             >
-                                                Dismiss follow-up
+                                                {t('consultation.view.dismiss_follow_up')}
                                             </button>
                                         )}
                                     </div>
                                 )}
-                                {c.patient_summary && <ViewField label="Patient Summary" value={c.patient_summary} block />}
-                                {c.patient_instructions && <ViewField label="Patient Instructions" value={c.patient_instructions} block />}
+                                {c.patient_summary && <ViewField label={t('patient_record.consultations.patient_summary')} value={c.patient_summary} block />}
+                                {c.patient_instructions && <ViewField label={t('consultation.view.patient_instructions')} value={c.patient_instructions} block />}
                             </div>
                         </section>
                     )}
@@ -339,11 +341,11 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                 open={amendOpen}
                 onClose={() => setAmendOpen(false)}
                 onConfirm={handleAmendConfirm}
-                title="Amend Consultation"
-                message="Amending will unlock this consultation for editing. The reason will be stored permanently on the record."
-                confirmLabel="Confirm Amendment"
-                reasonLabel="Amendment reason"
-                reasonPlaceholder="e.g. Incorrect diagnosis code entered"
+                title={t('consultation.view.amend_title')}
+                message={t('consultation.view.amend_message')}
+                confirmLabel={t('consultation.view.amend_confirm')}
+                reasonLabel={t('consultation.view.amendment_reason')}
+                reasonPlaceholder={t('consultation.view.amend_reason_placeholder')}
                 requireReason
             />
 
@@ -351,11 +353,11 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
                 open={dismissOpen}
                 onClose={() => setDismissOpen(false)}
                 onConfirm={handleDismissConfirm}
-                title="Dismiss Follow-up"
-                message="This will stop all further reminder emails for this follow-up. Use when the follow-up is no longer needed (e.g. patient recovered, transferred care)."
-                confirmLabel="Dismiss Follow-up"
-                reasonLabel="Reason for dismissal"
-                reasonPlaceholder="e.g. Patient recovered, no longer required"
+                title={t('consultation.view.dismiss_title')}
+                message={t('consultation.view.dismiss_message')}
+                confirmLabel={t('consultation.view.dismiss_follow_up')}
+                reasonLabel={t('consultation.view.dismiss_reason')}
+                reasonPlaceholder={t('consultation.view.dismiss_reason_placeholder')}
                 requireReason
             />
         </>

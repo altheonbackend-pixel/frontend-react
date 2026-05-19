@@ -2,6 +2,7 @@
 // Wraps the doctor app in sidebar layout
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import AppSidebar from './AppSidebar';
@@ -10,6 +11,7 @@ import CommandPalette from './CommandPalette';
 import { useRealtimeStream } from '../hooks/useRealtimeStream';
 
 export function AppLayout() {
+    const { t } = useTranslation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const navigate = useNavigate();
     const qc = useQueryClient();
@@ -88,7 +90,7 @@ export function AppLayout() {
                     <button
                         className="app-hamburger"
                         onClick={() => setSidebarOpen(o => !o)}
-                        aria-label="Toggle navigation"
+                        aria-label={t('header.toggle_navigation')}
                         aria-expanded={sidebarOpen}
                     >
                         <span />

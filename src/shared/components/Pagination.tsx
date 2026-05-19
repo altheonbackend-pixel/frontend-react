@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
@@ -13,6 +15,7 @@ export function Pagination({
   onPageChange,
   isLoading = false,
 }: PaginationProps) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
 
   return (
@@ -20,20 +23,20 @@ export function Pagination({
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage <= 1 || isLoading}
-        aria-label="Previous page"
+        aria-label={t('pagination.previous_page')}
       >
-        ← Previous
+        {t('common.previous')}
       </button>
       <span className="pagination__info">
-        Page {currentPage} of {totalPages}
-        {totalCount > 0 && ` (${totalCount} total)`}
+        {t('pagination.page_of', { current: currentPage, total: totalPages })}
+        {totalCount > 0 && ` (${t('pagination.total', { count: totalCount })})`}
       </span>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages || isLoading}
-        aria-label="Next page"
+        aria-label={t('pagination.next_page')}
       >
-        Next →
+        {t('common.next')}
       </button>
     </div>
   );

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { useAuth } from '../hooks/useAuth';
 import '../styles/Auth.css';
 
 const VerifyEmail = () => {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAuthenticated, logout, profile, updateProfileData } = useAuth();
@@ -28,21 +30,21 @@ const VerifyEmail = () => {
                     setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
                 })
                 .catch((err) => {
-                    const detail = err?.response?.data?.detail || 'Invalid or expired verification link.';
+                    const detail = err?.response?.data?.detail || t('auth.verify.error.invalid_or_expired');
                     setMessage(detail);
                     setStatus('error');
                 });
         }
-    }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [navigate, profile, t, token, updateProfileData]);
 
     const handleResend = async () => {
         setResending(true);
         setResendMsg('');
         try {
             await api.post('/auth/resend-verification/');
-            setResendMsg('Verification email sent. Check your inbox.');
+            setResendMsg(t('auth.verify.resend_success'));
         } catch {
-            setResendMsg('Could not resend email. Please try again.');
+            setResendMsg(t('auth.verify.resend_error'));
         } finally {
             setResending(false);
         }
@@ -52,15 +54,15 @@ const VerifyEmail = () => {
         <div className="auth-page-wrapper">
             <div className="auth-container">
                 <div className="auth-form">
-                    <h2>Email Verification</h2>
+                    <h2>{t('auth.verify.title')}</h2>
 
                     {status === 'verifying' && (
-                        <p className="info-message">Verifying your email…</p>
+                        <p className="info-message">{t('auth.verify.verifying')}</p>
                     )}
 
                     {status === 'success' && (
                         <p className="success-message">
-                            Your email has been verified. Redirecting to your dashboard…
+                            {t('auth.verify.success')}
                         </p>
                     )}
 
@@ -71,13 +73,13 @@ const VerifyEmail = () => {
                     {status === 'idle' && !token && profile?.email_verified && (
                         <>
                             <p className="success-message">
-                                Your email is already verified.
+                                {t('auth.verify.already_verified')}
                             </p>
                             <button
                                 className="auth-button"
                                 onClick={() => navigate('/dashboard', { replace: true })}
                             >
-                                Go to Dashboard
+                                {t('auth.verify.go_to_dashboard')}
                             </button>
                         </>
                     )}
@@ -85,11 +87,11 @@ const VerifyEmail = () => {
                     {status === 'idle' && !token && !profile?.email_verified && (
                         <>
                             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                                A verification email has been sent to <strong>{profile?.email}</strong>.
-                                Please check your inbox and click the link to verify your account.
+                                {t('auth.verify.sent_to')} <strong>{profile?.email}</strong>.
+                                {' '}{t('auth.verify.check_inbox')}
                             </p>
                             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-                                You must verify your email before accessing the platform.
+                                {t('auth.verify.required')}
                             </p>
 
                             {resendMsg && (
@@ -104,7 +106,7 @@ const VerifyEmail = () => {
                                 disabled={resending}
                                 style={{ marginBottom: '12px' }}
                             >
-                                {resending ? 'Sending…' : 'Resend Verification Email'}
+                                {resending ? t('common.sending') : t('auth.verify.resend_button')}
                             </button>
 
                             {isAuthenticated && (
@@ -113,7 +115,7 @@ const VerifyEmail = () => {
                                     style={{ background: 'var(--bg-muted)' }}
                                     onClick={logout}
                                 >
-                                    Log Out
+                                    {t('nav.logout')}
                                 </button>
                             )}
                         </>

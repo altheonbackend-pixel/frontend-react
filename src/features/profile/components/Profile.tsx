@@ -49,25 +49,25 @@ const Profile = () => {
         setPwSuccess('');
 
         if (newPassword !== confirmPassword) {
-            setPwError('New passwords do not match.');
+            setPwError(t('profile.password.error.mismatch'));
             return;
         }
         if (newPassword.length < 8) {
-            setPwError('Password must be at least 8 characters.');
+            setPwError(t('profile.password.error.too_short'));
             return;
         }
 
         setPwLoading(true);
         try {
             await api.post('/change-password/', { current_password: currentPassword, new_password: newPassword });
-            setPwSuccess('Password changed successfully.');
+            setPwSuccess(t('profile.password.success'));
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err: unknown) {
             const msg =
                 (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-                'Failed to change password. Please try again.';
+                t('profile.password.error.failed');
             setPwError(msg);
         } finally {
             setPwLoading(false);
@@ -136,7 +136,7 @@ const Profile = () => {
                 {/* Security — Change Password */}
                 <div className="section-card" style={{ marginBottom: '1.25rem' }}>
                     <div className="section-card-header">
-                        <span className="section-card-title">Security</span>
+                        <span className="section-card-title">{t('security.title')}</span>
                     </div>
                     <div className="section-card-body">
                         <form onSubmit={handleChangePassword}>
@@ -157,37 +157,37 @@ const Profile = () => {
                                 </div>
                             )}
                             <div className="form-group">
-                                <label htmlFor="current-password">Current Password</label>
+                                <label htmlFor="current-password">{t('profile.password.current')}</label>
                                 <input
                                     id="current-password"
                                     type="password"
                                     value={currentPassword}
                                     onChange={e => setCurrentPassword(e.target.value)}
-                                    placeholder="Enter current password"
+                                    placeholder={t('profile.password.current_placeholder')}
                                     autoComplete="current-password"
                                     required
                                 />
                             </div>
                             <div className="form-group">
-                                <label htmlFor="new-password">New Password</label>
+                                <label htmlFor="new-password">{t('profile.password.new')}</label>
                                 <input
                                     id="new-password"
                                     type="password"
                                     value={newPassword}
                                     onChange={e => setNewPassword(e.target.value)}
-                                    placeholder="At least 8 characters"
+                                    placeholder={t('profile.password.new_placeholder')}
                                     autoComplete="new-password"
                                     required
                                 />
                             </div>
                             <div className="form-group">
-                                <label htmlFor="confirm-password">Confirm New Password</label>
+                                <label htmlFor="confirm-password">{t('profile.password.confirm_new')}</label>
                                 <input
                                     id="confirm-password"
                                     type="password"
                                     value={confirmPassword}
                                     onChange={e => setConfirmPassword(e.target.value)}
-                                    placeholder="Repeat new password"
+                                    placeholder={t('profile.password.confirm_placeholder')}
                                     autoComplete="new-password"
                                     required
                                 />
@@ -199,7 +199,7 @@ const Profile = () => {
                                     disabled={pwLoading}
                                     style={{ minWidth: 140 }}
                                 >
-                                    {pwLoading ? 'Saving…' : 'Change Password'}
+                                    {pwLoading ? t('common.saving') : t('profile.password.change')}
                                 </button>
                             </div>
                         </form>
@@ -209,14 +209,14 @@ const Profile = () => {
                 {/* Activity log */}
                 <div className="section-card">
                     <div className="section-card-header">
-                        <span className="section-card-title">Recent Activity</span>
+                        <span className="section-card-title">{t('profile.recent_activity')}</span>
                     </div>
                     <div className="section-card-body section-card-body--flush">
                         {activityLoading ? (
                             <div style={{ padding: '1rem' }}><TabSkeleton rows={4} /></div>
                         ) : activityItems.length === 0 ? (
                             <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                No activity recorded yet.
+                                {t('audit.my_activity.empty')}
                             </div>
                         ) : (
                             <>
@@ -224,10 +224,10 @@ const Profile = () => {
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
                                         <thead>
                                             <tr style={{ borderBottom: '1.5px solid var(--border-subtle)', background: 'var(--bg-muted)' }}>
-                                                <th style={{ textAlign: 'left', padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Action</th>
-                                                <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Description</th>
-                                                <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>IP</th>
-                                                <th style={{ textAlign: 'right', padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Time</th>
+                                                <th style={{ textAlign: 'left', padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>{t('audit.my_activity.action')}</th>
+                                                <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>{t('profile.activity.description')}</th>
+                                                <th style={{ textAlign: 'left', padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>{t('audit.my_activity.ip')}</th>
+                                                <th style={{ textAlign: 'right', padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{t('profile.activity.time')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>

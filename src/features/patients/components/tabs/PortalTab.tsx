@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
 import { Dialog } from '../../../../shared/components/ui';
 import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
@@ -73,6 +74,7 @@ const PortalTab = ({
     handleApproveRequest,
     handleRejectRequest,
 }: PortalTabProps) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { formatDate, formatDateTime } = useFormatDateTime();
 
@@ -82,7 +84,7 @@ const PortalTab = ({
             <div className="tab-section">
                 <div className="tab-panel-header">
                     <h3>
-                        Appointment Requests
+                        {t('patient_record.portal.appointment_requests')}
                         {pendingRequests.length > 0 && (
                             <span className="tab-count" style={{ marginLeft: '0.5rem' }}>{pendingRequests.length}</span>
                         )}
@@ -91,7 +93,7 @@ const PortalTab = ({
                 {pendingRequestsLoading ? (
                     <TabSkeleton rows={2} />
                 ) : pendingRequests.length === 0 ? (
-                    <p className="muted">No pending appointment requests from this patient.</p>
+                    <p className="muted">{t('patient_record.portal.no_pending_requests')}</p>
                 ) : (
                     <div style={{ display: 'grid', gap: '0.875rem' }}>
                         {pendingRequests.map(req => (
@@ -101,11 +103,11 @@ const PortalTab = ({
                                         <div style={{ fontWeight: 700 }}>{formatDateTime(req.appointment_date)}</div>
                                         {req.appointment_type && (
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
-                                                {req.appointment_type === 'telemedicine' ? '📹 Telemedicine' : '🏥 In person'}
+                                                {req.appointment_type === 'telemedicine' ? t('appointments.type.telemedicine') : t('appointments.type.in_person')}
                                             </div>
                                         )}
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{req.reason}</div>
-                                        {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Note: {req.notes}</div>}
+                                        {req.notes && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{t('patient_record.portal.note')}: {req.notes}</div>}
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
                                         <button
@@ -114,7 +116,7 @@ const PortalTab = ({
                                             onClick={() => handleApproveRequest(req.id)}
                                             disabled={requestActionLoading}
                                         >
-                                            Approve
+                                            {t('dashboard.actions.approve')}
                                         </button>
                                         <button
                                             type="button"
@@ -122,26 +124,26 @@ const PortalTab = ({
                                             onClick={() => { setRejectRequestId(req.id); setRejectReason(''); }}
                                             disabled={requestActionLoading}
                                         >
-                                            Decline
+                                            {t('dashboard.actions.decline')}
                                         </button>
                                         <button
                                             type="button"
                                             className="btn btn-secondary btn-sm"
                                             onClick={() => navigate(`/appointments?patient=${id}`)}
                                         >
-                                            View →
+                                            {t('dashboard.actions.view')}
                                         </button>
                                     </div>
                                 </div>
                                 <div>
                                     <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
-                                        Instructions for patient (optional)
+                                        {t('patient_record.portal.instructions_optional')}
                                     </label>
                                     <input
                                         type="text"
                                         className="input-field"
                                         style={{ fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
-                                        placeholder="e.g. Please fast for 2 hours before the visit"
+                                        placeholder={t('patient_record.portal.instructions_placeholder')}
                                         value={approveInstructions[req.id] ?? ''}
                                         onChange={e => setApproveInstructions(prev => ({ ...prev, [req.id]: e.target.value }))}
                                     />
@@ -155,18 +157,18 @@ const PortalTab = ({
             {/* ── Appointments section ── */}
             <div className="tab-section tab-section--divider">
                 <div className="tab-panel-header">
-                    <h3>Appointments</h3>
+                    <h3>{t('nav.appointments')}</h3>
                     <button
                         className="btn-add-primary"
                         onClick={() => navigate(`/appointments?patient_id=${id}`)}
                     >
-                        + Book Appointment
+                        {t('patient_record.portal.book_appointment')}
                     </button>
                 </div>
                 {appointmentsLoading ? (
                     <TabSkeleton rows={3} />
                 ) : patientAppointments.length === 0 ? (
-                    <p className="muted">No appointments on record for this patient.</p>
+                    <p className="muted">{t('patient_record.portal.no_appointments')}</p>
                 ) : (
                     <ul className="detail-list">
                         {patientAppointments
@@ -179,22 +181,22 @@ const PortalTab = ({
                                             <strong>{formatDateTime(appt.appointment_date)}</strong>
                                             {appt.appointment_type && (
                                                 <span style={{ fontSize: '0.72rem', background: appt.appointment_type === 'telemedicine' ? '#dbeafe' : '#f3f4f6', color: appt.appointment_type === 'telemedicine' ? '#1e40af' : '#374151', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>
-                                                    {appt.appointment_type === 'telemedicine' ? '📹 Video' : '🏥 In person'}
+                                                    {appt.appointment_type === 'telemedicine' ? t('appointments.type.video') : t('appointments.type.in_person')}
                                                 </span>
                                             )}
                                             {appt.rescheduled_from_date && (
-                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={`Rescheduled from ${formatDate(appt.rescheduled_from_date)}`}>
-                                                    ↩ Rescheduled
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }} title={t('patient_record.portal.rescheduled_from', { date: formatDate(appt.rescheduled_from_date) })}>
+                                                    {t('patient_record.portal.rescheduled')}
                                                 </span>
                                             )}
                                         </div>
                                         <span className={`status-badge status-${appt.status}`}>{appt.status_display || appt.status}</span>
                                     </div>
                                     {appt.reason_for_appointment && (
-                                        <div className="info-item"><strong>Reason:</strong> {appt.reason_for_appointment}</div>
+                                        <div className="info-item"><strong>{t('patient_record.common.reason')}:</strong> {appt.reason_for_appointment}</div>
                                     )}
                                     {appt.cancellation_reason && (
-                                        <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>Cancellation note:</strong> {appt.cancellation_reason}</div>
+                                        <div className="info-item" style={{ color: 'var(--color-danger)', fontSize: '0.8125rem' }}><strong>{t('patient_record.portal.cancellation_note')}:</strong> {appt.cancellation_reason}</div>
                                     )}
                                 </li>
                             ))
@@ -205,7 +207,7 @@ const PortalTab = ({
 
             {/* ── Patient Portal section ── */}
             <div className="tab-section tab-section--divider" style={{ display: 'grid', gap: '1.25rem' }}>
-                <div className="tab-panel-header"><h3>Patient Portal</h3></div>
+                <div className="tab-panel-header"><h3>{t('patient_record.portal.title')}</h3></div>
                 {portalLoading ? (
                     <TabSkeleton rows={4} />
                 ) : (
@@ -213,7 +215,7 @@ const PortalTab = ({
                         {/* Portal Status Card */}
                         <div className="section-card">
                             <div className="section-card-header">
-                                <span className="section-card-title">Portal access</span>
+                                <span className="section-card-title">{t('patient_record.portal.access')}</span>
                                 {portalStatus && (
                                     <span className={`portal-status-badge ${
                                         portalStatus.claim_status === 'claimed' ? 'portal-status-badge--active'
@@ -221,10 +223,10 @@ const PortalTab = ({
                                         : portalStatus.portal_enabled ? 'portal-status-badge--pending'
                                         : 'portal-status-badge--inactive'
                                     }`}>
-                                        {portalStatus.claim_status === 'claimed' ? '● Active'
-                                            : portalStatus.claim_status === 'invited' ? '⏳ Invited — awaiting claim'
-                                            : portalStatus.portal_enabled ? '⏳ Enabled — not yet claimed'
-                                            : '○ Not enabled'}
+                                        {portalStatus.claim_status === 'claimed' ? t('patient_record.portal.status.active')
+                                            : portalStatus.claim_status === 'invited' ? t('patient_record.portal.status.invited')
+                                            : portalStatus.portal_enabled ? t('patient_record.portal.status.enabled')
+                                            : t('patient_record.portal.status.not_enabled')}
                                     </span>
                                 )}
                             </div>
@@ -232,19 +234,19 @@ const PortalTab = ({
                                 {portalStatus ? (
                                     <div style={{ display: 'grid', gap: '0.75rem' }}>
                                         {portalStatus.primary_contact_email && (
-                                            <div className="info-item"><strong>Portal email:</strong> {portalStatus.primary_contact_email}</div>
+                                            <div className="info-item"><strong>{t('patient_record.portal.email')}:</strong> {portalStatus.primary_contact_email}</div>
                                         )}
                                         {portalStatus.invited_at && (
-                                            <div className="info-item"><strong>Invited:</strong> {formatDate(portalStatus.invited_at)}</div>
+                                            <div className="info-item"><strong>{t('patient_record.portal.invited')}:</strong> {formatDate(portalStatus.invited_at)}</div>
                                         )}
                                         {portalStatus.claimed_at && (
-                                            <div className="info-item"><strong>Claimed:</strong> {formatDate(portalStatus.claimed_at)}</div>
+                                            <div className="info-item"><strong>{t('patient_record.portal.claimed')}:</strong> {formatDate(portalStatus.claimed_at)}</div>
                                         )}
                                         {portalStatus.claim_status !== 'claimed' && (
                                             <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                                                 <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
                                                     <label htmlFor="portalInviteEmail" style={{ fontSize: '0.8rem' }}>
-                                                        {portalStatus.claim_status === 'invited' ? 'Re-send invitation to' : 'Send portal invitation to'}
+                                                        {portalStatus.claim_status === 'invited' ? t('patient_record.portal.resend_invitation_to') : t('patient_record.portal.send_invitation_to')}
                                                     </label>
                                                     <input
                                                         id="portalInviteEmail"
@@ -261,9 +263,9 @@ const PortalTab = ({
                                                     disabled={portalInviteSending}
                                                     style={{ marginBottom: '1px' }}
                                                 >
-                                                    {portalInviteSending ? 'Sending…'
-                                                        : portalStatus.claim_status === 'invited' ? 'Resend invite'
-                                                        : 'Send invite'}
+                                                    {portalInviteSending ? t('common.sending')
+                                                        : portalStatus.claim_status === 'invited' ? t('patient_record.portal.resend_invite')
+                                                        : t('patient_record.portal.send_invite')}
                                                 </button>
                                             </div>
                                         )}
@@ -271,7 +273,7 @@ const PortalTab = ({
                                 ) : (
                                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                                         <div className="form-group" style={{ flex: 1, minWidth: '220px', marginBottom: 0 }}>
-                                            <label htmlFor="portalInviteEmailNew" style={{ fontSize: '0.8rem' }}>Send portal invitation</label>
+                                            <label htmlFor="portalInviteEmailNew" style={{ fontSize: '0.8rem' }}>{t('patient_record.portal.send_invitation')}</label>
                                             <input
                                                 id="portalInviteEmailNew"
                                                 type="email"
@@ -287,7 +289,7 @@ const PortalTab = ({
                                             disabled={portalInviteSending}
                                             style={{ marginBottom: '1px' }}
                                         >
-                                            {portalInviteSending ? 'Sending…' : 'Send invite'}
+                                            {portalInviteSending ? t('common.sending') : t('patient_record.portal.send_invite')}
                                         </button>
                                     </div>
                                 )}
@@ -298,16 +300,16 @@ const PortalTab = ({
                         {portalStatus?.claim_status === 'claimed' && (
                             <div className="section-card">
                                 <div className="section-card-header">
-                                    <span className="section-card-title">Sharing settings</span>
-                                    {portalSettingsSaving && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Saving…</span>}
+                                    <span className="section-card-title">{t('patient_record.portal.sharing_settings')}</span>
+                                    {portalSettingsSaving && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('common.saving')}</span>}
                                 </div>
                                 <div className="section-card-body" style={{ display: 'grid', gap: '0.5rem' }}>
                                     {([
-                                        ['share_consultations_by_default', 'Share visit summaries by default'],
-                                        ['share_labs_by_default', 'Share lab results by default'],
-                                        ['share_prescriptions_by_default', 'Share medications by default'],
-                                        ['share_conditions_by_default', 'Share conditions by default'],
-                                        ['share_allergies_by_default', 'Share allergies by default'],
+                                        ['share_consultations_by_default', t('patient_record.portal.share_consultations')],
+                                        ['share_labs_by_default', t('patient_record.portal.share_labs')],
+                                        ['share_prescriptions_by_default', t('patient_record.portal.share_prescriptions')],
+                                        ['share_conditions_by_default', t('patient_record.portal.share_conditions')],
+                                        ['share_allergies_by_default', t('patient_record.portal.share_allergies')],
                                     ] as [string, string][]).map(([field, label]) => {
                                         const val = (portalStatus as Record<string, unknown>)[field] as boolean | undefined;
                                         return (
@@ -321,7 +323,7 @@ const PortalTab = ({
                                                     onClick={() => handlePortalSettingToggle(field, !!val)}
                                                     disabled={portalSettingsSaving}
                                                 >
-                                                    {val ? 'On' : 'Off'}
+                                                    {val ? t('common.on') : t('common.off')}
                                                 </button>
                                             </div>
                                         );
@@ -329,16 +331,16 @@ const PortalTab = ({
                                     <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-subtle)' }}>
                                         {sharingPreview === null ? (
                                             <button type="button" className="btn btn-sm btn-secondary" onClick={checkSharingDefaults}>
-                                                Check existing hidden records
+                                                {t('patient_record.portal.check_hidden')}
                                             </button>
                                         ) : sharingPreview.total_hidden === 0 ? (
                                             <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                                                All existing records already match your sharing defaults.
+                                                {t('patient_record.portal.all_match_defaults')}
                                             </span>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                                                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                                                    <strong>{sharingPreview.total_hidden}</strong> existing record(s) are hidden but would be shared under current defaults.
+                                                    {t('patient_record.portal.hidden_would_share', { count: sharingPreview.total_hidden })}
                                                 </span>
                                                 <button
                                                     type="button"
@@ -346,7 +348,7 @@ const PortalTab = ({
                                                     onClick={applyAllSharingDefaults}
                                                     disabled={applyingDefaults}
                                                 >
-                                                    {applyingDefaults ? 'Applying…' : 'Apply to existing records'}
+                                                    {applyingDefaults ? t('patient_record.portal.applying') : t('patient_record.portal.apply_existing')}
                                                 </button>
                                             </div>
                                         )}
@@ -362,23 +364,23 @@ const PortalTab = ({
             <Dialog
                 open={rejectRequestId !== null}
                 tone="danger"
-                title="Decline appointment request"
+                title={t('patient_record.portal.decline_request')}
                 message={
                     <div>
                         <p style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                            The patient will be notified. Optionally provide a reason.
+                            {t('patient_record.portal.decline_message')}
                         </p>
                         <textarea
                             rows={3}
                             value={rejectReason}
                             onChange={e => setRejectReason(e.target.value)}
-                            placeholder="e.g. Doctor unavailable on that date — please request another time."
+                            placeholder={t('patient_record.portal.decline_placeholder')}
                             style={{ width: '100%', resize: 'vertical', boxSizing: 'border-box', fontSize: '0.875rem' }}
                         />
                     </div>
                 }
-                confirmLabel="Decline request"
-                cancelLabel="Keep pending"
+                confirmLabel={t('patient_record.portal.decline_confirm')}
+                cancelLabel={t('patient_record.portal.keep_pending')}
                 onConfirm={() => { if (rejectRequestId) handleRejectRequest(rejectRequestId, rejectReason); }}
                 onClose={() => { setRejectRequestId(null); setRejectReason(''); }}
             />

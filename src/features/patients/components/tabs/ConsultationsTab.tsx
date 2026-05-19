@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, ReferenceLine, Legend,
@@ -78,6 +79,7 @@ const ConsultationsTab = ({
     handleHideConsultation,
     handleShowConsultation,
 }: ConsultationsTabProps) => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { formatDate, formatDayMonth } = useFormatDateTime();
 
@@ -98,27 +100,27 @@ const ConsultationsTab = ({
     return (
         <div className="tab-panel">
             <div className="tab-panel-header">
-                <h3>Consultations</h3>
+                <h3>{t('patient_record.consultations.title')}</h3>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <div className="view-toggle">
                         <button
                             type="button"
                             className={`view-toggle-btn${consultView === 'list' ? ' active' : ''}`}
                             onClick={() => setConsultView('list')}
-                        >List</button>
+                        >{t('patient_record.consultations.list')}</button>
                         <button
                             type="button"
                             className={`view-toggle-btn${consultView === 'charts' ? ' active' : ''}`}
                             onClick={() => setConsultView('charts')}
-                        >Vitals Charts</button>
+                        >{t('patient_record.consultations.vitals_charts')}</button>
                     </div>
                     {consultView === 'list' && (
                         <button
                             className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
                             disabled={!canWrite}
-                            title={!canWrite ? 'Patient record is read-only' : undefined}
+                            title={!canWrite ? t('patient_record.read_only') : undefined}
                             onClick={() => { if (canWrite) { setConsultationToEdit(null); setShowConsultationForm(true); } }}
-                        >+ Add</button>
+                        >{t('patient_record.common.add')}</button>
                     )}
                 </div>
             </div>
@@ -127,7 +129,7 @@ const ConsultationsTab = ({
                 <>
                     {draftConsultations.length > 0 && (
                         <div className="pt-draft-notice">
-                            <span>{draftConsultations.length} unsigned draft{draftConsultations.length > 1 ? 's' : ''} — open to complete and sign.</span>
+                            <span>{t('patient_record.consultations.unsigned_drafts', { count: draftConsultations.length })}</span>
                         </div>
                     )}
                     {consultationsLoading ? (
@@ -169,15 +171,15 @@ const ConsultationsTab = ({
                                                     color: isDraft ? 'var(--color-warning-dark)' : 'var(--text-muted)',
                                                     border: '1px solid currentColor',
                                                 }}>
-                                                    {c.consultation_status === 'draft' ? 'Draft'
-                                                        : c.consultation_status === 'in_progress' ? 'In Progress'
-                                                        : c.consultation_status === 'amended' ? 'Amended'
+                                                    {c.consultation_status === 'draft' ? t('patient_record.consultations.status.draft')
+                                                        : c.consultation_status === 'in_progress' ? t('patient_record.consultations.status.in_progress')
+                                                        : c.consultation_status === 'amended' ? t('patient_record.consultations.status.amended')
                                                         : c.consultation_status}
                                                 </span>
                                             )}
                                             {isVoided && (
                                                 <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
-                                                    Voided
+                                                    {t('patient_record.consultations.status.voided')}
                                                 </span>
                                             )}
                                             <span className="consult-summary-reason" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -188,7 +190,7 @@ const ConsultationsTab = ({
                                                     Dr. {c.doctor_name}
                                                 </span>
                                             )}
-                                            {c.has_vital_alerts && <span className="vital-alert-dot" title="Vital alert">⚠</span>}
+                                            {c.has_vital_alerts && <span className="vital-alert-dot" title={t('patient_record.overview.vital_alert')}>⚠</span>}
                                             {/* Quick-action buttons for drafts — stop propagation so expand doesn't fire */}
                                             {isOwnConsultation && isDraft && !isExpanded && canWrite && (
                                                 <button
@@ -197,7 +199,7 @@ const ConsultationsTab = ({
                                                     style={{ fontSize: '0.75rem', padding: '2px 10px', flexShrink: 0 }}
                                                     onClick={e => { e.stopPropagation(); openEdit(c); }}
                                                 >
-                                                    Open →
+                                                    {t('patient_record.consultations.open')}
                                                 </button>
                                             )}
                                             <span className="consult-expand-icon" style={{ marginLeft: 'auto', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
@@ -208,10 +210,10 @@ const ConsultationsTab = ({
                                             <div className="consult-expanded">
                                                 {/* Clinical details */}
                                                 <div className="consult-section">
-                                                    <div className="info-item"><strong>Reason:</strong> {c.reason_for_consultation}</div>
+                                                    <div className="info-item"><strong>{t('patient_record.common.reason')}:</strong> {c.reason_for_consultation}</div>
                                                     {c.symptoms?.length > 0 && (
                                                         <div className="info-item">
-                                                            <strong>Symptoms:</strong>
+                                                            <strong>{t('patient_record.consultations.symptoms')}:</strong>
                                                             <div className="symptoms-display">
                                                                 {c.symptoms.map(s => <span key={s} className="symptom-tag">{s}</span>)}
                                                             </div>
@@ -219,14 +221,14 @@ const ConsultationsTab = ({
                                                     )}
                                                     {c.diagnosis && (
                                                         <div className="info-item">
-                                                            <strong>Diagnosis:</strong> {c.diagnosis}
+                                                            <strong>{t('patient_record.consultations.diagnosis')}:</strong> {c.diagnosis}
                                                             {c.icd_code && <span className="consult-icd-badge">{c.icd_code}</span>}
                                                         </div>
                                                     )}
-                                                    {c.medical_report && <div className="info-item"><strong>Report:</strong> {c.medical_report}</div>}
+                                                    {c.medical_report && <div className="info-item"><strong>{t('patient_record.consultations.report')}:</strong> {c.medical_report}</div>}
                                                     {c.amendment_reason && (
                                                         <div className="info-item" style={{ background: 'var(--color-warning-light)', borderRadius: 'var(--radius-sm)', padding: '0.375rem 0.5rem', marginTop: '0.5rem' }}>
-                                                            <strong style={{ color: 'var(--color-warning-dark)' }}>Amendment:</strong> {c.amendment_reason}
+                                                            <strong style={{ color: 'var(--color-warning-dark)' }}>{t('patient_record.consultations.amendment')}:</strong> {c.amendment_reason}
                                                             {c.amended_at && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({formatDate(c.amended_at)})</span>}
                                                         </div>
                                                     )}
@@ -235,11 +237,11 @@ const ConsultationsTab = ({
                                                 {/* Vitals */}
                                                 {(c.weight || c.height || c.temperature || c.sp2 || c.bp_systolic || c.bp_diastolic) && (
                                                     <div className="consult-section">
-                                                        <div className="consult-section-title">Vitals</div>
+                                                        <div className="consult-section-title">{t('patient_record.consultations.vitals')}</div>
                                                         <div className="vitals-row">
-                                                            {c.weight && <span className="vital-chip">Weight: {c.weight} kg</span>}
-                                                            {c.height && <span className="vital-chip">Height: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
-                                                            {c.temperature && <span className="vital-chip">Temp: {c.temperature}°C</span>}
+                                                            {c.weight && <span className="vital-chip">{t('patient_record.vitals.weight')}: {c.weight} kg</span>}
+                                                            {c.height && <span className="vital-chip">{t('patient_record.vitals.height')}: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
+                                                            {c.temperature && <span className="vital-chip">{t('patient_record.vitals.temperature')}: {c.temperature}°C</span>}
                                                             {c.sp2 && <span className="vital-chip">SpO₂: {c.sp2}%</span>}
                                                             {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`} mmHg</span>}
                                                         </div>
@@ -254,14 +256,14 @@ const ConsultationsTab = ({
                                                 {/* Prescriptions */}
                                                 {c.prescriptions && c.prescriptions.length > 0 && (
                                                     <div className="consult-section">
-                                                        <div className="consult-section-title">Medications Prescribed</div>
+                                                        <div className="consult-section-title">{t('patient_record.consultations.medications_prescribed')}</div>
                                                         <ul className="consult-rx-list">
                                                             {c.prescriptions.map(rx => (
                                                                 <li key={rx.id} className="consult-rx-item">
                                                                     <div className="consult-rx-header">
                                                                         <span className="consult-rx-name">{rx.medication_name}</span>
                                                                         <span className={`consult-rx-status ${rx.is_active ? 'consult-rx-status--active' : 'consult-rx-status--inactive'}`}>
-                                                                            {rx.is_active ? 'Active' : 'Inactive'}
+                                                                            {rx.is_active ? t('common.status.active') : t('common.status.inactive')}
                                                                         </span>
                                                                     </div>
                                                                     <div className="consult-rx-detail">
@@ -278,7 +280,7 @@ const ConsultationsTab = ({
                                                 {/* Lab results */}
                                                 {c.lab_results && c.lab_results.length > 0 && (
                                                     <div className="consult-section">
-                                                        <div className="consult-section-title">Lab Tests Ordered</div>
+                                                        <div className="consult-section-title">{t('patient_record.consultations.lab_tests_ordered')}</div>
                                                         <ul className="consult-lab-list">
                                                             {c.lab_results.map(lab => (
                                                                 <li key={lab.id} className="consult-lab-item">
@@ -305,7 +307,7 @@ const ConsultationsTab = ({
                                                 {/* Procedures */}
                                                 {c.procedures && c.procedures.length > 0 && (
                                                     <div className="consult-section">
-                                                        <div className="consult-section-title">Procedures Performed</div>
+                                                        <div className="consult-section-title">{t('patient_record.consultations.procedures_performed')}</div>
                                                         <ul className="consult-proc-list">
                                                             {c.procedures.map(proc => (
                                                                 <li key={proc.id} className="consult-proc-item">
@@ -324,27 +326,27 @@ const ConsultationsTab = ({
                                                 {/* Patient summary / instructions */}
                                                 {(c.patient_summary || c.patient_instructions) && (
                                                     <div className="consult-section">
-                                                        {c.patient_summary && <div className="info-item"><strong>Patient Summary:</strong> {c.patient_summary}</div>}
-                                                        {c.patient_instructions && <div className="info-item"><strong>Instructions:</strong> {c.patient_instructions}</div>}
+                                                        {c.patient_summary && <div className="info-item"><strong>{t('patient_record.consultations.patient_summary')}:</strong> {c.patient_summary}</div>}
+                                                        {c.patient_instructions && <div className="info-item"><strong>{t('patient_record.consultations.instructions')}:</strong> {c.patient_instructions}</div>}
                                                     </div>
                                                 )}
 
                                                 {/* Follow-up section */}
                                                 {c.follow_up_date && (
                                                     <div className="consult-section">
-                                                        <div className="consult-section-title">Follow-up</div>
+                                                        <div className="consult-section-title">{t('patient_record.consultations.follow_up')}</div>
                                                         {isLatest ? (
                                                             /* Latest consultation — show actionable follow-up controls */
                                                             c.follow_up_dismissed ? (
                                                                 <p className="muted" style={{ margin: 0, fontSize: '0.875rem' }}>
-                                                                    Follow-up dismissed
+                                                                    {t('patient_record.consultations.follow_up_dismissed')}
                                                                     {c.follow_up_dismissal_reason ? ` — ${c.follow_up_dismissal_reason}` : ''}
                                                                 </p>
                                                             ) : c.follow_up_appointment_info ? (
                                                                 /* Appointment already booked */
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                     <span className="follow-up-chip">
-                                                                        Follow-up: {formatDate(c.follow_up_date)}
+                                                                        {t('patient_record.consultations.follow_up')}: {formatDate(c.follow_up_date)}
                                                                     </span>
                                                                     <button
                                                                         type="button"
@@ -352,14 +354,14 @@ const ConsultationsTab = ({
                                                                         style={{ fontSize: '0.78rem', padding: '2px 8px' }}
                                                                         onClick={() => navigate(`/appointments?patient_id=${id}`)}
                                                                     >
-                                                                        Appt booked ({c.follow_up_appointment_info.status}) →
+                                                                        {t('patient_record.consultations.appt_booked', { status: c.follow_up_appointment_info.status })}
                                                                     </button>
                                                                 </div>
                                                             ) : (
                                                                 /* No appointment yet — show "Book follow-up" */
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                                     <span className="follow-up-chip">
-                                                                        Follow-up: {formatDate(c.follow_up_date)}
+                                                                        {t('patient_record.consultations.follow_up')}: {formatDate(c.follow_up_date)}
                                                                     </span>
                                                                     <button
                                                                         type="button"
@@ -367,14 +369,14 @@ const ConsultationsTab = ({
                                                                         style={{ fontSize: '0.78rem', padding: '2px 8px' }}
                                                                         onClick={() => navigate(`/appointments?patient_id=${id}`)}
                                                                     >
-                                                                        Book follow-up →
+                                                                        {t('patient_record.consultations.book_follow_up')}
                                                                     </button>
                                                                 </div>
                                                             )
                                                         ) : (
                                                             /* Older consultation — read-only chip only */
                                                             <span className="follow-up-chip" style={{ display: 'inline-flex' }}>
-                                                                Follow-up: {formatDate(c.follow_up_date)}
+                                                                {t('patient_record.consultations.follow_up')}: {formatDate(c.follow_up_date)}
                                                             </span>
                                                         )}
                                                     </div>
@@ -388,36 +390,36 @@ const ConsultationsTab = ({
                                                                 type="button"
                                                                 className="edit-button action-button"
                                                                 onClick={() => openEdit(c)}
-                                                            >Edit</button>
+                                                            >{t('common.edit')}</button>
                                                             <button
                                                                 type="button"
                                                                 className="btn btn-primary btn-sm"
                                                                 onClick={() => handleSignConsultation(c.id)}
-                                                            >Sign</button>
+                                                            >{t('patient_record.consultations.sign')}</button>
                                                         </>)}
                                                         {isSigned && (<>
                                                             <button
                                                                 type="button"
                                                                 className="edit-button action-button"
                                                                 onClick={() => setViewingConsultation(c)}
-                                                            >View</button>
+                                                            >{t('dashboard.actions.view')}</button>
                                                             <button
                                                                 type="button"
                                                                 className="action-button"
                                                                 onClick={() => setViewingConsultation(c)}
-                                                            >Amend</button>
+                                                            >{t('patient_record.consultations.amend')}</button>
                                                         </>)}
                                                         <button
                                                             type="button"
                                                             className="action-button"
                                                             style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginLeft: 'auto' }}
                                                             onClick={() => setConfirmDeleteConsultationId(c.id)}
-                                                        >Void</button>
+                                                        >{t('patient_record.consultations.void')}</button>
                                                     </div>
                                                 )}
                                                 {isOwnConsultation && isVoided && (
                                                     <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                        Voided{c.void_reason ? ` — ${c.void_reason}` : ''}
+                                                        {t('patient_record.consultations.status.voided')}{c.void_reason ? ` - ${c.void_reason}` : ''}
                                                     </div>
                                                 )}
 
@@ -427,7 +429,7 @@ const ConsultationsTab = ({
                                                         {c.visible_to_patient ? (
                                                             c.share_with_patient_at ? (<>
                                                                 <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 600 }}>
-                                                                    ✓ Shared with patient
+                                                                    {t('patient_record.consultations.shared_with_patient')}
                                                                 </span>
                                                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                                     {formatDate(c.share_with_patient_at)}
@@ -437,40 +439,40 @@ const ConsultationsTab = ({
                                                                     className="action-button"
                                                                     style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
                                                                     onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
-                                                                >Edit summary</button>
+                                                                >{t('patient_record.consultations.edit_summary')}</button>
                                                                 <button
                                                                     type="button"
                                                                     className="action-button"
                                                                     style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
                                                                     onClick={() => handleHideConsultation(c.id)}
-                                                                >Hide</button>
+                                                                >{t('patient_record.consultations.hide')}</button>
                                                             </>) : (<>
                                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                                                    Visible to patient
+                                                                    {t('patient_record.consultations.visible_to_patient')}
                                                                 </span>
                                                                 <button
                                                                     type="button"
                                                                     className="action-button"
                                                                     style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
                                                                     onClick={() => { setShareConsultationId(c.id); setShareConsultationSummary(c.patient_summary || ''); }}
-                                                                >Add patient summary</button>
+                                                                >{t('patient_record.consultations.add_patient_summary')}</button>
                                                                 <button
                                                                     type="button"
                                                                     className="action-button"
                                                                     style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}
                                                                     onClick={() => handleHideConsultation(c.id)}
-                                                                >Hide from patient</button>
+                                                                >{t('patient_record.consultations.hide_from_patient')}</button>
                                                             </>)
                                                         ) : (<>
                                                             <span style={{ fontSize: '0.8rem', color: 'var(--warning)', fontWeight: 600 }}>
-                                                                Hidden from patient
+                                                                {t('patient_record.consultations.hidden_from_patient')}
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 className="action-button"
                                                                 style={{ fontSize: '0.78rem', color: 'var(--accent)' }}
                                                                 onClick={() => handleShowConsultation(c.id)}
-                                                            >Make visible</button>
+                                                            >{t('patient_record.consultations.make_visible')}</button>
                                                         </>)}
                                                     </div>
                                                 )}
@@ -480,7 +482,7 @@ const ConsultationsTab = ({
                                 );
                             })}
                         </ul>
-                    ) : <p className="muted">No consultations recorded.</p>}
+                    ) : <p className="muted">{t('patient_record.consultations.empty')}</p>}
                 </>
             ) : (
                 vitalsLoading ? (
@@ -488,8 +490,8 @@ const ConsultationsTab = ({
                 ) : vitalsTrend.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-state-icon">📈</div>
-                        <div className="empty-state-title">No vitals recorded yet</div>
-                        <div className="empty-state-subtitle">Vitals are captured during consultations.</div>
+                        <div className="empty-state-title">{t('patient_record.consultations.no_vitals_title')}</div>
+                        <div className="empty-state-subtitle">{t('patient_record.consultations.no_vitals_subtitle')}</div>
                     </div>
                 ) : (() => {
                     const chartData = vitalsTrend.map(v => ({
@@ -505,10 +507,10 @@ const ConsultationsTab = ({
                         <div>
                             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
                                 {([
-                                    { key: 'bp' as const, label: 'Blood Pressure' },
+                                    { key: 'bp' as const, label: t('patient_record.vitals.blood_pressure') },
                                     { key: 'spo2' as const, label: 'SpO₂' },
-                                    { key: 'temperature' as const, label: 'Temperature' },
-                                    { key: 'weight' as const, label: 'Weight' },
+                                    { key: 'temperature' as const, label: t('patient_record.vitals.temperature') },
+                                    { key: 'weight' as const, label: t('patient_record.vitals.weight') },
                                 ]).map(({ key, label }) => (
                                     <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
                                         <input type="checkbox" checked={visibleVitals[key]} onChange={() => toggleVital(key)} />
@@ -519,9 +521,9 @@ const ConsultationsTab = ({
                             {visibleVitals.bp && bpData.length > 0 && (
                                 <div className="section-card" style={{ marginBottom: '1rem' }}>
                                     <div className="section-card-header">
-                                        <span className="section-card-title">Blood Pressure (mmHg)</span>
+                                        <span className="section-card-title">{t('patient_record.vitals.blood_pressure')} (mmHg)</span>
                                         {(last.bp_systolic || last.bp_diastolic) && (
-                                            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg</span>
+                                            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('patient_record.consultations.latest')}: {last.bp_systolic ?? '?'}/{last.bp_diastolic ?? '?'} mmHg</span>
                                         )}
                                     </div>
                                     <div className="section-card-body" style={{ height: 220 }}>
@@ -533,8 +535,8 @@ const ConsultationsTab = ({
                                                 <Tooltip contentStyle={VITALS_TOOLTIP_STYLE} />
                                                 <ReferenceLine y={180} stroke="var(--danger)" strokeDasharray="4 4" label={{ value: 'Crisis', fontSize: 10, fill: 'var(--danger)' }} />
                                                 <ReferenceLine y={90} stroke="var(--warning)" strokeDasharray="4 4" label={{ value: 'Hypotension', fontSize: 10, fill: 'var(--warning)' }} />
-                                                <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name="Systolic" connectNulls />
-                                                <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name="Diastolic" connectNulls />
+                                                <Line type="monotone" dataKey="bp_systolic" stroke="var(--accent)" strokeWidth={2} dot={{ r: 3 }} name={t('patient_record.vitals.systolic')} connectNulls />
+                                                <Line type="monotone" dataKey="bp_diastolic" stroke="var(--accent-secondary)" strokeWidth={2} dot={{ r: 3 }} name={t('patient_record.vitals.diastolic')} connectNulls />
                                                 <Legend />
                                             </LineChart>
                                         </ResponsiveContainer>
@@ -546,7 +548,7 @@ const ConsultationsTab = ({
                                     <div className="section-card-header">
                                         <span className="section-card-title">SpO₂ (%)</span>
                                         {last.sp2 && (
-                                            <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.sp2}%</span>
+                                            <span style={{ fontSize: '0.8125rem', color: Number(last.sp2) < 94 ? 'var(--danger)' : 'var(--text-secondary)' }}>{t('patient_record.consultations.latest')}: {last.sp2}%</span>
                                         )}
                                     </div>
                                     <div className="section-card-body" style={{ height: 220 }}>
@@ -569,7 +571,7 @@ const ConsultationsTab = ({
                                     <div className="section-card-header">
                                         <span className="section-card-title">Temperature (°C)</span>
                                         {last.temperature && (
-                                            <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>Latest: {last.temperature}°C</span>
+                                            <span style={{ fontSize: '0.8125rem', color: Number(last.temperature) > 38.5 ? 'var(--danger)' : 'var(--text-secondary)' }}>{t('patient_record.consultations.latest')}: {last.temperature}°C</span>
                                         )}
                                     </div>
                                     <div className="section-card-body" style={{ height: 220 }}>
@@ -593,7 +595,7 @@ const ConsultationsTab = ({
                                     <div className="section-card-header">
                                         <span className="section-card-title">Weight (kg)</span>
                                         {last.weight && (
-                                            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Latest: {last.weight} kg</span>
+                                            <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{t('patient_record.consultations.latest')}: {last.weight} kg</span>
                                         )}
                                     </div>
                                     <div className="section-card-body" style={{ height: 220 }}>

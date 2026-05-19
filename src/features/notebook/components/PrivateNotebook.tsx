@@ -2,6 +2,7 @@
 // Phase 8: Two-column notes app layout (sidebar list + editor)
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { type NotebookEntry } from '../../../shared/types';
 import { toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
@@ -13,6 +14,7 @@ import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 const NOTEBOOK_KEY = ['notebook', 'list'] as const;
 
 function PrivateNotebook() {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const { formatDate } = useFormatDateTime();
     const [activeId, setActiveId] = useState<number | null>(null);
@@ -48,7 +50,7 @@ function PrivateNotebook() {
             setTimeout(() => setAutoSaveStatus('idle'), 2000);
         },
         onError: (err) => {
-            toast.error(parseApiError(err, 'Failed to save entry.'));
+            toast.error(parseApiError(err, t('notes.error.save')));
             setAutoSaveStatus('idle');
         },
     });
@@ -56,7 +58,7 @@ function PrivateNotebook() {
     const deleteMutation = useMutation({
         mutationFn: (id: number) => api.delete(`/notebook/${id}/`),
         onSuccess: (_, id) => {
-            toast.success('Entry deleted.');
+            toast.success(t('notes.toast.deleted'));
             setConfirmDeleteId(null);
             queryClient.setQueryData<NotebookEntry[]>(NOTEBOOK_KEY, (old = []) => old.filter(e => e.id !== id));
             if (activeId === id) {
@@ -66,7 +68,7 @@ function PrivateNotebook() {
             }
         },
         onError: (err) => {
-            toast.error(parseApiError(err, 'Failed to delete entry.'));
+            toast.error(parseApiError(err, t('notes.error.delete')));
             setConfirmDeleteId(null);
         },
     });
@@ -111,8 +113,8 @@ function PrivateNotebook() {
     return (
         <>
             <PageHeader
-                title="Private Notebook"
-                subtitle="Personal notes — visible only to you"
+                title={t('notes.private.title')}
+                subtitle={t('notes.private.subtitle')}
             />
 
             <div className="notebook-layout">
@@ -123,7 +125,7 @@ function PrivateNotebook() {
                             className="btn btn-secondary btn-full btn-sm"
                             onClick={openNew}
                         >
-                            + New Entry
+                            {t('notes.private.new_entry')}
                         </button>
                         <div style={{ position: 'relative', marginTop: '0.625rem' }}>
                             <svg style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="14" height="14" fill="none" stroke="var(--text-muted)" strokeWidth={2} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -131,7 +133,7 @@ function PrivateNotebook() {
                                 type="search"
                                 className="input"
                                 style={{ paddingLeft: '2rem', height: '34px', fontSize: '0.8125rem' }}
-                                placeholder="Search entries…"
+                                placeholder={t('notes.private.search_placeholder')}
                                 value={searchQ}
                                 onChange={e => setSearchQ(e.target.value)}
                             />
@@ -149,15 +151,15 @@ function PrivateNotebook() {
 
                         {!isLoading && filtered.length === 0 && (
                             <div style={{ padding: '1.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                                {searchQ ? 'No entries match your search.' : 'No entries yet. Start writing.'}
+                                {searchQ ? t('notes.private.no_search_results') : t('notes.private.empty')}
                             </div>
                         )}
 
                         {/* New entry placeholder in list */}
                         {isNew && (
                             <div className="notebook-entry-item active">
-                                <div className="notebook-entry-title">{formData.title || 'Untitled entry'}</div>
-                                <div className="notebook-entry-preview">New entry</div>
+                                <div className="notebook-entry-title">{formData.title || t('notes.private.untitled')}</div>
+                                <div className="notebook-entry-preview">{t('notes.private.new_entry_label')}</div>
                             </div>
                         )}
 
@@ -183,7 +185,7 @@ function PrivateNotebook() {
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '1rem' }}>
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📔</div>
-                                <p>Select an entry or create a new one</p>
+                                <p>{t('notes.private.select_or_create')}</p>
                             </div>
                         </div>
                     ) : (
@@ -192,7 +194,7 @@ function PrivateNotebook() {
                                 <input
                                     type="text"
                                     className="notebook-title-input"
-                                    placeholder="Entry title…"
+                                    placeholder={t('notes.private.title_placeholder')}
                                     value={formData.title}
                                     onChange={e => { setFormData(f => ({ ...f, title: e.target.value })); setDirty(true); }}
                                 />
@@ -202,14 +204,14 @@ function PrivateNotebook() {
                                         onClick={handleManualSave}
                                         disabled={saveMutation.isPending || !formData.title.trim()}
                                     >
-                                        {saveMutation.isPending ? 'Saving…' : 'Save'}
+                                        {saveMutation.isPending ? t('common.saving') : t('common.save')}
                                     </button>
                                     {activeId && !isNew && (
                                         <button
                                             className="btn-danger-outline btn-sm"
                                             onClick={() => setConfirmDeleteId(activeId)}
                                         >
-                                            Delete
+                                            {t('common.delete')}
                                         </button>
                                     )}
                                 </div>
@@ -217,18 +219,18 @@ function PrivateNotebook() {
 
                             <textarea
                                 className="notebook-content-textarea"
-                                placeholder="Start writing…"
+                                placeholder={t('notes.private.content_placeholder')}
                                 value={formData.content}
                                 onChange={e => { setFormData(f => ({ ...f, content: e.target.value })); setDirty(true); }}
                             />
 
                             <div className="notebook-editor-footer">
                                 <span>
-                                    {autoSaveStatus === 'saving' && '💾 Saving…'}
-                                    {autoSaveStatus === 'saved' && '✓ Saved'}
-                                    {autoSaveStatus === 'idle' && dirty && 'Unsaved changes'}
+                                    {autoSaveStatus === 'saving' && t('notes.private.saving')}
+                                    {autoSaveStatus === 'saved' && t('notes.private.saved')}
+                                    {autoSaveStatus === 'idle' && dirty && t('notes.private.unsaved_changes')}
                                 </span>
-                                <span>{wordCount} word{wordCount !== 1 ? 's' : ''}</span>
+                                <span>{t('notes.private.word_count', { count: wordCount })}</span>
                             </div>
                         </>
                     )}
@@ -239,7 +241,7 @@ function PrivateNotebook() {
                 open={!!confirmDeleteId}
                 onClose={() => setConfirmDeleteId(null)}
                 onConfirm={() => { if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId); }}
-                title="Delete this notebook entry? This cannot be undone."
+                title={t('notes.private.delete_confirm')}
                 tone="danger"
             />
         </>

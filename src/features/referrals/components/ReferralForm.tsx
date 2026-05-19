@@ -256,8 +256,8 @@ const ReferralForm = ({
                         disabled={isSubmitting}
                     >
                         {isSubmitting ? t('referrals.form.loading') :
-                            isDraftEdit ? 'Send Referral' :
-                            isReturnedEdit ? 'Resubmit Referral' :
+                            isDraftEdit ? t('referrals.form.send_referral') :
+                            isReturnedEdit ? t('referrals.form.resubmit_referral') :
                             isEditing ? t('referrals.form.submit_edit') :
                             t('referrals.form.submit_add')}
                     </button>
@@ -273,12 +273,12 @@ const ReferralForm = ({
                             type="button"
                             className={!isExternal ? 'active' : ''}
                             onClick={() => setValue('is_external', false, { shouldDirty: true })}
-                        >Refer to Altheon doctor</button>
+                        >{t('referrals.form.refer_internal')}</button>
                         <button
                             type="button"
                             className={isExternal ? 'active' : ''}
                             onClick={() => setValue('is_external', true, { shouldDirty: true })}
-                        >External specialist</button>
+                        >{t('referrals.form.external_specialist')}</button>
                     </div>
                 )}
 
@@ -292,19 +292,19 @@ const ReferralForm = ({
                                     style={{ cursor: 'pointer' }}
                                 />
                                 <label htmlFor="accepting_only" style={{ margin: 0, fontSize: '0.875rem', cursor: 'pointer' }}>
-                                    Accepting referrals only
+                                    {t('referrals.form.accepting_only')}
                                 </label>
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="specialty_filter">Filter by Specialty</label>
+                                <label htmlFor="specialty_filter">{t('referrals.form.filter_specialty')}</label>
                                 <select id="specialty_filter" className="select-input" value={specialtyFilter} onChange={handleSpecialtyFilter}>
-                                    <option value="">All specialties</option>
+                                    <option value="">{t('referrals.form.all_specialties')}</option>
                                     {SPECIALTY_VALUES.map(v => (
-                                        <option key={v} value={v}>{SPECIALTY_LABELS[v] ?? v}</option>
+                                        <option key={v} value={v}>{t(`specialties.${v}`, SPECIALTY_LABELS[v] ?? v)}</option>
                                     ))}
                                 </select>
-                                {specialtyFilter && <small className="form-hint">{doctors.length} doctor(s) in this specialty</small>}
+                                {specialtyFilter && <small className="form-hint">{t('referrals.form.doctors_in_specialty', { count: doctors.length })}</small>}
                             </div>
 
                             <div className="form-group">
@@ -317,7 +317,7 @@ const ReferralForm = ({
                                     <option value="">{t('referrals.form.select_doctor')}</option>
                                     {doctors.map(doctor => (
                                         <option key={doctor.id} value={doctor.id}>
-                                            Dr. {doctor.full_name} — {SPECIALTY_LABELS[doctor.specialty ?? ''] ?? doctor.specialty ?? 'General'}
+                                            Dr. {doctor.full_name} - {t(`specialties.${doctor.specialty ?? 'general_practice'}`, SPECIALTY_LABELS[doctor.specialty ?? ''] ?? doctor.specialty ?? 'General')}
                                         </option>
                                     ))}
                                 </select>
@@ -326,23 +326,23 @@ const ReferralForm = ({
                         </>
                     ) : (
                         <div className="form-group">
-                            <label>Referred to</label>
+                            <label>{t('referrals.form.referred_to')}</label>
                             <p style={{ padding: '0.5rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                                 Dr. {referralToEdit?.referred_to_details?.full_name ?? referralToEdit?.referred_to ?? '—'}
-                                <span className="form-hint" style={{ marginLeft: 8 }}>(cannot change after sending)</span>
+                                <span className="form-hint" style={{ marginLeft: 8 }}>{t('referrals.form.cannot_change')}</span>
                             </p>
                         </div>
                     )
                 ) : (
                     <>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_name">Doctor Name <span className="required">*</span></label>
-                            <input type="text" id="external_doctor_name" className="input" placeholder="e.g. Dr. Ahmed Khan" {...register('external_doctor_name')} />
+                            <label htmlFor="external_doctor_name">{t('referrals.form.external_name')} <span className="required">*</span></label>
+                            <input type="text" id="external_doctor_name" className="input" placeholder={t('referrals.form.external_name_placeholder')} {...register('external_doctor_name')} />
                             {errors.external_doctor_name && <span className="field-error">{errors.external_doctor_name.message}</span>}
                         </div>
                         <div className="form-group">
-                            <label htmlFor="external_doctor_email">Doctor's Email <span className="required">*</span> <span className="form-hint" style={{ display: 'inline' }}>— sends a platform invite</span></label>
-                            <input type="email" id="external_doctor_email" className="input" placeholder="e.g. dr.specialist@hospital.com" {...register('external_doctor_email')} />
+                            <label htmlFor="external_doctor_email">{t('referrals.form.external_email')} <span className="required">*</span> <span className="form-hint" style={{ display: 'inline' }}>{t('referrals.form.sends_invite')}</span></label>
+                            <input type="email" id="external_doctor_email" className="input" placeholder={t('referrals.form.external_email_placeholder')} {...register('external_doctor_email')} />
                             {errors.external_doctor_email && <span className="field-error">{errors.external_doctor_email.message}</span>}
                         </div>
                     </>
@@ -350,23 +350,23 @@ const ReferralForm = ({
 
                 {/* Referral Type */}
                 <div className="form-group">
-                    <label htmlFor="referral_type">Referral Type <span className="required">*</span></label>
+                    <label htmlFor="referral_type">{t('referrals.form.type_label')} <span className="required">*</span></label>
                     <select id="referral_type" className="select-input" {...register('referral_type')}>
-                        <option value="consultation_required">Consultation Required</option>
-                        <option value="second_opinion_only">Second Opinion Only</option>
-                        <option value="transfer_of_care">Transfer of Care</option>
-                        <option value="procedure_request">Procedure Request</option>
-                        <option value="diagnostic_request">Diagnostic Request</option>
+                        <option value="consultation_required">{t('referrals.type.consultation_required')}</option>
+                        <option value="second_opinion_only">{t('referrals.type.second_opinion_only')}</option>
+                        <option value="transfer_of_care">{t('referrals.type.transfer_of_care')}</option>
+                        <option value="procedure_request">{t('referrals.type.procedure_request')}</option>
+                        <option value="diagnostic_request">{t('referrals.type.diagnostic_request')}</option>
                     </select>
                 </div>
 
                 {/* Urgency */}
                 <div className="form-group">
-                    <label htmlFor="urgency">Urgency <span className="required">*</span></label>
+                    <label htmlFor="urgency">{t('referrals.form.urgency_label')} <span className="required">*</span></label>
                     <select id="urgency" className="select-input" {...register('urgency')}>
-                        <option value="routine">Routine</option>
-                        <option value="urgent">Urgent</option>
-                        <option value="emergency">Emergency</option>
+                        <option value="routine">{t('common.status.routine')}</option>
+                        <option value="urgent">{t('common.status.urgent')}</option>
+                        <option value="emergency">{t('common.status.emergency')}</option>
                     </select>
                     {urgencyHint[watchedUrgency] && (
                         <small className="form-hint" style={{ color: watchedUrgency === 'emergency' ? 'var(--color-danger)' : undefined }}>
@@ -384,13 +384,13 @@ const ReferralForm = ({
                         value={watch('specialty_requested') ?? ''}
                         onChange={handleSpecialtyChange}
                     >
-                        <option value="">Select specialty…</option>
+                        <option value="">{t('referrals.form.select_specialty')}</option>
                         {SPECIALTY_VALUES.map(v => (
-                            <option key={v} value={v}>{SPECIALTY_LABELS[v] ?? v}</option>
+                            <option key={v} value={v}>{t(`specialties.${v}`, SPECIALTY_LABELS[v] ?? v)}</option>
                         ))}
                     </select>
                     {specialtyAutoFilled && (
-                        <small className="form-hint">Auto-filled from selected doctor's profile. You can change it.</small>
+                        <small className="form-hint">{t('referrals.form.specialty_autofilled')}</small>
                     )}
                     {errors.specialty_requested && <span className="field-error">{errors.specialty_requested.message}</span>}
                 </div>
@@ -412,7 +412,7 @@ const ReferralForm = ({
                 <div className="form-group">
                     <label htmlFor="attached_documents">
                         {t('referrals.form.attachment_label', 'Attachment')}{' '}
-                        <span className="form-hint" style={{ display: 'inline' }}>(optional)</span>
+                        <span className="form-hint" style={{ display: 'inline' }}>{t('common.optional_parenthetical')}</span>
                     </label>
                     <input
                         type="file" id="attached_documents" className="input"

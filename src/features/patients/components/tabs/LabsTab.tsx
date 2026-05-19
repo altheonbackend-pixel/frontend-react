@@ -1,4 +1,5 @@
 import { type LabResult } from '../../../../shared/types';
+import { useTranslation } from 'react-i18next';
 import { TabSkeleton } from '../../../../shared/components/SectionCard';
 import AttachmentList from '../../../../shared/components/AttachmentList';
 import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
@@ -74,6 +75,7 @@ const LabsTab = ({
     setShareLabNote,
     setPreviewLabId,
 }: LabsTabProps) => {
+    const { t } = useTranslation();
     const { formatDate } = useFormatDateTime();
     const pendingOrders = labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted');
 
@@ -87,24 +89,24 @@ const LabsTab = ({
                     </span>
                     {lab.submitted_by_patient && (
                         <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '12px', background: 'var(--color-info-light)', color: 'var(--color-info-dark)' }}>
-                            Patient Upload
+                            {t('patient_record.labs.patient_upload')}
                         </span>
                     )}
                 </div>
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                     {lab.submitted_by_patient && lab.review_status === 'pending_review' && (
                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-warning-light)', color: 'var(--color-warning-dark)', border: '1px solid var(--color-warning-border)' }}>
-                            Pending Review
+                            {t('patient_record.labs.pending_review')}
                         </span>
                     )}
                     {lab.submitted_by_patient && lab.review_status === 'accepted' && (
                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', border: '1px solid var(--color-success-border)' }}>
-                            Accepted
+                            {t('common.status.accepted')}
                         </span>
                     )}
                     {lab.submitted_by_patient && lab.review_status === 'rejected' && (
                         <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 10px', borderRadius: '12px', background: 'var(--color-danger-light)', color: 'var(--color-danger-dark)', border: '1px solid var(--color-danger-border)' }}>
-                            Rejected
+                            {t('common.status.rejected')}
                         </span>
                     )}
                     {!lab.submitted_by_patient && (
@@ -121,8 +123,8 @@ const LabsTab = ({
             </div>
             {!lab.submitted_by_patient && (lab.result_value || lab.unit) && (
                 <div className="info-item">
-                    <strong>Result:</strong> {lab.result_value} {lab.unit}
-                    {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>Ref: {lab.reference_range}</span>}
+                    <strong>{t('consultation.view.result')}:</strong> {lab.result_value} {lab.unit}
+                    {lab.reference_range && <span className="muted" style={{ marginLeft: '8px' }}>{t('patient_record.labs.ref_range_short', { range: lab.reference_range })}</span>}
                 </div>
             )}
             {lab.notes && <p className="muted" style={{ fontSize: 'var(--text-xs)', marginTop: '4px' }}>{lab.notes}</p>}
@@ -136,7 +138,7 @@ const LabsTab = ({
                         className="action-button"
                         style={{ color: 'var(--accent)', fontWeight: 600 }}
                     >
-                        Review
+                        {t('patient_record.labs.review')}
                     </button>
                 )}
                 {!lab.submitted_by_patient && (
@@ -145,21 +147,21 @@ const LabsTab = ({
                             setEditingLabId(lab.id);
                             setLabForm({ test_name: lab.test_name, test_date: lab.test_date, result_value: lab.result_value, unit: lab.unit, reference_range: lab.reference_range, status: lab.status, notes: lab.notes });
                             setShowLabForm(true);
-                        }} className="edit-button action-button">Edit</button>
-                        <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">Delete</button>
+                        }} className="edit-button action-button">{t('common.edit')}</button>
+                        <button onClick={() => setConfirmDeleteLabId(lab.id)} className="delete-button action-button">{t('common.delete')}</button>
                         <button
                             onClick={() => setPreviewLabId(lab.id)}
                             className="action-button"
                             style={{ color: 'var(--text-secondary)' }}
                         >
-                            Preview as patient
+                            {t('patient_record.labs.preview_as_patient')}
                         </button>
                         <button
                             onClick={() => { setShareLabId(lab.id); setShareLabNote(lab.patient_note || ''); }}
                             className="action-button"
                             style={{ color: lab.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
                         >
-                            {lab.visible_to_patient ? '✓ Released' : 'Release to patient'}
+                            {lab.visible_to_patient ? t('patient_record.labs.released') : t('patient_record.labs.release_to_patient')}
                         </button>
                     </>
                 )}
@@ -170,12 +172,12 @@ const LabsTab = ({
     return (
         <div className="tab-panel">
             <div className="tab-panel-header">
-                <h3>Labs</h3>
+                <h3>{t('patient_record.labs.title')}</h3>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <div className="view-toggle">
-                        <button type="button" className={`view-toggle-btn${labSubTab === 'results' ? ' active' : ''}`} onClick={() => setLabSubTab('results')}>Results</button>
+                        <button type="button" className={`view-toggle-btn${labSubTab === 'results' ? ' active' : ''}`} onClick={() => setLabSubTab('results')}>{t('patient_record.labs.results')}</button>
                         <button type="button" className={`view-toggle-btn${labSubTab === 'orders' ? ' active' : ''}`} onClick={() => setLabSubTab('orders')}>
-                            Orders {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length > 0 && (
+                            {t('patient_record.labs.orders')} {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length > 0 && (
                                 <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
                                     {labOrders.filter(o => o.order_status !== 'cancelled' && o.order_status !== 'resulted').length}
                                 </span>
@@ -185,9 +187,9 @@ const LabsTab = ({
                     {labSubTab === 'results' && (
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <div className="view-toggle">
-                                <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>All</button>
+                                <button type="button" className={`view-toggle-btn${!showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(false)}>{t('patient_record.medications.all_filter')}</button>
                                 <button type="button" className={`view-toggle-btn${showUnreleasedOnly ? ' active' : ''}`} onClick={() => setShowUnreleasedOnly(true)}>
-                                    Unreleased {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
+                                    {t('patient_record.labs.unreleased')} {!showUnreleasedOnly && labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length > 0 && (
                                         <span style={{ marginLeft: '4px', background: 'var(--accent)', color: '#fff', borderRadius: '10px', padding: '0 6px', fontSize: '11px' }}>
                                             {labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient).length}
                                         </span>
@@ -197,23 +199,23 @@ const LabsTab = ({
                             <button
                                 className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
                                 disabled={!canWrite}
-                                title={!canWrite ? 'Patient record is read-only' : undefined}
+                                title={!canWrite ? t('patient_record.read_only') : undefined}
                                 onClick={() => {
                                     if (!canWrite) return;
                                     setEditingLabId(null);
                                     setLabForm({ test_name: '', test_date: '', result_value: '', unit: '', reference_range: '', status: 'pending', notes: '' });
                                     setShowLabForm(true);
                                 }}
-                            >+ Add Result</button>
+                            >{t('patient_record.labs.add_result')}</button>
                         </div>
                     )}
                     {labSubTab === 'orders' && (
                         <button
                             className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
                             disabled={!canWrite}
-                            title={!canWrite ? 'Patient record is read-only' : undefined}
+                            title={!canWrite ? t('patient_record.read_only') : undefined}
                             onClick={() => { if (!canWrite) return; setShowLabOrderForm(true); }}
-                        >+ Add Order</button>
+                        >{t('patient_record.labs.add_order')}</button>
                     )}
                 </div>
             </div>
@@ -223,43 +225,43 @@ const LabsTab = ({
                 <>
                     {pendingOrders.length > 0 && (
                         <div className="pt-draft-notice">
-                            {pendingOrders.length} pending lab order{pendingOrders.length > 1 ? 's' : ''} awaiting results.
+                            {t('patient_record.labs.pending_orders_notice', { count: pendingOrders.length })}
                         </div>
                     )}
                     {showLabOrderForm && (
                         <form onSubmit={handleLabOrderSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Test Name *</label>
-                                    <input required value={labOrderForm.test_name} onChange={e => setLabOrderForm((p: any) => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c" />
+                                    <label>{t('patient_record.labs.test_name_required')}</label>
+                                    <input required value={labOrderForm.test_name} onChange={e => setLabOrderForm((p: any) => ({ ...p, test_name: e.target.value }))} placeholder={t('patient_record.labs.order_test_placeholder')} />
                                 </div>
                                 <div className="form-group">
-                                    <label>Order Date *</label>
+                                    <label>{t('patient_record.labs.order_date_required')}</label>
                                     <input type="date" required value={labOrderForm.order_date} onChange={e => setLabOrderForm((p: any) => ({ ...p, order_date: e.target.value }))} />
                                 </div>
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label>Priority</label>
+                                    <label>{t('patient_record.labs.priority')}</label>
                                     <select value={labOrderForm.priority} onChange={e => setLabOrderForm((p: any) => ({ ...p, priority: e.target.value }))}>
-                                        <option value="routine">Routine</option>
-                                        <option value="urgent">Urgent</option>
+                                        <option value="routine">{t('common.status.routine')}</option>
+                                        <option value="urgent">{t('common.status.urgent')}</option>
                                         <option value="stat">STAT</option>
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label>Notes</label>
+                                    <label>{t('consultation.notes_optional_placeholder')}</label>
                                     <input value={labOrderForm.notes} onChange={e => setLabOrderForm((p: any) => ({ ...p, notes: e.target.value }))} />
                                 </div>
                             </div>
                             <div className="form-actions">
-                                <button type="submit" disabled={labOrderFormLoading}>{labOrderFormLoading ? 'Saving...' : 'Save Order'}</button>
-                                <button type="button" onClick={() => setShowLabOrderForm(false)} className="cancel-button">Cancel</button>
+                                <button type="submit" disabled={labOrderFormLoading}>{labOrderFormLoading ? t('common.saving') : t('patient_record.labs.save_order')}</button>
+                                <button type="button" onClick={() => setShowLabOrderForm(false)} className="cancel-button">{t('common.cancel')}</button>
                             </div>
                         </form>
                     )}
                     {labOrdersLoading ? <TabSkeleton rows={3} /> : labOrders.length === 0 ? (
-                        <p className="muted">No lab orders on record.</p>
+                        <p className="muted">{t('patient_record.labs.no_orders')}</p>
                     ) : (
                         <ul className="detail-list">
                             {labOrders.map(order => (
@@ -272,7 +274,7 @@ const LabsTab = ({
                                             {order.priority !== 'routine' && <span style={{ marginLeft: 6, fontSize: '0.75rem', color: 'var(--warning)' }}>{order.priority_display || order.priority}</span>}
                                         </div>
                                         {order.order_status !== 'cancelled' && order.order_status !== 'resulted' && canWrite && (
-                                            <button className="btn-secondary btn-sm" onClick={() => handleCancelLabOrder(order.id)}>Cancel</button>
+                                            <button className="btn-secondary btn-sm" onClick={() => handleCancelLabOrder(order.id)}>{t('common.cancel')}</button>
                                         )}
                                     </div>
                                     {order.notes && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>{order.notes}</p>}
@@ -289,46 +291,46 @@ const LabsTab = ({
                     <form onSubmit={handleLabSubmit} className="inline-form" style={{ marginBottom: 'var(--space-4)' }}>
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Test Name *</label>
-                                <input required value={labForm.test_name} onChange={e => setLabForm((p: any) => ({ ...p, test_name: e.target.value }))} placeholder="e.g. CBC, HbA1c, TSH" />
+                                <label>{t('patient_record.labs.test_name_required')}</label>
+                                <input required value={labForm.test_name} onChange={e => setLabForm((p: any) => ({ ...p, test_name: e.target.value }))} placeholder={t('patient_record.labs.result_test_placeholder')} />
                             </div>
                             <div className="form-group">
-                                <label>Date *</label>
+                                <label>{t('patient_record.labs.date_required')}</label>
                                 <input type="date" required value={labForm.test_date} onChange={e => setLabForm((p: any) => ({ ...p, test_date: e.target.value }))} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Result Value</label>
-                                <input value={labForm.result_value} onChange={e => setLabForm((p: any) => ({ ...p, result_value: e.target.value }))} placeholder="e.g. 5.4" />
+                                <label>{t('patient_record.labs.result_value')}</label>
+                                <input value={labForm.result_value} onChange={e => setLabForm((p: any) => ({ ...p, result_value: e.target.value }))} placeholder={t('patient_record.labs.result_value_placeholder')} />
                             </div>
                             <div className="form-group">
-                                <label>Unit</label>
-                                <input value={labForm.unit} onChange={e => setLabForm((p: any) => ({ ...p, unit: e.target.value }))} placeholder="e.g. mmol/L, g/dL" />
+                                <label>{t('patient_record.labs.unit')}</label>
+                                <input value={labForm.unit} onChange={e => setLabForm((p: any) => ({ ...p, unit: e.target.value }))} placeholder={t('patient_record.labs.unit_placeholder')} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Reference Range</label>
-                                <input value={labForm.reference_range} onChange={e => setLabForm((p: any) => ({ ...p, reference_range: e.target.value }))} placeholder="e.g. 3.5–5.5" />
+                                <label>{t('patient_record.labs.reference_range')}</label>
+                                <input value={labForm.reference_range} onChange={e => setLabForm((p: any) => ({ ...p, reference_range: e.target.value }))} placeholder={t('patient_record.labs.reference_range_placeholder')} />
                             </div>
                             <div className="form-group">
-                                <label>Status</label>
+                                <label>{t('profile.activity.status')}</label>
                                 <select value={labForm.status} onChange={e => setLabForm((p: any) => ({ ...p, status: e.target.value }))}>
-                                    <option value="pending">Pending</option>
-                                    <option value="normal">Normal</option>
-                                    <option value="abnormal">Abnormal</option>
-                                    <option value="critical">Critical</option>
+                                    <option value="pending">{t('common.status.pending')}</option>
+                                    <option value="normal">{t('common.status.normal')}</option>
+                                    <option value="abnormal">{t('common.status.abnormal')}</option>
+                                    <option value="critical">{t('common.status.critical')}</option>
                                 </select>
                             </div>
                         </div>
                         <div className="form-group">
-                            <label>Notes</label>
+                            <label>{t('consultation.notes_optional_placeholder')}</label>
                             <textarea rows={2} value={labForm.notes} onChange={e => setLabForm((p: any) => ({ ...p, notes: e.target.value }))} />
                         </div>
                         <div className="form-actions">
-                            <button type="submit" disabled={labFormLoading}>{labFormLoading ? 'Saving...' : (editingLabId ? 'Update' : 'Save')}</button>
-                            <button type="button" onClick={() => setShowLabForm(false)} className="cancel-button">Cancel</button>
+                            <button type="submit" disabled={labFormLoading}>{labFormLoading ? t('common.saving') : (editingLabId ? t('referrals.form.submit_edit') : t('common.save'))}</button>
+                            <button type="button" onClick={() => setShowLabForm(false)} className="cancel-button">{t('common.cancel')}</button>
                         </div>
                     </form>
                 )}
@@ -339,7 +341,7 @@ const LabsTab = ({
                         ? labResults.filter(l => !l.submitted_by_patient && !l.visible_to_patient)
                         : labResults;
                     if (filteredLabs.length === 0) {
-                        return <p className="muted">{showUnreleasedOnly ? 'No unreleased lab results.' : 'No lab results recorded.'}</p>;
+                        return <p className="muted">{showUnreleasedOnly ? t('patient_record.labs.no_unreleased') : t('patient_record.labs.no_results')}</p>;
                     }
                     return (
                         <>
@@ -348,7 +350,7 @@ const LabsTab = ({
                                 if (!pending.length) return null;
                                 return (
                                     <div className="pending-review-section">
-                                        <div className="pending-review-header">⏳ Needs Review ({pending.length})</div>
+                                        <div className="pending-review-header">{t('patient_record.labs.needs_review', { count: pending.length })}</div>
                                         <ul className="detail-list" style={{ margin: 0 }}>
                                             {pending.map(lab => renderLabRow(lab))}
                                         </ul>

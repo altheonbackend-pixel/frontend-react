@@ -1,26 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import '../styles/Auth.css';
 
-const schema = z.object({
-    new_password: z.string().min(8, 'Password must be at least 8 characters'),
-    confirm_password: z.string().min(1, 'Please confirm your password'),
+const createSchema = (t: (key: string) => string) => z.object({
+    new_password: z.string().min(8, t('auth.reset.error.password_too_short')),
+    confirm_password: z.string().min(1, t('auth.reset.error.confirm_required')),
 }).refine(data => data.new_password === data.confirm_password, {
-    message: 'Passwords do not match',
+    message: t('auth.reset.error.passwords_mismatch'),
     path: ['confirm_password'],
 });
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<ReturnType<typeof createSchema>>;
 
 function ResetPassword() {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const token = searchParams.get('token') ?? '';
     const navigate = useNavigate();
     const [success, setSuccess] = useState(false);
+    const schema = useMemo(() => createSchema(t), [t]);
 
     const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -29,12 +32,12 @@ function ResetPassword() {
     if (!token) {
         return (
             <div className="auth-container">
-                <h2 className="login-title">Invalid link</h2>
+                <h2 className="login-title">{t('auth.reset.invalid_link_title')}</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                    This password reset link is missing a token. Please request a new one.
+                    {t('auth.reset.missing_token')}
                 </p>
                 <p style={{ textAlign: 'center' }}>
-                    <Link to="/forgot-password">Request a new link</Link>
+                    <Link to="/forgot-password">{t('auth.reset.request_new_link')}</Link>
                 </p>
             </div>
         );
@@ -48,7 +51,7 @@ function ResetPassword() {
         } catch (err: unknown) {
             const e = err as { response?: { data?: { detail?: string } } };
             setError('root', {
-                message: e.response?.data?.detail ?? 'Invalid or expired reset link. Please request a new one.',
+                message: e.response?.data?.detail ?? t('auth.reset.error.invalid_or_expired'),
             });
         }
     };
@@ -56,9 +59,9 @@ function ResetPassword() {
     if (success) {
         return (
             <div className="auth-container">
-                <h2 className="login-title">Password updated</h2>
+                <h2 className="login-title">{t('auth.reset.updated_title')}</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    Your password has been reset successfully. Redirecting you to login…
+                    {t('auth.reset.updated_subtitle')}
                 </p>
             </div>
         );
@@ -66,13 +69,13 @@ function ResetPassword() {
 
     return (
         <div className="auth-container">
-            <h2 className="login-title">Set new password</h2>
+            <h2 className="login-title">{t('auth.reset.title')}</h2>
 
             <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                 {errors.root && <p className="error-message">{errors.root.message}</p>}
 
                 <div className="form-group">
-                    <label htmlFor="new-password">New password</label>
+                    <label htmlFor="new-password">{t('auth.reset.new_password')}</label>
                     <input
                         type="password"
                         id="new-password"
@@ -85,7 +88,7 @@ function ResetPassword() {
                 </div>
 
                 <div className="form-group">
-                    <label htmlFor="confirm-password">Confirm password</label>
+                    <label htmlFor="confirm-password">{t('auth.reset.confirm_password')}</label>
                     <input
                         type="password"
                         id="confirm-password"
@@ -97,12 +100,12 @@ function ResetPassword() {
                 </div>
 
                 <button type="submit" className="btn btn-primary btn-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Resetting…' : 'Reset password'}
+                    {isSubmitting ? t('auth.reset.resetting') : t('auth.reset.submit')}
                 </button>
             </form>
 
             <p className="register-link-text">
-                <Link to="/login">← Back to login</Link>
+                <Link to="/login">{t('auth.back_to_login')}</Link>
             </p>
         </div>
     );

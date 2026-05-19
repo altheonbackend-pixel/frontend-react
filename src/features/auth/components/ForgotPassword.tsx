@@ -1,18 +1,21 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import '../styles/Auth.css';
 
-const schema = z.object({
-    email: z.string().email('Please enter a valid email address'),
+const createSchema = (t: (key: string) => string) => z.object({
+    email: z.string().email(t('auth.forgot.error.valid_email')),
 });
 
-type FormData = z.infer<typeof schema>;
+type FormData = z.infer<ReturnType<typeof createSchema>>;
 
 function ForgotPassword() {
+    const { t } = useTranslation();
+    const schema = useMemo(() => createSchema(t), [t]);
     const [submitted, setSubmitted] = useState(false);
     const [submittedEmail, setSubmittedEmail] = useState('');
 
@@ -26,20 +29,20 @@ function ForgotPassword() {
             setSubmittedEmail(data.email);
             setSubmitted(true);
         } catch {
-            setError('root', { message: 'An unexpected error occurred. Please try again.' });
+            setError('root', { message: t('auth.forgot.error.unexpected') });
         }
     };
 
     if (submitted) {
         return (
             <div className="auth-container">
-                <h2 className="login-title">Check your email</h2>
+                <h2 className="login-title">{t('auth.forgot.check_email_title')}</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                    If <strong>{submittedEmail}</strong> is registered, you will receive a password reset link within a few minutes.
+                    {t('auth.forgot.sent_prefix')} <strong>{submittedEmail}</strong> {t('auth.forgot.sent_suffix')}
                 </p>
                 <p style={{ textAlign: 'center' }}>
                     <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-                        ← Back to login
+                        {t('auth.back_to_login')}
                     </Link>
                 </p>
             </div>
@@ -48,16 +51,16 @@ function ForgotPassword() {
 
     return (
         <div className="auth-container">
-            <h2 className="login-title">Forgot password</h2>
+            <h2 className="login-title">{t('auth.forgot.title')}</h2>
             <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                Enter your account email and we will send you a reset link.
+                {t('auth.forgot.subtitle')}
             </p>
 
             <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
                 {errors.root && <p className="error-message">{errors.root.message}</p>}
 
                 <div className="form-group">
-                    <label htmlFor="email">Email address</label>
+                    <label htmlFor="email">{t('login.email_label')}</label>
                     <input
                         type="email"
                         id="email"
@@ -70,12 +73,12 @@ function ForgotPassword() {
                 </div>
 
                 <button type="submit" className="btn btn-primary btn-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Sending…' : 'Send reset link'}
+                    {isSubmitting ? t('common.sending') : t('auth.forgot.send_reset_link')}
                 </button>
             </form>
 
             <p className="register-link-text">
-                <Link to="/login">← Back to login</Link>
+                <Link to="/login">{t('auth.back_to_login')}</Link>
             </p>
         </div>
     );

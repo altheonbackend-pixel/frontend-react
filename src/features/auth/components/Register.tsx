@@ -1,37 +1,39 @@
 // src/features/auth/components/Register.tsx
 // 5-step wizard: Personal → Professional → Location → Schedule → Security
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import axios from 'axios';
 import api from '../../../shared/services/api';
 import type { SpecialtyChoice } from '../../../shared/types';
 
 // ── Zod schemas per step ──────────────────────────────────────────────────────
 
-const step1Schema = z.object({
-    first_name:   z.string().min(1, 'First name is required'),
-    last_name:    z.string().min(1, 'Last name is required'),
-    email:        z.string().email('Please enter a valid email'),
+const createStep1Schema = (t: TFunction) => z.object({
+    first_name:   z.string().min(1, t('register.error.first_name_required')),
+    last_name:    z.string().min(1, t('register.error.last_name_required')),
+    email:        z.string().email(t('register.error.valid_email')),
     phone_number: z.string().optional(),
 });
 
-const step2Schema = z.object({
-    specialty:      z.string().min(1, 'Please select a specialty'),
+const createStep2Schema = (t: TFunction) => z.object({
+    specialty:      z.string().min(1, t('register.error.specialty_required')),
     license_number: z.string().optional(),
 });
 
-const step3Schema = z.object({
+const createStep3Schema = () => z.object({
     country:  z.string().optional(),
     city:     z.string().optional(),
     address:  z.string().optional(),
     timezone: z.string().optional(),
 });
 
-const step4Schema = z.object({
+const createStep4Schema = (t: TFunction) => z.object({
     mon:           z.boolean().optional(),
     tue:           z.boolean().optional(),
     wed:           z.boolean().optional(),
@@ -39,72 +41,72 @@ const step4Schema = z.object({
     fri:           z.boolean().optional(),
     sat:           z.boolean().optional(),
     sun:           z.boolean().optional(),
-    working_start: z.string().min(1, 'Start time is required'),
-    working_end:   z.string().min(1, 'End time is required'),
+    working_start: z.string().min(1, t('register.error.start_time_required')),
+    working_end:   z.string().min(1, t('register.error.end_time_required')),
 }).refine(
     d => d.mon || d.tue || d.wed || d.thu || d.fri || d.sat || d.sun,
-    { message: 'Please select at least one working day', path: ['mon'] }
+    { message: t('register.error.working_day_required'), path: ['mon'] }
 ).refine(
     d => !d.working_start || !d.working_end || d.working_start < d.working_end,
-    { message: 'End time must be after start time', path: ['working_end'] }
+    { message: t('register.error.end_after_start'), path: ['working_end'] }
 );
 
-const step5Schema = z.object({
-    password:         z.string().min(8, 'Minimum 8 characters'),
-    confirm_password: z.string().min(1, 'Please confirm your password'),
+const createStep5Schema = (t: TFunction) => z.object({
+    password:         z.string().min(8, t('register.error.minimum_8')),
+    confirm_password: z.string().min(1, t('register.error.confirm_password')),
     terms_accepted:   z.boolean().refine(val => val === true, {
-        message: 'You must accept the Terms of Service and Privacy Notice to register.',
+        message: t('register.error.accept_terms'),
     }),
 }).refine(d => d.password === d.confirm_password, {
-    message: "Passwords don't match",
+    message: t('register.error.passwords_mismatch'),
     path: ['confirm_password'],
 });
 
-type Step1Data = z.infer<typeof step1Schema>;
-type Step2Data = z.infer<typeof step2Schema>;
-type Step3Data = z.infer<typeof step3Schema>;
-type Step4Data = z.infer<typeof step4Schema>;
-type Step5Data = z.infer<typeof step5Schema>;
+type Step1Data = z.infer<ReturnType<typeof createStep1Schema>>;
+type Step2Data = z.infer<ReturnType<typeof createStep2Schema>>;
+type Step3Data = z.infer<ReturnType<typeof createStep3Schema>>;
+type Step4Data = z.infer<ReturnType<typeof createStep4Schema>>;
+type Step5Data = z.infer<ReturnType<typeof createStep5Schema>>;
 type AllData   = Partial<Step1Data & Step2Data & Step3Data & Step4Data & Step5Data>;
 
-const STEPS = ['Personal', 'Professional', 'Location', 'Schedule', 'Security'];
+const STEPS = ['personal', 'professional', 'location', 'schedule', 'security'] as const;
 
 const DAYS = [
-    { label: 'Mon', key: 'mon' as const, value: 0 },
-    { label: 'Tue', key: 'tue' as const, value: 1 },
-    { label: 'Wed', key: 'wed' as const, value: 2 },
-    { label: 'Thu', key: 'thu' as const, value: 3 },
-    { label: 'Fri', key: 'fri' as const, value: 4 },
-    { label: 'Sat', key: 'sat' as const, value: 5 },
-    { label: 'Sun', key: 'sun' as const, value: 6 },
+    { labelKey: 'datetime.weekday_short.mon', key: 'mon' as const, value: 0 },
+    { labelKey: 'datetime.weekday_short.tue', key: 'tue' as const, value: 1 },
+    { labelKey: 'datetime.weekday_short.wed', key: 'wed' as const, value: 2 },
+    { labelKey: 'datetime.weekday_short.thu', key: 'thu' as const, value: 3 },
+    { labelKey: 'datetime.weekday_short.fri', key: 'fri' as const, value: 4 },
+    { labelKey: 'datetime.weekday_short.sat', key: 'sat' as const, value: 5 },
+    { labelKey: 'datetime.weekday_short.sun', key: 'sun' as const, value: 6 },
 ];
 
 const TIMEZONES = [
-    { value: 'UTC',                 label: 'UTC (Coordinated Universal Time)' },
-    { value: 'Africa/Dakar',        label: 'Senegal / West Africa (UTC+0)' },
-    { value: 'Asia/Karachi',        label: 'Pakistan (UTC+5)' },
-    { value: 'Asia/Kolkata',        label: 'India (UTC+5:30)' },
-    { value: 'Asia/Dhaka',          label: 'Bangladesh (UTC+6)' },
-    { value: 'Asia/Dubai',          label: 'UAE (UTC+4)' },
-    { value: 'Asia/Riyadh',         label: 'Saudi Arabia (UTC+3)' },
-    { value: 'Asia/Baghdad',        label: 'Iraq (UTC+3)' },
-    { value: 'Asia/Istanbul',       label: 'Turkey (UTC+3)' },
-    { value: 'Europe/London',       label: 'United Kingdom (UTC+0/+1)' },
-    { value: 'Europe/Paris',        label: 'France / Central Europe (UTC+1/+2)' },
-    { value: 'Europe/Berlin',       label: 'Germany (UTC+1/+2)' },
-    { value: 'Africa/Cairo',        label: 'Egypt (UTC+2)' },
-    { value: 'Africa/Lagos',        label: 'Nigeria (UTC+1)' },
-    { value: 'Africa/Nairobi',      label: 'Kenya / East Africa (UTC+3)' },
-    { value: 'America/New_York',    label: 'US Eastern (UTC-5/-4)' },
-    { value: 'America/Chicago',     label: 'US Central (UTC-6/-5)' },
-    { value: 'America/Los_Angeles', label: 'US Pacific (UTC-8/-7)' },
-    { value: 'Australia/Sydney',    label: 'Australia Eastern (UTC+10/+11)' },
+    { value: 'UTC',                 labelKey: 'patient_portal.timezones.utc' },
+    { value: 'Africa/Dakar',        labelKey: 'timezones.africa_dakar' },
+    { value: 'Asia/Karachi',        labelKey: 'patient_portal.timezones.asia_karachi' },
+    { value: 'Asia/Kolkata',        labelKey: 'patient_portal.timezones.asia_kolkata' },
+    { value: 'Asia/Dhaka',          labelKey: 'patient_portal.timezones.asia_dhaka' },
+    { value: 'Asia/Dubai',          labelKey: 'patient_portal.timezones.asia_dubai' },
+    { value: 'Asia/Riyadh',         labelKey: 'patient_portal.timezones.asia_riyadh' },
+    { value: 'Asia/Baghdad',        labelKey: 'patient_portal.timezones.asia_baghdad' },
+    { value: 'Asia/Istanbul',       labelKey: 'patient_portal.timezones.asia_istanbul' },
+    { value: 'Europe/London',       labelKey: 'patient_portal.timezones.europe_london' },
+    { value: 'Europe/Paris',        labelKey: 'patient_portal.timezones.europe_paris' },
+    { value: 'Europe/Berlin',       labelKey: 'patient_portal.timezones.europe_berlin' },
+    { value: 'Africa/Cairo',        labelKey: 'patient_portal.timezones.africa_cairo' },
+    { value: 'Africa/Lagos',        labelKey: 'patient_portal.timezones.africa_lagos' },
+    { value: 'Africa/Nairobi',      labelKey: 'patient_portal.timezones.africa_nairobi' },
+    { value: 'America/New_York',    labelKey: 'patient_portal.timezones.america_new_york' },
+    { value: 'America/Chicago',     labelKey: 'patient_portal.timezones.america_chicago' },
+    { value: 'America/Los_Angeles', labelKey: 'patient_portal.timezones.america_los_angeles' },
+    { value: 'Australia/Sydney',    labelKey: 'patient_portal.timezones.australia_sydney' },
 ];
 
 const COUNTRIES = [
-    'Pakistan', 'India', 'Bangladesh', 'United Arab Emirates', 'Saudi Arabia',
-    'Iraq', 'Turkey', 'United Kingdom', 'France', 'Germany', 'Egypt',
-    'Nigeria', 'Kenya', 'Senegal', 'United States', 'Canada', 'Australia', 'Other',
+    'pakistan', 'india', 'bangladesh', 'united_arab_emirates', 'saudi_arabia',
+    'iraq', 'turkey', 'united_kingdom', 'france', 'germany', 'egypt',
+    'nigeria', 'kenya', 'senegal', 'united_states', 'canada', 'australia', 'other',
 ];
 
 const EyeOn = () => (
@@ -121,7 +123,13 @@ const EyeOff = () => (
 );
 
 export default function Register() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
+    const step1Schema = useMemo(() => createStep1Schema(t), [t]);
+    const step2Schema = useMemo(() => createStep2Schema(t), [t]);
+    const step3Schema = useMemo(() => createStep3Schema(), []);
+    const step4Schema = useMemo(() => createStep4Schema(t), [t]);
+    const step5Schema = useMemo(() => createStep5Schema(t), [t]);
     const [step, setStep] = useState(0);
     const [formData, setFormData] = useState<AllData>({});
     const [specialties, setSpecialties] = useState<SpecialtyChoice[]>([]);
@@ -183,10 +191,10 @@ export default function Register() {
                 const resp = err.response.data;
                 const msg = typeof resp === 'object'
                     ? Object.values(resp).flat().join(' ')
-                    : 'Registration failed. Please try again.';
+                    : t('register.error.failed');
                 setError(msg);
             } else {
-                setError('Network error. Please try again.');
+                setError(t('register.error.network'));
             }
         } finally {
             setSubmitting(false);
@@ -199,15 +207,15 @@ export default function Register() {
                 <div className="auth-split-left">
                     <div className="auth-split-monogram">A</div>
                     <div className="auth-split-brand">
-                        <div className="auth-split-title">Altheon Connect</div>
-                        <div className="auth-split-subtitle">Welcome to the network</div>
+                        <div className="auth-split-title">{t('brand.full')}</div>
+                        <div className="auth-split-subtitle">{t('register.success_welcome')}</div>
                     </div>
                 </div>
                 <div className="auth-split-right">
                     <div className="auth-card-v2" style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                        <h2 className="auth-card-v2-title">Account created!</h2>
-                        <p className="auth-card-v2-subtitle">Your account is ready. Redirecting to login…</p>
+                        <h2 className="auth-card-v2-title">{t('register.success_title')}</h2>
+                        <p className="auth-card-v2-subtitle">{t('register.success_redirect')}</p>
                     </div>
                 </div>
             </div>
@@ -219,13 +227,13 @@ export default function Register() {
             <div className="auth-split-left">
                 <div className="auth-split-monogram">A</div>
                 <div className="auth-split-brand">
-                    <div className="auth-split-title">Altheon Connect</div>
-                    <div className="auth-split-subtitle">Join the clinical excellence network</div>
+                    <div className="auth-split-title">{t('brand.full')}</div>
+                    <div className="auth-split-subtitle">{t('register.left_subtitle')}</div>
                 </div>
                 <div className="auth-split-features">
-                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>Secure patient management</div>
-                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>Smart appointment scheduling</div>
-                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>Professional referral network</div>
+                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>{t('register.feature_patient_management')}</div>
+                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>{t('register.feature_scheduling')}</div>
+                    <div className="auth-split-feature"><div className="auth-split-feature-icon">✓</div>{t('register.feature_referrals')}</div>
                 </div>
             </div>
 
@@ -237,40 +245,40 @@ export default function Register() {
                             <div
                                 key={label}
                                 className={`auth-step-dot${i === step ? ' active' : i < step ? ' done' : ''}`}
-                                title={label}
+                                title={t(`register.steps.${label}`)}
                             />
                         ))}
-                        <span className="auth-step-label">Step {step + 1} of {STEPS.length} — {STEPS[step]}</span>
+                        <span className="auth-step-label">{t('register.step_label', { current: step + 1, total: STEPS.length, label: t(`register.steps.${STEPS[step]}`) })}</span>
                     </div>
 
                     {/* ── Step 1: Personal ── */}
                     {step === 0 && (
                         <>
-                            <h2 className="auth-card-v2-title">Your details</h2>
-                            <p className="auth-card-v2-subtitle">Your name, email, and contact number</p>
+                            <h2 className="auth-card-v2-title">{t('register.details_title')}</h2>
+                            <p className="auth-card-v2-subtitle">{t('register.details_subtitle')}</p>
                             <form onSubmit={handleNext1} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div className="form-field">
-                                        <label htmlFor="first_name">First name</label>
+                                        <label htmlFor="first_name">{t('register.first_name')}</label>
                                         <input id="first_name" className="input" placeholder="Ahmed" {...s1.register('first_name')} />
                                         {s1.formState.errors.first_name && <span className="form-field-error">{s1.formState.errors.first_name.message}</span>}
                                     </div>
                                     <div className="form-field">
-                                        <label htmlFor="last_name">Last name</label>
+                                        <label htmlFor="last_name">{t('register.last_name')}</label>
                                         <input id="last_name" className="input" placeholder="Siddiqui" {...s1.register('last_name')} />
                                         {s1.formState.errors.last_name && <span className="form-field-error">{s1.formState.errors.last_name.message}</span>}
                                     </div>
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="reg_email">Email address</label>
+                                    <label htmlFor="reg_email">{t('register.email')}</label>
                                     <input id="reg_email" type="email" className="input" placeholder="you@hospital.com" autoComplete="email" {...s1.register('email')} />
                                     {s1.formState.errors.email && <span className="form-field-error">{s1.formState.errors.email.message}</span>}
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="phone_number">Phone number <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                    <label htmlFor="phone_number">{t('register.phone_number')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                     <input id="phone_number" type="tel" className="input" placeholder="+92 300 0000000" {...s1.register('phone_number')} />
                                 </div>
-                                <button type="submit" className="btn btn-primary btn-lg btn-full" style={{ marginTop: '0.5rem' }}>Next →</button>
+                                <button type="submit" className="btn btn-primary btn-lg btn-full" style={{ marginTop: '0.5rem' }}>{t('common.next')}</button>
                             </form>
                         </>
                     )}
@@ -278,24 +286,24 @@ export default function Register() {
                     {/* ── Step 2: Professional ── */}
                     {step === 1 && (
                         <>
-                            <h2 className="auth-card-v2-title">Professional details</h2>
-                            <p className="auth-card-v2-subtitle">Your specialty and medical license</p>
+                            <h2 className="auth-card-v2-title">{t('register.professional_title')}</h2>
+                            <p className="auth-card-v2-subtitle">{t('register.professional_subtitle')}</p>
                             <form onSubmit={handleNext2} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div className="form-field">
-                                    <label htmlFor="specialty">Specialty</label>
+                                    <label htmlFor="specialty">{t('register.specialty')}</label>
                                     <select id="specialty" className="input select-input" {...s2.register('specialty')}>
                                         {specialties.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                                        {specialties.length === 0 && <option value="general_practice">General Practice</option>}
+                                        {specialties.length === 0 && <option value="general_practice">{t('specialties.general_practice')}</option>}
                                     </select>
                                     {s2.formState.errors.specialty && <span className="form-field-error">{s2.formState.errors.specialty.message}</span>}
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="license_number">License number <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                    <label htmlFor="license_number">{t('register.license')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                     <input id="license_number" className="input" placeholder="PKR-XXXXX" {...s2.register('license_number')} />
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(0)}>← Back</button>
-                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>Next →</button>
+                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(0)}>{t('common.back')}</button>
+                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>{t('common.next')}</button>
                                 </div>
                             </form>
                         </>
@@ -304,35 +312,35 @@ export default function Register() {
                     {/* ── Step 3: Location ── */}
                     {step === 2 && (
                         <>
-                            <h2 className="auth-card-v2-title">Practice location</h2>
-                            <p className="auth-card-v2-subtitle">Where you practice and your timezone</p>
+                            <h2 className="auth-card-v2-title">{t('register.location_title')}</h2>
+                            <p className="auth-card-v2-subtitle">{t('register.location_subtitle')}</p>
                             <form onSubmit={handleNext3} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                                     <div className="form-field">
-                                        <label htmlFor="country">Country <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                        <label htmlFor="country">{t('register.country')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                         <select id="country" className="input select-input" {...s3.register('country')}>
-                                            <option value="">Select country</option>
-                                            {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            <option value="">{t('register.select_country')}</option>
+                                            {COUNTRIES.map(c => <option key={c} value={c}>{t(`countries.${c}`)}</option>)}
                                         </select>
                                     </div>
                                     <div className="form-field">
-                                        <label htmlFor="city">City <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                        <label htmlFor="city">{t('register.city')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                         <input id="city" className="input" placeholder="Karachi" {...s3.register('city')} />
                                     </div>
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="address">Clinic address <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                    <label htmlFor="address">{t('register.clinic_address')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                     <input id="address" className="input" placeholder="123 Clinic St, Building 4" {...s3.register('address')} />
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="timezone">Timezone <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                                    <label htmlFor="timezone">{t('register.timezone')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
                                     <select id="timezone" className="input select-input" {...s3.register('timezone')}>
-                                        {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+                                        {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>)}
                                     </select>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(1)}>← Back</button>
-                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>Next →</button>
+                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(1)}>{t('common.back')}</button>
+                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>{t('common.next')}</button>
                                 </div>
                             </form>
                         </>
@@ -341,11 +349,11 @@ export default function Register() {
                     {/* ── Step 4: Working Schedule ── */}
                     {step === 3 && (
                         <>
-                            <h2 className="auth-card-v2-title">Working schedule</h2>
-                            <p className="auth-card-v2-subtitle">Set your working days and hours so patients can book appointments</p>
+                            <h2 className="auth-card-v2-title">{t('register.schedule_title')}</h2>
+                            <p className="auth-card-v2-subtitle">{t('register.schedule_subtitle')}</p>
                             <form onSubmit={handleNext4} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                                 <div className="form-field">
-                                    <label>Working days</label>
+                                    <label>{t('register.working_days')}</label>
                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.375rem' }}>
                                         {DAYS.map(day => {
                                             const checked = s4.watch(day.key);
@@ -370,7 +378,7 @@ export default function Register() {
                                                     }}
                                                 >
                                                     <input type="checkbox" {...s4.register(day.key)} style={{ display: 'none' }} />
-                                                    {day.label}
+                                                    {t(day.labelKey)}
                                                 </label>
                                             );
                                         })}
@@ -381,15 +389,15 @@ export default function Register() {
                                 </div>
 
                                 <div className="form-field">
-                                    <label>Working hours</label>
+                                    <label>{t('register.working_hours')}</label>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.375rem' }}>
                                         <div className="form-field" style={{ margin: 0 }}>
-                                            <label htmlFor="working_start" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Start time</label>
+                                            <label htmlFor="working_start" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('register.start_time')}</label>
                                             <input id="working_start" type="time" className="input" {...s4.register('working_start')} />
                                             {s4.formState.errors.working_start && <span className="form-field-error">{s4.formState.errors.working_start.message}</span>}
                                         </div>
                                         <div className="form-field" style={{ margin: 0 }}>
-                                            <label htmlFor="working_end" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>End time</label>
+                                            <label htmlFor="working_end" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('register.end_time')}</label>
                                             <input id="working_end" type="time" className="input" {...s4.register('working_end')} />
                                             {s4.formState.errors.working_end && <span className="form-field-error">{s4.formState.errors.working_end.message}</span>}
                                         </div>
@@ -397,12 +405,12 @@ export default function Register() {
                                 </div>
 
                                 <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '-0.5rem 0 0' }}>
-                                    These hours apply to all selected days. You can set per-day hours from your profile settings later.
+                                    {t('register.schedule_hint')}
                                 </p>
 
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem' }}>
-                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(2)}>← Back</button>
-                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>Next →</button>
+                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(2)}>{t('common.back')}</button>
+                                    <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>{t('common.next')}</button>
                                 </div>
                             </form>
                         </>
@@ -411,25 +419,25 @@ export default function Register() {
                     {/* ── Step 5: Security ── */}
                     {step === 4 && (
                         <>
-                            <h2 className="auth-card-v2-title">Create a password</h2>
-                            <p className="auth-card-v2-subtitle">Choose a strong password and accept our terms</p>
+                            <h2 className="auth-card-v2-title">{t('register.password_title')}</h2>
+                            <p className="auth-card-v2-subtitle">{t('register.password_subtitle')}</p>
                             <form onSubmit={handleSubmit5} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {error && <div className="error-message">{error}</div>}
                                 <div className="form-field">
-                                    <label htmlFor="reg_password">Password</label>
+                                    <label htmlFor="reg_password">{t('register.password')}</label>
                                     <div className="password-field-wrap">
-                                        <input id="reg_password" type={showPassword ? 'text' : 'password'} className="input" placeholder="Min. 8 characters" {...s5.register('password')} />
-                                        <button type="button" className="password-toggle" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? 'Hide' : 'Show'}>
+                                        <input id="reg_password" type={showPassword ? 'text' : 'password'} className="input" placeholder={t('register.password_placeholder')} {...s5.register('password')} />
+                                        <button type="button" className="password-toggle" onClick={() => setShowPassword(p => !p)} aria-label={showPassword ? t('common.hide') : t('common.show')}>
                                             {showPassword ? <EyeOff /> : <EyeOn />}
                                         </button>
                                     </div>
                                     {s5.formState.errors.password && <span className="form-field-error">{s5.formState.errors.password.message}</span>}
                                 </div>
                                 <div className="form-field">
-                                    <label htmlFor="confirm_password">Confirm password</label>
+                                    <label htmlFor="confirm_password">{t('register.confirm_password')}</label>
                                     <div className="password-field-wrap">
-                                        <input id="confirm_password" type={showConfirm ? 'text' : 'password'} className="input" placeholder="Repeat your password" {...s5.register('confirm_password')} />
-                                        <button type="button" className="password-toggle" onClick={() => setShowConfirm(p => !p)} aria-label={showConfirm ? 'Hide' : 'Show'}>
+                                        <input id="confirm_password" type={showConfirm ? 'text' : 'password'} className="input" placeholder={t('register.confirm_password_placeholder')} {...s5.register('confirm_password')} />
+                                        <button type="button" className="password-toggle" onClick={() => setShowConfirm(p => !p)} aria-label={showConfirm ? t('common.hide') : t('common.show')}>
                                             {showConfirm ? <EyeOff /> : <EyeOn />}
                                         </button>
                                     </div>
@@ -438,19 +446,19 @@ export default function Register() {
                                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '8px 0 4px' }}>
                                     <input type="checkbox" id="terms_accepted" {...s5.register('terms_accepted')} style={{ marginTop: '3px', flexShrink: 0 }} />
                                     <label htmlFor="terms_accepted" style={{ fontSize: '13px', lineHeight: '1.5', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                                        I accept the{' '}
-                                        <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Terms of Service</a>
-                                        {' '}and{' '}
-                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Privacy Notice</a>.
+                                        {t('register.accept_terms_prefix')}{' '}
+                                        <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{t('register.terms')}</a>
+                                        {' '}{t('common.and')}{' '}
+                                        <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>{t('register.privacy')}</a>.
                                     </label>
                                 </div>
                                 {s5.formState.errors.terms_accepted && (
                                     <span className="form-field-error">{s5.formState.errors.terms_accepted.message}</span>
                                 )}
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(3)}>← Back</button>
+                                    <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(3)}>{t('common.back')}</button>
                                     <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }} disabled={submitting}>
-                                        {submitting ? 'Creating account…' : 'Create account'}
+                                        {submitting ? t('register.creating_account') : t('register.create_account')}
                                     </button>
                                 </div>
                             </form>
@@ -458,8 +466,8 @@ export default function Register() {
                     )}
 
                     <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                        Already have an account?{' '}
-                        <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>Sign in</Link>
+                        {t('register.have_account')}{' '}
+                        <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>{t('login.submit')}</Link>
                     </p>
                 </div>
             </div>

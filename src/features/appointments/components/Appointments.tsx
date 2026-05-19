@@ -46,7 +46,7 @@ function apptStatusClass(status: string) {
 }
 
 const Appointments = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     usePageTitle(t('pages.appointments', 'Appointments'));
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -116,11 +116,11 @@ const Appointments = () => {
         if (!approveTarget) return;
         try {
             await api.post(`/appointments/${approveTarget.id}/approve/`, { portal_instructions: instructions ?? '' });
-            toast.success('Appointment approved.');
+            toast.success(t('appointments.toast.approved'));
             setApproveTarget(null);
             invalidateAll();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to approve.'));
+            toast.error(parseApiError(err, t('appointments.toast.approve_failed')));
             throw err;
         }
     };
@@ -129,11 +129,11 @@ const Appointments = () => {
         if (!rejectTarget) return;
         try {
             await api.post(`/appointments/${rejectTarget.id}/reject/`, { reason: reason ?? '' });
-            toast.success('Request rejected.');
+            toast.success(t('appointments.toast.rejected'));
             setRejectTarget(null);
             invalidateAll();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to reject.'));
+            toast.error(parseApiError(err, t('appointments.toast.reject_failed')));
             throw err;
         }
     };
@@ -219,11 +219,11 @@ const Appointments = () => {
                 setRsSlots(res.data.slots);
             }
         } catch {
-            toast.error('Could not load available slots.');
+            toast.error(t('appointments.toast.slots_failed'));
         } finally {
             setRsSlotsLoading(false);
         }
-    }, []);
+    }, [t]);
 
     const closeReschedule = () => { setRescheduleTarget(null); setRsDate(''); setRsSlots([]); setRsDayOff(false); setRsSelected(null); };
 
@@ -233,11 +233,11 @@ const Appointments = () => {
             await api.post(`/appointments/${rescheduleTarget.id}/reschedule/`, {
                 appointment_date: new Date(rsSelected).toISOString(),
             });
-            toast.success('Appointment rescheduled. A new scheduled appointment has been created.');
+            toast.success(t('appointments.toast.rescheduled'));
             closeReschedule();
             invalidateAll();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to reschedule appointment.'));
+            toast.error(parseApiError(err, t('appointments.toast.reschedule_failed')));
         }
     };
 
@@ -249,10 +249,10 @@ const Appointments = () => {
             const { consultation_id } = res.data;
             const patientId = appt.patient_details?.unique_id ?? appt.patient;
             const isResume = res.status === 200;
-            if (!isResume) toast.success('Consultation started.');
+            if (!isResume) toast.success(t('appointments.toast.consultation_started'));
             navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}&draft=true`);
         } catch (err) {
-            toast.error(parseApiError(err, 'Could not start consultation.'));
+            toast.error(parseApiError(err, t('appointments.toast.consultation_start_failed')));
         }
     };
 
@@ -273,11 +273,11 @@ const Appointments = () => {
         if (!cancelTarget) return;
         try {
             await api.post(`/appointments/${cancelTarget.id}/cancel/`, { reason: reason ?? '' });
-            toast.success('Appointment cancelled.');
+            toast.success(t('appointments.toast.cancelled'));
             setCancelTarget(null);
             invalidateAll();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to cancel appointment.'));
+            toast.error(parseApiError(err, t('appointments.toast.cancel_failed')));
             throw err;
         }
     };
@@ -298,7 +298,7 @@ const Appointments = () => {
                         className="btn btn-ghost btn-sm"
                         onClick={() => navigate('/deleted-appointments')}
                     >
-                        Deleted appointments
+                        {t('appointments.deleted')}
                     </button>
                 }
             />
@@ -308,7 +308,7 @@ const Appointments = () => {
                 <div ref={requestsSectionRef} className="section-card" style={{ marginBottom: '1.25rem', border: '1px solid var(--color-warning)' }}>
                     <div className="section-card-header">
                         <span className="section-card-title" style={{ color: 'var(--color-warning-text)' }}>
-                            Patient Appointment Requests ({pendingRequests.length})
+                            {t('appointments.requests.title', { count: pendingRequests.length })}
                         </span>
                     </div>
                     <div className="section-card-body" style={{ display: 'grid', gap: '0.75rem' }}>
@@ -322,13 +322,13 @@ const Appointments = () => {
                                                 to={`/patients/${req.patient_id}`}
                                                 style={{ marginLeft: '0.5rem', fontSize: '0.78rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 400 }}
                                             >
-                                                View record →
+                                                {t('appointments.requests.view_record')}
                                             </Link>
                                         )}
                                     </div>
                                     <div className="request-card__meta">
                                         {formatDateTime(req.appointment_date)}
-                                        {' · '}{req.appointment_type?.replace(/_/g, ' ')}
+                                        {' · '}{t(`appointments.type.${req.appointment_type ?? 'in_person'}`, req.appointment_type?.replace(/_/g, ' ') ?? '')}
                                     </div>
                                     {req.reason && (
                                         <div className="request-card__reason">{req.reason}</div>
@@ -339,13 +339,13 @@ const Appointments = () => {
                                         className="btn btn-success btn-sm"
                                         onClick={() => setApproveTarget({ id: req.id, patientName: req.patient_name })}
                                     >
-                                        Approve
+                                        {t('appointments.actions.approve')}
                                     </button>
                                     <button
                                         className="btn-danger-outline btn-sm"
                                         onClick={() => setRejectTarget({ id: req.id, patientName: req.patient_name })}
                                     >
-                                        Reject
+                                        {t('appointments.actions.reject')}
                                     </button>
                                 </div>
                             </div>
@@ -360,13 +360,13 @@ const Appointments = () => {
                     className={`btn btn-sm ${viewMode === 'day' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setViewMode('day')}
                 >
-                    Day view
+                    {t('appointments.view.day')}
                 </button>
                 <button
                     className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-secondary'}`}
                     onClick={() => setViewMode('week')}
                 >
-                    Week view
+                    {t('appointments.view.week')}
                 </button>
             </div>
 
@@ -377,7 +377,7 @@ const Appointments = () => {
                         <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() - 7); setDate(d); }}
-                        >← Prev</button>
+                        >{t('common.previous')}</button>
                         <span className="section-card-title" style={{ fontSize: '0.95rem' }}>
                             {formatDayMonth(weekStart)}
                             {' — '}
@@ -386,7 +386,7 @@ const Appointments = () => {
                         <button
                             className="btn btn-ghost btn-sm"
                             onClick={() => { const d = new Date(weekStart); d.setDate(d.getDate() + 7); setDate(d); }}
-                        >Next →</button>
+                        >{t('common.next')}</button>
                     </div>
                     <div className="section-card-body" style={{ padding: '0.5rem' }}>
                         {weekLoading && <div style={{ padding: '1rem' }}><TabSkeleton rows={3} /></div>}
@@ -415,7 +415,7 @@ const Appointments = () => {
                                             onClick={() => { setDate(day); setViewMode('day'); }}
                                         >
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, color: isToday ? 'var(--accent)' : 'var(--text-muted)', marginBottom: '0.35rem' }}>
-                                                {new Intl.DateTimeFormat('en', { weekday: 'short' }).format(day).toUpperCase()}
+                                                {new Intl.DateTimeFormat(i18n.language, { weekday: 'short' }).format(day).toUpperCase()}
                                                 <br />
                                                 <span style={{ fontSize: '1rem', color: isToday ? 'var(--accent)' : 'var(--text-primary)' }}>
                                                     {day.getDate()}
@@ -424,7 +424,7 @@ const Appointments = () => {
                                             {dayAppts.map(appt => {
                                                 const pName = appt.patient_details
                                                     ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}`
-                                                    : 'Patient';
+                                                    : t('common.patient');
                                                 return (
                                                     <div
                                                         key={appt.id}
@@ -476,15 +476,15 @@ const Appointments = () => {
                                 type="button"
                                 className={`btn btn-sm ${filterFollowUpOnly ? 'btn-primary' : 'btn-secondary'}`}
                                 onClick={() => setFilterFollowUpOnly(f => !f)}
-                                title="Show follow-up appointments only"
+                                title={t('appointments.followups_filter_title')}
                             >
-                                Follow-ups{filterFollowUpOnly ? ' ✕' : ''}
+                                {t('appointments.followups')}{filterFollowUpOnly ? ' x' : ''}
                             </button>
                             <button
                                 className="btn btn-primary btn-sm"
                                 onClick={() => { setSelectedAppointment(null); setIsFormVisible(true); }}
                             >
-                                + Create Appointment
+                                {t('appointments.create_new')}
                             </button>
                         </div>
                     </div>
@@ -497,13 +497,13 @@ const Appointments = () => {
                             <div className="empty-state">
                                 <div className="empty-state-icon">📅</div>
                                 <div className="empty-state-title">{t('appointments.no_appointments', 'No appointments on this day')}</div>
-                                <div className="empty-state-subtitle">Click "New Appointment" to schedule one.</div>
+                                <div className="empty-state-subtitle">{t('appointments.empty.create_hint')}</div>
                             </div>
                         )}
                         {!isLoading && !isError && filterFollowUpOnly && appointments.length > 0 && appointments.filter(a => a.is_follow_up).length === 0 && (
                             <div className="empty-state">
-                                <div className="empty-state-title">No follow-up appointments today</div>
-                                <div className="empty-state-subtitle">Follow-ups are appointments created from consultation follow-up prompts.</div>
+                                <div className="empty-state-title">{t('appointments.empty.no_followups_title')}</div>
+                                <div className="empty-state-subtitle">{t('appointments.empty.no_followups_subtitle')}</div>
                             </div>
                         )}
 
@@ -511,7 +511,7 @@ const Appointments = () => {
                             const apptDate = new Date(appt.appointment_date);
                             const patientName = appt.patient_details
                                 ? `${appt.patient_details.first_name} ${appt.patient_details.last_name}`
-                                : 'Patient';
+                                : t('common.patient');
 
                             return (
                                 <div key={appt.id} className={apptStatusClass(appt.status)} style={{ margin: '0.75rem' }}>
@@ -525,13 +525,13 @@ const Appointments = () => {
                                             marginBottom: '0.5rem', fontSize: '0.78rem',
                                             color: 'var(--color-warning-dark)', fontWeight: 500,
                                         }}>
-                                            ⏳ Patient request — awaiting your approval
+                                            {t('appointments.requests.awaiting_approval')}
                                             {appt.patient_details && (
                                                 <Link
                                                     to={`/patients/${appt.patient_details.unique_id}`}
                                                     style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--accent)', textDecoration: 'none' }}
                                                 >
-                                                    View record →
+                                                    {t('appointments.requests.view_record')}
                                                 </Link>
                                             )}
                                         </div>
@@ -551,8 +551,8 @@ const Appointments = () => {
                                             <div className="card-meta" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 <span>🕐 {formatTime(apptDate)}</span>
                                                 {appt.appointment_type === 'telemedicine'
-                                                    ? <span style={{ fontSize: '0.72rem', background: 'var(--color-info-light)', color: 'var(--color-info-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 Video</span>
-                                                    : <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 In person</span>
+                                                    ? <span style={{ fontSize: '0.72rem', background: 'var(--color-info-light)', color: 'var(--color-info-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>📹 {t('appointments.type.video')}</span>
+                                                    : <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}>🏥 {t('appointments.type.in_person')}</span>
                                                 }
                                                 {appt.appointment_type === 'telemedicine'
                                                     && ['scheduled', 'confirmed', 'in_progress'].includes(appt.status) && (
@@ -564,21 +564,21 @@ const Appointments = () => {
                                                 {appt.is_follow_up && (
                                                     <span
                                                         style={{ fontSize: '0.72rem', background: 'var(--color-success-light)', color: 'var(--color-success-dark)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500, cursor: appt.follow_up_source_info ? 'help' : undefined }}
-                                                        title={appt.follow_up_source_info ? `Follow-up from consultation on ${formatDate(appt.follow_up_source_info.consultation_date)}` : 'Follow-up appointment'}
+                                                        title={appt.follow_up_source_info ? t('appointments.followup_from', { date: formatDate(appt.follow_up_source_info.consultation_date) }) : t('appointments.followup_appointment')}
                                                     >
-                                                        ↩ Follow-up
+                                                        ↩ {t('appointments.followup')}
                                                     </span>
                                                 )}
                                                 {appt.rescheduled_from_date && (
                                                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}
-                                                        title={`Rescheduled from ${formatDayMonth(appt.rescheduled_from_date)}`}>
-                                                        ↩ Rescheduled
+                                                        title={t('appointments.rescheduled_from', { date: formatDayMonth(appt.rescheduled_from_date) })}>
+                                                        ↩ {t('common.status.rescheduled')}
                                                     </span>
                                                 )}
                                                 {appt.referral && (
                                                     <span style={{ fontSize: '0.72rem', background: 'var(--accent-lighter)', color: 'var(--accent)', borderRadius: '4px', padding: '1px 6px', fontWeight: 500 }}
-                                                        title="This appointment was created from a referral">
-                                                        Referral
+                                                        title={t('appointments.referral_title')}>
+                                                        {t('appointments.referral')}
                                                     </span>
                                                 )}
                                             </div>
@@ -589,18 +589,18 @@ const Appointments = () => {
                                             <button
                                                 className="appt-menu-btn"
                                                 onClick={e => { e.stopPropagation(); setOpenMenuId(openMenuId === appt.id ? null : appt.id); }}
-                                                aria-label="More options"
+                                                aria-label={t('appointments.more_options')}
                                             >⋯</button>
                                             {openMenuId === appt.id && (
                                                 <div className="appt-menu-dropdown">
                                                     <button onClick={e => { e.stopPropagation(); setSelectedAppointment(appt); setIsFormVisible(true); setOpenMenuId(null); }}>
-                                                        Edit
+                                                        {t('common.edit')}
                                                     </button>
                                                     <button
                                                         className="danger"
                                                         onClick={e => { e.stopPropagation(); setSelectedAppointment(appt); setIsDeleteModalVisible(true); setOpenMenuId(null); }}
                                                     >
-                                                        Delete Record
+                                                        {t('appointments.delete_record')}
                                                     </button>
                                                 </div>
                                             )}
@@ -618,10 +618,10 @@ const Appointments = () => {
                                     {appt.status === 'pending' && (
                                         <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                             <button onClick={() => setApproveTarget({ id: appt.id, patientName })} className="btn btn-success btn-sm">
-                                                ✓ Approve
+                                                {t('appointments.actions.approve')}
                                             </button>
                                             <button onClick={() => setRejectTarget({ id: appt.id, patientName })} className="btn-danger-outline btn-sm">
-                                                ✕ Reject
+                                                {t('appointments.actions.reject')}
                                             </button>
                                         </div>
                                     )}
@@ -629,7 +629,7 @@ const Appointments = () => {
                                     {/* SCHEDULED: patient must confirm — show status hint only */}
                                     {appt.status === 'scheduled' && (
                                         <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                            Awaiting patient confirmation
+                                            {t('appointments.awaiting_patient_confirmation')}
                                         </div>
                                     )}
 
@@ -637,7 +637,7 @@ const Appointments = () => {
                                     {appt.status === 'confirmed' && appt.patient_details && (
                                         <div className="btn-row" style={{ marginTop: '0.5rem' }}>
                                             <button onClick={() => handleStartConsultation(appt)} className="btn btn-primary btn-sm">
-                                                ▶ Start Consultation
+                                                {t('appointments.start_consultation')}
                                             </button>
                                         </div>
                                     )}
@@ -649,7 +649,7 @@ const Appointments = () => {
                                                 onClick={() => handleStartConsultation(appt)}
                                                 className="btn btn-primary btn-sm"
                                             >
-                                                Resume Consultation →
+                                                {t('appointments.resume_consultation')}
                                             </button>
                                         </div>
                                     )}
@@ -661,7 +661,7 @@ const Appointments = () => {
                                                 onClick={() => navigate(`/patients/${appt.patient_details!.unique_id}?tab=consultations${appt.consultation_id ? `&open_consultation=${appt.consultation_id}` : ''}`)}
                                                 className="btn btn-secondary btn-sm"
                                             >
-                                                View Consultation →
+                                                {t('appointments.view_consultation')}
                                             </button>
                                         </div>
                                     )}
@@ -669,14 +669,14 @@ const Appointments = () => {
                                     {/* Cancelled cards: show rescheduled badge or cancellation reason */}
                                     {appt.status === 'cancelled' && (
                                         appt.cancel_reason_code === 'rescheduled'
-                                            ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>↩ This slot was rescheduled — see new appointment below.</p>
+                                            ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>↩ {t('appointments.rescheduled_slot_hint')}</p>
                                             : appt.cancellation_reason
-                                                ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Reason: {appt.cancellation_reason}</p>
+                                                ? <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('appointments.cancel_reason', { reason: appt.cancellation_reason })}</p>
                                                 : null
                                     )}
                                     {/* Expired: patient request was never approved before slot passed */}
                                     {appt.status === 'expired' && (
-                                        <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Slot expired — patient request was not approved in time.</p>
+                                        <p style={{ marginTop: '0.35rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('appointments.expired_hint')}</p>
                                     )}
 
                                     {/* Rebook shortcut on dead cards (not for rescheduled — they already have a new appointment) */}
@@ -686,7 +686,7 @@ const Appointments = () => {
                                                 className="btn btn-ghost btn-sm"
                                                 onClick={() => { setRebookPatientId(appt.patient_details!.unique_id); setSelectedAppointment(null); setIsFormVisible(true); }}
                                             >
-                                                + Rebook patient
+                                                {t('appointments.rebook_patient')}
                                             </button>
                                         </div>
                                     )}
@@ -709,14 +709,14 @@ const Appointments = () => {
                                                         }}
                                                         className="btn btn-muted btn-sm"
                                                     >
-                                                        Reschedule
+                                                        {t('appointments.actions.reschedule')}
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => setCancelTarget({ id: appt.id })}
                                                     className="btn-danger-outline btn-sm"
                                                 >
-                                                    Cancel Visit
+                                                    {t('appointments.actions.cancel_visit')}
                                                 </button>
                                                 {/* No Show: confirmed only (patient was notified) + 15-min grace */}
                                                 {appt.status === 'confirmed' && apptHasPassed && (
@@ -724,7 +724,7 @@ const Appointments = () => {
                                                         onClick={() => setLifecycleConfirm({ id: appt.id, action: 'no_show' })}
                                                         className="btn btn-muted btn-sm"
                                                     >
-                                                        No Show
+                                                        {t('appointments.actions.no_show')}
                                                     </button>
                                                 )}
                                             </div>
@@ -760,48 +760,51 @@ const Appointments = () => {
                 open={lifecycleConfirm !== null}
                 onClose={() => setLifecycleConfirm(null)}
                 onConfirm={executeLifecycleAction}
-                title="Mark as no-show?"
-                message="Mark this appointment as a no-show. The patient was not present."
+                title={t('appointments.no_show.title')}
+                message={t('appointments.no_show.message')}
                 tone="danger"
-                confirmLabel="Mark No-Show"
+                confirmLabel={t('appointments.no_show.confirm')}
             />
 
             {/* Reschedule modal — slot picker */}
             <Modal
                 open={!!rescheduleTarget}
                 onClose={closeReschedule}
-                title={`Reschedule — ${rescheduleTarget?.patientName ?? ''}`}
+                title={t('appointments.reschedule.title', { name: rescheduleTarget?.patientName ?? '' })}
                 size="md"
                 footer={
                     <>
-                        <button type="button" className="cancel-button" onClick={closeReschedule}>Cancel</button>
+                        <button type="button" className="cancel-button" onClick={closeReschedule}>{t('common.cancel')}</button>
                         <button type="button" className="btn btn-primary" onClick={executeReschedule} disabled={!rsSelected}>
-                            Confirm reschedule
+                            {t('appointments.reschedule.confirm')}
                         </button>
                     </>
                 }
             >
                 <div className="appointment-form">
                     <p style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                        Pick a new date and an available slot. The current appointment will be marked as rescheduled.
+                        {t('appointments.reschedule.help')}
                     </p>
                     <div className="form-group">
-                        <label htmlFor="rs-date">New Date</label>
+                        <label htmlFor="rs-date">{t('appointments.reschedule.new_date')}</label>
                         <input
                             id="rs-date"
                             type="date"
                             className="input"
                             min={todayStr}
                             value={rsDate}
-                            onChange={e => { setRsDate(e.target.value); rescheduleTarget && fetchRsSlots(e.target.value, rescheduleTarget.id); }}
+                            onChange={e => {
+                                setRsDate(e.target.value);
+                                if (rescheduleTarget) fetchRsSlots(e.target.value, rescheduleTarget.id);
+                            }}
                         />
                     </div>
-                    {rsDate && rsSlotsLoading && <div className="slots-loading">Loading slots…</div>}
-                    {rsDate && !rsSlotsLoading && rsDayOff && <div className="slots-day-off">Doctor is not available on this day.</div>}
-                    {rsDate && !rsSlotsLoading && !rsDayOff && rsSlots.length === 0 && <div className="slots-day-off">No working hours configured for this day.</div>}
+                    {rsDate && rsSlotsLoading && <div className="slots-loading">{t('appointments.form.loading_slots')}</div>}
+                    {rsDate && !rsSlotsLoading && rsDayOff && <div className="slots-day-off">{t('appointments.form.day_off')}</div>}
+                    {rsDate && !rsSlotsLoading && !rsDayOff && rsSlots.length === 0 && <div className="slots-day-off">{t('appointments.form.no_slots_configured')}</div>}
                     {rsDate && !rsSlotsLoading && rsSlots.length > 0 && (
                         <div className="form-group">
-                            <label>Available slots</label>
+                            <label>{t('appointments.form.time_slot')}</label>
                             <div className="slot-grid">
                                 {rsSlots.map(slot => (
                                     <button
@@ -809,12 +812,12 @@ const Appointments = () => {
                                         type="button"
                                         className={['slot-btn', `slot-${slot.status}`, rsSelected === slot.datetime ? 'slot-selected' : ''].join(' ').trim()}
                                         disabled={slot.status !== 'free'}
-                                        title={slot.status === 'booked' ? `Booked — ${slot.patient_name ?? ''}` : slot.time}
+                                        title={slot.status === 'booked' ? t('appointments.slot.booked_with', { name: slot.patient_name ?? '' }) : slot.time}
                                         onClick={() => setRsSelected(slot.datetime)}
                                     >
                                         <span className="slot-time">{slot.time}</span>
-                                        {slot.status === 'booked' && <span className="slot-label">Booked</span>}
-                                        {slot.status === 'past' && <span className="slot-label">Past</span>}
+                                        {slot.status === 'booked' && <span className="slot-label">{t('appointments.slot.booked')}</span>}
+                                        {slot.status === 'past' && <span className="slot-label">{t('appointments.slot.past')}</span>}
                                     </button>
                                 ))}
                             </div>
@@ -827,11 +830,11 @@ const Appointments = () => {
                 open={!!approveTarget}
                 onClose={() => setApproveTarget(null)}
                 onConfirm={handleApprove}
-                title={`Approve Request — ${approveTarget?.patientName ?? ''}`}
-                message="Optionally add instructions for the patient (e.g. what to bring, fasting requirements)."
-                confirmLabel="Approve"
-                reasonLabel="Portal instructions (optional)"
-                reasonPlaceholder="e.g. Please bring your home BP log."
+                title={t('appointments.approve.title', { name: approveTarget?.patientName ?? '' })}
+                message={t('appointments.approve.message')}
+                confirmLabel={t('appointments.actions.approve')}
+                reasonLabel={t('patient_record.portal.instructions_optional')}
+                reasonPlaceholder={t('appointments.approve.instructions_placeholder')}
             />
 
             {/* Cancel appointment reason modal */}
@@ -839,12 +842,12 @@ const Appointments = () => {
                 open={!!cancelTarget}
                 onClose={() => setCancelTarget(null)}
                 onConfirm={executeCancelWithReason}
-                title="Cancel Appointment"
-                message="The patient will be notified. Providing a reason helps them understand what to do next."
-                confirmLabel="Confirm cancellation"
-                cancelLabel="Keep appointment"
-                reasonLabel="Reason for cancellation (optional)"
-                reasonPlaceholder="e.g. Doctor unavailable. Please call to reschedule."
+                title={t('appointments.cancel.title')}
+                message={t('appointments.cancel.message')}
+                confirmLabel={t('appointments.cancel.confirm')}
+                cancelLabel={t('appointments.cancel.keep')}
+                reasonLabel={t('appointments.cancel.reason_label')}
+                reasonPlaceholder={t('appointments.cancel.reason_placeholder')}
                 tone="danger"
             />
 
@@ -853,11 +856,11 @@ const Appointments = () => {
                 open={!!rejectTarget}
                 onClose={() => setRejectTarget(null)}
                 onConfirm={handleReject}
-                title={`Reject Request — ${rejectTarget?.patientName ?? ''}`}
-                message="The patient will be notified that their request has been rejected."
-                confirmLabel="Reject"
-                reasonLabel="Reason for rejection"
-                reasonPlaceholder="e.g. No availability on this day. Please request another date."
+                title={t('appointments.reject.title', { name: rejectTarget?.patientName ?? '' })}
+                message={t('appointments.reject.message')}
+                confirmLabel={t('appointments.actions.reject')}
+                reasonLabel={t('appointments.reject.reason_label')}
+                reasonPlaceholder={t('appointments.reject.reason_placeholder')}
                 requireReason
                 tone="danger"
             />

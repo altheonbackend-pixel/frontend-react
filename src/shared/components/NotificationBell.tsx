@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import type { Notification } from '../types';
+import { formatRelative } from '../utils/datetime';
 import './NotificationBell.css';
 
 const NotificationBell = () => {
+    const { t, i18n } = useTranslation();
     const [unread, setUnread] = useState(0);
     const [open, setOpen] = useState(false);
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -110,19 +113,11 @@ const NotificationBell = () => {
         if (n.link) navigate(n.link);
     };
 
-    const timeAgo = (iso: string) => {
-        const diff = Date.now() - new Date(iso).getTime();
-        const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'just now';
-        if (mins < 60) return `${mins}m ago`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h ago`;
-        return `${Math.floor(hrs / 24)}d ago`;
-    };
+    const timeAgo = (iso: string) => formatRelative(iso, { locale: i18n.resolvedLanguage || i18n.language });
 
     return (
         <div className="notif-bell-wrapper">
-            <button ref={bellRef} className="notif-bell-btn" onClick={handleOpen} aria-label="Notifications">
+            <button ref={bellRef} className="notif-bell-btn" onClick={handleOpen} aria-label={t('notifications.title')}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -138,20 +133,20 @@ const NotificationBell = () => {
                     className="notif-drawer"
                     style={{ top: dropPos.top, left: dropPos.left }}
                     role="dialog"
-                    aria-label="Notifications"
+                    aria-label={t('notifications.title')}
                 >
                     <div className="notif-drawer__header">
-                        <span className="notif-drawer__title">Notifications</span>
+                        <span className="notif-drawer__title">{t('notifications.title')}</span>
                         {unread > 0 && (
                             <button className="notif-mark-all" onClick={markAll}>
-                                Mark all read
+                                {t('notifications.mark_all_read')}
                             </button>
                         )}
                     </div>
                     <div className="notif-drawer__body">
-                        {loading && <p className="notif-empty">Loading…</p>}
+                        {loading && <p className="notif-empty">{t('common.loading')}</p>}
                         {!loading && notifications.length === 0 && (
-                            <p className="notif-empty">No notifications yet.</p>
+                            <p className="notif-empty">{t('notifications.empty')}</p>
                         )}
                         {!loading && notifications.map(n => (
                             <div
@@ -170,7 +165,7 @@ const NotificationBell = () => {
                                 onClick={loadMore}
                                 disabled={loadingMore}
                             >
-                                {loadingMore ? 'Loading…' : 'Load more'}
+                                {loadingMore ? t('common.loading') : t('notifications.load_more')}
                             </button>
                         )}
                     </div>

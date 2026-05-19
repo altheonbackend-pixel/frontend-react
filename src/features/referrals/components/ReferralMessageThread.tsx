@@ -1,6 +1,7 @@
 // src/features/referrals/components/ReferralMessageThread.tsx
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../../../shared/queryKeys';
 import { getMessages, sendMessage, deleteMessage } from '../services/referralService';
@@ -14,6 +15,7 @@ interface Props {
 }
 
 const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
     const { formatTime, formatDayMonth } = useFormatDateTime();
     const [body, setBody] = useState('');
@@ -40,7 +42,7 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
             setBody('');
             queryClient.invalidateQueries({ queryKey: queryKeys.referrals.messages(referralId) });
         },
-        onError: () => toast.error('Failed to send message.'),
+        onError: () => toast.error(t('referrals.messages.send_failed')),
     });
 
     const { mutate: del } = useMutation({
@@ -49,7 +51,7 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
             setConfirmDeleteId(null);
             queryClient.invalidateQueries({ queryKey: queryKeys.referrals.messages(referralId) });
         },
-        onError: () => toast.error('Failed to delete message.'),
+        onError: () => toast.error(t('referrals.messages.delete_failed')),
     });
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -62,13 +64,13 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Messages
+                {t('referrals.messages.title')}
             </div>
 
             {isLoading ? (
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>Loading…</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>{t('common.loading')}</div>
             ) : messages.length === 0 ? (
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>No messages yet.</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', padding: '0.25rem 0' }}>{t('referrals.messages.empty')}</div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', maxHeight: 260, overflowY: 'auto', paddingRight: '0.25rem' }}>
                     {messages.map(msg => {
@@ -88,10 +90,10 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                                 }}>
                                     {!isOwn && (
                                         <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.15rem' }}>
-                                            Dr. {msg.sender_details?.full_name ?? 'Unknown'}
+                                            {t('referrals.messages.sender_doctor', { name: msg.sender_details?.full_name ?? t('common.not_available') })}
                                         </div>
                                     )}
-                                    {msg.is_deleted ? 'This message was deleted.' : msg.body}
+                                    {msg.is_deleted ? t('referrals.messages.deleted') : msg.body}
                                     <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem', textAlign: isOwn ? 'right' : 'left' }}>
                                         {formatTime(msg.created_at)}
                                         {' · '}
@@ -102,9 +104,9 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                                     <div style={{ marginTop: '0.15rem' }}>
                                         {confirmDeleteId === msg.id ? (
                                             <span style={{ fontSize: '0.75rem', display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                                                <span style={{ color: 'var(--text-muted)' }}>Delete?</span>
-                                                <button className="btn btn-danger" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }} onClick={() => del(msg.id)}>Yes</button>
-                                                <button className="btn btn-ghost" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }} onClick={() => setConfirmDeleteId(null)}>No</button>
+                                                <span style={{ color: 'var(--text-muted)' }}>{t('referrals.messages.delete_confirm')}</span>
+                                                <button className="btn btn-danger" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }} onClick={() => del(msg.id)}>{t('common.yes')}</button>
+                                                <button className="btn btn-ghost" style={{ fontSize: '0.72rem', padding: '0.1rem 0.4rem' }} onClick={() => setConfirmDeleteId(null)}>{t('common.no')}</button>
                                             </span>
                                         ) : (
                                             <button
@@ -112,7 +114,7 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                                                 style={{ fontSize: '0.72rem', padding: '0.1rem 0.35rem', color: 'var(--text-muted)' }}
                                                 onClick={() => setConfirmDeleteId(msg.id)}
                                             >
-                                                Delete
+                                                {t('common.delete')}
                                             </button>
                                         )}
                                     </div>
@@ -132,7 +134,7 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                     className="input textarea"
                     rows={2}
                     style={{ flex: 1, resize: 'none', fontSize: '0.875rem' }}
-                    placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
+                    placeholder={t('referrals.messages.placeholder')}
                     value={body}
                     onChange={e => setBody(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -144,7 +146,7 @@ const ReferralMessageThread = ({ referralId, currentDoctorId }: Props) => {
                     disabled={!body.trim() || sending}
                     style={{ flexShrink: 0 }}
                 >
-                    {sending ? '…' : 'Send'}
+                    {sending ? '...' : t('referrals.messages.send')}
                 </button>
             </form>
         </div>

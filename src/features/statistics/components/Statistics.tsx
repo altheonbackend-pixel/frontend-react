@@ -53,10 +53,10 @@ const TOOLTIP_STYLE = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-    active: 'Active',
-    inactive: 'Inactive',
-    transferred: 'Transferred',
-    deceased: 'Deceased',
+    active: 'common.status.active',
+    inactive: 'common.status.inactive',
+    transferred: 'common.status.transferred',
+    deceased: 'common.status.deceased',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -99,8 +99,8 @@ const Statistics = () => {
 
     // Referral outcomes donut data
     const REFERRAL_STATUS_LABELS: Record<string, string> = {
-        pending: 'Pending', accepted: 'Accepted', in_progress: 'In Progress',
-        completed: 'Completed', rejected: 'Rejected',
+        pending: 'referrals.list.status.pending', accepted: 'referrals.list.status.accepted', in_progress: 'referrals.list.status.in_progress',
+        completed: 'referrals.list.status.completed', rejected: 'referrals.list.status.rejected',
     };
     const REFERRAL_STATUS_COLORS: Record<string, string> = {
         pending: 'var(--color-warning, #d69e2e)',
@@ -112,7 +112,7 @@ const Statistics = () => {
     const referralDonutData = Object.entries(stats?.referral_by_status ?? {})
         .filter(([, count]) => count > 0)
         .map(([status, count]) => ({
-            name: REFERRAL_STATUS_LABELS[status] ?? status,
+            name: REFERRAL_STATUS_LABELS[status] ? t(REFERRAL_STATUS_LABELS[status]) : status,
             value: count,
             key: status,
         }));
@@ -121,7 +121,7 @@ const Statistics = () => {
     const statusData = Object.entries(stats?.patient_status ?? {})
         .filter(([, count]) => count > 0)
         .map(([status, count]) => ({
-            name: STATUS_LABELS[status] ?? status,
+            name: STATUS_LABELS[status] ? t(STATUS_LABELS[status]) : status,
             value: count,
             key: status,
         }));
@@ -170,7 +170,7 @@ const Statistics = () => {
                     {/* Monthly consultation BarChart */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Monthly Activity (last 6 months)</span>
+                            <span className="section-card-title">{t('statistics.monthly_activity')}</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
                             {monthlyData.some(m => m.consultations > 0 || m.procedures > 0) ? (
@@ -181,14 +181,14 @@ const Statistics = () => {
                                         <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} allowDecimals={false} />
                                         <Tooltip contentStyle={TOOLTIP_STYLE} />
                                         <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                                        <Bar dataKey="consultations" fill="var(--accent)" radius={[4, 4, 0, 0]} name="Consultations" />
-                                        <Bar dataKey="procedures" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} name="Procedures" />
+                                        <Bar dataKey="consultations" fill="var(--accent)" radius={[4, 4, 0, 0]} name={t('statistics.columns.consultations')} />
+                                        <Bar dataKey="procedures" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} name={t('statistics.columns.procedures')} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">📊</div>
-                                    <div className="empty-state-title">No activity in the last 6 months</div>
+                                    <div className="empty-state-title">{t('statistics.empty.no_activity')}</div>
                                 </div>
                             )}
                         </div>
@@ -197,7 +197,7 @@ const Statistics = () => {
                     {/* Patient status PieChart */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Patient Status</span>
+                            <span className="section-card-title">{t('statistics.patient_status')}</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
                             {statusData.length > 0 ? (
@@ -224,7 +224,7 @@ const Statistics = () => {
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">🥧</div>
-                                    <div className="empty-state-title">No patients yet</div>
+                                    <div className="empty-state-title">{t('statistics.empty.no_patients')}</div>
                                 </div>
                             )}
                         </div>
@@ -238,7 +238,7 @@ const Statistics = () => {
                     {/* Referral Outcomes donut */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Referral Outcomes</span>
+                            <span className="section-card-title">{t('statistics.referral_outcomes')}</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
                             {referralDonutData.length > 0 ? (
@@ -264,7 +264,7 @@ const Statistics = () => {
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">📤</div>
-                                    <div className="empty-state-title">No referrals sent yet</div>
+                                    <div className="empty-state-title">{t('statistics.empty.no_referrals')}</div>
                                 </div>
                             )}
                         </div>
@@ -273,7 +273,7 @@ const Statistics = () => {
                     {/* Appointment Status stacked bar */}
                     <div className="section-card">
                         <div className="section-card-header">
-                            <span className="section-card-title">Appointment Status (last 6 months)</span>
+                            <span className="section-card-title">{t('statistics.appointment_status')}</span>
                         </div>
                         <div className="section-card-body" style={{ height: 260 }}>
                             {apptMonthlyData.some(m => Number(m.completed ?? 0) > 0 || Number(m.cancelled ?? 0) > 0 || Number(m.no_show ?? 0) > 0) ? (
@@ -284,15 +284,15 @@ const Statistics = () => {
                                         <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} allowDecimals={false} />
                                         <Tooltip contentStyle={TOOLTIP_STYLE} />
                                         <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
-                                        <Bar dataKey="completed" stackId="a" fill="var(--success, #38a169)" radius={[0, 0, 0, 0]} name="Completed" />
-                                        <Bar dataKey="cancelled" stackId="a" fill="var(--danger, #e53e3e)"  radius={[0, 0, 0, 0]} name="Cancelled" />
-                                        <Bar dataKey="no_show"   stackId="a" fill="var(--color-warning, #d69e2e)" radius={[4, 4, 0, 0]} name="No Show" />
+                                        <Bar dataKey="completed" stackId="a" fill="var(--success, #38a169)" radius={[0, 0, 0, 0]} name={t('common.status.completed')} />
+                                        <Bar dataKey="cancelled" stackId="a" fill="var(--danger, #e53e3e)"  radius={[0, 0, 0, 0]} name={t('common.status.cancelled')} />
+                                        <Bar dataKey="no_show"   stackId="a" fill="var(--color-warning, #d69e2e)" radius={[4, 4, 0, 0]} name={t('common.status.no_show')} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
                                 <div className="empty-state">
                                     <div className="empty-state-icon">📅</div>
-                                    <div className="empty-state-title">No appointment data yet</div>
+                                    <div className="empty-state-title">{t('statistics.empty.no_appointments')}</div>
                                 </div>
                             )}
                         </div>

@@ -1,5 +1,6 @@
 // src/shared/components/AttachmentList.tsx
 // Shared file attachment chip list — used in lab results, consultations, procedures, referrals
+import { useTranslation } from 'react-i18next';
 
 export interface Attachment {
     id: number;
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function AttachmentList({ attachments, style }: Props) {
+    const { t } = useTranslation();
     if (!attachments.length) return null;
 
     return (
@@ -55,7 +57,7 @@ export function AttachmentList({ attachments, style }: Props) {
                     <span
                         key={att.id}
                         className="attachment-chip attachment-chip--unavailable"
-                        title="File not available"
+                        title={t('attachments.file_not_available')}
                     >
                         <span className="attachment-icon">{fileIcon(att.mime_type)}</span>
                         <span className="attachment-name">{att.original_filename}</span>

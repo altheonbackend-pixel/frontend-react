@@ -10,28 +10,28 @@ import api from '../../../shared/services/api';
 import { profileSchema, type ProfileFormData } from '../profileSchema';
 import { formatTime } from '../../../shared/utils/datetime';
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 
 const TIMEZONES = [
-    { value: 'UTC',                  label: 'UTC (Coordinated Universal Time)' },
-    { value: 'Africa/Dakar',         label: 'Senegal / West Africa (UTC+0)' },
-    { value: 'Asia/Karachi',         label: 'Pakistan (UTC+5)' },
-    { value: 'Asia/Kolkata',         label: 'India (UTC+5:30)' },
-    { value: 'Asia/Dhaka',           label: 'Bangladesh (UTC+6)' },
-    { value: 'Asia/Dubai',           label: 'UAE (UTC+4)' },
-    { value: 'Asia/Riyadh',          label: 'Saudi Arabia (UTC+3)' },
-    { value: 'Asia/Baghdad',         label: 'Iraq (UTC+3)' },
-    { value: 'Asia/Istanbul',        label: 'Turkey (UTC+3)' },
-    { value: 'Europe/London',        label: 'United Kingdom (UTC+0/+1)' },
-    { value: 'Europe/Paris',         label: 'France / Central Europe (UTC+1/+2)' },
-    { value: 'Europe/Berlin',        label: 'Germany (UTC+1/+2)' },
-    { value: 'Africa/Cairo',         label: 'Egypt (UTC+2)' },
-    { value: 'Africa/Lagos',         label: 'Nigeria (UTC+1)' },
-    { value: 'Africa/Nairobi',       label: 'Kenya / East Africa (UTC+3)' },
-    { value: 'America/New_York',     label: 'US Eastern (UTC-5/-4)' },
-    { value: 'America/Chicago',      label: 'US Central (UTC-6/-5)' },
-    { value: 'America/Los_Angeles',  label: 'US Pacific (UTC-8/-7)' },
-    { value: 'Australia/Sydney',     label: 'Australia Eastern (UTC+10/+11)' },
+    { value: 'UTC',                  labelKey: 'patient_portal.timezones.utc' },
+    { value: 'Africa/Dakar',         labelKey: 'timezones.africa_dakar' },
+    { value: 'Asia/Karachi',         labelKey: 'patient_portal.timezones.asia_karachi' },
+    { value: 'Asia/Kolkata',         labelKey: 'patient_portal.timezones.asia_kolkata' },
+    { value: 'Asia/Dhaka',           labelKey: 'patient_portal.timezones.asia_dhaka' },
+    { value: 'Asia/Dubai',           labelKey: 'patient_portal.timezones.asia_dubai' },
+    { value: 'Asia/Riyadh',          labelKey: 'patient_portal.timezones.asia_riyadh' },
+    { value: 'Asia/Baghdad',         labelKey: 'patient_portal.timezones.asia_baghdad' },
+    { value: 'Asia/Istanbul',        labelKey: 'patient_portal.timezones.asia_istanbul' },
+    { value: 'Europe/London',        labelKey: 'patient_portal.timezones.europe_london' },
+    { value: 'Europe/Paris',         labelKey: 'patient_portal.timezones.europe_paris' },
+    { value: 'Europe/Berlin',        labelKey: 'patient_portal.timezones.europe_berlin' },
+    { value: 'Africa/Cairo',         labelKey: 'patient_portal.timezones.africa_cairo' },
+    { value: 'Africa/Lagos',         labelKey: 'patient_portal.timezones.africa_lagos' },
+    { value: 'Africa/Nairobi',       labelKey: 'patient_portal.timezones.africa_nairobi' },
+    { value: 'America/New_York',     labelKey: 'patient_portal.timezones.america_new_york' },
+    { value: 'America/Chicago',      labelKey: 'patient_portal.timezones.america_chicago' },
+    { value: 'America/Los_Angeles',  labelKey: 'patient_portal.timezones.america_los_angeles' },
+    { value: 'Australia/Sydney',     labelKey: 'patient_portal.timezones.australia_sydney' },
 ];
 
 function getCurrentTimeInTz(tz: string) {
@@ -98,24 +98,24 @@ const EditProfile = () => {
                 end_time: day.end_time,
                 slot_duration: day.slot_duration,
             });
-            toast.success(`${DAY_NAMES[day.day_of_week]} schedule saved.`);
+            toast.success(t('edit_profile.toast.schedule_saved', { day: t(`datetime.weekday.${DAY_KEYS[day.day_of_week]}`) }));
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to save schedule.'));
+            toast.error(parseApiError(err, t('edit_profile.error.save_schedule')));
         } finally {
             setSavingDay(null);
         }
     };
 
     const handleAddDayOff = async () => {
-        if (!newDayOff.date) { toast.error('Please select a date.'); return; }
+        if (!newDayOff.date) { toast.error(t('edit_profile.error.select_date')); return; }
         setSavingDayOff(true);
         try {
             const res = await api.post<DayOff>('/schedule/days-off/', newDayOff);
             setDaysOff(prev => [...prev, res.data].sort((a, b) => a.date.localeCompare(b.date)));
             setNewDayOff({ date: '', reason: '' });
-            toast.success('Day off added.');
+            toast.success(t('edit_profile.toast.day_off_added'));
         } catch (err) {
-            toast.error(parseApiError(err, 'Could not add day off.'));
+            toast.error(parseApiError(err, t('edit_profile.error.add_day_off')));
         } finally {
             setSavingDayOff(false);
         }
@@ -126,9 +126,9 @@ const EditProfile = () => {
         try {
             await api.delete(`/schedule/days-off/${id}/`);
             setDaysOff(prev => prev.filter(d => d.id !== id));
-            toast.success('Day off removed.');
+            toast.success(t('edit_profile.toast.day_off_removed'));
         } catch (err) {
-            toast.error(parseApiError(err, 'Could not remove day off.'));
+            toast.error(parseApiError(err, t('edit_profile.error.remove_day_off')));
         } finally {
             setDeletingDayOff(null);
         }
@@ -137,11 +137,11 @@ const EditProfile = () => {
     const handlePasswordChange = async () => {
         setPwError('');
         if (pwForm.new_password !== pwForm.confirm_password) {
-            setPwError('New passwords do not match.');
+            setPwError(t('profile.password.error.mismatch'));
             return;
         }
         if (pwForm.new_password.length < 8) {
-            setPwError('Password must be at least 8 characters.');
+            setPwError(t('profile.password.error.too_short'));
             return;
         }
         setPwSaving(true);
@@ -151,10 +151,10 @@ const EditProfile = () => {
                 new_password: pwForm.new_password,
                 confirm_password: pwForm.confirm_password,
             });
-            toast.success('Password changed successfully.');
+            toast.success(t('profile.password.success'));
             setPwForm({ current_password: '', new_password: '', confirm_password: '' });
         } catch (err) {
-            setPwError(parseApiError(err, 'Failed to change password.'));
+            setPwError(parseApiError(err, t('profile.password.error.failed')));
         } finally {
             setPwSaving(false);
         }
@@ -234,7 +234,7 @@ const EditProfile = () => {
         >
             {/* ── Personal Information ── */}
             <form id="edit-profile-form" onSubmit={handleSubmit(onSubmit)} className="form">
-                <p style={sectionTitle}>Personal Information</p>
+                <p style={sectionTitle}>{t('profile.section.personal_information')}</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
                     <div className="form-group">
                         <label htmlFor="first_name">{t('edit_profile.labels.first_name')}</label>
@@ -275,31 +275,31 @@ const EditProfile = () => {
 
                 {/* ── Availability & Timezone ── */}
                 <div style={sectionStyle}>
-                    <p style={sectionTitle}>Availability & Timezone</p>
+                    <p style={sectionTitle}>{t('profile.section.availability_timezone')}</p>
                     <div className="form-group">
-                        <label htmlFor="timezone">Timezone</label>
+                        <label htmlFor="timezone">{t('register.timezone')}</label>
                         <select id="timezone" className="select-input" {...register('timezone')}>
                             {TIMEZONES.map(tz => (
-                                <option key={tz.value} value={tz.value}>{tz.label}</option>
+                                <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>
                             ))}
                         </select>
                         {nowInTz && (
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                Current time in {selectedTz}: <strong>{nowInTz}</strong>
+                                {t('edit_profile.current_time_in', { timezone: selectedTz })}: <strong>{nowInTz}</strong>
                             </span>
                         )}
                     </div>
                     <div className="form-group">
-                        <label htmlFor="next_available">Next available slot</label>
+                        <label htmlFor="next_available">{t('edit_profile.next_available_slot')}</label>
                         <input type="datetime-local" id="next_available" className="input" {...register('next_available')} />
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Shown to patients as a scheduling hint when they request appointments.</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('edit_profile.next_available_hint')}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
                         <input type="checkbox" id="accepting_referrals" {...register('accepting_referrals' as any)} style={{ cursor: 'pointer' }} />
                         <label htmlFor="accepting_referrals" style={{ margin: 0, cursor: 'pointer', fontWeight: 500 }}>
-                            Accepting referrals
+                            {t('edit_profile.accepting_referrals')}
                             <span style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                                Uncheck to hide yourself from the referral doctor selector.
+                                {t('edit_profile.accepting_referrals_hint')}
                             </span>
                         </label>
                     </div>
@@ -313,7 +313,7 @@ const EditProfile = () => {
                     <div className="schedule-list">
                         {schedule.map(day => (
                             <div key={day.day_of_week} className="schedule-row" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-                                <span className="schedule-day" style={{ minWidth: '90px' }}>{DAY_NAMES[day.day_of_week]}</span>
+                                <span className="schedule-day" style={{ minWidth: '90px' }}>{t(`datetime.weekday.${DAY_KEYS[day.day_of_week]}`)}</span>
                                 <label className="schedule-available-label" style={{ flexShrink: 0 }}>
                                     <input
                                         type="checkbox"
@@ -343,7 +343,7 @@ const EditProfile = () => {
                                     value={day.slot_duration}
                                     disabled={!day.is_available}
                                     onChange={e => handleScheduleChange(day.day_of_week, 'slot_duration', Number(e.target.value))}
-                                    title="Appointment slot duration"
+                                    title={t('edit_profile.slot_duration')}
                                 >
                                     <option value={10}>10 min</option>
                                     <option value={15}>15 min</option>
@@ -366,9 +366,9 @@ const EditProfile = () => {
 
             {/* ── Days Off ── */}
             <section style={sectionStyle}>
-                <p style={sectionTitle}>Days Off</p>
+                <p style={sectionTitle}>{t('edit_profile.days_off')}</p>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                    Blocks individual dates from patient scheduling regardless of your weekly schedule.
+                    {t('edit_profile.days_off_hint')}
                 </p>
                 {daysOff.length > 0 && (
                     <div style={{ marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -382,7 +382,7 @@ const EditProfile = () => {
                                     disabled={deletingDayOff === d.id}
                                     onClick={() => handleDeleteDayOff(d.id)}
                                 >
-                                    Remove
+                                    {t('common.remove')}
                                 </button>
                             </div>
                         ))}
@@ -390,7 +390,7 @@ const EditProfile = () => {
                 )}
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <div className="form-group" style={{ margin: 0, flex: '0 0 auto' }}>
-                        <label style={{ fontSize: '0.8rem' }}>Date</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('consultation.date')}</label>
                         <input
                             type="date"
                             className="input"
@@ -401,11 +401,11 @@ const EditProfile = () => {
                         />
                     </div>
                     <div className="form-group" style={{ margin: 0, flex: 1, minWidth: '140px' }}>
-                        <label style={{ fontSize: '0.8rem' }}>Reason (optional)</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('edit_profile.reason_optional')}</label>
                         <input
                             type="text"
                             className="input"
-                            placeholder="e.g. Conference, vacation"
+                            placeholder={t('edit_profile.reason_placeholder')}
                             value={newDayOff.reason}
                             onChange={e => setNewDayOff(p => ({ ...p, reason: e.target.value }))}
                         />
@@ -417,16 +417,16 @@ const EditProfile = () => {
                         onClick={handleAddDayOff}
                         style={{ marginBottom: '0' }}
                     >
-                        {savingDayOff ? 'Adding…' : '+ Add day off'}
+                        {savingDayOff ? t('edit_profile.adding') : t('edit_profile.add_day_off')}
                     </button>
                 </div>
             </section>
 
             {/* ── Change Password ── */}
             <section style={sectionStyle}>
-                <p style={sectionTitle}>Change Password</p>
+                <p style={sectionTitle}>{t('profile.password.change')}</p>
                 <div className="form-group">
-                    <label>Current password</label>
+                    <label>{t('profile.password.current')}</label>
                     <input
                         type="password"
                         className="input"
@@ -436,7 +436,7 @@ const EditProfile = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 1rem' }}>
                     <div className="form-group">
-                        <label>New password</label>
+                        <label>{t('profile.password.new')}</label>
                         <input
                             type="password"
                             className="input"
@@ -445,7 +445,7 @@ const EditProfile = () => {
                         />
                     </div>
                     <div className="form-group">
-                        <label>Confirm new password</label>
+                        <label>{t('profile.password.confirm_new')}</label>
                         <input
                             type="password"
                             className="input"
@@ -461,7 +461,7 @@ const EditProfile = () => {
                     disabled={!pwForm.current_password || !pwForm.new_password || pwSaving}
                     onClick={handlePasswordChange}
                 >
-                    {pwSaving ? 'Saving…' : 'Update password'}
+                    {pwSaving ? t('common.saving') : t('profile.password.update')}
                 </button>
             </section>
         </Modal>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import api from '../../../shared/services/api';
 import { useAuth } from '../hooks/useAuth';
 import type { SpecialtyChoice } from '../../../shared/types';
 import '../styles/Auth.css';
 
 const CompleteProfile = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { profile, updateProfileData, logout } = useAuth();
     const [specialties, setSpecialties] = useState<SpecialtyChoice[]>([]);
@@ -20,8 +22,8 @@ const CompleteProfile = () => {
     useEffect(() => {
         api.get('/auth/specialties/')
             .then(r => setSpecialties(r.data))
-            .catch(() => setSpecialties([{ value: 'general_practice', label: 'General Practice' }]));
-    }, []);
+            .catch(() => setSpecialties([{ value: 'general_practice', label: t('specialties.general_practice') }]));
+    }, [t]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -31,7 +33,7 @@ const CompleteProfile = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.phone_number.trim() || !formData.address.trim()) {
-            setError('Phone number and address are required.');
+            setError(t('auth.complete_profile.error.required'));
             return;
         }
         setLoading(true);
@@ -45,7 +47,7 @@ const CompleteProfile = () => {
             const data = axiosErr?.response?.data;
             const msg = data && typeof data === 'object'
                 ? Object.values(data).flat().join(' ')
-                : 'Failed to save profile. Please try again.';
+                : t('auth.complete_profile.error.save');
             setError(msg);
         } finally {
             setLoading(false);
@@ -56,15 +58,15 @@ const CompleteProfile = () => {
         <div className="auth-page-wrapper">
             <div className="auth-container">
                 <form onSubmit={handleSubmit} className="auth-form">
-                    <h2>Complete Your Profile</h2>
+                    <h2>{t('auth.complete_profile.title')}</h2>
                     <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>
-                        Please provide the following information before accessing the platform.
+                        {t('auth.complete_profile.subtitle')}
                     </p>
 
                     {error && <p className="error-message">{error}</p>}
 
                     <div className="form-group">
-                        <label htmlFor="specialty">Specialty</label>
+                        <label htmlFor="specialty">{t('register.specialty')}</label>
                         <select
                             id="specialty"
                             name="specialty"
@@ -79,7 +81,7 @@ const CompleteProfile = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="phone_number">Phone Number</label>
+                        <label htmlFor="phone_number">{t('auth.complete_profile.phone_number')}</label>
                         <input
                             type="tel"
                             id="phone_number"
@@ -92,7 +94,7 @@ const CompleteProfile = () => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="address">Address / City</label>
+                        <label htmlFor="address">{t('auth.complete_profile.address_city')}</label>
                         <textarea
                             id="address"
                             name="address"
@@ -105,7 +107,7 @@ const CompleteProfile = () => {
                     </div>
 
                     <button type="submit" className="auth-button" disabled={loading}>
-                        {loading ? 'Saving…' : 'Save and Continue'}
+                        {loading ? t('common.saving') : t('auth.complete_profile.save_continue')}
                     </button>
 
                     <button
@@ -114,7 +116,7 @@ const CompleteProfile = () => {
                         style={{ background: 'var(--bg-muted)', marginTop: '8px' }}
                         onClick={logout}
                     >
-                        Log Out
+                        {t('nav.logout')}
                     </button>
                 </form>
             </div>
