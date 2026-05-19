@@ -988,19 +988,19 @@ const PatientDetails = () => {
     ).length;
 
     const TABS: { key: Tab; label: string; count?: number }[] = [
-        { key: 'overview',      label: 'Overview' },
-        { key: 'consultations', label: 'Consultations', count: draftCount || undefined },
-        { key: 'labs',          label: 'Labs',           count: pendingLabOrderCount || undefined },
-        { key: 'medications',   label: 'Medications',    count: medications.length || undefined },
-        { key: 'history',       label: 'History',        count: historyCount },
-        { key: 'portal',        label: 'Portal',         count: pendingRequests.length || undefined },
+        { key: 'overview',      label: t('patient_detail.tabs.overview', 'Overview') },
+        { key: 'consultations', label: t('patient_detail.tabs.consultations', 'Consultations'), count: draftCount || undefined },
+        { key: 'labs',          label: t('patient_detail.tabs.labs', 'Labs'),                    count: pendingLabOrderCount || undefined },
+        { key: 'medications',   label: t('patient_detail.tabs.medications', 'Medications'),     count: medications.length || undefined },
+        { key: 'history',       label: t('patient_detail.tabs.history', 'History'),             count: historyCount },
+        { key: 'portal',        label: t('patient_detail.tabs.portal', 'Portal'),                count: pendingRequests.length || undefined },
     ];
 
     return (
         <>
         <PageHeader
             title={`${patient.first_name} ${patient.last_name}`}
-            breadcrumb={[{ label: 'Patients', href: '/patients' }]}
+            breadcrumb={[{ label: t('nav.patients', 'Patients'), href: '/patients' }]}
         />
         <div className="patient-details-container detail-container">
             {/* Header */}

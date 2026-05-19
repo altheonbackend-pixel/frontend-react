@@ -19,14 +19,12 @@ interface AppSidebarProps {
 
 type IconName =
     | 'dashboard' | 'patients' | 'appointments' | 'referrals'
-    | 'notebook' | 'stats' | 'profile' | 'logout'
-    | 'tasks';
+    | 'notebook' | 'stats' | 'profile' | 'logout';
 
 const NAV_LINKS: Array<{
     to: string; icon: IconName; labelKey: string; label: string; badgeKey?: string;
 }> = [
     { to: '/dashboard',    icon: 'dashboard',    labelKey: 'nav.dashboard',    label: 'Dashboard' },
-    { to: '/inbox',        icon: 'tasks',        labelKey: 'nav.inbox',        label: 'Inbox',         badgeKey: 'inbox' },
     { to: '/patients',     icon: 'patients',     labelKey: 'nav.patients',     label: 'Patients' },
     { to: '/appointments', icon: 'appointments', labelKey: 'nav.appointments', label: 'Appointments', badgeKey: 'appointments' },
     { to: '/referrals',    icon: 'referrals',    labelKey: 'nav.referrals',    label: 'Referrals',    badgeKey: 'referrals' },
@@ -73,27 +71,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
         refetchInterval: 30_000,
         enabled: userType === 'doctor',
     });
-
-    const { data: inboxCount = 0 } = useQuery<number>({
-        queryKey: ['inbox', 'summary'],
-        queryFn: async () => {
-            try {
-                const [tasks, alerts] = await Promise.all([
-                    api.get('/care-tasks/?open=true').catch(() => ({ data: [] })),
-                    api.get('/clinical-alerts/?open=true').catch(() => ({ data: [] })),
-                ]);
-                const tlist = (tasks.data?.results ?? tasks.data) as unknown[];
-                const alist = (alerts.data?.results ?? alerts.data) as unknown[];
-                return (Array.isArray(tlist) ? tlist.length : 0) + (Array.isArray(alist) ? alist.length : 0);
-            } catch {
-                return 0;
-            }
-        },
-        staleTime: 30_000,
-        refetchInterval: 30_000,
-        enabled: userType === 'doctor',
-    });
-
 
     const handleLogout = () => {
         logout();
@@ -150,7 +127,6 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                     const badge =
                         link.badgeKey === 'referrals' ? referralBadgeCount :
                         link.badgeKey === 'appointments' ? pendingRequestCount :
-                        link.badgeKey === 'inbox' ? inboxCount :
                         0;
                     return (
                         <NavLink

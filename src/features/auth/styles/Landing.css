@@ -155,6 +155,35 @@
     gap: 0.5rem;
 }
 
+/* Language toggle in nav */
+.landing-lang-toggle {
+    display: inline-flex;
+    border-radius: var(--radius-pill);
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.18);
+    padding: 2px;
+    margin-right: 0.25rem;
+}
+.landing-lang-btn {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    padding: 0.3rem 0.6rem;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.02em;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.landing-lang-btn:hover { color: var(--accent); }
+.landing-lang-btn.active {
+    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(99,102,241,0.30);
+}
+
 .landing-hamburger {
     display: none;
     width: 40px;
@@ -544,20 +573,27 @@
 .landing-features-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+    gap: 1.25rem;
+    align-items: stretch;
+}
+.landing-features-grid > .reveal {
+    display: flex;
 }
 .feature-card {
     padding: 1.75rem 1.5rem;
     background: #fff;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(99,102,241,0.18);
     border-radius: 18px;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 6px 18px rgba(99,102,241,0.08), 0 1px 2px rgba(0,0,0,0.04);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
 .feature-card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: rgba(99,102,241,0.22);
+    box-shadow: 0 18px 40px rgba(99,102,241,0.18), 0 2px 6px rgba(0,0,0,0.05);
+    border-color: rgba(99,102,241,0.4);
 }
 .feature-icon {
     width: 48px;
@@ -587,17 +623,27 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.5rem;
+    align-items: stretch;
     counter-reset: step;
 }
+.landing-steps > .reveal { display: flex; }
 .step {
     background: #fff;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(99,102,241,0.18);
     border-radius: 18px;
     padding: 2rem 1.75rem 1.75rem;
     position: relative;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 6px 18px rgba(99,102,241,0.08), 0 1px 2px rgba(0,0,0,0.04);
 }
-.step:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+.step:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 40px rgba(99,102,241,0.18), 0 2px 6px rgba(0,0,0,0.05);
+    border-color: rgba(99,102,241,0.4);
+}
 .step-num {
     font-size: 0.875rem;
     font-weight: 800;
@@ -627,23 +673,47 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
+    align-items: stretch;
+}
+.audience-grid > .reveal {
+    display: flex;
 }
 .audience-card {
     position: relative;
     padding: 2.25rem 2rem 2rem;
     border-radius: 22px;
     overflow: hidden;
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(99,102,241,0.2);
     background: #fff;
-    box-shadow: var(--shadow-sm);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    box-shadow: 0 10px 30px rgba(99,102,241,0.10), 0 2px 4px rgba(0,0,0,0.04);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
 }
-.audience-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+.audience-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 50px rgba(99,102,241,0.22), 0 4px 8px rgba(0,0,0,0.06);
+    border-color: rgba(99,102,241,0.45);
+}
 .audience-card--doctor {
     background: linear-gradient(160deg, #ffffff 0%, #f3f0ff 100%);
 }
 .audience-card--patient {
     background: linear-gradient(160deg, #ffffff 0%, #ecfdf5 100%);
+    border-color: rgba(16,185,129,0.28);
+}
+.audience-card--patient:hover {
+    border-color: rgba(16,185,129,0.55);
+    box-shadow: 0 22px 50px rgba(16,185,129,0.18), 0 4px 8px rgba(0,0,0,0.06);
+}
+/* Push the CTA + sub line to the bottom so both cards line up regardless of body length */
+.audience-card .landing-btn {
+    margin-top: auto;
+    align-self: flex-start;
+}
+.audience-card ul + .landing-btn {
+    margin-top: auto;
 }
 .audience-tag {
     display: inline-block;
@@ -709,20 +779,24 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    align-items: stretch;
 }
+.security-badges > .reveal { display: flex; }
 .badge-tile {
     display: flex;
     gap: 0.875rem;
     padding: 1.1rem;
     border-radius: 14px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.18);
     backdrop-filter: blur(10px);
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    width: 100%;
+    align-items: flex-start;
 }
 .badge-tile:hover {
-    background: rgba(255,255,255,0.10);
-    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.32);
     transform: translateY(-2px);
 }
 .badge-tile-icon {
@@ -902,4 +976,99 @@
     .landing-hero-actions .landing-btn { flex: 1; justify-content: center; }
     .landing-trust-row { flex-wrap: wrap; gap: 1rem 1.5rem; }
     .landing-footer-cols { grid-template-columns: 1fr; }
+}
+
+/* ── Legal modal ── */
+.legal-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(15, 16, 36, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: legal-fade 0.18s ease;
+}
+@keyframes legal-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.legal-modal {
+    width: 100%;
+    max-width: 640px;
+    max-height: 86vh;
+    background: #fff;
+    border-radius: 22px;
+    box-shadow: 0 30px 80px rgba(15, 16, 36, 0.35);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: legal-slide 0.22s ease;
+}
+@keyframes legal-slide {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.legal-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(236,72,153,0.04));
+}
+.legal-modal-head h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+.legal-modal-close {
+    background: none;
+    border: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+.legal-modal-close:hover {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+.legal-modal-body {
+    overflow-y: auto;
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    font-size: 0.9375rem;
+}
+.legal-modal-body p {
+    margin: 0 0 1rem;
+}
+.legal-modal-body p:last-child {
+    margin-bottom: 0;
+}
+.legal-modal-foot {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+    .legal-modal-backdrop { padding: 0.75rem; }
+    .legal-modal { max-height: 92vh; border-radius: 16px; }
+    .legal-modal-head { padding: 1rem; }
+    .legal-modal-body { padding: 1rem; }
+    .legal-modal-foot { padding: 0.75rem 1rem; }
+    .landing-lang-toggle { display: none; }
 }
