@@ -369,4 +369,30 @@ export const patientPortalService = {
 
     submitProfileUpdateRequest: (data: { requested_fields: Record<string, string>; message?: string }) =>
         api.post<{ id: number; status: string }>('/patient/profile-update-requests/', data).then(r => r.data),
+
+    // ─── Workflow B — clinic code (B1) + access requests (B2) ──────────────────
+    issueClinicCode: () =>
+        api.post<{ token: string; expires_in: number }>('/patient/clinic-codes/').then(r => r.data),
+
+    listAccessRequests: () =>
+        api.get<{
+            results: Array<{
+                id: number;
+                doctor_name: string;
+                doctor_specialty: string | null;
+                status: 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
+                delivery_method: 'push' | 'email' | 'sms' | 'in_person';
+                reason: string;
+                created_at: string;
+                expires_at: string;
+                resolved_at: string | null;
+            }>;
+            count: number;
+        }>('/patient/access-requests/').then(r => r.data),
+
+    approveAccessRequest: (id: number) =>
+        api.post(`/patient/access-requests/${id}/approve/`).then(r => r.data),
+
+    rejectAccessRequest: (id: number) =>
+        api.post(`/patient/access-requests/${id}/reject/`).then(r => r.data),
 };

@@ -14,12 +14,22 @@ window.addEventListener('vite:preloadError', () => {
 });
 import ReactDOM from 'react-dom/client';
 
-// Sentry — error monitoring (only initialised when VITE_SENTRY_DSN is set)
-// Install with: npm install @sentry/react
-// CRITICAL: request.data is redacted to prevent patient data leaking to Sentry
+// Sentry — error monitoring (only initialised when VITE_SENTRY_DSN is set).
+// `@sentry/react` is an OPTIONAL dep — install it (`npm install @sentry/react`)
+// only when you intend to actually configure a DSN. The dynamic import below
+// uses `@vite-ignore` so Vite's dependency scanner does NOT try to resolve the
+// package at build / dev-server start time; the import only runs at runtime
+// after the DSN env var is set. Without this, missing the optional dep tanks
+// the entire app bundle (Vite refuses to pre-transform `main.tsx`).
+// CRITICAL: request.data is redacted to prevent patient data leaking to Sentry.
 if (import.meta.env.VITE_SENTRY_DSN) {
-    // @ts-expect-error — @sentry/react is an optional dep (install when DSN is configured)
-    import('@sentry/react').then((Sentry: { init: (opts: Record<string, unknown>) => void }) => {
+    // The string literal is held in a variable so Vite's static dependency
+    // scanner can't resolve the import target at build time; the package only
+    // needs to exist if a DSN is actually configured. `/* @vite-ignore */`
+    // alone is not enough in Vite 7 — the import-analysis plugin still tries
+    // to resolve literal arguments.
+    const sentryPkg = '@sentry/react';
+    import(/* @vite-ignore */ sentryPkg).then((Sentry: { init: (opts: Record<string, unknown>) => void }) => {
         Sentry.init({
             dsn: import.meta.env.VITE_SENTRY_DSN,
             environment: import.meta.env.VITE_ENV ?? 'production',
@@ -33,6 +43,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
                 return event;
             },
         });
+    }).catch(() => {
+        // Optional dep not installed — Sentry stays disabled. Silent by design.
     });
 }
 import { BrowserRouter as Router } from 'react-router-dom';

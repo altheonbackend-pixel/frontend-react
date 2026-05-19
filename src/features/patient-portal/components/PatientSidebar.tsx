@@ -32,6 +32,20 @@ const Icons = {
             <circle cx="12" cy="7" r="4"/>
         </svg>
     ),
+    qr: (
+        <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <path d="M14 14h3v3h-3z"/><path d="M18 18h3v3h-3z"/>
+        </svg>
+    ),
+    accessRequests: (
+        <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
+            <path d="M12 8v4l3 2"/>
+        </svg>
+    ),
     logout: (
         <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -42,10 +56,12 @@ const Icons = {
 };
 
 const NAV_LINKS = [
-    { to: '/patient/dashboard',    icon: Icons.dashboard,    labelKey: 'patient_portal.nav.dashboard' },
-    { to: '/patient/appointments', icon: Icons.appointments, labelKey: 'patient_portal.nav.appointments' },
-    { to: '/patient/health',       icon: Icons.health,       labelKey: 'patient_portal.nav.health' },
-    { to: '/patient/account',      icon: Icons.account,      labelKey: 'patient_portal.nav.account' },
+    { to: '/patient/dashboard',       icon: Icons.dashboard,      labelKey: 'patient_portal.nav.dashboard' },
+    { to: '/patient/appointments',    icon: Icons.appointments,   labelKey: 'patient_portal.nav.appointments' },
+    { to: '/patient/health',          icon: Icons.health,         labelKey: 'patient_portal.nav.health' },
+    { to: '/patient/clinic-code',     icon: Icons.qr,             labelKey: 'patient_portal.nav.clinic_code' },
+    { to: '/patient/access-requests', icon: Icons.accessRequests, labelKey: 'patient_portal.nav.access_requests' },
+    { to: '/patient/account',         icon: Icons.account,        labelKey: 'patient_portal.nav.account' },
 ];
 
 export function PatientSidebar({ isOpen, onClose }: PatientSidebarProps) {
