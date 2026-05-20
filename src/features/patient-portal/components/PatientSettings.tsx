@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
-import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
+import { TabSkeleton } from '../../../shared/components/SectionCard';
+import { Switch } from '../../../shared/components/Switch';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService, type PatientPortalSettings, type ProfileUpdateRequest } from '../services/patientPortalService';
 import { normalizePortalLanguage } from '../utils/i18n';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
+import '../../../shared/styles/settings-ui.css';
 
 const EDITABLE_FIELDS = [
     'phone_number',
@@ -150,8 +152,8 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     if (isLoading) {
         return (
             <>
-                {!asTab && <PageHeader title={t('patient_portal.settings.title')} subtitle="" />}
-                <SectionCard title={t('patient_portal.common.loading')}><TabSkeleton rows={4} /></SectionCard>
+                {!asTab && <PageHeader title={t('patient_portal.settings.title')} subtitle={t('patient_portal.settings.subtitle')} />}
+                <div className="settings-card"><div className="settings-card-body"><TabSkeleton rows={4} /></div></div>
             </>
         );
     }
@@ -159,7 +161,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     if (isError || !settings) {
         return (
             <>
-                {!asTab && <PageHeader title={t('patient_portal.settings.title')} subtitle="" />}
+                {!asTab && <PageHeader title={t('patient_portal.settings.title')} subtitle={t('patient_portal.settings.subtitle')} />}
                 <div className="error-message" style={{ margin: '1rem' }}>{t('patient_portal.settings.error.load')}</div>
             </>
         );
@@ -178,186 +180,215 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                 />
             )}
 
-            <div style={{ display: 'grid', gap: '1rem' }}>
-                <SectionCard title={t('patient_portal.settings.language_section')}>
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor="preferred_language">{t('patient_portal.settings.preferred_language')}</label>
-                            <select
-                                id="preferred_language"
-                                value={normalizePortalLanguage(settings.preferred_language)}
-                                disabled={isPending}
-                                onChange={e => save({ preferred_language: e.target.value })}
-                            >
-                                {LANGUAGE_OPTIONS.map(option => (
-                                    <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor="timezone">{t('patient_portal.settings.timezone')}</label>
-                            <select
-                                id="timezone"
-                                value={settings.timezone || 'UTC'}
-                                disabled={isPending}
-                                onChange={e => save({ timezone: e.target.value })}
-                            >
-                                {TIMEZONE_OPTIONS.map(option => (
-                                    <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
-                                ))}
-                            </select>
-                            <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                                {t('patient_portal.settings.timezone_hint')}
-                            </small>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                {/* ── Language & timezone ── */}
+                <div className="settings-card">
+                    <div className="settings-card-head">
+                        <h2 className="settings-card-title">{t('patient_portal.settings.language_section')}</h2>
+                    </div>
+                    <div className="settings-card-body">
+                        <div className="settings-grid-2">
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor="preferred_language">{t('patient_portal.settings.preferred_language')}</label>
+                                <select
+                                    id="preferred_language"
+                                    className="select-input"
+                                    value={normalizePortalLanguage(settings.preferred_language)}
+                                    disabled={isPending}
+                                    onChange={e => save({ preferred_language: e.target.value })}
+                                >
+                                    {LANGUAGE_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor="timezone">{t('patient_portal.settings.timezone')}</label>
+                                <select
+                                    id="timezone"
+                                    className="select-input"
+                                    value={settings.timezone || 'UTC'}
+                                    disabled={isPending}
+                                    onChange={e => save({ timezone: e.target.value })}
+                                >
+                                    {TIMEZONE_OPTIONS.map(option => (
+                                        <option key={option.value} value={option.value}>{t(option.labelKey)}</option>
+                                    ))}
+                                </select>
+                                <small style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                    {t('patient_portal.settings.timezone_hint')}
+                                </small>
+                            </div>
                         </div>
                     </div>
-                </SectionCard>
+                </div>
 
-                <SectionCard title={t('patient_portal.settings.change_password')}>
-                    <form onSubmit={handlePasswordSubmit} className="form" style={{ maxWidth: 440 }}>
+                {/* ── Change password ── */}
+                <form className="settings-card" onSubmit={handlePasswordSubmit}>
+                    <div className="settings-card-head">
+                        <h2 className="settings-card-title">{t('patient_portal.settings.change_password')}</h2>
+                    </div>
+                    <div className="settings-card-body">
                         {pwError && <div className="error-message" style={{ marginBottom: '0.75rem' }}>{pwError}</div>}
                         <div className="form-group">
                             <label htmlFor="current_password">{t('patient_portal.settings.current_password')}</label>
                             <input
                                 id="current_password"
                                 type="password"
+                                className="input"
                                 value={pwForm.current_password}
                                 autoComplete="current-password"
                                 onChange={e => setPwForm(f => ({ ...f, current_password: e.target.value }))}
                                 required
                             />
                         </div>
-                        <div className="form-group">
-                            <label htmlFor="new_password">{t('patient_portal.settings.new_password')}</label>
-                            <input
-                                id="new_password"
-                                type="password"
-                                value={pwForm.new_password}
-                                autoComplete="new-password"
-                                onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))}
-                                required
-                            />
+                        <div className="settings-grid-2">
+                            <div className="form-group">
+                                <label htmlFor="new_password">{t('patient_portal.settings.new_password')}</label>
+                                <input
+                                    id="new_password"
+                                    type="password"
+                                    className="input"
+                                    value={pwForm.new_password}
+                                    autoComplete="new-password"
+                                    onChange={e => setPwForm(f => ({ ...f, new_password: e.target.value }))}
+                                    required
+                                />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label htmlFor="confirm_password">{t('patient_portal.settings.confirm_new_password')}</label>
+                                <input
+                                    id="confirm_password"
+                                    type="password"
+                                    className="input"
+                                    value={pwForm.confirm_password}
+                                    autoComplete="new-password"
+                                    onChange={e => setPwForm(f => ({ ...f, confirm_password: e.target.value }))}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div className="form-group" style={{ marginBottom: 0 }}>
-                            <label htmlFor="confirm_password">{t('patient_portal.settings.confirm_new_password')}</label>
-                            <input
-                                id="confirm_password"
-                                type="password"
-                                value={pwForm.confirm_password}
-                                autoComplete="new-password"
-                                onChange={e => setPwForm(f => ({ ...f, confirm_password: e.target.value }))}
-                                required
-                            />
-                        </div>
-                        <button type="submit" className="btn btn-primary btn-sm" disabled={isChangingPw} style={{ marginTop: '1rem' }}>
+                    </div>
+                    <div className="settings-card-footer">
+                        <button type="submit" className="btn btn-primary btn-sm" disabled={isChangingPw}>
                             {isChangingPw ? t('patient_portal.common.saving') : t('patient_portal.settings.change_password_action')}
                         </button>
-                    </form>
-                </SectionCard>
+                    </div>
+                </form>
 
-                <SectionCard title={t('patient_portal.settings.notification_preferences')}>
-                    <div style={{ display: 'grid', gap: '0.875rem' }}>
+                {/* ── Notification preferences ── */}
+                <div className="settings-card">
+                    <div className="settings-card-head">
+                        <h2 className="settings-card-title">{t('patient_portal.settings.notification_preferences')}</h2>
+                    </div>
+                    <div className="settings-card-body">
                         {NOTIFICATION_PREFS.map(key => (
-                            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', padding: '0.95rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)' }}>
+                            <div key={key} className="settings-toggle-row">
                                 <div>
-                                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{t(`patient_portal.settings.notifications.${key}.title`)}</div>
-                                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t(`patient_portal.settings.notifications.${key}.subtitle`)}</div>
+                                    <div className="settings-toggle-text-title">{t(`patient_portal.settings.notifications.${key}.title`)}</div>
+                                    <div className="settings-toggle-text-sub">{t(`patient_portal.settings.notifications.${key}.subtitle`)}</div>
                                 </div>
-                                <button
-                                    type="button"
+                                <Switch
+                                    checked={Boolean(settings[key])}
                                     disabled={isPending}
-                                    className={`btn btn-sm ${settings[key] ? 'btn-primary' : 'btn-secondary'}`}
-                                    onClick={() => toggle(key)}
-                                >
-                                    {settings[key] ? t('patient_portal.common.on') : t('patient_portal.common.off')}
-                                </button>
+                                    onChange={() => toggle(key)}
+                                    label={t(`patient_portal.settings.notifications.${key}.title`)}
+                                />
                             </div>
                         ))}
                     </div>
-                </SectionCard>
+                </div>
 
-                <SectionCard title={t('patient_portal.settings.request_profile_update')}>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                        {t('patient_portal.settings.request_profile_update_intro')}
-                    </p>
-
-                    {updateRequests.length > 0 && (
-                        <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
-                            {updateRequests.slice(0, 3).map(r => {
-                                const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.pending;
-                                return (
-                                    <div key={r.id} style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                {formatDate(r.created_at)}
-                                            </span>
-                                            <span style={{ ...badge.style, padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', fontWeight: 600 }}>
-                                                {t(badge.labelKey)}
-                                            </span>
-                                        </div>
-                                        <div style={{ fontSize: '0.85rem' }}>
-                                            {Object.entries(r.requested_fields).map(([k, v]) => (
-                                                <span key={k} style={{ marginRight: '1rem' }}><strong>{t(`patient_portal.settings.editable_fields.${k}.label`, { defaultValue: k.replace(/_/g, ' ') })}:</strong> {v}</span>
-                                            ))}
-                                        </div>
-                                        {r.doctor_note && (
-                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                {t('patient_portal.settings.doctor_note', { note: r.doctor_note })}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {hasPendingRequest ? (
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                            {t('patient_portal.settings.pending_request_notice')}
+                {/* ── Request profile update ── */}
+                <div className="settings-card">
+                    <div className="settings-card-head">
+                        <h2 className="settings-card-title">{t('patient_portal.settings.request_profile_update')}</h2>
+                    </div>
+                    <div className="settings-card-body">
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: 0, marginBottom: '1rem' }}>
+                            {t('patient_portal.settings.request_profile_update_intro')}
                         </p>
-                    ) : !showUpdateForm ? (
-                        <button className="btn btn-secondary btn-sm" onClick={() => setShowUpdateForm(true)}>
-                            {t('patient_portal.settings.request_profile_update_action')}
-                        </button>
-                    ) : (
-                        <form onSubmit={handleUpdateSubmit} className="form" style={{ maxWidth: 480 }}>
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginBottom: '0.75rem' }}>
-                                {t('patient_portal.settings.fill_changed_fields')}
+
+                        {updateRequests.length > 0 && (
+                            <div style={{ marginBottom: '1rem', display: 'grid', gap: '0.5rem' }}>
+                                {updateRequests.slice(0, 3).map(r => {
+                                    const badge = STATUS_BADGE[r.status] ?? STATUS_BADGE.pending;
+                                    return (
+                                        <div key={r.id} style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                    {formatDate(r.created_at)}
+                                                </span>
+                                                <span style={{ ...badge.style, padding: '2px 8px', borderRadius: 'var(--radius-sm)', fontSize: '0.8rem', fontWeight: 600 }}>
+                                                    {t(badge.labelKey)}
+                                                </span>
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem' }}>
+                                                {Object.entries(r.requested_fields).map(([k, v]) => (
+                                                    <span key={k} style={{ marginRight: '1rem' }}><strong>{t(`patient_portal.settings.editable_fields.${k}.label`, { defaultValue: k.replace(/_/g, ' ') })}:</strong> {v}</span>
+                                                ))}
+                                            </div>
+                                            {r.doctor_note && (
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                    {t('patient_portal.settings.doctor_note', { note: r.doctor_note })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {hasPendingRequest ? (
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', margin: 0 }}>
+                                {t('patient_portal.settings.pending_request_notice')}
                             </p>
-                            {EDITABLE_FIELDS.map(key => (
-                                <div className="form-group" key={key}>
-                                    <label htmlFor={`update_${key}`}>{t(`patient_portal.settings.editable_fields.${key}.label`)}</label>
-                                    <input
-                                        id={`update_${key}`}
-                                        type="text"
-                                        placeholder={t(`patient_portal.settings.editable_fields.${key}.placeholder`)}
-                                        value={updateFields[key] ?? ''}
-                                        onChange={e => setUpdateFields(f => ({ ...f, [key]: e.target.value }))}
+                        ) : !showUpdateForm ? (
+                            <button className="btn btn-secondary btn-sm" onClick={() => setShowUpdateForm(true)}>
+                                {t('patient_portal.settings.request_profile_update_action')}
+                            </button>
+                        ) : (
+                            <form onSubmit={handleUpdateSubmit} className="form" style={{ maxWidth: 480 }}>
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: 0, marginBottom: '0.75rem' }}>
+                                    {t('patient_portal.settings.fill_changed_fields')}
+                                </p>
+                                {EDITABLE_FIELDS.map(key => (
+                                    <div className="form-group" key={key}>
+                                        <label htmlFor={`update_${key}`}>{t(`patient_portal.settings.editable_fields.${key}.label`)}</label>
+                                        <input
+                                            id={`update_${key}`}
+                                            type="text"
+                                            className="input"
+                                            placeholder={t(`patient_portal.settings.editable_fields.${key}.placeholder`)}
+                                            value={updateFields[key] ?? ''}
+                                            onChange={e => setUpdateFields(f => ({ ...f, [key]: e.target.value }))}
+                                        />
+                                    </div>
+                                ))}
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label htmlFor="update_message">{t('patient_portal.settings.message_to_doctor')} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span></label>
+                                    <textarea
+                                        id="update_message"
+                                        className="textarea"
+                                        rows={3}
+                                        placeholder={t('patient_portal.settings.message_placeholder')}
+                                        value={updateMessage}
+                                        onChange={e => setUpdateMessage(e.target.value)}
+                                        style={{ resize: 'vertical' }}
                                     />
                                 </div>
-                            ))}
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label htmlFor="update_message">{t('patient_portal.settings.message_to_doctor')} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{t('patient_portal.common.optional_parenthetical')}</span></label>
-                                <textarea
-                                    id="update_message"
-                                    rows={3}
-                                    placeholder={t('patient_portal.settings.message_placeholder')}
-                                    value={updateMessage}
-                                    onChange={e => setUpdateMessage(e.target.value)}
-                                    style={{ resize: 'vertical' }}
-                                />
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
-                                    {isSubmitting ? t('patient_portal.common.submitting') : t('patient_portal.settings.submit_request')}
-                                </button>
-                                <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowUpdateForm(false); setUpdateFields({}); setUpdateMessage(''); }}>
-                                    {t('common.cancel')}
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </SectionCard>
+                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                                    <button type="submit" className="btn btn-primary btn-sm" disabled={isSubmitting}>
+                                        {isSubmitting ? t('patient_portal.common.submitting') : t('patient_portal.settings.submit_request')}
+                                    </button>
+                                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowUpdateForm(false); setUpdateFields({}); setUpdateMessage(''); }}>
+                                        {t('common.cancel')}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </div>
+                </div>
             </div>
         </>
     );

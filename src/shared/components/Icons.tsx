@@ -11,7 +11,7 @@
 
 import { memo } from 'react';
 
-type IconName =
+export type IconName =
     | 'dashboard' | 'patients' | 'appointments' | 'referrals'
     | 'notebook' | 'stats' | 'audit' | 'profile' | 'logout'
     | 'consultations' | 'medications' | 'labs' | 'procedures'

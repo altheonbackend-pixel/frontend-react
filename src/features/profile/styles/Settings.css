@@ -1,0 +1,322 @@
+/* Doctor Settings page — dedicated /settings route.
+   Desktop: vertical section rail (left) + content (right).
+   Mobile (<= 860px): rail collapses to a horizontal scrolling tab strip.
+
+   Shared card / toggle / switch primitives live in
+   shared/styles/settings-ui.css (imported by DoctorSettings.tsx). This file
+   holds only the layout, section nav, schedule and 2FA visuals. */
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* ── Section navigation rail ─────────────────────────────────────── */
+.settings-nav {
+    position: sticky;
+    top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    background: var(--bg-surface, var(--bg-card));
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 0.5rem;
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.settings-nav-item:hover {
+    background: var(--bg-subtle);
+    color: var(--text-primary);
+}
+
+.settings-nav-item.active {
+    background: var(--accent-light, var(--bg-subtle));
+    color: var(--accent, var(--text-primary));
+}
+
+.settings-nav-item .settings-nav-icon {
+    flex-shrink: 0;
+    color: currentColor;
+}
+
+/* ── Content column ──────────────────────────────────────────────── */
+.settings-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+/* ── Visual weekly schedule ──────────────────────────────────────── */
+.schedule-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.schedule-day-card {
+    display: grid;
+    grid-template-columns: 150px 1fr auto;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-base);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.schedule-day-card.is-off {
+    background: var(--bg-subtle);
+    border-style: dashed;
+}
+
+.schedule-day-card.is-dirty {
+    border-color: var(--accent, #2563eb);
+}
+
+.schedule-day-name {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.schedule-day-hours {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.schedule-time-input {
+    width: 7.5rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--border-default, var(--border-subtle));
+    border-radius: var(--radius-sm);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.schedule-time-input:disabled {
+    opacity: 0.5;
+}
+
+.schedule-sep {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.schedule-slot-select {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--border-default, var(--border-subtle));
+    border-radius: var(--radius-sm);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+}
+
+.schedule-off-label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Compact weekly summary chips shown at the top of the schedule section */
+.schedule-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.schedule-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 4.25rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-base);
+    font-size: 0.72rem;
+}
+
+.schedule-chip.on {
+    border-color: var(--accent, #2563eb);
+    background: var(--accent-light, var(--bg-subtle));
+    color: var(--accent, #2563eb);
+}
+
+.schedule-chip-day {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.schedule-chip-time {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.schedule-chip.on .schedule-chip-time {
+    color: var(--accent, #2563eb);
+}
+
+/* ── Days off list ──────────────────────────────────────────────── */
+.dayoff-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-sm);
+}
+
+.dayoff-date {
+    font-weight: 700;
+    font-size: 0.85rem;
+    min-width: 6rem;
+    color: var(--text-primary);
+}
+
+.dayoff-reason {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* Live "current time in timezone" pill */
+.tz-now-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--radius-pill, 999px);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.tz-now-pill strong {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 2FA / backup codes ─────────────────────────────────────────── */
+.tfa-status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.tfa-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.tfa-badge.on {
+    background: var(--color-success-light, #dcfce7);
+    color: var(--color-success-dark, #166534);
+}
+
+.tfa-badge.off {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+}
+
+.tfa-backup-codes {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--color-warning-light, #fffbeb);
+    border: 1px solid var(--color-warning-border, #fde68a);
+    border-radius: var(--radius-md);
+}
+
+.tfa-backup-codes ul {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.95rem;
+    columns: 2;
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+/* ── Responsive: collapse rail to a top tab strip ───────────────── */
+@media (max-width: 860px) {
+    .settings-layout {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .settings-nav {
+        position: static;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.25rem;
+        padding: 0.35rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .settings-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .settings-nav-item {
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.72rem;
+        flex: 0 0 auto;
+    }
+}
+
+@media (max-width: 560px) {
+    /* .settings-grid-2 / .settings-card-footer collapse rules live in
+       shared/styles/settings-ui.css */
+    .schedule-day-card {
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+    }
+
+    .schedule-day-card .schedule-save-btn {
+        justify-self: stretch;
+        width: 100%;
+    }
+}

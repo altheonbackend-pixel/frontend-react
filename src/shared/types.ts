@@ -20,10 +20,23 @@ export interface DoctorProfile {
     license_number: string | null;
     phone_number: string | null;
     address: string | null;
+    country?: string | null;
+    city?: string | null;
     email_verified?: boolean;
     next_available: string | null;
     timezone?: string | null;
     locale?: string | null;
+    accepting_referrals?: boolean;
+    sms_alerts_enabled?: boolean;
+    push_alerts_enabled?: boolean;
+    is_2fa_enrolled?: boolean;
+    out_of_office_until?: string | null;
+    coverage_doctor?: number | null;
+    coverage_doctor_name?: string | null;
+    consultation_fee?: string | number | null;
+    currency?: string | null;
+    tax_id?: string | null;
+    billing_email?: string | null;
 }
 
 export interface SpecialtyChoice {

@@ -171,12 +171,12 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
                 </div>
 
                 <NavLink
-                    to="/profile"
+                    to="/settings"
                     className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}
                     onClick={onClose}
                 >
-                    <Icon name="profile" className="sidebar-nav-icon" size={18} />
-                    {t('nav.profile', 'Profile')}
+                    <Icon name="settings" className="sidebar-nav-icon" size={18} />
+                    {t('nav.settings', 'Settings')}
                 </NavLink>
 
                 <button className="sidebar-nav-item sidebar-logout" onClick={handleLogout}>

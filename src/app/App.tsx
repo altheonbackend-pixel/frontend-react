@@ -44,8 +44,7 @@ const AddPatient        = lazy(() => import('../features/patients/components/Add
 const EditPatient       = lazy(() => import('../features/patients/components/EditPatientPage'));
 const Appointments      = lazy(() => import('../features/appointments/components/Appointments'));
 const DeletedAppts      = lazy(() => import('../features/appointments/components/DeletedAppointments'));
-const Profile           = lazy(() => import('../features/profile/components/Profile'));
-const EditProfile       = lazy(() => import('../features/profile/components/EditProfile'));
+const DoctorSettings    = lazy(() => import('../features/profile/components/DoctorSettings'));
 const ReferralsList     = lazy(() => import('../features/referrals/components/ReferralsList'));
 const Statistics        = lazy(() => import('../features/statistics/components/Statistics'));
 const PrivateNotebook   = lazy(() => import('../features/notebook/components/PrivateNotebook'));
@@ -53,7 +52,6 @@ const Inbox             = lazy(() => import('../features/inbox/Inbox'));
 const OverdueReports    = lazy(() => import('../features/inbox/OverdueReports'));
 // Messages feature intentionally disabled — backend kept for future re-enable.
 const SmartPhraseEditor = lazy(() => import('../features/profile/components/SmartPhraseEditor'));
-const SecuritySettings  = lazy(() => import('../features/profile/components/SecuritySettings'));
 const TelehealthRoom    = lazy(() => import('../features/appointments/components/TelehealthRoom'));
 const PatientDashboard     = lazy(() => import('../features/patient-portal/components/PatientDashboard'));
 const PatientAppointments  = lazy(() => import('../features/patient-portal/components/PatientAppointments'));
@@ -255,14 +253,16 @@ function App() {
                             <Route path="/deleted-appointments" element={<ErrorBoundary resetKey={location.pathname}><DeletedAppts /></ErrorBoundary>} />
                             <Route path="/referrals"           element={<ErrorBoundary resetKey={location.pathname}><ReferralsList /></ErrorBoundary>} />
                             <Route path="/notebook"            element={<ErrorBoundary resetKey={location.pathname}><PrivateNotebook /></ErrorBoundary>} />
-                            <Route path="/profile"             element={<ErrorBoundary resetKey={location.pathname}><Profile /></ErrorBoundary>} />
-                            <Route path="/edit-profile"        element={<ErrorBoundary resetKey={location.pathname}><EditProfile /></ErrorBoundary>} />
+                            <Route path="/settings"            element={<ErrorBoundary resetKey={location.pathname}><DoctorSettings /></ErrorBoundary>} />
+                            {/* Legacy profile routes now consolidated into /settings */}
+                            <Route path="/profile"             element={<Navigate to="/settings" replace />} />
+                            <Route path="/edit-profile"        element={<Navigate to="/settings" replace />} />
                             <Route path="/my-stats"            element={<ErrorBoundary resetKey={location.pathname}><Statistics /></ErrorBoundary>} />
                             {/* Phase 5 new feature routes */}
                             <Route path="/inbox"               element={<ErrorBoundary resetKey={location.pathname}><Inbox /></ErrorBoundary>} />
                             <Route path="/reports/overdue"     element={<ErrorBoundary resetKey={location.pathname}><OverdueReports /></ErrorBoundary>} />
                             <Route path="/profile/smart-phrases" element={<ErrorBoundary resetKey={location.pathname}><SmartPhraseEditor /></ErrorBoundary>} />
-                            <Route path="/profile/security"    element={<ErrorBoundary resetKey={location.pathname}><SecuritySettings /></ErrorBoundary>} />
+                            <Route path="/profile/security"    element={<Navigate to="/settings?section=security" replace />} />
                             <Route path="/telehealth/:appointmentId" element={<ErrorBoundary resetKey={location.pathname}><TelehealthRoom /></ErrorBoundary>} />
                         </Route>
                     </Route>

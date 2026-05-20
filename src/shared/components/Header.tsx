@@ -87,7 +87,7 @@ const Header = () => {
                             <NavLink to="/appointments" className="nav-item">{t('nav.appointments')}</NavLink>
                             <NavLink to="/referrals" className="nav-item">{t('nav.referrals')}</NavLink>
                             <NavLink to="/notebook" className="nav-item">{t('nav.notebook')}</NavLink>
-                            <NavLink to="/profile" className="nav-item nav-profile-mobile">{t('nav.profile')}</NavLink>
+                            <NavLink to="/settings" className="nav-item nav-profile-mobile">{t('nav.settings')}</NavLink>
                             <NavLink to="/my-stats" className="nav-item">{t('nav.stats')}</NavLink>
                         </>
                     )}
@@ -131,7 +131,7 @@ const Header = () => {
                     {isAuthenticated ? (
                         <>
                             <NotificationBell />
-                            <NavLink to="/profile" className="nav-item nav-profile-desktop">{t('nav.profile')}</NavLink>
+                            <NavLink to="/settings" className="nav-item nav-profile-desktop">{t('nav.settings')}</NavLink>
                             <div className="user-info-container">
                                 <span className="user-name">Dr. {user?.full_name}</span>
                                 {(profile?.specialty_display || profile?.specialty) && (

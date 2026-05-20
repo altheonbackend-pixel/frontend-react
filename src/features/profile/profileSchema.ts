@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+// Account section — personal & professional details.
 export const profileSchema = z.object({
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
@@ -7,10 +8,9 @@ export const profileSchema = z.object({
   specialty: z.string(),
   license_number: z.string(),
   phone_number: z.union([z.string().min(7, 'Enter a valid phone number'), z.literal('')]),
+  country: z.string().optional(),
+  city: z.string().optional(),
   address: z.union([z.string().min(5, 'Address must be at least 5 characters'), z.literal('')]),
-  next_available: z.string().optional(),
-  timezone: z.string().optional(),
-  accepting_referrals: z.boolean().optional(),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
