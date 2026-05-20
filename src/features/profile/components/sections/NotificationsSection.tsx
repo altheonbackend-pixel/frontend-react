@@ -7,7 +7,14 @@ import { Switch } from '../../../../shared/components/Switch';
 
 type PrefKey = 'sms_alerts_enabled' | 'push_alerts_enabled';
 
-const PREFS: PrefKey[] = ['push_alerts_enabled', 'sms_alerts_enabled'];
+// SMS settings are hidden from the UI for now — the SMS feature will be
+// introduced later. Flip to true to re-show the SMS toggle + test button.
+// The backend SMS subsystem stays fully wired regardless.
+const SMS_ENABLED: boolean = false;
+
+const PREFS: PrefKey[] = SMS_ENABLED
+    ? ['push_alerts_enabled', 'sms_alerts_enabled']
+    : ['push_alerts_enabled'];
 
 interface TestSmsResult {
     ok: boolean;
@@ -80,23 +87,25 @@ export default function NotificationsSection() {
                     {t('settings.notifications.phi_note')}
                 </p>
 
-                {/* Verify SMS delivery end-to-end */}
-                <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
-                    <div className="settings-toggle-text-title">{t('settings.notifications.test_sms_title')}</div>
-                    <div className="settings-toggle-text-sub" style={{ marginBottom: '0.75rem' }}>
-                        {hasPhone
-                            ? t('settings.notifications.test_sms_hint', { phone: profile?.phone_number })
-                            : t('settings.notifications.test_sms_no_phone')}
+                {/* Verify SMS delivery end-to-end — hidden until the SMS feature launches */}
+                {SMS_ENABLED && (
+                    <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
+                        <div className="settings-toggle-text-title">{t('settings.notifications.test_sms_title')}</div>
+                        <div className="settings-toggle-text-sub" style={{ marginBottom: '0.75rem' }}>
+                            {hasPhone
+                                ? t('settings.notifications.test_sms_hint', { phone: profile?.phone_number })
+                                : t('settings.notifications.test_sms_no_phone')}
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={!hasPhone || testingSms}
+                            onClick={sendTestSms}
+                        >
+                            {testingSms ? t('settings.notifications.test_sms_sending') : t('settings.notifications.test_sms_button')}
+                        </button>
                     </div>
-                    <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={!hasPhone || testingSms}
-                        onClick={sendTestSms}
-                    >
-                        {testingSms ? t('settings.notifications.test_sms_sending') : t('settings.notifications.test_sms_button')}
-                    </button>
-                </div>
+                )}
             </div>
         </div>
     );
