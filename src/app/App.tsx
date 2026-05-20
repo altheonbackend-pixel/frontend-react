@@ -14,6 +14,7 @@ import { useAuth } from '../features/auth/hooks/useAuth';
 import LandingPage from '../features/auth/components/LandingPage';
 import Landing from '../features/auth/components/Landing';
 import Register from '../features/auth/components/Register';
+import LegalPage from '../features/auth/components/LegalPage';
 import VerifyEmail from '../features/auth/components/VerifyEmail';
 import CompleteProfile from '../features/auth/components/CompleteProfile';
 import PendingApproval from '../features/auth/components/PendingApproval';
@@ -212,6 +213,10 @@ function App() {
                         <Route path="/patient/complete-profile"  element={<PatientCompleteProfile />} />
                         <Route path="/patient/forgot-password"   element={<PatientForgotPassword />} />
                         <Route path="/patient/reset-password"    element={<PatientResetPassword />} />
+                        {/* Public legal pages */}
+                        <Route path="/terms"   element={<LegalPage doc="terms" />} />
+                        <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+                        <Route path="/cookies" element={<LegalPage doc="cookies" />} />
                         <Route path="/login" element={<PatientLoginPage />} />
                         <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
                         <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
@@ -235,6 +240,10 @@ function App() {
                     <Route path="/pending-approval" element={<PendingApproval />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password"  element={<ResetPassword />} />
+                    {/* Public legal pages — opened from registration consent links */}
+                    <Route path="/terms"   element={<LegalPage doc="terms" />} />
+                    <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+                    <Route path="/cookies" element={<LegalPage doc="cookies" />} />
                     {/* Patient-specific public routes */}
                     <Route path="/patient/login"             element={<PatientLoginPage />} />
                     <Route path="/patient/register"          element={<PatientRegister />} />

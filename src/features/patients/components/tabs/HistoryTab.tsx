@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { type PatientWithHistory } from '../../../../shared/types';
 import { useFormatDateTime } from '../../../../shared/hooks/useUserTimezone';
 
@@ -75,6 +76,7 @@ const HistoryTab = ({
     setConfirmDeleteConditionId,
     setConfirmDeleteAllergyId,
 }: HistoryTabProps) => {
+    const { t } = useTranslation();
     const { formatDate } = useFormatDateTime();
     const activeAllergies = patient.allergy_records?.filter(a => a.is_active) || [];
 
@@ -83,54 +85,54 @@ const HistoryTab = ({
             {/* ── Conditions section ── */}
             <div className="tab-section">
                 <div className="tab-panel-header">
-                    <h3>Conditions <span className="section-count">({patient.conditions?.length || 0})</span></h3>
+                    <h3>{t('patient_record.conditions.title')} <span className="section-count">({patient.conditions?.length || 0})</span></h3>
                     <button
                         className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
                         disabled={!canWrite}
-                        title={!canWrite ? 'Patient record is read-only' : undefined}
+                        title={!canWrite ? t('patient_record.read_only') : undefined}
                         onClick={() => { if (canWrite) setShowConditionForm(!showConditionForm); }}
-                    >+ Add Condition</button>
+                    >{t('patient_record.conditions.add')}</button>
                 </div>
                 {showConditionForm && (
                     <form onSubmit={handleConditionSubmit} className="inline-form">
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Condition Name *</label>
-                                <input required value={conditionForm.name} onChange={e => setConditionForm((p: any) => ({ ...p, name: e.target.value }))} placeholder="e.g. Type 2 Diabetes" />
+                                <label>{t('patient_record.conditions.name')} *</label>
+                                <input required value={conditionForm.name} onChange={e => setConditionForm((p: any) => ({ ...p, name: e.target.value }))} placeholder={t('patient_record.conditions.name_placeholder')} />
                             </div>
                             <div className="form-group">
-                                <label>ICD Code</label>
-                                <input value={conditionForm.icd_code} onChange={e => setConditionForm((p: any) => ({ ...p, icd_code: e.target.value }))} placeholder="e.g. E11" />
+                                <label>{t('patient_record.conditions.icd')}</label>
+                                <input value={conditionForm.icd_code} onChange={e => setConditionForm((p: any) => ({ ...p, icd_code: e.target.value }))} placeholder={t('patient_record.conditions.icd_placeholder')} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Status</label>
+                                <label>{t('patient_record.conditions.status')}</label>
                                 <select value={conditionForm.status} onChange={e => setConditionForm((p: any) => ({ ...p, status: e.target.value }))}>
-                                    <option value="active">Active</option>
-                                    <option value="chronic">Chronic</option>
-                                    <option value="in_remission">In Remission</option>
-                                    <option value="resolved">Resolved</option>
+                                    <option value="active">{t('patient_record.conditions.status_active')}</option>
+                                    <option value="chronic">{t('patient_record.conditions.status_chronic')}</option>
+                                    <option value="in_remission">{t('patient_record.conditions.status_in_remission')}</option>
+                                    <option value="resolved">{t('patient_record.conditions.status_resolved')}</option>
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label>Onset Date</label>
+                                <label>{t('patient_record.conditions.onset_date')}</label>
                                 <input type="date" value={conditionForm.onset_date} onChange={e => setConditionForm((p: any) => ({ ...p, onset_date: e.target.value }))} />
                             </div>
                         </div>
                         <div className="form-group">
-                            <label>Notes</label>
+                            <label>{t('patient_record.conditions.notes')}</label>
                             <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm((p: any) => ({ ...p, notes: e.target.value }))} />
                         </div>
                         <div className="form-group form-checkbox">
                             <label>
                                 <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm((p: any) => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                {' '}Visible to patient on portal
+                                {' '}{t('patient_record.visible_on_portal')}
                             </label>
                         </div>
                         <div className="form-actions">
-                            <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Condition'}</button>
-                            <button type="button" onClick={() => setShowConditionForm(false)} className="cancel-button">Cancel</button>
+                            <button type="submit" disabled={formLoading}>{formLoading ? t('common.saving') : t('patient_record.conditions.save')}</button>
+                            <button type="button" onClick={() => setShowConditionForm(false)} className="cancel-button">{t('common.cancel')}</button>
                         </div>
                     </form>
                 )}
@@ -142,42 +144,42 @@ const HistoryTab = ({
                                     <form onSubmit={handleConditionSubmit} className="inline-form">
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Name *</label>
+                                                <label>{t('patient_record.conditions.name_short')} *</label>
                                                 <input required value={conditionForm.name} onChange={e => setConditionForm((p: any) => ({ ...p, name: e.target.value }))} />
                                             </div>
                                             <div className="form-group">
-                                                <label>ICD Code</label>
+                                                <label>{t('patient_record.conditions.icd')}</label>
                                                 <input value={conditionForm.icd_code} onChange={e => setConditionForm((p: any) => ({ ...p, icd_code: e.target.value }))} />
                                             </div>
                                         </div>
                                         <div className="form-row">
                                             <div className="form-group">
-                                                <label>Status</label>
+                                                <label>{t('patient_record.conditions.status')}</label>
                                                 <select value={conditionForm.status} onChange={e => setConditionForm((p: any) => ({ ...p, status: e.target.value }))}>
-                                                    <option value="active">Active</option>
-                                                    <option value="chronic">Chronic</option>
-                                                    <option value="resolved">Resolved</option>
-                                                    <option value="in_remission">In Remission</option>
+                                                    <option value="active">{t('patient_record.conditions.status_active')}</option>
+                                                    <option value="chronic">{t('patient_record.conditions.status_chronic')}</option>
+                                                    <option value="resolved">{t('patient_record.conditions.status_resolved')}</option>
+                                                    <option value="in_remission">{t('patient_record.conditions.status_in_remission')}</option>
                                                 </select>
                                             </div>
                                             <div className="form-group">
-                                                <label>Onset Date</label>
+                                                <label>{t('patient_record.conditions.onset_date')}</label>
                                                 <input type="date" value={conditionForm.onset_date} onChange={e => setConditionForm((p: any) => ({ ...p, onset_date: e.target.value }))} />
                                             </div>
                                         </div>
                                         <div className="form-group">
-                                            <label>Notes</label>
+                                            <label>{t('patient_record.conditions.notes')}</label>
                                             <textarea rows={2} value={conditionForm.notes} onChange={e => setConditionForm((p: any) => ({ ...p, notes: e.target.value }))} />
                                         </div>
                                         <div className="form-group form-checkbox">
                                             <label>
                                                 <input type="checkbox" checked={conditionForm.visible_to_patient} onChange={e => setConditionForm((p: any) => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                                {' '}Visible to patient on portal
+                                                {' '}{t('patient_record.visible_on_portal')}
                                             </label>
                                         </div>
                                         <div className="form-actions">
-                                            <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Update'}</button>
-                                            <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false }); }} className="cancel-button">Cancel</button>
+                                            <button type="submit" disabled={formLoading}>{formLoading ? t('common.saving') : t('patient_record.conditions.update')}</button>
+                                            <button type="button" onClick={() => { setEditingConditionId(null); setConditionForm({ name: '', icd_code: '', status: 'active', onset_date: '', notes: '', visible_to_patient: false }); }} className="cancel-button">{t('common.cancel')}</button>
                                         </div>
                                     </form>
                                 ) : (
@@ -191,43 +193,43 @@ const HistoryTab = ({
                                                 {c.status_display || c.status}
                                             </span>
                                         </div>
-                                        {c.onset_date && <div className="condition-meta">Since: {formatDate(c.onset_date)}</div>}
+                                        {c.onset_date && <div className="condition-meta">{t('patient_record.conditions.since', { date: formatDate(c.onset_date) })}</div>}
                                         {c.notes && <p className="condition-notes">{c.notes}</p>}
                                         <div className="entry-actions">
-                                            <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '', visible_to_patient: c.visible_to_patient ?? false }); }} className="action-button">Edit</button>
+                                            <button onClick={() => { setEditingConditionId(c.id); setConditionForm({ name: c.name, icd_code: c.icd_code || '', status: c.status, onset_date: c.onset_date || '', notes: c.notes || '', visible_to_patient: c.visible_to_patient ?? false }); }} className="action-button">{t('common.edit')}</button>
                                             <button
                                                 onClick={() => handleToggleVisibleToPatient('conditions', c.id, c.visible_to_patient ?? false)}
                                                 className="action-button"
                                                 style={{ color: c.visible_to_patient ? 'var(--success)' : 'var(--accent)' }}
                                             >
-                                                {c.visible_to_patient ? '✓ Patient can see' : 'Show to patient'}
+                                                {c.visible_to_patient ? `✓ ${t('patient_record.medications.patient_can_see')}` : t('patient_record.medications.show_to_patient')}
                                             </button>
-                                            <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">Delete</button>
+                                            <button onClick={() => setConfirmDeleteConditionId(c.id)} className="delete-button action-button">{t('common.delete')}</button>
                                         </div>
                                     </>
                                 )}
                             </div>
                         ))}
                     </div>
-                ) : <p className="muted">No conditions recorded.</p>}
+                ) : <p className="muted">{t('patient_record.conditions.none')}</p>}
             </div>
 
             {/* ── Allergies section ── */}
             <div className="pt-section tab-section tab-section--divider">
                 <div className="tab-panel-header">
-                    <h3>Allergies <span className="section-count">({activeAllergies.length} active)</span></h3>
+                    <h3>{t('patient_record.allergies.title')} <span className="section-count">({t('patient_record.allergies.count_active', { count: activeAllergies.length })})</span></h3>
                     <button
                         className={`btn-add-primary${!canWrite ? ' strip-btn--disabled' : ''}`}
                         disabled={!canWrite}
-                        title={!canWrite ? 'Patient record is read-only' : undefined}
+                        title={!canWrite ? t('patient_record.read_only') : undefined}
                         onClick={() => { if (canWrite) setShowAllergyForm(!showAllergyForm); }}
-                    >+ Add Allergy</button>
+                    >{t('patient_record.allergies.add')}</button>
                 </div>
                 {showAllergyForm && (
                     <form onSubmit={handleAllergySubmit} className="inline-form">
                         <div className="form-row">
                             <div className="form-group" style={{ position: 'relative' }}>
-                                <label>Allergen *</label>
+                                <label>{t('patient_record.allergies.allergen')} *</label>
                                 <input
                                     required
                                     value={allergyForm.allergen}
@@ -246,7 +248,7 @@ const HistoryTab = ({
                                     }}
                                     onBlur={() => setTimeout(() => setShowAllergenSuggestions(false), 150)}
                                     autoComplete="off"
-                                    placeholder="e.g. Penicillin"
+                                    placeholder={t('patient_record.allergies.allergen_placeholder')}
                                 />
                                 {showAllergenSuggestions && allergenSuggestions.length > 0 && (
                                     <ul className="allergen-suggestions-dropdown">
@@ -265,37 +267,37 @@ const HistoryTab = ({
                                 )}
                             </div>
                             <div className="form-group">
-                                <label>Type</label>
+                                <label>{t('patient_record.allergies.type')}</label>
                                 <select value={allergyForm.reaction_type} onChange={e => setAllergyForm((p: any) => ({ ...p, reaction_type: e.target.value }))}>
-                                    <option value="drug">Drug</option>
-                                    <option value="food">Food</option>
-                                    <option value="environmental">Environmental</option>
-                                    <option value="other">Other</option>
+                                    <option value="drug">{t('patient_record.allergies.type_drug')}</option>
+                                    <option value="food">{t('patient_record.allergies.type_food')}</option>
+                                    <option value="environmental">{t('patient_record.allergies.type_environmental')}</option>
+                                    <option value="other">{t('patient_record.allergies.type_other')}</option>
                                 </select>
                             </div>
                         </div>
                         <div className="form-group">
-                            <label>Severity</label>
+                            <label>{t('patient_record.allergies.severity')}</label>
                             <select value={allergyForm.severity} onChange={e => setAllergyForm((p: any) => ({ ...p, severity: e.target.value }))}>
-                                <option value="mild">Mild</option>
-                                <option value="moderate">Moderate</option>
-                                <option value="severe">Severe</option>
-                                <option value="life_threatening">Life Threatening</option>
+                                <option value="mild">{t('patient_record.allergies.severity_mild')}</option>
+                                <option value="moderate">{t('patient_record.allergies.severity_moderate')}</option>
+                                <option value="severe">{t('patient_record.allergies.severity_severe')}</option>
+                                <option value="life_threatening">{t('patient_record.allergies.severity_life_threatening')}</option>
                             </select>
                         </div>
                         <div className="form-group">
-                            <label>Reaction Description</label>
+                            <label>{t('patient_record.allergies.reaction_description')}</label>
                             <textarea rows={2} value={allergyForm.reaction_description} onChange={e => setAllergyForm((p: any) => ({ ...p, reaction_description: e.target.value }))} />
                         </div>
                         <div className="form-group form-checkbox">
                             <label>
                                 <input type="checkbox" checked={allergyForm.visible_to_patient} onChange={e => setAllergyForm((p: any) => ({ ...p, visible_to_patient: e.target.checked }))} />
-                                {' '}Visible to patient on portal
+                                {' '}{t('patient_record.visible_on_portal')}
                             </label>
                         </div>
                         <div className="form-actions">
-                            <button type="submit" disabled={formLoading}>{formLoading ? 'Saving...' : 'Save Allergy'}</button>
-                            <button type="button" onClick={() => setShowAllergyForm(false)} className="cancel-button">Cancel</button>
+                            <button type="submit" disabled={formLoading}>{formLoading ? t('common.saving') : t('patient_record.allergies.save')}</button>
+                            <button type="button" onClick={() => setShowAllergyForm(false)} className="cancel-button">{t('common.cancel')}</button>
                         </div>
                     </form>
                 )}
@@ -313,24 +315,24 @@ const HistoryTab = ({
                                     </span>
                                 </div>
                                 {a.reaction_description && <p className="allergy-desc">{a.reaction_description}</p>}
-                                {!a.is_active && <span className="inactive-label">Inactive</span>}
+                                {!a.is_active && <span className="inactive-label">{t('patient_record.allergies.inactive')}</span>}
                                 <div className="entry-actions">
                                     <button onClick={() => handleToggleAllergy(a.id, a.is_active)} className="action-button">
-                                        {a.is_active ? 'Deactivate' : 'Activate'}
+                                        {a.is_active ? t('patient_record.allergies.deactivate') : t('patient_record.allergies.activate')}
                                     </button>
                                     <button
                                         onClick={() => handleToggleVisibleToPatient('allergies', a.id, a.visible_to_patient ?? true)}
                                         className="action-button"
                                         style={{ color: a.visible_to_patient !== false ? 'var(--success)' : 'var(--accent)' }}
                                     >
-                                        {a.visible_to_patient !== false ? '✓ Patient can see' : 'Show to patient'}
+                                        {a.visible_to_patient !== false ? `✓ ${t('patient_record.medications.patient_can_see')}` : t('patient_record.medications.show_to_patient')}
                                     </button>
-                                    <button onClick={() => setConfirmDeleteAllergyId(a.id)} className="delete-button action-button">Delete</button>
+                                    <button onClick={() => setConfirmDeleteAllergyId(a.id)} className="delete-button action-button">{t('common.delete')}</button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                ) : <p className="muted">No allergies recorded.</p>}
+                ) : <p className="muted">{t('patient_record.allergies.none')}</p>}
             </div>
         </div>
     );

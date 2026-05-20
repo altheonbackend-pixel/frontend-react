@@ -27,7 +27,8 @@ export default function AvailabilitySection() {
 
     const { data: doctors = [] } = useQuery<DoctorOption[]>({
         queryKey: ['doctors', 'coverage'],
-        queryFn: () => api.get('/doctors/').then(r => r.data),
+        // /doctors/ is paginated → unwrap `results`; fall back to a bare array.
+        queryFn: () => api.get('/doctors/').then(r => r.data?.results ?? r.data),
         staleTime: 5 * 60_000,
     });
 
@@ -56,7 +57,7 @@ export default function AvailabilitySection() {
         }
     };
 
-    const coverageOptions = doctors.filter(d => d.id !== profile?.id);
+    const coverageOptions = Array.isArray(doctors) ? doctors.filter(d => d.id !== profile?.id) : [];
 
     return (
         <div className="settings-card">
