@@ -19,6 +19,7 @@ interface AuthContextType {
     hasAccessLevel: (requiredLevel: number) => boolean;
     emailVerified: boolean;
     profileComplete: boolean;
+    verificationStatus: 'pending_admin' | 'active' | 'rejected' | null;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -248,6 +249,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             });
             setIsAuthenticated(true);
             setPatientProfile(null);
+
+            // Doctors awaiting (or denied) admin approval cannot reach /profile/ — that
+            // endpoint requires an approved doctor (IsDoctor). Route them straight to the
+            // status screen, which reads verification_status from /me/ on its own.
+            const vStatus = loginUserData.verification_status;
+            if (vStatus && vStatus !== 'active') {
+                setProfile(null);
+                navigate('/pending-approval', { replace: true });
+                return;
+            }
+
             // Fetch full doctor profile now that cookies are set
             const profileRes = await api.get('/profile/');
             setProfile(profileRes.data);
@@ -269,11 +281,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profile?.phone_number && profile.phone_number.trim() &&
         profile?.address && profile.address.trim()
     );
+    // Doctor admin-approval gate. null for non-doctors. Defaults to 'active' if the
+    // profile hasn't loaded yet so we never falsely trap an approved doctor.
+    const verificationStatus = userType === 'doctor'
+        ? ((profile?.verification_status as 'pending_admin' | 'active' | 'rejected' | undefined) ?? 'active')
+        : null;
 
     const value = {
         user, profile, adminProfile, patientProfile, userType, login, logout,
         isAuthenticated, authIsLoading, updateProfileData,
-        hasAccessLevel, emailVerified, profileComplete,
+        hasAccessLevel, emailVerified, profileComplete, verificationStatus,
     };
 
     return (

@@ -214,8 +214,8 @@ export default function Register() {
                 <div className="auth-split-right">
                     <div className="auth-card-v2" style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-                        <h2 className="auth-card-v2-title">{t('register.success_title')}</h2>
-                        <p className="auth-card-v2-subtitle">{t('register.success_redirect')}</p>
+                        <h2 className="auth-card-v2-title">{t('register.success_pending_title')}</h2>
+                        <p className="auth-card-v2-subtitle">{t('register.success_pending_body')}</p>
                     </div>
                 </div>
             </div>

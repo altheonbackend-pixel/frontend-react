@@ -1,20 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { type Patient } from '../../../shared/types';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import api from '../../../shared/services/api';
 
-const patientSchema = z.object({
-    first_name: z.string().min(1, 'First name is required'),
-    last_name: z.string().min(1, 'Last name is required'),
+// Schema factory so validation messages can be localized at render time.
+const makePatientSchema = (t: TFunction) => z.object({
+    first_name: z.string().min(1, t('patient_form.validation.first_name_required', 'First name is required')),
+    last_name: z.string().min(1, t('patient_form.validation.last_name_required', 'Last name is required')),
     date_of_birth: z.string().optional(),
     age: z.string().optional(),
-    email: z.string().email('Invalid email').optional().or(z.literal('')),
+    email: z.string().email(t('patient_form.validation.invalid_email', 'Invalid email')).optional().or(z.literal('')),
     phone_number: z.string().optional(),
     address: z.string().optional(),
     medical_history: z.string().optional(),
@@ -23,7 +25,7 @@ const patientSchema = z.object({
     emergency_contact_number: z.string().optional(),
 });
 
-type PatientFormData = z.infer<typeof patientSchema>;
+type PatientFormData = z.infer<ReturnType<typeof makePatientSchema>>;
 
 interface PatientFormProps {
     onSuccess: (patient: Patient) => void;
@@ -34,6 +36,9 @@ interface PatientFormProps {
 const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated } = useAuth();
+
+    // Localized validation schema — messages follow the active language.
+    const localizedSchema = useMemo(() => makePatientSchema(t), [t]);
     const [duplicates, setDuplicates] = useState<{ unique_id: string; first_name: string; last_name: string; date_of_birth: string | null }[]>([]);
     const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -44,7 +49,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
         reset,
         formState: { errors, isSubmitting, isDirty },
     } = useForm<PatientFormData>({
-        resolver: zodResolver(patientSchema),
+        resolver: zodResolver(localizedSchema),
         defaultValues: {
             first_name: '',
             last_name: '',
@@ -189,21 +194,21 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
             <form id="patient-form" onSubmit={handleSubmit(onSubmit)} className="form" noValidate>
                 {!patientToEdit && (
                     <div style={{ background: 'var(--info-bg, #eff6ff)', border: '1px solid var(--info-border, #bfdbfe)', borderRadius: 'var(--radius-md)', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--info-text, #1e40af)', lineHeight: 1.5 }}>
-                        <strong>Patient portal accuracy notice:</strong> Date of birth, email, and phone number are used to verify the patient's identity when they claim their portal account. Make sure this information is accurate before saving.
+                        <strong>{t('patient_form.portal_notice.title', 'Patient portal accuracy notice:')}</strong> {t('patient_form.portal_notice.body', "Date of birth, email, and phone number are used to verify the patient's identity when they claim their portal account. Make sure this information is accurate before saving.")}
                     </div>
                 )}
                 {duplicates.length > 0 && (
                     <div className="duplicate-warning">
-                        <strong>⚠ Possible duplicate patient detected:</strong>
+                        <strong>{t('patient_form.duplicate.title', '⚠ Possible duplicate patient detected:')}</strong>
                         <ul>
                             {duplicates.map(d => (
                                 <li key={d.unique_id}>
                                     {d.first_name} {d.last_name}
-                                    {d.date_of_birth && ` — DOB: ${d.date_of_birth}`}
+                                    {d.date_of_birth && ` — ${t('patient_form.duplicate.dob', 'DOB')}: ${d.date_of_birth}`}
                                 </li>
                             ))}
                         </ul>
-                        <small>Review before creating a new record to avoid duplicates.</small>
+                        <small>{t('patient_form.duplicate.review', 'Review before creating a new record to avoid duplicates.')}</small>
                     </div>
                 )}
 
@@ -221,7 +226,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 <div className="form-group">
                     <label htmlFor="date_of_birth" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {t('patient_form.label.dob')}
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>Portal verification</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>{t('patient_form.badge.portal_verification', 'Portal verification')}</span>
                     </label>
                     <input type="date" id="date_of_birth" className="input" {...register('date_of_birth')} />
                 </div>
@@ -233,7 +238,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 <div className="form-group">
                     <label htmlFor="email" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {t('patient_form.label.email')}
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>Portal access</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>{t('patient_form.badge.portal_access', 'Portal access')}</span>
                     </label>
                     <input type="email" id="email" className="input" {...register('email')} />
                     {errors.email && <span className="field-error">{errors.email.message}</span>}
@@ -241,7 +246,7 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 <div className="form-group">
                     <label htmlFor="phone_number" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         {t('patient_form.label.phone')}
-                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>Portal verification</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>{t('patient_form.badge.portal_verification', 'Portal verification')}</span>
                     </label>
                     <input type="tel" id="phone_number" className="input" {...register('phone_number')} />
                 </div>

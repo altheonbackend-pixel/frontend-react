@@ -23,6 +23,9 @@ export interface DoctorProfile {
     country?: string | null;
     city?: string | null;
     email_verified?: boolean;
+    verification_status?: 'pending_admin' | 'active' | 'rejected';
+    verification_status_display?: string | null;
+    rejection_reason?: string | null;
     next_available: string | null;
     timezone?: string | null;
     locale?: string | null;

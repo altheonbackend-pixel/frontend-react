@@ -30,10 +30,11 @@ import OverviewTab from './tabs/OverviewTab';
 import ConsultationsTab from './tabs/ConsultationsTab';
 import LabsTab from './tabs/LabsTab';
 import MedicationsTab from './tabs/MedicationsTab';
+import MedicalActTab from './tabs/MedicalActTab';
 import HistoryTab from './tabs/HistoryTab';
 import PortalTab from './tabs/PortalTab';
 
-type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'history' | 'portal';
+type Tab = 'overview' | 'consultations' | 'labs' | 'medications' | 'medical_act' | 'history' | 'portal';
 
 interface VitalsPoint {
     id: number;
@@ -238,7 +239,7 @@ const PatientDetails = () => {
             const res = await api.get(`/medical-procedures/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('history'),
+        enabled: loadedTabs.has('medical_act'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -248,7 +249,7 @@ const PatientDetails = () => {
             const res = await api.get(`/referrals/`, { params: { patient: id } });
             return res.data.results ?? res.data;
         },
-        enabled: loadedTabs.has('history'),
+        enabled: loadedTabs.has('medical_act'),
         staleTime: 2 * 60 * 1000,
     });
 
@@ -579,7 +580,7 @@ const PatientDetails = () => {
         const tabParam = searchParams.get('tab') as Tab | null;
         const openConsultId = searchParams.get('open_consultation');
 
-        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'history', 'portal'];
+        const validTabs: Tab[] = ['overview', 'consultations', 'labs', 'medications', 'medical_act', 'history', 'portal'];
         if (tabParam && validTabs.includes(tabParam)) {
             handleTabChange(tabParam);
         }
@@ -980,6 +981,7 @@ const PatientDetails = () => {
     const hasAllergyAlert = lifeThreateningAllergies.length > 0 || severeAllergies.length > 0;
 
     const historyCount = (patient.conditions?.length || 0) + (patient.allergy_records?.length || 0) || undefined;
+    const medicalActCount = (patient.medical_procedures?.length || 0) + (patient.referrals?.length || 0) || undefined;
     const draftCount = (patient.consultations || []).filter((c: any) =>
         c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
     ).length;
@@ -992,6 +994,7 @@ const PatientDetails = () => {
         { key: 'consultations', label: t('patient_detail.tabs.consultations', 'Consultations'), count: draftCount || undefined },
         { key: 'labs',          label: t('patient_detail.tabs.labs', 'Labs'),                    count: pendingLabOrderCount || undefined },
         { key: 'medications',   label: t('patient_detail.tabs.medications', 'Medications'),     count: medications.length || undefined },
+        { key: 'medical_act',   label: t('patient_detail.tabs.medical_act', 'Medical Act'),    count: medicalActCount },
         { key: 'history',       label: t('patient_detail.tabs.history', 'History'),             count: historyCount },
         { key: 'portal',        label: t('patient_detail.tabs.portal', 'Portal'),                count: pendingRequests.length || undefined },
     ];
@@ -1284,8 +1287,8 @@ const PatientDetails = () => {
                         navigateToConsultation={navigateToConsultation}
                     />
                 )}
-                {activeTab === 'history' && (
-                    <HistoryTab
+                {activeTab === 'medical_act' && (
+                    <MedicalActTab
                         patient={patient}
                         id={id!}
                         canWrite={canWrite}
@@ -1294,27 +1297,6 @@ const PatientDetails = () => {
                         proceduresLoading={proceduresLoading}
                         referralsData={referralsData}
                         referralsLoading={referralsLoading}
-                        showConditionForm={showConditionForm}
-                        setShowConditionForm={setShowConditionForm}
-                        showAllergyForm={showAllergyForm}
-                        setShowAllergyForm={setShowAllergyForm}
-                        conditionForm={conditionForm}
-                        setConditionForm={setConditionForm}
-                        editingConditionId={editingConditionId}
-                        setEditingConditionId={setEditingConditionId}
-                        allergyForm={allergyForm}
-                        setAllergyForm={setAllergyForm}
-                        allergenSuggestions={allergenSuggestions}
-                        setAllergenSuggestions={setAllergenSuggestions}
-                        showAllergenSuggestions={showAllergenSuggestions}
-                        setShowAllergenSuggestions={setShowAllergenSuggestions}
-                        formLoading={formLoading}
-                        handleConditionSubmit={handleConditionSubmit}
-                        handleAllergySubmit={handleAllergySubmit}
-                        handleToggleAllergy={handleToggleAllergy}
-                        handleToggleVisibleToPatient={handleToggleVisibleToPatient}
-                        setConfirmDeleteConditionId={setConfirmDeleteConditionId}
-                        setConfirmDeleteAllergyId={setConfirmDeleteAllergyId}
                         setConfirmDeleteProcedureId={setConfirmDeleteProcedureId}
                         setConfirmDeleteReferralId={setConfirmDeleteReferralId}
                         setProcedureToEdit={setProcedureToEdit}
@@ -1342,6 +1324,33 @@ const PatientDetails = () => {
                         setRecallSubmitting={setRecallSubmitting}
                         openThreadReferralId={openThreadReferralId}
                         setOpenThreadReferralId={setOpenThreadReferralId}
+                    />
+                )}
+                {activeTab === 'history' && (
+                    <HistoryTab
+                        patient={patient}
+                        canWrite={canWrite}
+                        showConditionForm={showConditionForm}
+                        setShowConditionForm={setShowConditionForm}
+                        showAllergyForm={showAllergyForm}
+                        setShowAllergyForm={setShowAllergyForm}
+                        conditionForm={conditionForm}
+                        setConditionForm={setConditionForm}
+                        editingConditionId={editingConditionId}
+                        setEditingConditionId={setEditingConditionId}
+                        allergyForm={allergyForm}
+                        setAllergyForm={setAllergyForm}
+                        allergenSuggestions={allergenSuggestions}
+                        setAllergenSuggestions={setAllergenSuggestions}
+                        showAllergenSuggestions={showAllergenSuggestions}
+                        setShowAllergenSuggestions={setShowAllergenSuggestions}
+                        formLoading={formLoading}
+                        handleConditionSubmit={handleConditionSubmit}
+                        handleAllergySubmit={handleAllergySubmit}
+                        handleToggleAllergy={handleToggleAllergy}
+                        handleToggleVisibleToPatient={handleToggleVisibleToPatient}
+                        setConfirmDeleteConditionId={setConfirmDeleteConditionId}
+                        setConfirmDeleteAllergyId={setConfirmDeleteAllergyId}
                     />
                 )}
                 {activeTab === 'portal' && (

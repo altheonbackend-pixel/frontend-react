@@ -6,7 +6,7 @@ import PageLoader from './PageLoader';
 const BYPASS_EMAIL_VERIFICATION = import.meta.env.VITE_BYPASS_EMAIL_VERIFICATION === 'true';
 
 const PrivateRoutes = () => {
-    const { isAuthenticated, authIsLoading, userType, emailVerified, profileComplete } = useAuth();
+    const { isAuthenticated, authIsLoading, userType, emailVerified, profileComplete, verificationStatus } = useAuth();
     const location = useLocation();
 
     if (authIsLoading) {
@@ -18,6 +18,15 @@ const PrivateRoutes = () => {
         const storedType = localStorage.getItem('user_type');
         const loginPath = (userType ?? storedType) === 'patient' ? '/patient/login' : '/login';
         return <Navigate to={loginPath} replace />;
+    }
+
+    // Doctors only: enforce the admin-approval gate FIRST. A pending/rejected doctor
+    // can authenticate but cannot reach any clinical screen — they are routed to a
+    // status screen until an admin approves them.
+    if (userType === 'doctor' && verificationStatus && verificationStatus !== 'active') {
+        if (location.pathname !== '/pending-approval') {
+            return <Navigate to="/pending-approval" replace />;
+        }
     }
 
     // Doctors only: enforce email verification gate (skipped if bypass enabled)

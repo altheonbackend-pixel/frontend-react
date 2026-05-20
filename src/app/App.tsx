@@ -16,6 +16,7 @@ import Landing from '../features/auth/components/Landing';
 import Register from '../features/auth/components/Register';
 import VerifyEmail from '../features/auth/components/VerifyEmail';
 import CompleteProfile from '../features/auth/components/CompleteProfile';
+import PendingApproval from '../features/auth/components/PendingApproval';
 import ForgotPassword from '../features/auth/components/ForgotPassword';
 import ResetPassword from '../features/auth/components/ResetPassword';
 
@@ -231,6 +232,7 @@ function App() {
                     <Route path="/login"           element={<LandingPage />} />
                     <Route path="/verify-email"    element={<VerifyEmail />} />
                     <Route path="/complete-profile" element={<CompleteProfile />} />
+                    <Route path="/pending-approval" element={<PendingApproval />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password"  element={<ResetPassword />} />
                     {/* Patient-specific public routes */}
