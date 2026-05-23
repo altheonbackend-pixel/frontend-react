@@ -10,6 +10,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import api from '../../../shared/services/api';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ const EyeOff = () => (
 export default function PatientRegister() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { login } = useAuth();
     const step1Schema = useMemo(() => createStep1Schema(t), [t]);
     const step2Schema = useMemo(() => createStep2Schema(), []);
     const step3Schema = useMemo(() => createStep3Schema(t), [t]);
@@ -122,7 +124,19 @@ export default function PatientRegister() {
             const dest = missingFields.length > 0
                 ? `/patient/complete-profile?fields=${missingFields.join(',')}`
                 : '/patient/dashboard';
-            setTimeout(() => navigate(dest, { replace: true }), 2500);
+            // The register endpoint already set the auth cookies, but the AuthContext
+            // React state is still unauthenticated. Hydrate it via login() (same pattern
+            // as the claim flow) so the protected /patient/* routes render — otherwise the
+            // redirect below lands on the 404 fallthrough until a manual page reload.
+            setTimeout(async () => {
+                try {
+                    await login({ email: (d.email || '').trim().toLowerCase(), password: d.password as string });
+                } catch {
+                    navigate('/patient/login', { replace: true });
+                    return;
+                }
+                navigate(dest, { replace: true });
+            }, 2500);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response) {
                 const resp = err.response.data;

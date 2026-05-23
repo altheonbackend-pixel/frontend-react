@@ -10,6 +10,7 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService, type PatientPortalSettings, type ProfileUpdateRequest } from '../services/patientPortalService';
 import { normalizePortalLanguage } from '../utils/i18n';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
+import { useAuth } from '../../auth/hooks/useAuth';
 import '../../../shared/styles/settings-ui.css';
 
 const EDITABLE_FIELDS = [
@@ -64,6 +65,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     const { t, i18n } = useTranslation();
     usePageTitle(t('patient_portal.settings.document_title'));
     const queryClient = useQueryClient();
+    const { setPatientLanguage } = useAuth();
     const { formatDate } = useFormatDateTime();
     const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [pwError, setPwError] = useState('');
@@ -141,6 +143,10 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
         onSuccess: (updated) => {
             const language = normalizePortalLanguage(updated.preferred_language);
             queryClient.setQueryData(queryKeys.patientPortal.settings(), updated);
+            // Sync AuthContext FIRST so the session-restore effect in App.tsx
+            // (which reconciles i18n against patientProfile.preferred_language)
+            // doesn't read the stale login value and revert this switch.
+            setPatientLanguage(language);
             if (language !== i18n.resolvedLanguage) {
                 i18n.changeLanguage(language);
             }

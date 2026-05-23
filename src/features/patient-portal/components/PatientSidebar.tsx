@@ -32,18 +32,10 @@ const Icons = {
             <circle cx="12" cy="7" r="4"/>
         </svg>
     ),
-    qr: (
+    access: (
         <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <path d="M14 14h3v3h-3z"/><path d="M18 18h3v3h-3z"/>
-        </svg>
-    ),
-    accessRequests: (
-        <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
-            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
-            <path d="M12 8v4l3 2"/>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
     ),
     logout: (
@@ -59,8 +51,7 @@ const NAV_LINKS = [
     { to: '/patient/dashboard',       icon: Icons.dashboard,      labelKey: 'patient_portal.nav.dashboard' },
     { to: '/patient/appointments',    icon: Icons.appointments,   labelKey: 'patient_portal.nav.appointments' },
     { to: '/patient/health',          icon: Icons.health,         labelKey: 'patient_portal.nav.health' },
-    { to: '/patient/clinic-code',     icon: Icons.qr,             labelKey: 'patient_portal.nav.clinic_code' },
-    { to: '/patient/access-requests', icon: Icons.accessRequests, labelKey: 'patient_portal.nav.access_requests' },
+    { to: '/patient/access',          icon: Icons.access,         labelKey: 'patient_portal.nav.access_permission' },
     { to: '/patient/account',         icon: Icons.account,        labelKey: 'patient_portal.nav.account' },
 ];
 

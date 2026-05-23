@@ -73,13 +73,13 @@ export const verifyAccessOtp = (requestId: number, otp: string) =>
         { otp },
     );
 
-export const redeemClinicCode = (token: string) =>
+export const redeemClinicCode = (code: string) =>
     api.post<{
         patient_unique_id: string;
         membership_id: number;
         expires_at: string;
         role: string;
-    }>('/patient-access-requests/by-clinic-code/', { token });
+    }>('/patient-access-requests/by-clinic-code/', { code });
 
 export const cancelAccessRequest = (requestId: number) =>
     api.post<AccessRequest>(`/patient-access-requests/${requestId}/cancel/`);

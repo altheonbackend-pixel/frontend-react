@@ -372,7 +372,7 @@ export const patientPortalService = {
 
     // ─── Workflow B — clinic code (B1) + access requests (B2) ──────────────────
     issueClinicCode: () =>
-        api.post<{ token: string; expires_in: number }>('/patient/clinic-codes/').then(r => r.data),
+        api.post<{ code: string; expires_in: number }>('/patient/clinic-codes/').then(r => r.data),
 
     listAccessRequests: () =>
         api.get<{

@@ -9,7 +9,7 @@ import type { Patient } from '../../../shared/types';
 
 /**
  * Workflow B Add Patient — three paths to start a visit:
- *   1. Scan code (B1) — patient shows a QR / clinic code in their portal.
+ *   1. Enter code (B1) — patient reads their 6-digit clinic code from the portal.
  *   2. Search & request (B-search + B2) — find an existing Altheon patient
  *      by exact email / phone / (last name + DOB) and request access.
  *   3. Register new (B3) — no Altheon account yet; create one. The backend
@@ -37,10 +37,10 @@ const AddPatient = () => {
     const tabs: Array<{ key: Tab; label: string; hint: string }> = [
         {
             key: 'scan',
-            label: t('add_patient.tabs.scan.label', 'Scan code'),
+            label: t('add_patient.tabs.scan.label', 'Enter code'),
             hint: t(
                 'add_patient.tabs.scan.hint',
-                'Patient has the Altheon app open — scan their 60s clinic code.',
+                'Patient has the Altheon app open — enter the 6-digit code they read you.',
             ),
         },
         {
@@ -68,7 +68,7 @@ const AddPatient = () => {
                 <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
                     {t(
                         'add_patient.subtitle',
-                        'Choose how this patient is reaching you. The Altheon access model means a confirmed appointment, scanned code, OTP, walk-in consultation, or new registration is the only way to see medical history.',
+                        'Choose how this patient is reaching you. The Altheon access model means a confirmed appointment, clinic code, OTP, walk-in consultation, or new registration is the only way to see medical history.',
                     )}
                 </p>
             </header>

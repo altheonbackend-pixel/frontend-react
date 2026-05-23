@@ -16,6 +16,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     authIsLoading: boolean;
     updateProfileData: (newProfile: DoctorProfile) => void;
+    setPatientLanguage: (language: string) => void;
     hasAccessLevel: (requiredLevel: number) => boolean;
     emailVerified: boolean;
     profileComplete: boolean;
@@ -94,6 +95,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!profile) return false;
         return profile.access_level >= requiredLevel;
     };
+
+    // Keep the patient's preferred_language in sync after they change it in
+    // Settings. Without this, the session-restore language effect in App.tsx
+    // (which reconciles i18n against patientProfile.preferred_language) would
+    // read the stale login value and revert a live language switch.
+    const setPatientLanguage = useCallback((language: string) => {
+        const normalized = normalizePortalLanguage(language);
+        setPatientProfile(prev => (prev ? { ...prev, preferred_language: normalized } : prev));
+    }, []);
 
     /**
      * Validate the current session by calling /api/me/.
@@ -289,7 +299,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const value = {
         user, profile, adminProfile, patientProfile, userType, login, logout,
-        isAuthenticated, authIsLoading, updateProfileData,
+        isAuthenticated, authIsLoading, updateProfileData, setPatientLanguage,
         hasAccessLevel, emailVerified, profileComplete, verificationStatus,
     };
 

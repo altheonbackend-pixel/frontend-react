@@ -61,8 +61,7 @@ const PatientHealthRecord  = lazy(() => import('../features/patient-portal/compo
 const PatientAccount       = lazy(() => import('../features/patient-portal/components/PatientAccount'));
 const PatientNotifications = lazy(() => import('../features/patient-portal/components/PatientNotifications'));
 const PatientDoctorProfile = lazy(() => import('../features/patient-portal/components/PatientDoctorProfile'));
-const PatientClinicCode    = lazy(() => import('../features/patient-portal/components/PatientClinicCode'));
-const PatientAccessRequests = lazy(() => import('../features/patient-portal/components/PatientAccessRequests'));
+const PatientAccessPermission = lazy(() => import('../features/patient-portal/components/PatientAccessPermission'));
 
 import PrivateRoutes from '../shared/components/PrivateRoutes';
 import PageLoader from '../shared/components/PageLoader';
@@ -188,8 +187,7 @@ function App() {
                                 <Route path="/patient/dashboard"     element={<ErrorBoundary resetKey={location.pathname}><PatientDashboard /></ErrorBoundary>} />
                                 <Route path="/patient/appointments"  element={<ErrorBoundary resetKey={location.pathname}><PatientAppointments /></ErrorBoundary>} />
                                 <Route path="/patient/health"        element={<ErrorBoundary resetKey={location.pathname}><PatientHealthRecord /></ErrorBoundary>} />
-                                <Route path="/patient/clinic-code"   element={<ErrorBoundary resetKey={location.pathname}><PatientClinicCode /></ErrorBoundary>} />
-                                <Route path="/patient/access-requests" element={<ErrorBoundary resetKey={location.pathname}><PatientAccessRequests /></ErrorBoundary>} />
+                                <Route path="/patient/access"        element={<ErrorBoundary resetKey={location.pathname}><PatientAccessPermission /></ErrorBoundary>} />
                                 <Route path="/patient/account"       element={<ErrorBoundary resetKey={location.pathname}><PatientAccount /></ErrorBoundary>} />
                                 <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
                                 <Route path="/patient/doctor/:id"    element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
@@ -204,6 +202,10 @@ function App() {
                                 <Route path="/patient/referrals"    element={<Navigate to="/patient/health?tab=referrals"    replace />} />
                                 <Route path="/patient/profile"      element={<Navigate to="/patient/account?tab=profile"     replace />} />
                                 <Route path="/patient/settings"     element={<Navigate to="/patient/account?tab=settings"    replace />} />
+                                {/* Access permission consolidated the old clinic-code + access-requests pages */}
+                                <Route path="/patient/clinic-code"        element={<Navigate to="/patient/access" replace />} />
+                                <Route path="/patient/access-requests"    element={<Navigate to="/patient/access" replace />} />
+                                <Route path="/patient/access-requests/:id" element={<Navigate to="/patient/access" replace />} />
                             </Route>
                         </Route>
                         {/* Public patient routes (accessible even when logged in as patient) */}

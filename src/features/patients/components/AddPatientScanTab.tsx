@@ -9,31 +9,31 @@ interface Props {
 }
 
 /**
- * Workflow B1 — accept the patient's clinic-code token and redeem it for
- * a one-time-visit CareTeamMembership. Camera-based QR scanning is left
- * for a follow-up slice; for now the doctor pastes the token from the
- * patient's screen (or reads it manually) into the input below.
+ * Workflow B1 — the patient shows a single-use 6-digit code in their portal
+ * (Account → Access permission). The doctor types it here to redeem a 24-hour
+ * one-time-visit CareTeamMembership and open the chart.
  */
 export default function AddPatientScanTab({ onAccessGranted }: Props) {
     const { t } = useTranslation();
-    const [token, setToken] = useState('');
+    const [code, setCode] = useState('');
 
     const redeem = useMutation({
-        mutationFn: (raw: string) => redeemClinicCode(raw.trim()).then(r => r.data),
+        mutationFn: (raw: string) => redeemClinicCode(raw).then(r => r.data),
         onSuccess: data => {
-            toast.success(t(
-                'add_patient.scan.success',
-                'Access granted for 24 hours.',
-            ));
+            toast.success(t('add_patient.scan.success', 'Access granted for 24 hours.'));
             onAccessGranted(data.patient_unique_id);
         },
         onError: err => {
             toast.error(parseApiError(err, t(
                 'add_patient.scan.error.invalid',
-                'Clinic code is invalid or has expired. Ask the patient to refresh.',
+                'That code is invalid or has expired. Ask the patient to refresh and read you the new one.',
             )));
         },
     });
+
+    const submit = () => {
+        if (code.length === 6) redeem.mutate(code);
+    };
 
     return (
         <div
@@ -44,41 +44,63 @@ export default function AddPatientScanTab({ onAccessGranted }: Props) {
                 padding: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1rem',
+                gap: '1.25rem',
                 maxWidth: 540,
             }}
         >
-            <label style={{ fontWeight: 500 }}>
-                {t('add_patient.scan.token_label', 'Clinic code (from patient\'s app)')}
-            </label>
-            <textarea
-                value={token}
-                onChange={e => setToken(e.target.value)}
-                placeholder={t(
-                    'add_patient.scan.token_placeholder',
-                    'Paste the patient\'s clinic-code token here…',
-                )}
-                rows={3}
+            {/* How-to guidance for the doctor */}
+            <ol
                 style={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.875rem',
-                    padding: '0.625rem',
-                    border: '1px solid var(--border, #d1d5db)',
-                    borderRadius: 4,
-                    resize: 'vertical',
+                    margin: 0,
+                    paddingLeft: '1.25rem',
+                    color: 'var(--text-secondary, #4b5563)',
+                    fontSize: '0.9rem',
+                    lineHeight: 1.6,
                 }}
-            />
-            <small style={{ color: 'var(--text-muted)' }}>
-                {t(
-                    'add_patient.scan.hint_token',
-                    'The code expires 60 seconds after the patient generates it. If it has expired, ask them to refresh in Patient → Clinic code.',
-                )}
-            </small>
+            >
+                <li>{t('add_patient.scan.step1', 'Ask the patient to open the Altheon app and go to Account → Access permission.')}</li>
+                <li>{t('add_patient.scan.step2', 'They will see a 6-digit code (and a QR). Ask them to read you the 6 digits.')}</li>
+                <li>{t('add_patient.scan.step3', 'Enter the code below within 5 minutes to open their chart.')}</li>
+            </ol>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label htmlFor="clinic-code-input" style={{ fontWeight: 500 }}>
+                    {t('add_patient.scan.code_label', "Patient's 6-digit code")}
+                </label>
+                <input
+                    id="clinic-code-input"
+                    value={code.length > 3 ? `${code.slice(0, 3)} ${code.slice(3)}` : code}
+                    onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="123 456"
+                    aria-label={t('add_patient.scan.code_label', "Patient's 6-digit code")}
+                    style={{
+                        fontFamily: 'var(--font-mono, monospace)',
+                        fontSize: '1.75rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.3em',
+                        textAlign: 'center',
+                        padding: '0.75rem',
+                        border: '1px solid var(--border, #d1d5db)',
+                        borderRadius: 8,
+                        maxWidth: 260,
+                    }}
+                />
+                <small style={{ color: 'var(--text-muted)' }}>
+                    {t(
+                        'add_patient.scan.hint_code',
+                        'The code expires 5 minutes after the patient generates it. If it has expired, ask them to tap Refresh.',
+                    )}
+                </small>
+            </div>
+
             <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => redeem.mutate(token)}
-                disabled={!token.trim() || redeem.isPending}
+                onClick={submit}
+                disabled={code.length !== 6 || redeem.isPending}
                 style={{ alignSelf: 'flex-start' }}
             >
                 {redeem.isPending
