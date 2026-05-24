@@ -16,10 +16,11 @@ const Icons = {
             <line x1="3" y1="10" x2="21" y2="10" />
         </svg>
     ),
-    plus: (
-        <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
+    findDoctor: (
+        <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth={2.25} viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.5" y2="16.5" strokeLinecap="round" />
+            <path d="M11 8v6M8 11h6" strokeLinecap="round" />
         </svg>
     ),
     health: (
@@ -60,10 +61,10 @@ export function PatientBottomNav() {
             <button
                 type="button"
                 className="bottom-nav-fab"
-                onClick={() => navigate('/patient/appointments')}
-                aria-label={t('patient_portal.nav.book_appointment')}
+                onClick={() => navigate('/find-doctors')}
+                aria-label={t('patient_portal.nav.find_doctor')}
             >
-                {Icons.plus}
+                {Icons.findDoctor}
             </button>
 
             <NavLink

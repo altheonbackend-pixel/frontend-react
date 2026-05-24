@@ -11,6 +11,9 @@ import type { TFunction } from 'i18next';
 import axios from 'axios';
 import api from '../../../shared/services/api';
 import type { SpecialtyChoice } from '../../../shared/types';
+import LeafletMap from '../../../shared/components/map/LeafletMap';
+import { toast } from '../../../shared/components/ui';
+import { locatorService } from '../../locator/services/locatorService';
 
 // ── Zod schemas per step ──────────────────────────────────────────────────────
 
@@ -138,6 +141,9 @@ export default function Register() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    // Practice-location pin (optional) captured in the Location step.
+    const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+    const [geocoding, setGeocoding] = useState(false);
 
     useEffect(() => {
         api.get('/auth/specialties/').then(r => setSpecialties(r.data)).catch(() => {});
@@ -155,6 +161,24 @@ export default function Register() {
     const handleNext1 = s1.handleSubmit(data => { setFormData(prev => ({ ...prev, ...data })); setStep(1); });
     const handleNext2 = s2.handleSubmit(data => { setFormData(prev => ({ ...prev, ...data })); setStep(2); });
     const handleNext3 = s3.handleSubmit(data => { setFormData(prev => ({ ...prev, ...data })); setStep(3); });
+
+    // Geocode the typed address into a map pin (public endpoint — works pre-auth).
+    async function findPracticeOnMap() {
+        const v = s3.getValues();
+        const query = [v.address, v.city, v.country].filter(Boolean).join(', ');
+        if (!query.trim()) { toast.error(t('doctorLocations.enterAddress')); return; }
+        setGeocoding(true);
+        try {
+            const results = await locatorService.geocode(query);
+            if (!results.length) { toast.error(t('doctorLocations.notFound')); return; }
+            setPin({ lat: results[0].latitude, lng: results[0].longitude });
+            toast.success(t('doctorLocations.pinPlaced'));
+        } catch {
+            toast.error(t('doctorLocations.geocodeError'));
+        } finally {
+            setGeocoding(false);
+        }
+    }
     const handleNext4 = s4.handleSubmit(data => { setFormData(prev => ({ ...prev, ...data })); setStep(4); });
 
     const handleSubmit5 = s5.handleSubmit(async data => {
@@ -165,6 +189,17 @@ export default function Register() {
         const working_days = DAYS
             .filter(day => d[day.key])
             .map(day => day.value);
+
+        // Only send a structured practice location when the address is complete;
+        // the backend nested serializer requires line1 + city + country together.
+        const hasFullAddress = !!((d.address ?? '').trim() && (d.city ?? '').trim() && (d.country ?? '').trim());
+        const practice_location = hasFullAddress ? {
+            address_line1: d.address,
+            city:          d.city,
+            country:       d.country,
+            latitude:      pin?.lat ?? null,
+            longitude:     pin?.lng ?? null,
+        } : undefined;
 
         try {
             await api.post('/register/doctor/', {
@@ -182,6 +217,7 @@ export default function Register() {
                 working_days,
                 working_start:  d.working_start ?? '09:00',
                 working_end:    d.working_end ?? '17:00',
+                ...(practice_location ? { practice_location } : {}),
                 terms_accepted: d.terms_accepted ?? true,
             });
             setSuccess(true);
@@ -338,6 +374,31 @@ export default function Register() {
                                         {TIMEZONES.map(tz => <option key={tz.value} value={tz.value}>{t(tz.labelKey)}</option>)}
                                     </select>
                                 </div>
+
+                                {/* Pin the practice on a map so patients can find it (optional) */}
+                                <div className="form-field">
+                                    <label>{t('register.pin_practice_label')} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>{t('common.optional_parenthetical')}</span></label>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={findPracticeOnMap} disabled={geocoding}>
+                                            {geocoding ? t('doctorLocations.locating') : t('doctorLocations.findOnMap')}
+                                        </button>
+                                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                            {pin ? t('doctorLocations.dragHint') : t('register.pin_practice_hint')}
+                                        </span>
+                                    </div>
+                                    <LeafletMap
+                                        center={pin ? [pin.lat, pin.lng] : [20, 0]}
+                                        zoom={pin ? 15 : 2}
+                                        recenterTo={pin ? [pin.lat, pin.lng] : null}
+                                        recenterZoom={15}
+                                        draggableMarker={pin ? { lat: pin.lat, lng: pin.lng } : null}
+                                        onMarkerDrag={(lat, lng) => setPin({ lat, lng })}
+                                        onMapClick={(lat, lng) => setPin({ lat, lng })}
+                                        height="260px"
+                                        ariaLabel={t('doctorLocations.mapLabel')}
+                                    />
+                                </div>
+
                                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                                     <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={() => setStep(1)}>{t('common.back')}</button>
                                     <button type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>{t('common.next')}</button>

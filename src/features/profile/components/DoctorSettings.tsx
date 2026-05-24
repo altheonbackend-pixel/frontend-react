@@ -9,6 +9,7 @@ import '../../../shared/styles/settings-ui.css';
 import '../styles/Settings.css';
 
 const AccountSection       = lazy(() => import('./sections/AccountSection'));
+const LocationsSection     = lazy(() => import('./sections/LocationsSection'));
 const ScheduleSection      = lazy(() => import('./sections/ScheduleSection'));
 const AvailabilitySection  = lazy(() => import('./sections/AvailabilitySection'));
 const NotificationsSection = lazy(() => import('./sections/NotificationsSection'));
@@ -18,6 +19,7 @@ const PreferencesSection   = lazy(() => import('./sections/PreferencesSection'))
 
 const SECTIONS = [
     { id: 'account',       icon: 'profile'  as IconName },
+    { id: 'locations',     icon: 'home'     as IconName },
     { id: 'schedule',      icon: 'calendar' as IconName },
     { id: 'availability',  icon: 'clock'    as IconName },
     { id: 'notifications', icon: 'bell'     as IconName },
@@ -62,6 +64,7 @@ export default function DoctorSettings() {
                 <div className="settings-content" role="tabpanel">
                     <Suspense fallback={<div className="settings-card"><div className="settings-card-body"><TabSkeleton rows={5} /></div></div>}>
                         {active === 'account'       && <AccountSection />}
+                        {active === 'locations'     && <LocationsSection />}
                         {active === 'schedule'      && <ScheduleSection />}
                         {active === 'availability'  && <AvailabilitySection />}
                         {active === 'notifications' && <NotificationsSection />}

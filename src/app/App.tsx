@@ -62,6 +62,8 @@ const PatientAccount       = lazy(() => import('../features/patient-portal/compo
 const PatientNotifications = lazy(() => import('../features/patient-portal/components/PatientNotifications'));
 const PatientDoctorProfile = lazy(() => import('../features/patient-portal/components/PatientDoctorProfile'));
 const PatientAccessPermission = lazy(() => import('../features/patient-portal/components/PatientAccessPermission'));
+const FindDoctors          = lazy(() => import('../features/locator/pages/FindDoctors'));
+const DoctorPublicProfile  = lazy(() => import('../features/locator/pages/DoctorPublicProfile'));
 
 import PrivateRoutes from '../shared/components/PrivateRoutes';
 import PageLoader from '../shared/components/PageLoader';
@@ -191,6 +193,9 @@ function App() {
                                 <Route path="/patient/account"       element={<ErrorBoundary resetKey={location.pathname}><PatientAccount /></ErrorBoundary>} />
                                 <Route path="/patient/notifications" element={<ErrorBoundary resetKey={location.pathname}><PatientNotifications /></ErrorBoundary>} />
                                 <Route path="/patient/doctor/:id"    element={<ErrorBoundary resetKey={location.pathname}><PatientDoctorProfile /></ErrorBoundary>} />
+                                {/* Doctor locator / map — find a doctor & public profile */}
+                                <Route path="/find-doctors"          element={<ErrorBoundary resetKey={location.pathname}><FindDoctors /></ErrorBoundary>} />
+                                <Route path="/find-doctors/:id"      element={<ErrorBoundary resetKey={location.pathname}><DoctorPublicProfile /></ErrorBoundary>} />
                                 {/* Phase 5: patient-side telehealth video room (reuses the same component as the doctor side) */}
                                 <Route path="/patient/telehealth/:appointmentId" element={<ErrorBoundary resetKey={location.pathname}><TelehealthRoom /></ErrorBoundary>} />
                                 {/* Legacy route redirects — keep for backward compatibility */}
@@ -253,6 +258,10 @@ function App() {
                     <Route path="/patient/complete-profile"  element={<PatientCompleteProfile />} />
                     <Route path="/patient/forgot-password"   element={<PatientForgotPassword />} />
                     <Route path="/patient/reset-password"    element={<PatientResetPassword />} />
+
+                    {/* Public doctor locator / map — discoverable by anyone (anon, doctors) */}
+                    <Route path="/find-doctors"     element={<ErrorBoundary resetKey={location.pathname}><FindDoctors /></ErrorBoundary>} />
+                    <Route path="/find-doctors/:id" element={<ErrorBoundary resetKey={location.pathname}><DoctorPublicProfile /></ErrorBoundary>} />
 
                     {/* Protected doctor routes wrapped in AppLayout (sidebar) */}
                     <Route element={<PrivateRoutes />}>

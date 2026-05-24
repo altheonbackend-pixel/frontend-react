@@ -38,6 +38,12 @@ const Icons = {
             <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
     ),
+    findDoctor: (
+        <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+        </svg>
+    ),
     logout: (
         <svg className="sidebar-nav-icon" fill="none" stroke="currentColor" strokeWidth={1.75} viewBox="0 0 24 24">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -50,6 +56,7 @@ const Icons = {
 const NAV_LINKS = [
     { to: '/patient/dashboard',       icon: Icons.dashboard,      labelKey: 'patient_portal.nav.dashboard' },
     { to: '/patient/appointments',    icon: Icons.appointments,   labelKey: 'patient_portal.nav.appointments' },
+    { to: '/find-doctors',            icon: Icons.findDoctor,     labelKey: 'patient_portal.nav.find_doctors' },
     { to: '/patient/health',          icon: Icons.health,         labelKey: 'patient_portal.nav.health' },
     { to: '/patient/access',          icon: Icons.access,         labelKey: 'patient_portal.nav.access_permission' },
     { to: '/patient/account',         icon: Icons.account,        labelKey: 'patient_portal.nav.account' },

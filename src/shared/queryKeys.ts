@@ -74,4 +74,12 @@ export const queryKeys = {
         doctorProfile: (id: number) => ['patient', 'doctor', id] as const,
         profileUpdateRequests: () => ['patient', 'profile-update-requests'] as const,
     },
+
+    // Doctor locator / map (public discovery + doctor-side location management)
+    locator: {
+        search: (params: object) => ['locator', 'search', params] as const,
+        mapPins: (bbox: object) => ['locator', 'map', bbox] as const,
+        publicProfile: (id: number) => ['locator', 'public-profile', id] as const,
+        myLocations: () => ['locator', 'my-locations'] as const,
+    },
 } as const;
