@@ -8,10 +8,24 @@ import { profileSchema, type ProfileFormData } from '../../profileSchema';
 import { toast, parseApiError } from '../../../../shared/components/ui';
 import api from '../../../../shared/services/api';
 import type { SpecialtyChoice } from '../../../../shared/types';
+import AvatarManager from '../../../../shared/components/AvatarManager';
 
 export default function AccountSection() {
     const { t } = useTranslation();
-    const { profile, saveProfile } = useDoctorProfile();
+    const { profile, saveProfile, refreshProfile } = useDoctorProfile();
+
+    const uploadAvatar = async (blob: Blob) => {
+        const fd = new FormData();
+        fd.append('avatar', blob, 'avatar.jpg');
+        await api.post('/profile/avatar/', fd);
+        await refreshProfile();
+        toast.success(t('settings.avatar.updated'));
+    };
+    const removeAvatar = async () => {
+        await api.delete('/profile/avatar/');
+        await refreshProfile();
+        toast.success(t('settings.avatar.removed'));
+    };
 
     const { data: specialties = [] } = useQuery<SpecialtyChoice[]>({
         queryKey: ['specialties'],
@@ -65,6 +79,17 @@ export default function AccountSection() {
             </div>
 
             <div className="settings-card-body">
+                <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                    <label>{t('settings.avatar.label')}</label>
+                    <AvatarManager
+                        name={profile?.full_name || ''}
+                        currentUrl={profile?.avatar_url}
+                        mode="camera"
+                        onUpload={uploadAvatar}
+                        onRemove={removeAvatar}
+                    />
+                </div>
+
                 <div className="settings-grid-2">
                     <div className="form-group">
                         <label htmlFor="first_name">{t('edit_profile.labels.first_name')}</label>

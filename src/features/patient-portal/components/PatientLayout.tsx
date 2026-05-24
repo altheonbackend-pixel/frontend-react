@@ -35,7 +35,7 @@ export function PatientLayout() {
                             className="patient-topbar__avatar-link"
                             aria-label={t('patient_portal.nav.my_account')}
                         >
-                            <Avatar name={patientProfile?.full_name ?? patientLabel} size="sm" />
+                            <Avatar name={patientProfile?.full_name ?? patientLabel} src={patientProfile?.avatar_url} size="sm" />
                             <span className="patient-topbar__name">
                                 {patientProfile?.full_name ?? patientLabel}
                             </span>

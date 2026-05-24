@@ -166,6 +166,9 @@ export interface PatientPortalProfile {
     email_verified: boolean;
     claim_status: 'unclaimed' | 'invited' | 'claimed' | 'locked';
     preferred_language: string;
+    // Signed URL for the patient's profile photo (15-min expiry). Null/undefined
+    // until the patient uploads one. See backend docs/storage.md §7.
+    avatar_url?: string | null;
 }
 
 export interface PatientPortalSettings {
@@ -250,6 +253,15 @@ export const patientPortalService = {
 
     updateProfile: (data: Partial<Pick<PatientPortalProfile, 'phone_number' | 'address' | 'emergency_contact_name' | 'emergency_contact_number'>>) =>
         api.patch<PatientPortalProfile>('/patient/profile/', data).then(r => r.data),
+
+    uploadAvatar: (file: Blob) => {
+        const fd = new FormData();
+        fd.append('avatar', file, 'avatar.jpg');
+        return api.post<{ avatar_url: string | null }>('/patient/profile/avatar/', fd).then(r => r.data);
+    },
+
+    removeAvatar: () =>
+        api.delete('/patient/profile/avatar/').then(r => r.data),
 
     getSettings: () =>
         api.get<PatientPortalSettings>('/patient/settings/').then(r => r.data),

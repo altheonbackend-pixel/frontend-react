@@ -18,7 +18,16 @@ export function useDoctorProfile() {
         return fresh.data;
     }, [updateProfileData]);
 
-    return { profile, saveProfile };
+    // Re-read the profile and push it into auth context. Used after side-channel
+    // updates (e.g. avatar upload via /profile/avatar/) so the sidebar + header
+    // reflect the new photo immediately.
+    const refreshProfile = useCallback(async () => {
+        const fresh = await api.get<DoctorProfile>('/profile/');
+        updateProfileData(fresh.data);
+        return fresh.data;
+    }, [updateProfileData]);
+
+    return { profile, saveProfile, refreshProfile };
 }
 
 export default useDoctorProfile;

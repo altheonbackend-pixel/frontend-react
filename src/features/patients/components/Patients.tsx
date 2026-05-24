@@ -283,7 +283,7 @@ const Patients = () => {
                                         >
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                    <Avatar name={`${patient.first_name} ${patient.last_name}`} size="sm" />
+                                                    <Avatar name={`${patient.first_name} ${patient.last_name}`} src={patient.avatar_url} size="sm" />
                                                     <div>
                                                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                                                             {patient.first_name} {patient.last_name}

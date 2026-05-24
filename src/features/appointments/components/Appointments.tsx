@@ -538,7 +538,7 @@ const Appointments = () => {
                                     )}
                                     {/* Card header row */}
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                                        <Avatar name={patientName} size="sm" />
+                                        <Avatar name={patientName} src={appt.patient_details?.avatar_url} size="sm" />
                                         <div style={{ flex: 1, minWidth: 0 }}>
                                             <div className="btn-row" style={{ marginBottom: '0.15rem' }}>
                                                 <span className="card-name">

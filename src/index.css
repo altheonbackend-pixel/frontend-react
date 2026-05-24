@@ -1281,6 +1281,97 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
   flex-shrink: 0;
   user-select: none;
+  overflow: hidden;        /* keep the inner photo inside the circle */
+}
+/* Photo variant — fills the avatar circle, preserves aspect via cover. */
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Live camera capture + avatar picker ────────────────────────────────── */
+.live-camera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+.live-camera__viewport {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-xl, 16px);
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.live-camera__video,
+.live-camera__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scaleX(-1);   /* mirror — feels natural for selfies */
+}
+.live-camera__preview { transform: none; }
+.live-camera__status {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-secondary);
+}
+.live-camera__status--error {
+  color: var(--danger, #b91c1c);
+}
+.live-camera__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.avatar-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+.avatar-picker__intro {
+  margin: 0;
+  font-weight: 600;
+}
+.avatar-picker__choices {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.avatar-picker__actions {
+  margin-top: 0.5rem;
+}
+
+.avatar-manager {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+.avatar-manager__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.avatar-manager__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 .avatar-sm  { width: 32px; height: 32px; font-size: 0.75rem; }
 .avatar-md  { width: 44px; height: 44px; font-size: 0.875rem; }

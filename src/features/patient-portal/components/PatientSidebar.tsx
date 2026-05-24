@@ -75,7 +75,7 @@ export function PatientSidebar({ isOpen, onClose }: PatientSidebarProps) {
             </div>
 
             <div className="sidebar-doctor">
-                <Avatar name={patientProfile?.full_name ?? patientLabel} size="sm" />
+                <Avatar name={patientProfile?.full_name ?? patientLabel} src={patientProfile?.avatar_url} size="sm" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="sidebar-doctor-name">{patientProfile?.full_name ?? patientLabel}</div>
                     <div className="sidebar-doctor-specialty">{t('patient_portal.nav.portal_access_active')}</div>

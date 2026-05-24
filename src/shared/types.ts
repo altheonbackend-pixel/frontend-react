@@ -40,6 +40,9 @@ export interface DoctorProfile {
     currency?: string | null;
     tax_id?: string | null;
     billing_email?: string | null;
+    // Signed URL (15-min expiry) for the doctor's profile photo, or null/missing
+    // if no photo uploaded. See backend docs/storage.md §7.
+    avatar_url?: string | null;
 }
 
 export interface SpecialtyChoice {
@@ -71,6 +74,9 @@ export interface Patient {
     phone_number: string | null;
     emergency_contact_name: string | null;
     emergency_contact_number: string | null;
+    // Signed URL (15-min expiry) for the patient's profile photo, or null/missing
+    // if no photo uploaded. See backend docs/storage.md §7.
+    avatar_url?: string | null;
 }
 
 export interface Appointment {
@@ -548,6 +554,10 @@ export interface PatientProfile {
     email_verified: boolean;
     claim_status: 'unclaimed' | 'invited' | 'claimed' | 'locked';
     preferred_language: string;
+    // Signed URL (15-min expiry) for the patient's profile photo. See
+    // backend docs/storage.md §7. Reflects the same field exposed on the
+    // doctor-side Patient serializer.
+    avatar_url?: string | null;
 }
 
 export interface AdminStats {

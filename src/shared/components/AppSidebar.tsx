@@ -99,7 +99,7 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
 
             {/* Doctor mini-profile */}
             <div className="sidebar-doctor">
-                <Avatar name={doctorName} size="sm" />
+                <Avatar name={doctorName} src={profile?.avatar_url} size="sm" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="sidebar-doctor-name">Dr. {doctorName}</div>
                     {specialty && <div className="sidebar-doctor-specialty">{specialty}</div>}

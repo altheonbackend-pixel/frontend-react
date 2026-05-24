@@ -45,6 +45,7 @@ interface RecentPatient {
     last_name: string;
     status: string;
     status_display?: string;
+    avatar_url?: string | null;
 }
 
 interface PendingRequest {
@@ -424,7 +425,7 @@ function Dashboard() {
                     <div className="db-recent-grid">
                         {recentPatients.map(p => (
                             <Link key={p.unique_id} to={`/patients/${p.unique_id}`} className="db-recent-item">
-                                <Avatar name={`${p.first_name} ${p.last_name}`} size="sm" />
+                                <Avatar name={`${p.first_name} ${p.last_name}`} src={p.avatar_url} size="sm" />
                                 <span className="db-recent-name">{p.first_name} {p.last_name}</span>
                                 <StatusBadge status={p.status} label={p.status_display} />
                             </Link>

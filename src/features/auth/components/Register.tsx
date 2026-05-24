@@ -14,6 +14,7 @@ import type { SpecialtyChoice } from '../../../shared/types';
 import LeafletMap from '../../../shared/components/map/LeafletMap';
 import { toast } from '../../../shared/components/ui';
 import { locatorService } from '../../locator/services/locatorService';
+import LiveCameraCapture from '../../../shared/components/LiveCameraCapture';
 
 // ── Zod schemas per step ──────────────────────────────────────────────────────
 
@@ -144,6 +145,21 @@ export default function Register() {
     // Practice-location pin (optional) captured in the Location step.
     const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
     const [geocoding, setGeocoding] = useState(false);
+    // Optional profile photo (live camera only for doctors) captured in the final step.
+    const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null);
+    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+    const [cameraOpen, setCameraOpen] = useState(false);
+
+    const handleAvatarCapture = (blob: Blob) => {
+        setAvatarBlob(blob);
+        setAvatarPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+        setCameraOpen(false);
+    };
+    const handleAvatarRemove = () => {
+        setAvatarPreviewUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+        setAvatarBlob(null);
+    };
+    useEffect(() => () => { if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl); }, [avatarPreviewUrl]);
 
     useEffect(() => {
         api.get('/auth/specialties/').then(r => setSpecialties(r.data)).catch(() => {});
@@ -201,25 +217,57 @@ export default function Register() {
             longitude:     pin?.lng ?? null,
         } : undefined;
 
+        const payload: Record<string, unknown> = {
+            first_name:     d.first_name,
+            last_name:      d.last_name,
+            email:          d.email,
+            phone_number:   d.phone_number ?? '',
+            password:       d.password,
+            specialty:      d.specialty ?? 'general_practice',
+            license_number: d.license_number ?? '',
+            country:        d.country ?? '',
+            city:           d.city ?? '',
+            address:        d.address ?? '',
+            timezone:       d.timezone ?? 'UTC',
+            working_days,
+            working_start:  d.working_start ?? '09:00',
+            working_end:    d.working_end ?? '17:00',
+            ...(practice_location ? { practice_location } : {}),
+            terms_accepted: d.terms_accepted ?? true,
+        };
+
         try {
-            await api.post('/register/doctor/', {
-                first_name:     d.first_name,
-                last_name:      d.last_name,
-                email:          d.email,
-                phone_number:   d.phone_number ?? '',
-                password:       d.password,
-                specialty:      d.specialty ?? 'general_practice',
-                license_number: d.license_number ?? '',
-                country:        d.country ?? '',
-                city:           d.city ?? '',
-                address:        d.address ?? '',
-                timezone:       d.timezone ?? 'UTC',
-                working_days,
-                working_start:  d.working_start ?? '09:00',
-                working_end:    d.working_end ?? '17:00',
-                ...(practice_location ? { practice_location } : {}),
-                terms_accepted: d.terms_accepted ?? true,
-            });
+            if (avatarBlob) {
+                // Multipart so the photo rides along with registration. DRF's
+                // MultiPartParser parses repeated keys into ListField and
+                // bracket-notation into nested serializers (it does NOT JSON-decode
+                // string values) — so encode those shapes explicitly.
+                const fd = new FormData();
+                fd.append('first_name', d.first_name ?? '');
+                fd.append('last_name', d.last_name ?? '');
+                fd.append('email', d.email ?? '');
+                fd.append('phone_number', d.phone_number ?? '');
+                fd.append('password', d.password ?? '');
+                fd.append('specialty', d.specialty ?? 'general_practice');
+                fd.append('license_number', d.license_number ?? '');
+                fd.append('country', d.country ?? '');
+                fd.append('city', d.city ?? '');
+                fd.append('address', d.address ?? '');
+                fd.append('timezone', d.timezone ?? 'UTC');
+                working_days.forEach(v => fd.append('working_days', String(v)));
+                fd.append('working_start', d.working_start ?? '09:00');
+                fd.append('working_end', d.working_end ?? '17:00');
+                if (practice_location) {
+                    Object.entries(practice_location).forEach(([k, v]) => {
+                        if (v !== undefined && v !== null) fd.append(`practice_location[${k}]`, String(v));
+                    });
+                }
+                fd.append('terms_accepted', String(d.terms_accepted ?? true));
+                fd.append('profile_picture', avatarBlob, 'avatar.jpg');
+                await api.post('/register/doctor/', fd);
+            } else {
+                await api.post('/register/doctor/', payload);
+            }
             setSuccess(true);
             setTimeout(() => navigate('/login', { replace: true }), 2500);
         } catch (err) {
@@ -484,6 +532,35 @@ export default function Register() {
                             <p className="auth-card-v2-subtitle">{t('register.password_subtitle')}</p>
                             <form onSubmit={handleSubmit5} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {error && <div className="error-message">{error}</div>}
+
+                                {/* Optional profile photo — live camera only (no device upload) */}
+                                <div className="form-field">
+                                    <label>{t('register.profile_photo_label')}</label>
+                                    {cameraOpen ? (
+                                        <LiveCameraCapture
+                                            onCapture={handleAvatarCapture}
+                                            onCancel={() => setCameraOpen(false)}
+                                        />
+                                    ) : avatarPreviewUrl ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <img
+                                                src={avatarPreviewUrl}
+                                                alt={t('register.profile_photo_label')}
+                                                style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover' }}
+                                            />
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button type="button" className="btn btn-secondary" onClick={() => setCameraOpen(true)}>{t('register.profile_photo_retake')}</button>
+                                                <button type="button" className="btn btn-text" onClick={handleAvatarRemove}>{t('common.remove')}</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                            <button type="button" className="btn btn-secondary" onClick={() => setCameraOpen(true)}>{t('register.profile_photo_take')}</button>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t('register.profile_photo_optional')}</span>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="form-field">
                                     <label htmlFor="reg_password">{t('register.password')}</label>
                                     <div className="password-field-wrap">

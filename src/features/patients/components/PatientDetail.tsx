@@ -1009,7 +1009,7 @@ const PatientDetails = () => {
             {/* Header */}
             <div className="patient-header-card">
                 <div className="patient-header-identity">
-                    <Avatar name={`${patient.first_name} ${patient.last_name}`} size="lg" ring />
+                    <Avatar name={`${patient.first_name} ${patient.last_name}`} src={patient.avatar_url} size="lg" ring />
                     <div className="patient-header-info">
                         <h2 className="patient-name">{patient.first_name} {patient.last_name}</h2>
                         <div className="patient-meta">

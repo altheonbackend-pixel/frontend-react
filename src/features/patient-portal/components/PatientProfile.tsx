@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
-import { Avatar } from '../../../shared/components/Avatar';
+import AvatarManager from '../../../shared/components/AvatarManager';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -97,7 +97,21 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
             <div className="patient-profile-grid">
                 <SectionCard>
                     <div style={{ display: 'grid', justifyItems: 'center', gap: '0.75rem' }}>
-                        <Avatar name={profile.full_name} size="xl" ring />
+                        <AvatarManager
+                            name={profile.full_name}
+                            currentUrl={profile.avatar_url}
+                            mode="both"
+                            onUpload={async (blob) => {
+                                await patientPortalService.uploadAvatar(blob);
+                                queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profile() });
+                                toast.success(t('settings.avatar.updated'));
+                            }}
+                            onRemove={async () => {
+                                await patientPortalService.removeAvatar();
+                                queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profile() });
+                                toast.success(t('settings.avatar.removed'));
+                            }}
+                        />
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ fontWeight: 800, fontSize: '1.15rem', color: 'var(--text-primary)' }}>{profile.full_name}</div>
                             <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{profile.email}</div>
