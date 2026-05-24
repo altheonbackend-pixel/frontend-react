@@ -58,10 +58,9 @@ export function LiveCameraCapture({
                 audio: false,
             });
             streamRef.current = stream;
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                await videoRef.current.play().catch(() => { /* user-gesture restart handled below */ });
-            }
+            // Do NOT touch videoRef here — the <video> element is only mounted
+            // once phase === 'streaming'. Attaching the stream is handled by the
+            // effect below, which runs AFTER the video element renders.
             setPhase('streaming');
         } catch (err) {
             const e = err as DOMException;
@@ -76,6 +75,18 @@ export function LiveCameraCapture({
             }
         }
     }, []);
+
+    // Attach the live stream once the <video> element is actually in the DOM.
+    // This fixes the "black video" bug: setting srcObject during the 'requesting'
+    // phase did nothing because the element hadn't rendered yet.
+    useEffect(() => {
+        if (phase !== 'streaming') return;
+        const video = videoRef.current;
+        const stream = streamRef.current;
+        if (!video || !stream) return;
+        video.srcObject = stream;
+        video.play().catch(() => { /* autoplay may need the muted attr — it's set */ });
+    }, [phase]);
 
     useEffect(() => {
         startStream();
