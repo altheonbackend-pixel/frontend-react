@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard } from '../../../shared/components/SectionCard';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
+import Avatar from '../../../shared/components/Avatar';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -143,9 +144,12 @@ export default function PatientDashboard() {
                         return (
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
-                                    <div>
-                                        <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{next_appointment.doctor_name}</div>
-                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{next_appointment.specialty}</div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', minWidth: 0 }}>
+                                        <Avatar name={next_appointment.doctor_name.replace('Dr. ', '')} src={next_appointment.doctor_avatar_url} size="md" />
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{next_appointment.doctor_name}</div>
+                                            <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{next_appointment.specialty}</div>
+                                        </div>
                                     </div>
                                     <StatusBadge status={next_appointment.status} />
                                 </div>

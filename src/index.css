@@ -1317,9 +1317,9 @@ button[type="submit"]:not(.btn):not(.symptom-chip):not(.notif-bell-btn):not(.lan
   height: 100%;
   object-fit: cover;
   display: block;
-  transform: scaleX(-1);   /* mirror — feels natural for selfies */
 }
-.live-camera__preview { transform: none; }
+/* No mirroring: the live preview shows the TRUE (non-flipped) image so the
+   captured photo matches exactly what the user saw — no lateral inversion. */
 .live-camera__status {
   text-align: center;
   padding: 1rem;

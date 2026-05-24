@@ -156,6 +156,7 @@
     flex: 0 0 auto;
     width: 44px; height: 44px;
     border-radius: 50%;
+    overflow: hidden;
     display: grid;
     place-items: center;
     font-weight: 700;
@@ -163,6 +164,7 @@
     color: #fff;
     background: linear-gradient(135deg, var(--loc-brand), color-mix(in srgb, var(--loc-brand) 60%, #0ea5e9));
 }
+.doc-card__avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .doc-card__body { flex: 1 1 auto; min-width: 0; }
 .doc-card__name {
     font-weight: 700;
@@ -298,6 +300,7 @@
     flex: 0 0 auto;
     width: 72px; height: 72px;
     border-radius: 50%;
+    overflow: hidden;
     display: grid;
     place-items: center;
     font-weight: 800;
@@ -305,6 +308,7 @@
     color: #fff;
     background: linear-gradient(135deg, var(--loc-brand), color-mix(in srgb, var(--loc-brand) 60%, #0ea5e9));
 }
+.docprofile__avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .docprofile__hero-body { flex: 1 1 auto; min-width: 0; }
 .docprofile__name { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text-primary, #0f172a); }
 .docprofile__specialty { margin: 0.15rem 0 0.5rem; color: var(--text-secondary, #475569); font-size: 1rem; }

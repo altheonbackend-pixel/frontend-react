@@ -253,7 +253,11 @@ export default function FindDoctors() {
                                 onClick={() => goToDoctor(d)}
                                 onKeyDown={(e) => { if (e.key === 'Enter') goToDoctor(d); }}
                             >
-                                <div className="doc-card__avatar" aria-hidden="true">{initials(d.full_name)}</div>
+                                <div className="doc-card__avatar" aria-hidden="true">
+                                    {d.avatar_url
+                                        ? <img src={d.avatar_url} alt="" className="doc-card__avatar-img" />
+                                        : initials(d.full_name)}
+                                </div>
                                 <div className="doc-card__body">
                                     <p className="doc-card__name">{d.full_name}</p>
                                     <div className="doc-card__meta">

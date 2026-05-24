@@ -7,6 +7,7 @@ import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
+import Avatar from '../../../shared/components/Avatar';
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
     if (!value) return null;
@@ -59,15 +60,7 @@ export default function PatientDoctorProfile() {
                     {/* Avatar + name hero */}
                     <SectionCard>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                            <div style={{
-                                width: 72, height: 72, borderRadius: '50%',
-                                background: 'var(--accent-lighter)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: '1.75rem', fontWeight: 700, color: 'var(--accent)',
-                                flexShrink: 0,
-                            }}>
-                                {doctor.full_name.replace('Dr. ', '').charAt(0).toUpperCase()}
-                            </div>
+                            <Avatar name={doctor.full_name.replace('Dr. ', '')} src={doctor.avatar_url} size="xl" />
                             <div>
                                 <div style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--text-primary)' }}>{doctor.full_name}</div>
                                 {doctor.specialty && (

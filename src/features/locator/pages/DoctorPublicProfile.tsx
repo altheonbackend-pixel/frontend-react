@@ -95,7 +95,11 @@ export default function DoctorPublicProfile() {
 
             {/* ── Hero ── */}
             <section className="docprofile__hero">
-                <div className="docprofile__avatar" aria-hidden="true">{initials(doctor.full_name)}</div>
+                <div className="docprofile__avatar" aria-hidden="true">
+                    {doctor.avatar_url
+                        ? <img src={doctor.avatar_url} alt="" className="docprofile__avatar-img" />
+                        : initials(doctor.full_name)}
+                </div>
                 <div className="docprofile__hero-body">
                     <h1 className="docprofile__name">{doctor.full_name}</h1>
                     <p className="docprofile__specialty">{doctor.specialty_display}</p>

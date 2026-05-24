@@ -35,6 +35,7 @@ export interface DoctorSearchResult {
     next_available: string | null;
     nearest_location: PracticeLocation | null;
     distance_km: number | null;
+    avatar_url?: string | null;
 }
 
 export interface DoctorSearchResponse {
@@ -74,6 +75,7 @@ export interface PublicDoctorProfile {
     timezone: string;
     languages: string[];
     locations: PracticeLocation[];
+    avatar_url?: string | null;
 }
 
 export interface GeoResult {

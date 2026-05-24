@@ -6,6 +6,7 @@ export interface PatientDashboardData {
         id: number;
         appointment_date: string;
         doctor_name: string;
+        doctor_avatar_url?: string | null;
         specialty: string;
         status: string;
         appointment_type?: 'in_person' | 'telemedicine';
@@ -35,6 +36,7 @@ export interface PatientAppointment {
     id: number;
     doctor_id: number;
     doctor_name: string;
+    doctor_avatar_url?: string | null;
     specialty: string;
     clinic: string | null;
     clinic_address: string | null;
@@ -57,6 +59,7 @@ export interface PatientDoctorOption {
     specialty: string;
     clinic: string | null;
     next_available: string | null;
+    avatar_url?: string | null;
 }
 
 export interface PatientAttachment {
@@ -208,6 +211,7 @@ export interface PatientDoctorProfile {
     clinic: string | null;
     phone_number: string | null;
     email: string;
+    avatar_url?: string | null;
 }
 
 export interface PatientReferral {

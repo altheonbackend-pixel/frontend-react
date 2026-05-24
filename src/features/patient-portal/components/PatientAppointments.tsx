@@ -8,6 +8,7 @@ import { Modal, toast } from '../../../shared/components/ui';
 import { StatusBadge } from '../../../shared/components/StatusBadge';
 import { TabSkeleton } from '../../../shared/components/SectionCard';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
+import Avatar from '../../../shared/components/Avatar';
 import { TelehealthJoinButton } from '../../appointments/components/TelehealthJoinButton';
 import { parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -204,7 +205,9 @@ export default function PatientAppointments() {
                             <div style={{ display: 'grid', gap: '0.75rem' }}>
                                 {/* Header row: doctor + status */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
-                                    <div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', minWidth: 0 }}>
+                                      <Avatar name={item.doctor_name.replace('Dr. ', '')} src={item.doctor_avatar_url} size="md" />
+                                      <div style={{ minWidth: 0 }}>
                                         <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{item.doctor_name}</div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                             {item.specialty}{item.clinic ? ` · ${item.clinic}` : ''}
@@ -215,6 +218,7 @@ export default function PatientAppointments() {
                                         >
                                             {t('patient_portal.appointments.view_profile')}
                                         </Link>
+                                      </div>
                                     </div>
                                     <StatusBadge
                                         status={item.status}
