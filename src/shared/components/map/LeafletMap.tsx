@@ -46,6 +46,10 @@ export interface MapMarker {
     viewLabel?: string;
 }
 
+// Round to ~0.11 m precision — matches the backend's stored 6 dp and avoids
+// sending 12-decimal floats that trip the coordinate field's digit limit.
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
 // Escape user-controlled strings before they go into an imperative popup's HTML.
 function escapeHtml(s: string): string {
     return s.replace(/[&<>"']/g, (c) => (
@@ -151,7 +155,7 @@ function Recenter({ to, zoom }: { to: [number, number] | null | undefined; zoom?
 
 function ClickHandler({ onMapClick }: { onMapClick?: (lat: number, lng: number) => void }) {
     useMapEvents({
-        click: (e) => onMapClick?.(e.latlng.lat, e.latlng.lng),
+        click: (e) => onMapClick?.(round6(e.latlng.lat), round6(e.latlng.lng)),
     });
     return null;
 }
@@ -216,7 +220,7 @@ export function LeafletMap({
                         eventHandlers={{
                             dragend: (e) => {
                                 const ll = (e.target as L.Marker).getLatLng();
-                                onMarkerDrag?.(ll.lat, ll.lng);
+                                onMarkerDrag?.(round6(ll.lat), round6(ll.lng));
                             },
                         }}
                     />

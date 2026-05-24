@@ -1,0 +1,31 @@
+/* Shared request-appointment modal — date/slot chips + locked-doctor display */
+.appt-chip {
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 2px solid var(--border-default, #e2e8f0);
+    background: var(--bg-subtle, #f8fafc);
+    color: var(--text-primary, #0f172a);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.appt-chip:hover {
+    border-color: var(--accent, #6366f1);
+    background: var(--bg-card, #fff);
+}
+.appt-chip--active {
+    border-color: var(--accent, #6366f1);
+    background: var(--accent, #6366f1);
+    color: var(--text-inverse, #fff);
+    font-weight: 700;
+}
+
+.appt-locked-doctor {
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border-light, #e2e8f0);
+    border-radius: var(--radius-md, 10px);
+    background: var(--bg-subtle, #f8fafc);
+    font-weight: 600;
+    color: var(--text-primary, #0f172a);
+}

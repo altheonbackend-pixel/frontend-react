@@ -11,6 +11,8 @@ import { patientPortalService, type PatientPortalSettings, type ProfileUpdateReq
 import { normalizePortalLanguage } from '../utils/i18n';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import { useAuth } from '../../auth/hooks/useAuth';
+import LeafletMap from '../../../shared/components/map/LeafletMap';
+import { locatorService } from '../../locator/services/locatorService';
 import '../../../shared/styles/settings-ui.css';
 
 const EDITABLE_FIELDS = [
@@ -69,6 +71,12 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     const { formatDate } = useFormatDateTime();
     const [pwForm, setPwForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
     const [pwError, setPwError] = useState('');
+
+    // ── Saved-location editor state (null draft = use the saved value) ─────────
+    const [locDraft, setLocDraft] = useState<{ lat: number | null; lng: number | null; label: string } | null>(null);
+    const [placeQuery, setPlaceQuery] = useState('');
+    const [geocoding, setGeocoding] = useState(false);
+    const [locating, setLocating] = useState(false);
 
     // ── Profile update request state ──────────────────────────────────────────
     const [updateFields, setUpdateFields] = useState<Record<string, string>>({});
@@ -155,6 +163,17 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
         onError: (err) => toast.error(parseApiError(err, t('patient_portal.settings.error.save_preference'))),
     });
 
+    // Dedicated location mutation — avoids the language-sync + "preference saved"
+    // toast that the generic `save` performs.
+    const { mutate: persistLocation, isPending: isSavingLoc } = useMutation({
+        mutationFn: (data: Partial<PatientPortalSettings>) => patientPortalService.updateSettings(data),
+        onSuccess: (updated) => {
+            queryClient.setQueryData(queryKeys.patientPortal.settings(), updated);
+            setLocDraft(null);
+        },
+        onError: (err) => toast.error(parseApiError(err, t('patientLocation.saveError'))),
+    });
+
     if (isLoading) {
         return (
             <>
@@ -176,6 +195,62 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
     const toggle = (key: keyof Omit<PatientPortalSettings, 'preferred_language' | 'timezone'>) => {
         save({ [key]: !settings[key] });
     };
+
+    // ── Saved location helpers ────────────────────────────────────────────────
+    const loc = locDraft ?? {
+        lat: settings.latitude != null ? Number(settings.latitude) : null,
+        lng: settings.longitude != null ? Number(settings.longitude) : null,
+        label: settings.location_label || '',
+    };
+    const hasLoc = loc.lat != null && loc.lng != null;
+    const locDirty = locDraft !== null;
+
+    async function findPlace() {
+        if (!placeQuery.trim()) { toast.error(t('patientLocation.enterPlace')); return; }
+        setGeocoding(true);
+        try {
+            const results = await locatorService.geocode(placeQuery);
+            if (!results.length) { toast.error(t('patientLocation.notFound')); return; }
+            const top = results[0];
+            setLocDraft({ lat: top.latitude, lng: top.longitude, label: top.display_name || placeQuery });
+        } catch {
+            toast.error(t('patientLocation.geocodeError'));
+        } finally {
+            setGeocoding(false);
+        }
+    }
+
+    function useMyLocation() {
+        if (!('geolocation' in navigator)) { toast.error(t('patientLocation.geoUnsupported')); return; }
+        setLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const lat = Math.round(pos.coords.latitude * 1e6) / 1e6;
+                const lng = Math.round(pos.coords.longitude * 1e6) / 1e6;
+                let label = loc.label;
+                try {
+                    const r = await locatorService.reverseGeocode(lat, lng);
+                    if (r?.display_name) label = r.display_name;
+                } catch { /* keep existing label */ }
+                setLocDraft({ lat, lng, label });
+                setLocating(false);
+            },
+            () => { toast.error(t('patientLocation.geoDenied')); setLocating(false); },
+            { enableHighAccuracy: true, timeout: 10000 },
+        );
+    }
+
+    function saveLocation() {
+        persistLocation({ latitude: loc.lat, longitude: loc.lng, location_label: loc.label }, {
+            onSuccess: () => toast.success(t('patientLocation.saved')),
+        });
+    }
+
+    function clearLocation() {
+        persistLocation({ latitude: null, longitude: null, location_label: '' }, {
+            onSuccess: () => { setPlaceQuery(''); toast.success(t('patientLocation.cleared')); },
+        });
+    }
 
     return (
         <>
@@ -225,6 +300,64 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                                     {t('patient_portal.settings.timezone_hint')}
                                 </small>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── My location ── */}
+                <div className="settings-card">
+                    <div className="settings-card-head">
+                        <h2 className="settings-card-title">{t('patientLocation.title')}</h2>
+                        <p className="settings-card-subtitle">{t('patientLocation.subtitle')}</p>
+                    </div>
+                    <div className="settings-card-body">
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                            <input
+                                className="input"
+                                style={{ flex: '1 1 220px' }}
+                                placeholder={t('patientLocation.searchPlaceholder')}
+                                value={placeQuery}
+                                onChange={e => setPlaceQuery(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); findPlace(); } }}
+                            />
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={findPlace} disabled={geocoding}>
+                                {geocoding ? t('patientLocation.searching') : t('patientLocation.search')}
+                            </button>
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={useMyLocation} disabled={locating}>
+                                {locating ? t('patientLocation.locating') : t('patientLocation.useMyLocation')}
+                            </button>
+                        </div>
+
+                        {hasLoc && loc.label && (
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem' }}>
+                                📍 {loc.label}
+                            </p>
+                        )}
+
+                        <LeafletMap
+                            center={hasLoc ? [loc.lat as number, loc.lng as number] : [20, 0]}
+                            zoom={hasLoc ? 13 : 2}
+                            recenterTo={hasLoc ? [loc.lat as number, loc.lng as number] : null}
+                            recenterZoom={13}
+                            draggableMarker={hasLoc ? { lat: loc.lat as number, lng: loc.lng as number } : null}
+                            onMarkerDrag={(lat, lng) => setLocDraft({ lat, lng, label: loc.label })}
+                            onMapClick={(lat, lng) => setLocDraft({ lat, lng, label: loc.label })}
+                            height="300px"
+                            ariaLabel={t('patientLocation.mapLabel')}
+                        />
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.5rem 0 0' }}>
+                            {hasLoc ? t('patientLocation.dragHint') : t('patientLocation.emptyHint')}
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                            <button type="button" className="btn btn-primary btn-sm" onClick={saveLocation} disabled={!locDirty || isSavingLoc || !hasLoc}>
+                                {isSavingLoc ? t('common.saving') : t('patientLocation.saveLocation')}
+                            </button>
+                            {(hasLoc || locDirty) && (
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={clearLocation} disabled={isSavingLoc}>
+                                    {t('patientLocation.clear')}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

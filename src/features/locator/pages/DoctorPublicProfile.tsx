@@ -1,23 +1,27 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import LeafletMap, { type MapMarker } from '../../../shared/components/map/LeafletMap';
-import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../../shared/queryKeys';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { patientPortalService } from '../../patient-portal/services/patientPortalService';
+import RequestAppointmentModal from '../../patient-portal/components/RequestAppointmentModal';
 import { locatorService } from '../services/locatorService';
 import './FindDoctors.css';
+
+function initials(name: string) {
+    return name.replace(/^Dr\.?\s*/i, '').split(' ').filter(Boolean).slice(0, 2)
+        .map(s => s[0]).join('').toUpperCase() || 'Dr';
+}
 
 function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
     if (!value) return null;
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '0.5rem', padding: '0.5rem 0', borderBottom: '1px solid var(--border-light)' }}>
-            <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>{label}</div>
-            <div style={{ color: 'var(--text-primary)' }}>{value}</div>
+        <div className="docprofile__info-row">
+            <div className="docprofile__info-label">{label}</div>
+            <div className="docprofile__info-value">{value}</div>
         </div>
     );
 }
@@ -40,24 +44,6 @@ export default function DoctorPublicProfile() {
     usePageTitle(doctor?.full_name ?? t('findDoctors.profile.title'));
 
     const [bookingOpen, setBookingOpen] = useState(false);
-    const [apptDate, setApptDate] = useState('');
-    const [reason, setReason] = useState('');
-    const [apptType, setApptType] = useState('in_person');
-
-    const bookMutation = useMutation({
-        mutationFn: () => patientPortalService.requestAppointment({
-            doctor_id: doctorId,
-            appointment_date: new Date(apptDate).toISOString(),
-            reason: reason.trim(),
-            appointment_type: apptType,
-        }),
-        onSuccess: () => {
-            toast.success(t('findDoctors.booking.success'));
-            setBookingOpen(false);
-            navigate('/patient/appointments');
-        },
-        onError: (err) => toast.error(parseApiError(err, t('findDoctors.booking.error'))),
-    });
 
     const markers: MapMarker[] = useMemo(() => (doctor?.locations ?? [])
         .filter(l => l.latitude != null && l.longitude != null)
@@ -77,13 +63,17 @@ export default function DoctorPublicProfile() {
         if (isAuthenticated && userType === 'patient') {
             setBookingOpen(true);
         } else {
-            // Round-trip back to this profile after sign-in.
             navigate(`/patient/login?next=${encodeURIComponent(location.pathname)}`);
         }
     }
 
     if (isLoading) {
-        return <div className="locator"><p>{t('findDoctors.loading')}</p></div>;
+        return (
+            <div className="locator">
+                <div className="locator__loading-card" style={{ height: 110 }} />
+                <div className="locator__loading-card" style={{ height: 220 }} />
+            </div>
+        );
     }
     if (isError || !doctor) {
         return (
@@ -97,99 +87,91 @@ export default function DoctorPublicProfile() {
     }
 
     return (
-        <div className="locator">
-            <button className="btn btn-secondary btn-sm" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('/find-doctors')}>
+        <div className="locator docprofile">
+            <button className="btn btn-secondary btn-sm docprofile__back" onClick={() => navigate('/find-doctors')}>
                 ← {t('findDoctors.backToSearch')}
             </button>
 
-            <div style={{ display: 'grid', gap: '1.25rem' }}>
-                <div>
-                    <h1 style={{ margin: '0 0 0.25rem' }}>{doctor.full_name}</h1>
-                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.05rem' }}>{doctor.specialty_display}</p>
+            {/* ── Hero ── */}
+            <section className="docprofile__hero">
+                <div className="docprofile__avatar" aria-hidden="true">{initials(doctor.full_name)}</div>
+                <div className="docprofile__hero-body">
+                    <h1 className="docprofile__name">{doctor.full_name}</h1>
+                    <p className="docprofile__specialty">{doctor.specialty_display}</p>
+                    <div className="docprofile__badges">
+                        {doctor.accepting_referrals && (
+                            <span className="doc-card__badge">{t('findDoctors.acceptingBadge')}</span>
+                        )}
+                        {doctor.languages?.length > 0 && (
+                            <span className="doc-card__pill">{doctor.languages.join(' · ').toUpperCase()}</span>
+                        )}
+                        {doctor.consultation_fee && (
+                            <span className="doc-card__pill">
+                                {doctor.consultation_fee} {doctor.currency ?? ''}
+                            </span>
+                        )}
+                    </div>
                 </div>
+            </section>
 
-                <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={onBookClick}>
-                    {t('findDoctors.booking.cta')}
-                </button>
+            {/* ── 2-column grid: info+locations | sticky CTA ── */}
+            <div className="docprofile__grid">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="docprofile__card">
+                        <h2>{t('findDoctors.profile.about')}</h2>
+                        <InfoRow label={t('findDoctors.profile.acceptingNew')} value={doctor.accepting_referrals ? t('common.yes', 'Yes') : t('common.no', 'No')} />
+                        {doctor.consultation_fee && (
+                            <InfoRow label={t('findDoctors.profile.fee')} value={`${doctor.consultation_fee} ${doctor.currency ?? ''}`} />
+                        )}
+                        {doctor.languages?.length > 0 && (
+                            <InfoRow label={t('findDoctors.profile.languages')} value={doctor.languages.join(', ').toUpperCase()} />
+                        )}
+                        <InfoRow label={t('findDoctors.profile.timezone')} value={doctor.timezone} />
+                    </div>
 
-                <div>
-                    <InfoRow label={t('findDoctors.profile.acceptingNew')} value={doctor.accepting_referrals ? t('common.yes', 'Yes') : t('common.no', 'No')} />
-                    {doctor.consultation_fee && (
-                        <InfoRow label={t('findDoctors.profile.fee')} value={`${doctor.consultation_fee} ${doctor.currency ?? ''}`} />
-                    )}
-                    {doctor.languages?.length > 0 && (
-                        <InfoRow label={t('findDoctors.profile.languages')} value={doctor.languages.join(', ').toUpperCase()} />
-                    )}
-                </div>
+                    <div className="docprofile__card">
+                        <h2>{t('findDoctors.profile.locations')}</h2>
+                        {doctor.locations.length === 0 && (
+                            <p style={{ color: 'var(--text-muted)', margin: 0 }}>{t('findDoctors.profile.noLocations')}</p>
+                        )}
+                        {doctor.locations.map(l => (
+                            <div key={l.id} className="docprofile__loc">
+                                <p className="docprofile__loc-name">
+                                    {l.label || l.city}
+                                    {l.is_primary && <span className="docprofile__star">★ {t('findDoctors.profile.primary')}</span>}
+                                </p>
+                                <div className="docprofile__loc-addr">{l.full_address}</div>
+                                {l.phone && <div className="docprofile__loc-phone">📞 {l.phone}</div>}
+                            </div>
+                        ))}
+                    </div>
 
-                <div>
-                    <h2 style={{ fontSize: '1.05rem', marginBottom: '0.5rem' }}>{t('findDoctors.profile.locations')}</h2>
-                    {doctor.locations.length === 0 && <p style={{ color: 'var(--text-muted)' }}>{t('findDoctors.profile.noLocations')}</p>}
-                    {doctor.locations.map(l => (
-                        <div key={l.id} className="doc-card" style={{ cursor: 'default', marginBottom: '0.5rem' }}>
-                            <p className="doc-card__name">
-                                {l.label || l.city}
-                                {l.is_primary && <span style={{ marginLeft: '0.5rem', fontSize: '0.72rem', color: 'var(--brand)' }}>★ {t('findDoctors.profile.primary')}</span>}
-                            </p>
-                            <div className="doc-card__address">{l.full_address}</div>
-                            {l.phone && <div className="doc-card__meta"><span>{l.phone}</span></div>}
+                    {center && (
+                        <div className="docprofile__map">
+                            <LeafletMap center={center} zoom={13} markers={markers} height="360px" ariaLabel={t('findDoctors.mapLabel')} />
                         </div>
-                    ))}
+                    )}
                 </div>
 
-                {center && (
-                    <LeafletMap center={center} zoom={13} markers={markers} height="360px" ariaLabel={t('findDoctors.mapLabel')} />
-                )}
+                <aside className="docprofile__card docprofile__cta-card" aria-label={t('findDoctors.booking.title')}>
+                    <h2>{t('findDoctors.booking.title')}</h2>
+                    <button className="btn btn-primary" onClick={onBookClick}>
+                        {t('findDoctors.booking.cta')}
+                    </button>
+                    <p className="docprofile__cta-hint">
+                        {isAuthenticated && userType === 'patient'
+                            ? t('findDoctors.booking.hintLoggedIn')
+                            : t('findDoctors.booking.hintAnon')}
+                    </p>
+                </aside>
             </div>
 
-            <Modal
+            <RequestAppointmentModal
                 open={bookingOpen}
                 onClose={() => setBookingOpen(false)}
-                title={t('findDoctors.booking.title')}
-                dirty={!!apptDate || !!reason}
-                footer={
-                    <>
-                        <button className="btn btn-secondary" onClick={() => setBookingOpen(false)}>{t('common.cancel', 'Cancel')}</button>
-                        <button
-                            className="btn btn-primary"
-                            disabled={!apptDate || !reason.trim() || bookMutation.isPending}
-                            onClick={() => bookMutation.mutate()}
-                        >
-                            {bookMutation.isPending ? t('findDoctors.booking.submitting') : t('findDoctors.booking.submit')}
-                        </button>
-                    </>
-                }
-            >
-                <div style={{ display: 'grid', gap: '0.875rem' }}>
-                    <label style={{ display: 'grid', gap: '0.3rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('findDoctors.booking.dateLabel')}</span>
-                        <input
-                            type="datetime-local"
-                            value={apptDate}
-                            min={new Date().toISOString().slice(0, 16)}
-                            onChange={(e) => setApptDate(e.target.value)}
-                            style={{ padding: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 8 }}
-                        />
-                    </label>
-                    <label style={{ display: 'grid', gap: '0.3rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('findDoctors.booking.typeLabel')}</span>
-                        <select value={apptType} onChange={(e) => setApptType(e.target.value)} style={{ padding: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 8 }}>
-                            <option value="in_person">{t('findDoctors.booking.inPerson')}</option>
-                            <option value="telemedicine">{t('findDoctors.booking.telemedicine')}</option>
-                        </select>
-                    </label>
-                    <label style={{ display: 'grid', gap: '0.3rem' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{t('findDoctors.booking.reasonLabel')}</span>
-                        <textarea
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            rows={3}
-                            placeholder={t('findDoctors.booking.reasonPlaceholder')}
-                            style={{ padding: '0.5rem', border: '1px solid var(--border-light)', borderRadius: 8, resize: 'vertical' }}
-                        />
-                    </label>
-                </div>
-            </Modal>
+                lockedDoctorId={doctorId}
+                lockedDoctorName={doctor.full_name}
+            />
         </div>
     );
 }

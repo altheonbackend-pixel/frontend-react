@@ -169,6 +169,9 @@ export interface PatientPortalSettings {
     lab_result_notifications: boolean;
     visit_summary_notifications: boolean;
     marketing_emails: boolean;
+    latitude: number | null;
+    longitude: number | null;
+    location_label: string;
 }
 
 export interface PatientCondition {
