@@ -4,6 +4,7 @@ import api from '../../../shared/services/api';
 import PageLoader from '../../../shared/components/PageLoader';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
+import Avatar from '../../../shared/components/Avatar';
 import '../styles/AdminDoctorList.css';
 
 interface ActivePatient {
@@ -14,6 +15,7 @@ interface ActivePatient {
     status: string;
     created_at: string;
     primary_doctor: string | null;
+    avatar_url?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -94,11 +96,16 @@ const AdminActivePatientList = () => {
                             {data.results.map(patient => (
                                 <tr key={patient.id}>
                                     <td>
-                                        <span style={{ fontWeight: 500 }}>{patient.full_name}</span>
-                                        <br />
-                                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                            {patient.unique_id}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            <Avatar name={patient.full_name} src={patient.avatar_url} size="sm" />
+                                            <div>
+                                                <span style={{ fontWeight: 500 }}>{patient.full_name}</span>
+                                                <br />
+                                                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                    {patient.unique_id}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
                                         {patient.email ?? '—'}

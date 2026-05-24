@@ -5,6 +5,7 @@ import '../styles/AdminDoctorList.css';
 import PageLoader from '../../../shared/components/PageLoader';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { Pagination } from '../../../shared/components/Pagination';
+import Avatar from '../../../shared/components/Avatar';
 
 type Tab = 'active' | 'pending' | 'rejected';
 
@@ -241,12 +242,15 @@ const AdminDoctorList = ({ initialTab = 'active' }: { initialTab?: Tab }) => {
                             ) : doctors.map(doctor => (
                                 <tr key={doctor.id} className={`doctor-row ${doctor.is_active ? 'active' : 'inactive'}`}>
                                     <td>
-                                        <div className="doctor-name-cell">
-                                            <span className="doctor-name">{doctor.full_name}</span>
-                                            <span className="doctor-email">{doctor.email}</span>
-                                            {doctor.license_number && (
-                                                <span className="doctor-license">#{doctor.license_number}</span>
-                                            )}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                            <Avatar name={doctor.full_name} src={doctor.avatar_url} size="sm" />
+                                            <div className="doctor-name-cell">
+                                                <span className="doctor-name">{doctor.full_name}</span>
+                                                <span className="doctor-email">{doctor.email}</span>
+                                                {doctor.license_number && (
+                                                    <span className="doctor-license">#{doctor.license_number}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td>{doctor.specialty_display || doctor.specialty || '—'}</td>

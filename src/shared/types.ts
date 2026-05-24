@@ -596,4 +596,5 @@ export interface AdminDoctor {
     verification_status_display?: string | null;
     rejection_reason: string;
     date_joined: string | null;
+    avatar_url?: string | null;
 }
