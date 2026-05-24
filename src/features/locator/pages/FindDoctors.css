@@ -210,6 +210,18 @@
     gap: 0.3rem;
     align-items: flex-start;
 }
+.doc-card__actions {
+    margin-top: 0.55rem;
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.btn.btn-xs {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    border-radius: 8px;
+}
 
 /* ── Map ──────────────────────────────────────────────────────────────── */
 .locator__map {

@@ -11,6 +11,7 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 import api from '../../../shared/services/api';
 import { formatPortalDate, formatPortalDateTime } from '../utils/i18n';
+import { openDirections } from '../../../shared/utils/directions';
 
 export default function PatientDashboard() {
     const { t, i18n } = useTranslation();
@@ -124,24 +125,55 @@ export default function PatientDashboard() {
             {/* Next appointment + Outstanding actions */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
                 <SectionCard title={t('patient_portal.dashboard.next_appointment')} empty={{ title: t('patient_portal.dashboard.no_upcoming_appointment'), subtitle: t('patient_portal.dashboard.no_upcoming_appointment_subtitle') }}>
-                    {next_appointment ? (
-                        <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
-                                <div>
-                                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{next_appointment.doctor_name}</div>
-                                    <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{next_appointment.specialty}</div>
+                    {next_appointment ? (() => {
+                        // Surface "Get directions" only on the day of the appointment for
+                        // in-person visits with a known clinic location — keeps the
+                        // dashboard tidy and avoids stale routing.
+                        const apptLocal = new Date(next_appointment.appointment_date);
+                        const today = new Date();
+                        const isSameDay = apptLocal.getFullYear() === today.getFullYear()
+                            && apptLocal.getMonth() === today.getMonth()
+                            && apptLocal.getDate() === today.getDate();
+                        const isInPerson = next_appointment.appointment_type !== 'telemedicine';
+                        const hasLocation = !!next_appointment.clinic_address
+                            || (next_appointment.clinic_latitude != null && next_appointment.clinic_longitude != null);
+                        const showDirections = isSameDay && isInPerson && hasLocation
+                            && ['confirmed', 'scheduled', 'in_progress'].includes(next_appointment.status);
+                        return (
+                            <div style={{ display: 'grid', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{next_appointment.doctor_name}</div>
+                                        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>{next_appointment.specialty}</div>
+                                    </div>
+                                    <StatusBadge status={next_appointment.status} />
                                 </div>
-                                <StatusBadge status={next_appointment.status} />
+                                <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatPortalDateTime(next_appointment.appointment_date, i18n.resolvedLanguage)}</div>
+                                <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                    {next_appointment.status === 'pending'
+                                        ? t('patient_portal.dashboard.waiting_for_approval')
+                                        : next_appointment.portal_instructions || t('patient_portal.dashboard.appointment_confirmed')}
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {showDirections && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() => openDirections({
+                                                lat: next_appointment.clinic_latitude,
+                                                lng: next_appointment.clinic_longitude,
+                                                address: next_appointment.clinic_address,
+                                                label: next_appointment.doctor_name,
+                                            })}
+                                        >
+                                            🧭 {t('patient_portal.dashboard.start_travel')}
+                                        </button>
+                                    )}
+                                    <Link to="/patient/appointments" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>{t('patient_portal.dashboard.view_all_appointments')}</Link>
+                                </div>
                             </div>
-                            <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatPortalDateTime(next_appointment.appointment_date, i18n.resolvedLanguage)}</div>
-                            <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                                {next_appointment.status === 'pending'
-                                    ? t('patient_portal.dashboard.waiting_for_approval')
-                                    : next_appointment.portal_instructions || t('patient_portal.dashboard.appointment_confirmed')}
-                            </div>
-                            <Link to="/patient/appointments" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>{t('patient_portal.dashboard.view_all_appointments')}</Link>
-                        </div>
-                    ) : null}
+                        );
+                    })() : null}
                 </SectionCard>
 
                 <SectionCard title={t('patient_portal.dashboard.outstanding_actions')}>

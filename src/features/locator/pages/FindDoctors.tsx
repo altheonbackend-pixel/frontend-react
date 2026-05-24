@@ -12,6 +12,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { patientPortalService } from '../../patient-portal/services/patientPortalService';
 import { locatorService } from '../services/locatorService';
 import type { DoctorSearchResult } from '../types';
+import { openDirections } from '../../../shared/utils/directions';
 import './FindDoctors.css';
 
 const DEFAULT_CENTER: [number, number] = [46.6, 2.5]; // Western Europe overview
@@ -45,7 +46,6 @@ export default function FindDoctors() {
     const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
     const [radius, setRadius] = useState(25);
     const [specialty, setSpecialty] = useState('');
-    const [acceptingNew, setAcceptingNew] = useState(false);
     const [placeQuery, setPlaceQuery] = useState('');
     const [recenterTo, setRecenterTo] = useState<[number, number] | null>(null);
     const [viewport, setViewport] = useState<MapBounds | null>(null);
@@ -78,8 +78,7 @@ export default function FindDoctors() {
         lng: origin?.lng,
         radius_km: origin ? radius : undefined,
         specialty: specialty || undefined,
-        accepting_new: acceptingNew || undefined,
-    }), [origin, radius, specialty, acceptingNew]);
+    }), [origin, radius, specialty]);
 
     const { data: listData, isLoading: listLoading, isError: listError } = useQuery({
         queryKey: queryKeys.locator.search(listParams),
@@ -89,14 +88,13 @@ export default function FindDoctors() {
 
     // ── Map pins for the current viewport ──────────────────────────────────
     const { data: pinData } = useQuery({
-        queryKey: queryKeys.locator.mapPins({ ...debouncedViewport, specialty, acceptingNew }),
+        queryKey: queryKeys.locator.mapPins({ ...debouncedViewport, specialty }),
         queryFn: () => locatorService.getMapPins({
             north: debouncedViewport!.north,
             south: debouncedViewport!.south,
             east: debouncedViewport!.east,
             west: debouncedViewport!.west,
             specialty: specialty || undefined,
-            accepting_new: acceptingNew || undefined,
         }),
         enabled: !!debouncedViewport,
         staleTime: 30_000,
@@ -210,11 +208,6 @@ export default function FindDoctors() {
                     >
                         {RADII.map(r => <option key={r} value={r}>{t('findDoctors.withinKm', { km: r })}</option>)}
                     </select>
-
-                    <label className="locator__checkbox">
-                        <input type="checkbox" checked={acceptingNew} onChange={(e) => setAcceptingNew(e.target.checked)} />
-                        {t('findDoctors.acceptingNew')}
-                    </label>
                 </div>
             </div>
 
@@ -248,34 +241,56 @@ export default function FindDoctors() {
                         </div>
                     )}
 
-                    {results.map(d => (
-                        <div
-                            key={d.id}
-                            className="doc-card"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => goToDoctor(d)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') goToDoctor(d); }}
-                        >
-                            <div className="doc-card__avatar" aria-hidden="true">{initials(d.full_name)}</div>
-                            <div className="doc-card__body">
-                                <p className="doc-card__name">{d.full_name}</p>
-                                <div className="doc-card__meta">
-                                    <span className="doc-card__pill">{d.specialty_display}</span>
-                                    {d.distance_km != null && (
-                                        <span className="doc-card__distance">{t('findDoctors.kmAway', { km: d.distance_km })}</span>
-                                    )}
-                                    {d.accepting_referrals && <span className="doc-card__badge">{t('findDoctors.acceptingBadge')}</span>}
-                                </div>
-                                {d.nearest_location && (
-                                    <div className="doc-card__address">
-                                        <span aria-hidden="true">📍</span>
-                                        <span>{d.nearest_location.full_address}</span>
+                    {results.map(d => {
+                        const loc = d.nearest_location;
+                        const canRoute = !!loc && ((loc.latitude != null && loc.longitude != null) || !!loc.full_address);
+                        return (
+                            <div
+                                key={d.id}
+                                className="doc-card"
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => goToDoctor(d)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') goToDoctor(d); }}
+                            >
+                                <div className="doc-card__avatar" aria-hidden="true">{initials(d.full_name)}</div>
+                                <div className="doc-card__body">
+                                    <p className="doc-card__name">{d.full_name}</p>
+                                    <div className="doc-card__meta">
+                                        <span className="doc-card__pill">{d.specialty_display}</span>
+                                        {d.distance_km != null && (
+                                            <span className="doc-card__distance">{t('findDoctors.kmAway', { km: d.distance_km })}</span>
+                                        )}
                                     </div>
-                                )}
+                                    {loc && (
+                                        <div className="doc-card__address">
+                                            <span aria-hidden="true">📍</span>
+                                            <span>{loc.full_address}</span>
+                                        </div>
+                                    )}
+                                    {canRoute && (
+                                        <div className="doc-card__actions">
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary btn-xs"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openDirections({
+                                                        lat: loc!.latitude,
+                                                        lng: loc!.longitude,
+                                                        address: loc!.full_address,
+                                                        label: d.full_name,
+                                                    });
+                                                }}
+                                            >
+                                                {t('findDoctors.getDirections')}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 <div className="locator__map">

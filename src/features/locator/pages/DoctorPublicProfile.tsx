@@ -9,6 +9,7 @@ import { queryKeys } from '../../../shared/queryKeys';
 import { useAuth } from '../../auth/hooks/useAuth';
 import RequestAppointmentModal from '../../patient-portal/components/RequestAppointmentModal';
 import { locatorService } from '../services/locatorService';
+import { openDirections } from '../../../shared/utils/directions';
 import './FindDoctors.css';
 
 function initials(name: string) {
@@ -99,9 +100,6 @@ export default function DoctorPublicProfile() {
                     <h1 className="docprofile__name">{doctor.full_name}</h1>
                     <p className="docprofile__specialty">{doctor.specialty_display}</p>
                     <div className="docprofile__badges">
-                        {doctor.accepting_referrals && (
-                            <span className="doc-card__badge">{t('findDoctors.acceptingBadge')}</span>
-                        )}
                         {doctor.languages?.length > 0 && (
                             <span className="doc-card__pill">{doctor.languages.join(' · ').toUpperCase()}</span>
                         )}
@@ -119,7 +117,6 @@ export default function DoctorPublicProfile() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div className="docprofile__card">
                         <h2>{t('findDoctors.profile.about')}</h2>
-                        <InfoRow label={t('findDoctors.profile.acceptingNew')} value={doctor.accepting_referrals ? t('common.yes', 'Yes') : t('common.no', 'No')} />
                         {doctor.consultation_fee && (
                             <InfoRow label={t('findDoctors.profile.fee')} value={`${doctor.consultation_fee} ${doctor.currency ?? ''}`} />
                         )}
@@ -134,16 +131,35 @@ export default function DoctorPublicProfile() {
                         {doctor.locations.length === 0 && (
                             <p style={{ color: 'var(--text-muted)', margin: 0 }}>{t('findDoctors.profile.noLocations')}</p>
                         )}
-                        {doctor.locations.map(l => (
-                            <div key={l.id} className="docprofile__loc">
-                                <p className="docprofile__loc-name">
-                                    {l.label || l.city}
-                                    {l.is_primary && <span className="docprofile__star">★ {t('findDoctors.profile.primary')}</span>}
-                                </p>
-                                <div className="docprofile__loc-addr">{l.full_address}</div>
-                                {l.phone && <div className="docprofile__loc-phone">📞 {l.phone}</div>}
-                            </div>
-                        ))}
+                        {doctor.locations.map(l => {
+                            const canRoute = (l.latitude != null && l.longitude != null) || !!l.full_address;
+                            return (
+                                <div key={l.id} className="docprofile__loc">
+                                    <p className="docprofile__loc-name">
+                                        {l.label || l.city}
+                                        {l.is_primary && <span className="docprofile__star">★ {t('findDoctors.profile.primary')}</span>}
+                                    </p>
+                                    <div className="docprofile__loc-addr">{l.full_address}</div>
+                                    {l.phone && <div className="docprofile__loc-phone">📞 {l.phone}</div>}
+                                    {canRoute && (
+                                        <div className="doc-card__actions" style={{ marginTop: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary btn-xs"
+                                                onClick={() => openDirections({
+                                                    lat: l.latitude,
+                                                    lng: l.longitude,
+                                                    address: l.full_address,
+                                                    label: l.label || doctor.full_name,
+                                                })}
+                                            >
+                                                {t('findDoctors.getDirections')}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {center && (

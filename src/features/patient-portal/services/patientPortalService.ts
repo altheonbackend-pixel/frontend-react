@@ -8,7 +8,11 @@ export interface PatientDashboardData {
         doctor_name: string;
         specialty: string;
         status: string;
+        appointment_type?: 'in_person' | 'telemedicine';
         portal_instructions: string;
+        clinic_address?: string | null;
+        clinic_latitude?: number | null;
+        clinic_longitude?: number | null;
     } | null;
     active_medications_count: number;
     active_medications: { name: string; note: string }[];
@@ -33,6 +37,9 @@ export interface PatientAppointment {
     doctor_name: string;
     specialty: string;
     clinic: string | null;
+    clinic_address: string | null;
+    clinic_latitude: number | null;
+    clinic_longitude: number | null;
     appointment_date: string;
     reason_for_appointment: string;
     status: 'pending' | 'scheduled' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'rejected' | 'no_show' | 'rescheduled';

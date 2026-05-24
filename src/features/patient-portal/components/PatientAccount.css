@@ -1,0 +1,15 @@
+/* Patient portal Account page — overrides + extras for the shared rail layout.
+   Layout primitives come from features/profile/styles/Settings.css. */
+
+.patient-profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 720px) {
+    .patient-profile-grid {
+        grid-template-columns: 1fr;
+    }
+}

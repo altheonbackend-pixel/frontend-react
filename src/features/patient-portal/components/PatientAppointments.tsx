@@ -13,6 +13,7 @@ import { parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 import { formatPortalDate, formatPortalDateTime, formatPortalTime } from '../utils/i18n';
+import { openDirections } from '../../../shared/utils/directions';
 import RequestAppointmentModal from './RequestAppointmentModal';
 
 const UPCOMING_STATUSES = ['pending', 'scheduled', 'confirmed', 'in_progress'];
@@ -281,6 +282,26 @@ export default function PatientAppointments() {
                                                 ? t('patient_portal.appointments.note.rejected_with_reason', { reason: item.cancellation_reason })
                                                 : t('patient_portal.appointments.note.rejected'))
                                             : item.portal_instructions || item.notes}
+                                    </div>
+                                )}
+
+                                {/* Get directions — show for confirmed in-person appointments with a known clinic location. */}
+                                {item.appointment_type === 'in_person'
+                                    && ['confirmed', 'scheduled', 'in_progress'].includes(item.status)
+                                    && (item.clinic_address || (item.clinic_latitude != null && item.clinic_longitude != null)) && (
+                                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-secondary"
+                                            onClick={() => openDirections({
+                                                lat: item.clinic_latitude,
+                                                lng: item.clinic_longitude,
+                                                address: item.clinic_address,
+                                                label: item.clinic || item.doctor_name,
+                                            })}
+                                        >
+                                            🧭 {t('patient_portal.appointments.get_directions')}
+                                        </button>
                                     </div>
                                 )}
 

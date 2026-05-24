@@ -94,7 +94,7 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                 />
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 360px) minmax(0, 1fr)', gap: '1rem' }}>
+            <div className="patient-profile-grid">
                 <SectionCard>
                     <div style={{ display: 'grid', justifyItems: 'center', gap: '0.75rem' }}>
                         <Avatar name={profile.full_name} size="xl" ring />
@@ -104,7 +104,6 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                         </div>
                         <div style={{ width: '100%', display: 'grid', gap: '0.65rem', marginTop: '0.5rem' }}>
                             {[
-                                { label: t('patient_portal.profile.patient_id'), value: profile.patient_id },
                                 { label: t('patient_portal.profile.date_of_birth'), value: profile.date_of_birth ?? '—' },
                                 { label: t('patient_portal.profile.blood_group'), value: profile.blood_group ?? '—' },
                                 { label: t('patient_portal.profile.primary_doctor'), value: profile.primary_doctor_name ?? '—' },
@@ -115,6 +114,27 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                                 </div>
                             ))}
                         </div>
+                        {profile.patient_id && (
+                            <div
+                                title={profile.patient_id}
+                                style={{
+                                    width: '100%',
+                                    marginTop: '0.25rem',
+                                    padding: '0.4rem 0.65rem',
+                                    fontSize: '0.7rem',
+                                    color: 'var(--text-muted)',
+                                    textAlign: 'center',
+                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                    background: 'var(--bg-subtle)',
+                                    borderRadius: 'var(--radius-sm)',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
+                                {t('patient_portal.profile.patient_id')}: {profile.patient_id}
+                            </div>
+                        )}
                     </div>
                 </SectionCard>
 

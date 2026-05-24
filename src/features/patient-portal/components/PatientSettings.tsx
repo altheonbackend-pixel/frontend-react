@@ -63,7 +63,10 @@ const STATUS_BADGE: Record<string, { labelKey: string; style: React.CSSPropertie
     rejected: { labelKey: 'patient_portal.settings.update_status.rejected', style: { background: 'var(--danger-subtle, #f8d7da)',  color: 'var(--danger, #58151c)' } },
 };
 
-export default function PatientSettings({ asTab = false }: { asTab?: boolean }) {
+export type PatientSettingsSection = 'preferences' | 'location' | 'security' | 'notifications' | 'requests' | 'all';
+
+export default function PatientSettings({ asTab = false, section = 'all' }: { asTab?: boolean; section?: PatientSettingsSection }) {
+    const show = (s: PatientSettingsSection) => section === 'all' || section === s;
     const { t, i18n } = useTranslation();
     usePageTitle(t('patient_portal.settings.document_title'));
     const queryClient = useQueryClient();
@@ -263,6 +266,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* ── Language & timezone ── */}
+                {show('preferences') && (
                 <div className="settings-card">
                     <div className="settings-card-head">
                         <h2 className="settings-card-title">{t('patient_portal.settings.language_section')}</h2>
@@ -303,8 +307,10 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* ── My location ── */}
+                {show('location') && (
                 <div className="settings-card">
                     <div className="settings-card-head">
                         <h2 className="settings-card-title">{t('patientLocation.title')}</h2>
@@ -361,8 +367,10 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                         </div>
                     </div>
                 </div>
+                )}
 
                 {/* ── Change password ── */}
+                {show('security') && (
                 <form className="settings-card" onSubmit={handlePasswordSubmit}>
                     <div className="settings-card-head">
                         <h2 className="settings-card-title">{t('patient_portal.settings.change_password')}</h2>
@@ -414,8 +422,10 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                         </button>
                     </div>
                 </form>
+                )}
 
                 {/* ── Notification preferences ── */}
+                {show('notifications') && (
                 <div className="settings-card">
                     <div className="settings-card-head">
                         <h2 className="settings-card-title">{t('patient_portal.settings.notification_preferences')}</h2>
@@ -437,8 +447,10 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                         ))}
                     </div>
                 </div>
+                )}
 
                 {/* ── Request profile update ── */}
+                {show('requests') && (
                 <div className="settings-card">
                     <div className="settings-card-head">
                         <h2 className="settings-card-title">{t('patient_portal.settings.request_profile_update')}</h2>
@@ -528,6 +540,7 @@ export default function PatientSettings({ asTab = false }: { asTab?: boolean }) 
                         )}
                     </div>
                 </div>
+                )}
             </div>
         </>
     );
