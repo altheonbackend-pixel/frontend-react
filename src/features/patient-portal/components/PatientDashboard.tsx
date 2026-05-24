@@ -10,11 +10,12 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { queryKeys } from '../../../shared/queryKeys';
 import { patientPortalService } from '../services/patientPortalService';
 import api from '../../../shared/services/api';
-import { formatPortalDate, formatPortalDateTime } from '../utils/i18n';
+import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import { openDirections } from '../../../shared/utils/directions';
 
 export default function PatientDashboard() {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
+    const { formatDate, formatDateTime } = useFormatDateTime();
     const { patientProfile } = useAuth();
     usePageTitle(t('patient_portal.dashboard.document_title'));
     const [downloading, setDownloading] = useState(false);
@@ -148,7 +149,7 @@ export default function PatientDashboard() {
                                     </div>
                                     <StatusBadge status={next_appointment.status} />
                                 </div>
-                                <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatPortalDateTime(next_appointment.appointment_date, i18n.resolvedLanguage)}</div>
+                                <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', fontWeight: 600 }}>{formatDateTime(next_appointment.appointment_date)}</div>
                                 <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                                     {next_appointment.status === 'pending'
                                         ? t('patient_portal.dashboard.waiting_for_approval')
@@ -262,7 +263,7 @@ export default function PatientDashboard() {
                     {latest_visible_consultation ? (
                         <div style={{ display: 'grid', gap: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatPortalDate(latest_visible_consultation.consultation_date, i18n.resolvedLanguage)}</div>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{formatDate(latest_visible_consultation.consultation_date)}</div>
                                 <Link to="/patient/health?tab=visits" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>{t('patient_portal.common.view_all')}</Link>
                             </div>
                             <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>{latest_visible_consultation.patient_summary || t('patient_portal.dashboard.visit_summary_available')}</div>
@@ -277,7 +278,7 @@ export default function PatientDashboard() {
                                 <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{latest_lab_result.test_name}</div>
                                 <StatusBadge status={latest_lab_result.status} />
                             </div>
-                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{formatPortalDate(latest_lab_result.test_date, i18n.resolvedLanguage)}</div>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{formatDate(latest_lab_result.test_date)}</div>
                             <Link to="/patient/health?tab=labs" style={{ fontSize: '0.82rem', color: 'var(--accent)' }}>{t('patient_portal.dashboard.view_all_lab_results')}</Link>
                         </div>
                     ) : null}
