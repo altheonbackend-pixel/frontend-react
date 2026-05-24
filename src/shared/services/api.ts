@@ -17,8 +17,19 @@ const api = axios.create({
     },
 });
 
-// No request interceptor for Authorization header — the httpOnly 'access_token' cookie
-// is attached automatically by the browser on every request. Tokens never touch JS memory.
+// No Authorization header interceptor — the httpOnly 'access_token' cookie is
+// attached automatically by the browser on every request. Tokens never touch JS memory.
+
+// Request interceptor: for FormData bodies (file uploads — avatars, registration,
+// lab results) drop the instance-default 'application/json' Content-Type so the
+// browser sets 'multipart/form-data; boundary=…'. Without this the server rejects
+// the multipart body with 415 Unsupported Media Type.
+api.interceptors.request.use((config) => {
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+        config.headers.delete('Content-Type');
+    }
+    return config;
+});
 
 // --- Concurrent 401 refresh queue ---
 // Prevents race condition where multiple simultaneous 401 responses all try to refresh
