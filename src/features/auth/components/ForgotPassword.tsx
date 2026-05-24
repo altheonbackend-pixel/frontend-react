@@ -35,51 +35,55 @@ function ForgotPassword() {
 
     if (submitted) {
         return (
-            <div className="auth-container">
-                <h2 className="login-title">{t('auth.forgot.check_email_title')}</h2>
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                    {t('auth.forgot.sent_prefix')} <strong>{submittedEmail}</strong> {t('auth.forgot.sent_suffix')}
-                </p>
-                <p style={{ textAlign: 'center' }}>
-                    <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
-                        {t('auth.back_to_login')}
-                    </Link>
-                </p>
+            <div className="auth-page-wrapper">
+                <div className="auth-container">
+                    <h2 className="login-title">{t('auth.forgot.check_email_title')}</h2>
+                    <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                        {t('auth.forgot.sent_prefix')} <strong>{submittedEmail}</strong> {t('auth.forgot.sent_suffix')}
+                    </p>
+                    <p style={{ textAlign: 'center' }}>
+                        <Link to="/login" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+                            {t('auth.back_to_login')}
+                        </Link>
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="auth-container">
-            <h2 className="login-title">{t('auth.forgot.title')}</h2>
-            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                {t('auth.forgot.subtitle')}
-            </p>
+        <div className="auth-page-wrapper">
+            <div className="auth-container">
+                <h2 className="login-title">{t('auth.forgot.title')}</h2>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                    {t('auth.forgot.subtitle')}
+                </p>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
-                {errors.root && <p className="error-message">{errors.root.message}</p>}
+                <form onSubmit={handleSubmit(onSubmit)} className="auth-form" noValidate>
+                    {errors.root && <p className="error-message">{errors.root.message}</p>}
 
-                <div className="form-group">
-                    <label htmlFor="email">{t('login.email_label')}</label>
-                    <input
-                        type="email"
-                        id="email"
-                        className="input"
-                        autoFocus
-                        disabled={isSubmitting}
-                        {...register('email')}
-                    />
-                    {errors.email && <span className="field-error">{errors.email.message}</span>}
-                </div>
+                    <div className="form-group">
+                        <label htmlFor="email">{t('login.email_label')}</label>
+                        <input
+                            type="email"
+                            id="email"
+                            className="input"
+                            autoFocus
+                            disabled={isSubmitting}
+                            {...register('email')}
+                        />
+                        {errors.email && <span className="field-error">{errors.email.message}</span>}
+                    </div>
 
-                <button type="submit" className="btn btn-primary btn-full" disabled={isSubmitting}>
-                    {isSubmitting ? t('common.sending') : t('auth.forgot.send_reset_link')}
-                </button>
-            </form>
+                    <button type="submit" className="btn btn-primary btn-full" disabled={isSubmitting}>
+                        {isSubmitting ? t('common.sending') : t('auth.forgot.send_reset_link')}
+                    </button>
+                </form>
 
-            <p className="register-link-text">
-                <Link to="/login">{t('auth.back_to_login')}</Link>
-            </p>
+                <p className="register-link-text">
+                    <Link to="/login">{t('auth.back_to_login')}</Link>
+                </p>
+            </div>
         </div>
     );
 }
