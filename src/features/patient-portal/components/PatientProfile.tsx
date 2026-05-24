@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../../shared/components/PageHeader';
 import { SectionCard, TabSkeleton } from '../../../shared/components/SectionCard';
 import AvatarManager from '../../../shared/components/AvatarManager';
+import { useAuth } from '../../auth/hooks/useAuth';
 import { usePageTitle } from '../../../shared/hooks/usePageTitle';
 import { toast, parseApiError } from '../../../shared/components/ui/toast';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -23,6 +24,7 @@ type PatientProfileFormData = z.infer<typeof patientProfileSchema>;
 
 export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
     const { t } = useTranslation();
+    const { setPatientAvatar } = useAuth();
     usePageTitle(t('patient_portal.profile.document_title'));
     const queryClient = useQueryClient();
 
@@ -102,13 +104,15 @@ export default function PatientProfile({ asTab = false }: { asTab?: boolean }) {
                             currentUrl={profile.avatar_url}
                             mode="both"
                             onUpload={async (blob) => {
-                                await patientPortalService.uploadAvatar(blob);
+                                const res = await patientPortalService.uploadAvatar(blob);
                                 queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profile() });
+                                setPatientAvatar(res?.avatar_url ?? null);  // live-update sidebar/topbar
                                 toast.success(t('settings.avatar.updated'));
                             }}
                             onRemove={async () => {
                                 await patientPortalService.removeAvatar();
                                 queryClient.invalidateQueries({ queryKey: queryKeys.patientPortal.profile() });
+                                setPatientAvatar(null);
                                 toast.success(t('settings.avatar.removed'));
                             }}
                         />

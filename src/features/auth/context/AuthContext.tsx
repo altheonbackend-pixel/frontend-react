@@ -17,6 +17,7 @@ interface AuthContextType {
     authIsLoading: boolean;
     updateProfileData: (newProfile: DoctorProfile) => void;
     setPatientLanguage: (language: string) => void;
+    setPatientAvatar: (avatarUrl: string | null) => void;
     hasAccessLevel: (requiredLevel: number) => boolean;
     emailVerified: boolean;
     profileComplete: boolean;
@@ -105,6 +106,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setPatientProfile(prev => (prev ? { ...prev, preferred_language: normalized } : prev));
     }, []);
 
+    // Keep the sidebar/topbar avatar in sync the moment the patient uploads or
+    // removes their photo on the Account page — without a full page reload.
+    const setPatientAvatar = useCallback((avatarUrl: string | null) => {
+        setPatientProfile(prev => (prev ? { ...prev, avatar_url: avatarUrl } : prev));
+    }, []);
+
     /**
      * Validate the current session by calling /api/me/.
      *
@@ -148,6 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     email_verified: patientProfileData?.email_verified ?? true,
                     claim_status: patientProfileData?.claim_status || 'claimed',
                     preferred_language: normalizePortalLanguage(patientProfileData?.preferred_language),
+                    avatar_url: patientProfileData?.avatar_url ?? null,
                 });
                 localStorage.setItem('user_type', 'patient');
             } else {
@@ -244,6 +252,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 email_verified: true,
                 claim_status: portalProfile?.claim_status || 'claimed',
                 preferred_language: normalizePortalLanguage(portalProfile?.preferred_language),
+                avatar_url: portalProfile?.avatar_url ?? null,
             });
             setProfile(null);
             setAdminProfile(null);
@@ -299,7 +308,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const value = {
         user, profile, adminProfile, patientProfile, userType, login, logout,
-        isAuthenticated, authIsLoading, updateProfileData, setPatientLanguage,
+        isAuthenticated, authIsLoading, updateProfileData, setPatientLanguage, setPatientAvatar,
         hasAccessLevel, emailVerified, profileComplete, verificationStatus,
     };
 
