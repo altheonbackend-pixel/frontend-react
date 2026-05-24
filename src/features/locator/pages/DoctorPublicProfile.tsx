@@ -45,6 +45,10 @@ export default function DoctorPublicProfile() {
     usePageTitle(doctor?.full_name ?? t('findDoctors.profile.title'));
 
     const [bookingOpen, setBookingOpen] = useState(false);
+    // Arriving from the "Online consultation" search (?type=video) pre-selects
+    // a telemedicine visit in the booking modal.
+    const bookingType: 'in_person' | 'telemedicine' =
+        new URLSearchParams(location.search).get('type') === 'video' ? 'telemedicine' : 'in_person';
 
     const markers: MapMarker[] = useMemo(() => (doctor?.locations ?? [])
         .filter(l => l.latitude != null && l.longitude != null)
@@ -191,6 +195,7 @@ export default function DoctorPublicProfile() {
                 onClose={() => setBookingOpen(false)}
                 lockedDoctorId={doctorId}
                 lockedDoctorName={doctor.full_name}
+                defaultAppointmentType={bookingType}
             />
         </div>
     );

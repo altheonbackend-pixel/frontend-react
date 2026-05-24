@@ -188,6 +188,47 @@
     font-weight: 600;
     color: var(--text-secondary, #475569);
 }
+.doc-card__pill--video {
+    background: color-mix(in srgb, var(--loc-brand) 14%, transparent);
+    color: var(--loc-brand);
+}
+
+/* ── Search-mode toggle (Near me / Online consultation) ── */
+.locator__mode {
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--bg-subtle, #f1f5f9);
+    border-radius: 999px;
+    margin-bottom: 0.75rem;
+}
+.locator__mode button {
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #475569);
+    cursor: pointer;
+}
+.locator__mode button.is-active {
+    background: var(--loc-brand);
+    color: #fff;
+}
+.locator__online-note {
+    background: color-mix(in srgb, var(--loc-brand) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--loc-brand) 25%, transparent);
+    color: var(--text-secondary, #475569);
+    border-radius: var(--radius-md, 10px);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+}
+/* In online mode the body is a single full-width list (no map column). */
+.locator__body[data-online="true"] {
+    grid-template-columns: 1fr;
+}
 .doc-card__distance {
     color: var(--loc-brand);
     font-weight: 700;

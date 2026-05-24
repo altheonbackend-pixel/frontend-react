@@ -45,6 +45,10 @@ export default function FindDoctors() {
     // Search origin used for distance ranking (null = pure text search).
     const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
     const [radius, setRadius] = useState(25);
+    // 'near_me' = location + radius + map (in-person). 'online' = global search
+    // with no location filter, for booking video (telemedicine) consultations.
+    const [searchMode, setSearchMode] = useState<'near_me' | 'online'>('near_me');
+    const online = searchMode === 'online';
     const [specialty, setSpecialty] = useState('');
     const [placeQuery, setPlaceQuery] = useState('');
     const [recenterTo, setRecenterTo] = useState<[number, number] | null>(null);
@@ -72,13 +76,19 @@ export default function FindDoctors() {
         }
     }, [savedSettings, origin]);
 
-    // ── List results (distance search when origin set, else text search) ────
-    const listParams = useMemo(() => ({
-        lat: origin?.lat,
-        lng: origin?.lng,
-        radius_km: origin ? radius : undefined,
-        specialty: specialty || undefined,
-    }), [origin, radius, specialty]);
+    // ── List results ────────────────────────────────────────────────────────
+    // Online mode: no location params → backend returns ALL doctors (global).
+    // Near-me mode: distance search when origin set, else text search.
+    const listParams = useMemo(() => (
+        online
+            ? { specialty: specialty || undefined }
+            : {
+                lat: origin?.lat,
+                lng: origin?.lng,
+                radius_km: origin ? radius : undefined,
+                specialty: specialty || undefined,
+            }
+    ), [online, origin, radius, specialty]);
 
     const { data: listData, isLoading: listLoading, isError: listError } = useQuery({
         queryKey: queryKeys.locator.search(listParams),
@@ -162,8 +172,9 @@ export default function FindDoctors() {
         if (d.nearest_location?.latitude != null && d.nearest_location?.longitude != null) {
             setRecenterTo([d.nearest_location.latitude, d.nearest_location.longitude]);
         }
-        navigate(`/find-doctors/${d.id}`);
-    }, [navigate]);
+        // Carry the video intent so the profile defaults the booking to telemedicine.
+        navigate(`/find-doctors/${d.id}${online ? '?type=video' : ''}`);
+    }, [navigate, online]);
 
     const results = listData?.results ?? [];
 
@@ -174,25 +185,55 @@ export default function FindDoctors() {
                 <p className="locator__subtitle">{t('findDoctors.subtitle')}</p>
             </header>
 
+            {/* Mode: near me (in-person, map) vs online (global, video consult) */}
+            <div className="locator__mode" role="tablist" aria-label={t('findDoctors.mode.label')}>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={!online}
+                    className={!online ? 'is-active' : ''}
+                    onClick={() => setSearchMode('near_me')}
+                >
+                    📍 {t('findDoctors.mode.nearMe')}
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={online}
+                    className={online ? 'is-active' : ''}
+                    onClick={() => setSearchMode('online')}
+                >
+                    📹 {t('findDoctors.mode.online')}
+                </button>
+            </div>
+
+            {online && (
+                <div className="locator__online-note">
+                    {t('findDoctors.mode.onlineNote')}
+                </div>
+            )}
+
             <div className="locator__toolbar">
-                <form className="locator__search" onSubmit={searchPlace}>
-                    <div className="locator__search-input">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" strokeLinecap="round" />
-                        </svg>
-                        <input
-                            type="text"
-                            value={placeQuery}
-                            onChange={(e) => setPlaceQuery(e.target.value)}
-                            placeholder={t('findDoctors.placePlaceholder')}
-                            aria-label={t('findDoctors.placePlaceholder')}
-                        />
-                    </div>
-                    <button type="submit" className="btn btn-secondary btn-sm">{t('findDoctors.search')}</button>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={useMyLocation} disabled={geoLoading}>
-                        {geoLoading ? t('findDoctors.locating') : t('findDoctors.useMyLocation')}
-                    </button>
-                </form>
+                {!online && (
+                    <form className="locator__search" onSubmit={searchPlace}>
+                        <div className="locator__search-input">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" strokeLinecap="round" />
+                            </svg>
+                            <input
+                                type="text"
+                                value={placeQuery}
+                                onChange={(e) => setPlaceQuery(e.target.value)}
+                                placeholder={t('findDoctors.placePlaceholder')}
+                                aria-label={t('findDoctors.placePlaceholder')}
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-secondary btn-sm">{t('findDoctors.search')}</button>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={useMyLocation} disabled={geoLoading}>
+                            {geoLoading ? t('findDoctors.locating') : t('findDoctors.useMyLocation')}
+                        </button>
+                    </form>
+                )}
 
                 <div className="locator__filters">
                     <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} aria-label={t('findDoctors.specialty')}>
@@ -200,27 +241,31 @@ export default function FindDoctors() {
                         {specialties?.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
 
-                    <select
-                        value={radius}
-                        onChange={(e) => setRadius(Number(e.target.value))}
-                        disabled={!origin}
-                        aria-label={t('findDoctors.radius')}
-                    >
-                        {RADII.map(r => <option key={r} value={r}>{t('findDoctors.withinKm', { km: r })}</option>)}
-                    </select>
+                    {!online && (
+                        <select
+                            value={radius}
+                            onChange={(e) => setRadius(Number(e.target.value))}
+                            disabled={!origin}
+                            aria-label={t('findDoctors.radius')}
+                        >
+                            {RADII.map(r => <option key={r} value={r}>{t('findDoctors.withinKm', { km: r })}</option>)}
+                        </select>
+                    )}
                 </div>
             </div>
 
-            <div className="locator__view-toggle" role="tablist">
-                <button type="button" className={mobileView === 'list' ? 'is-active' : ''} onClick={() => setMobileView('list')}>
-                    {t('findDoctors.showList')}
-                </button>
-                <button type="button" className={mobileView === 'map' ? 'is-active' : ''} onClick={() => setMobileView('map')}>
-                    {t('findDoctors.showMap')}
-                </button>
-            </div>
+            {!online && (
+                <div className="locator__view-toggle" role="tablist">
+                    <button type="button" className={mobileView === 'list' ? 'is-active' : ''} onClick={() => setMobileView('list')}>
+                        {t('findDoctors.showList')}
+                    </button>
+                    <button type="button" className={mobileView === 'map' ? 'is-active' : ''} onClick={() => setMobileView('map')}>
+                        {t('findDoctors.showMap')}
+                    </button>
+                </div>
+            )}
 
-            <div className="locator__body" data-mobile-view={mobileView}>
+            <div className="locator__body" data-mobile-view={online ? 'list' : mobileView} data-online={online ? 'true' : undefined}>
                 <div className="locator__list">
                     <div className="locator__count">
                         {listLoading ? t('findDoctors.loading') : t('findDoctors.resultCount', { count: listData?.count ?? 0 })}
@@ -233,7 +278,7 @@ export default function FindDoctors() {
                     {!listLoading && !listError && results.length === 0 && (
                         <div className="locator__empty">
                             <p>{t('findDoctors.empty')}</p>
-                            {origin && radius < RADII[RADII.length - 1] && (
+                            {!online && origin && radius < RADII[RADII.length - 1] && (
                                 <button className="btn btn-secondary btn-sm" onClick={() => setRadius(RADII[RADII.length - 1])}>
                                     {t('findDoctors.expandRadius')}
                                 </button>
@@ -262,6 +307,9 @@ export default function FindDoctors() {
                                     <p className="doc-card__name">{d.full_name}</p>
                                     <div className="doc-card__meta">
                                         <span className="doc-card__pill">{d.specialty_display}</span>
+                                        {online && (
+                                            <span className="doc-card__pill doc-card__pill--video">📹 {t('findDoctors.mode.videoBadge')}</span>
+                                        )}
                                         {d.distance_km != null && (
                                             <span className="doc-card__distance">{t('findDoctors.kmAway', { km: d.distance_km })}</span>
                                         )}
@@ -297,22 +345,24 @@ export default function FindDoctors() {
                     })}
                 </div>
 
-                <div className="locator__map">
-                    {pinData?.truncated && (
-                        <div className="locator__banner">{t('findDoctors.zoomIn')}</div>
-                    )}
-                    <LeafletMap
-                        center={DEFAULT_CENTER}
-                        zoom={DEFAULT_ZOOM}
-                        markers={markers}
-                        cluster
-                        recenterTo={recenterTo}
-                        recenterZoom={12}
-                        onViewportChange={(b) => setViewport(b)}
-                        height="100%"
-                        ariaLabel={t('findDoctors.mapLabel')}
-                    />
-                </div>
+                {!online && (
+                    <div className="locator__map">
+                        {pinData?.truncated && (
+                            <div className="locator__banner">{t('findDoctors.zoomIn')}</div>
+                        )}
+                        <LeafletMap
+                            center={DEFAULT_CENTER}
+                            zoom={DEFAULT_ZOOM}
+                            markers={markers}
+                            cluster
+                            recenterTo={recenterTo}
+                            recenterZoom={12}
+                            onViewportChange={(b) => setViewport(b)}
+                            height="100%"
+                            ariaLabel={t('findDoctors.mapLabel')}
+                        />
+                    </div>
+                )}
             </div>
         </div>
     );

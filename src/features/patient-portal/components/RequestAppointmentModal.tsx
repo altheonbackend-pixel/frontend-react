@@ -18,6 +18,8 @@ interface RequestAppointmentModalProps {
     /** Seeds the selector / reason when opened (used by the Appointments deep-link). */
     defaultDoctorId?: number;
     defaultReason?: string;
+    /** Pre-selects the visit type — e.g. 'telemedicine' when arriving from the online-consultation search. */
+    defaultAppointmentType?: 'in_person' | 'telemedicine';
     onSuccess?: () => void;
 }
 
@@ -34,6 +36,7 @@ export default function RequestAppointmentModal({
     lockedDoctorName,
     defaultDoctorId = 0,
     defaultReason = '',
+    defaultAppointmentType = 'in_person',
     onSuccess,
 }: RequestAppointmentModalProps) {
     const { t, i18n } = useTranslation();
@@ -45,7 +48,7 @@ export default function RequestAppointmentModal({
     }, []);
 
     const [doctorId, setDoctorId] = useState(lockedDoctorId ?? defaultDoctorId);
-    const [appointmentType, setAppointmentType] = useState('in_person');
+    const [appointmentType, setAppointmentType] = useState<string>(defaultAppointmentType);
     const [requestDate, setRequestDate] = useState('');
     const [appointmentDate, setAppointmentDate] = useState('');
     const [reason, setReason] = useState(defaultReason);
@@ -56,7 +59,7 @@ export default function RequestAppointmentModal({
     useEffect(() => {
         if (open) {
             setDoctorId(lockedDoctorId ?? defaultDoctorId ?? 0);
-            setAppointmentType('in_person');
+            setAppointmentType(defaultAppointmentType);
             setRequestDate('');
             setAppointmentDate('');
             setReason(defaultReason ?? '');
