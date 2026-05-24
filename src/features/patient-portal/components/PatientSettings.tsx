@@ -38,6 +38,7 @@ const LANGUAGE_OPTIONS = [
 
 const TIMEZONE_OPTIONS = [
     { value: 'UTC', labelKey: 'patient_portal.timezones.utc' },
+    { value: 'Africa/Dakar', labelKey: 'timezones.africa_dakar' },
     { value: 'Asia/Karachi', labelKey: 'patient_portal.timezones.asia_karachi' },
     { value: 'Asia/Kolkata', labelKey: 'patient_portal.timezones.asia_kolkata' },
     { value: 'Asia/Dhaka', labelKey: 'patient_portal.timezones.asia_dhaka' },
