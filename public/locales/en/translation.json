@@ -2568,5 +2568,11 @@
   "workplaces.none": "You are not a member of any workplace yet.",
   "workplaces.request_join": "Request to Join",
   "workplaces.request_pending": "Pending",
-  "workplaces.search_placeholder": "Search by name…"
+  "workplaces.search_placeholder": "Search by name…",
+  "patient_form.age_years": "{{years}} years",
+  "patient_form.age_auto_hint": "Calculated from date of birth",
+  "patient_form.email_checking": "Checking if this email is already registered…",
+  "patient_form.existing_account.title": "This email already has an Altheon account.",
+  "patient_form.existing_account.body": "You can’t create a second chart for this person. To see their record, either ask the patient to book an appointment with you, or request access now by sending them a one-time code (OTP) to add them to your patient list.",
+  "patient_form.existing_account.request_access": "Request access via OTP →"
 }

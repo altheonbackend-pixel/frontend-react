@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { toast, parseApiError } from '../../../shared/components/ui';
@@ -12,6 +12,12 @@ import {
 
 interface Props {
     onAccessGranted: (patientUniqueId: string) => void;
+    /**
+     * Pre-fill the email field and auto-run the search — used when the doctor
+     * is handed off here from the Register-new form after it detected that the
+     * entered email already belongs to an existing Altheon account.
+     */
+    initialEmail?: string;
 }
 
 type DeliveryMethod = 'push' | 'in_person';
@@ -29,9 +35,9 @@ type DeliveryMethod = 'push' | 'in_person';
  * On successful OTP verify, backend mints CareTeamMembership(role=
  * one_time_visit, 24h) and we navigate to the patient detail page.
  */
-export default function AddPatientSearchTab({ onAccessGranted }: Props) {
+export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: Props) {
     const { t } = useTranslation();
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(initialEmail ?? '');
     const [phone, setPhone] = useState('');
     const [lastName, setLastName] = useState('');
     const [dob, setDob] = useState('');
@@ -116,6 +122,17 @@ export default function AddPatientSearchTab({ onAccessGranted }: Props) {
             )));
         },
     });
+
+    // Auto-run the search once when handed an email from the Register-new form.
+    const autoSearchedRef = useRef(false);
+    useEffect(() => {
+        if (autoSearchedRef.current) return;
+        if (initialEmail && initialEmail.trim()) {
+            autoSearchedRef.current = true;
+            search.mutate();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialEmail]);
 
     const canSearch = email.trim() || phone.trim() || (lastName.trim() && dob);
 

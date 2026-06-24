@@ -9,13 +9,13 @@ import type { TFunction } from 'i18next';
 import { Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import api from '../../../shared/services/api';
+import { globalPatientSearch, type MaskedPatientCard } from '../services/patientService';
 
 // Schema factory so validation messages can be localized at render time.
 const makePatientSchema = (t: TFunction) => z.object({
     first_name: z.string().min(1, t('patient_form.validation.first_name_required', 'First name is required')),
     last_name: z.string().min(1, t('patient_form.validation.last_name_required', 'Last name is required')),
     date_of_birth: z.string().optional(),
-    age: z.string().optional(),
     email: z.string().email(t('patient_form.validation.invalid_email', 'Invalid email')).optional().or(z.literal('')),
     phone_number: z.string().optional(),
     address: z.string().optional(),
@@ -31,9 +31,15 @@ interface PatientFormProps {
     onSuccess: (patient: Patient) => void;
     patientToEdit?: Patient | null;
     onCancel: () => void;
+    /**
+     * Called when the doctor chooses to request access to an already-existing
+     * Altheon account detected from the email field (Register-new flow only).
+     * The parent switches to the Search & request (OTP) tab with this email.
+     */
+    onRequestExistingAccess?: (email: string) => void;
 }
 
-const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) => {
+const PatientForm = ({ onSuccess, patientToEdit, onCancel, onRequestExistingAccess }: PatientFormProps) => {
     const { t } = useTranslation();
     const { isAuthenticated } = useAuth();
 
@@ -41,6 +47,9 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const localizedSchema = useMemo(() => makePatientSchema(t), [t]);
     const [duplicates, setDuplicates] = useState<{ unique_id: string; first_name: string; last_name: string; date_of_birth: string | null }[]>([]);
     const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // An existing Altheon account matched by the email field (cross-clinic).
+    const [existingAccount, setExistingAccount] = useState<MaskedPatientCard | null>(null);
+    const [checkingEmail, setCheckingEmail] = useState(false);
 
     const {
         register,
@@ -54,7 +63,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
             first_name: '',
             last_name: '',
             date_of_birth: '',
-            age: '',
             email: '',
             phone_number: '',
             address: '',
@@ -72,7 +80,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 first_name: patientToEdit.first_name || '',
                 last_name: patientToEdit.last_name || '',
                 date_of_birth: patientToEdit.date_of_birth || '',
-                age: patientToEdit.age !== null ? String(patientToEdit.age) : '',
                 email: patientToEdit.email || '',
                 phone_number: patientToEdit.phone_number || '',
                 address: patientToEdit.address || '',
@@ -100,6 +107,42 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
     const firstName = watch('first_name');
     const lastName = watch('last_name');
     const dateOfBirth = watch('date_of_birth');
+
+    // Age is always derived from date of birth — never entered by hand.
+    const computedAge = useMemo(() => {
+        if (!dateOfBirth) return null;
+        const dob = new Date(dateOfBirth);
+        if (Number.isNaN(dob.getTime())) return null;
+        const today = new Date();
+        let years = today.getFullYear() - dob.getFullYear();
+        const beforeBirthday =
+            today.getMonth() < dob.getMonth() ||
+            (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+        if (beforeBirthday) years -= 1;
+        return years >= 0 && years < 150 ? years : null;
+    }, [dateOfBirth]);
+
+    // When the doctor finishes entering the email, check (once) whether an
+    // Altheon account already exists for it — anywhere on the platform.
+    const checkEmailExists = async () => {
+        if (patientToEdit) return;
+        const value = (watch('email') || '').trim();
+        if (!value || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
+            setExistingAccount(null);
+            return;
+        }
+        setCheckingEmail(true);
+        try {
+            const res = await globalPatientSearch({ email: value });
+            setExistingAccount(res.data.results[0] ?? null);
+        } catch {
+            // Rate-limited or offline — fail silent; the backend still blocks
+            // duplicate creation on submit.
+            setExistingAccount(null);
+        } finally {
+            setCheckingEmail(false);
+        }
+    };
 
     useEffect(() => {
         if (patientToEdit) return;
@@ -149,7 +192,6 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
             phone_number: data.phone_number || null,
             emergency_contact_name: data.emergency_contact_name || null,
             emergency_contact_number: data.emergency_contact_number || null,
-            age: data.age ? parseInt(data.age, 10) : null,
         };
 
         try {
@@ -232,7 +274,19 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                 </div>
                 <div className="form-group">
                     <label htmlFor="age">{t('patient_form.label.age')}</label>
-                    <input type="number" id="age" className="input" {...register('age')} />
+                    <input
+                        type="text"
+                        id="age"
+                        className="input"
+                        value={
+                            computedAge !== null
+                                ? t('patient_form.age_years', '{{years}} years', { years: computedAge })
+                                : ''
+                        }
+                        readOnly
+                        disabled
+                        placeholder={t('patient_form.age_auto_hint', 'Calculated from date of birth')}
+                    />
                 </div>
 
                 <div className="form-group">
@@ -240,8 +294,57 @@ const PatientForm = ({ onSuccess, patientToEdit, onCancel }: PatientFormProps) =
                         {t('patient_form.label.email')}
                         <span style={{ fontSize: '0.7rem', fontWeight: 600, background: 'var(--accent-light, #dbeafe)', color: 'var(--accent)', padding: '0.1rem 0.45rem', borderRadius: '999px', letterSpacing: '0.02em' }}>{t('patient_form.badge.portal_access', 'Portal access')}</span>
                     </label>
-                    <input type="email" id="email" className="input" {...register('email')} />
+                    <input
+                        type="email"
+                        id="email"
+                        className="input"
+                        {...register('email', { onBlur: checkEmailExists })}
+                    />
                     {errors.email && <span className="field-error">{errors.email.message}</span>}
+                    {checkingEmail && (
+                        <span className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+                            {t('patient_form.email_checking', 'Checking if this email is already registered…')}
+                        </span>
+                    )}
+                    {!patientToEdit && existingAccount && (
+                        <div
+                            style={{
+                                marginTop: '0.75rem',
+                                background: 'var(--warning-bg, #fffbeb)',
+                                border: '1px solid var(--warning-border, #fcd34d)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '0.75rem 1rem',
+                                fontSize: '0.875rem',
+                                color: 'var(--warning-text, #92400e)',
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            <strong>
+                                {t(
+                                    'patient_form.existing_account.title',
+                                    'This email already has an Altheon account.',
+                                )}
+                            </strong>
+                            <p style={{ margin: '0.5rem 0' }}>
+                                {t(
+                                    'patient_form.existing_account.body',
+                                    'You can’t create a second chart for this person. To see their record, either ask the patient to book an appointment with you, or request access now by sending them a one-time code (OTP) to add them to your patient list.',
+                                )}
+                            </p>
+                            {onRequestExistingAccess && (
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={() => onRequestExistingAccess((watch('email') || '').trim())}
+                                >
+                                    {t(
+                                        'patient_form.existing_account.request_access',
+                                        'Request access via OTP →',
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
                 <div className="form-group">
                     <label htmlFor="phone_number" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

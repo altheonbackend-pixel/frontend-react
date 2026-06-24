@@ -2568,5 +2568,11 @@
   "workplaces.none": "Vous n'êtes membre d'aucun lieu de travail pour l'instant.",
   "workplaces.request_join": "Demander à rejoindre",
   "workplaces.request_pending": "En attente",
-  "workplaces.search_placeholder": "Rechercher par nom…"
+  "workplaces.search_placeholder": "Rechercher par nom…",
+  "patient_form.age_years": "{{years}} ans",
+  "patient_form.age_auto_hint": "Calculé à partir de la date de naissance",
+  "patient_form.email_checking": "Vérification si cet e-mail est déjà enregistré…",
+  "patient_form.existing_account.title": "Cet e-mail possède déjà un compte Altheon.",
+  "patient_form.existing_account.body": "Vous ne pouvez pas créer un second dossier pour cette personne. Pour consulter son dossier, demandez au patient de prendre rendez-vous avec vous, ou demandez l’accès maintenant en lui envoyant un code à usage unique (OTP) pour l’ajouter à votre liste de patients.",
+  "patient_form.existing_account.request_access": "Demander l’accès par OTP →"
 }

@@ -22,7 +22,15 @@ const AddPatient = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { t } = useTranslation();
-    const [tab, setTab] = useState<Tab>('scan');
+    const [tab, setTab] = useState<Tab>('new');
+    // Email carried over when the new-patient form detects an existing account
+    // and the doctor opts to request access via OTP instead.
+    const [searchPrefillEmail, setSearchPrefillEmail] = useState<string>('');
+
+    const handleRequestExistingAccess = (email: string) => {
+        setSearchPrefillEmail(email);
+        setTab('search');
+    };
 
     const handleNewPatientSuccess = (_patient: Patient) => {
         queryClient.invalidateQueries({ queryKey: ['patients'] });
@@ -36,11 +44,11 @@ const AddPatient = () => {
 
     const tabs: Array<{ key: Tab; label: string; hint: string }> = [
         {
-            key: 'scan',
-            label: t('add_patient.tabs.scan.label', 'Enter code'),
+            key: 'new',
+            label: t('add_patient.tabs.new.label', 'Register new'),
             hint: t(
-                'add_patient.tabs.scan.hint',
-                'Patient has the Altheon app open — enter the 6-digit code they read you.',
+                'add_patient.tabs.new.hint',
+                'First-time visit, no Altheon account yet — create a new chart. If the email is already registered, you’ll be offered access via OTP instead.',
             ),
         },
         {
@@ -52,11 +60,11 @@ const AddPatient = () => {
             ),
         },
         {
-            key: 'new',
-            label: t('add_patient.tabs.new.label', 'Register new'),
+            key: 'scan',
+            label: t('add_patient.tabs.scan.label', 'Enter code'),
             hint: t(
-                'add_patient.tabs.new.hint',
-                'First-time visit, no Altheon account yet — create a new chart.',
+                'add_patient.tabs.scan.hint',
+                'Patient has the Altheon app open — enter the 6-digit code they read you.',
             ),
         },
     ];
@@ -100,13 +108,17 @@ const AddPatient = () => {
             {tab === 'scan' && <AddPatientScanTab onAccessGranted={handleAccessGranted} />}
 
             {tab === 'search' && (
-                <AddPatientSearchTab onAccessGranted={handleAccessGranted} />
+                <AddPatientSearchTab
+                    onAccessGranted={handleAccessGranted}
+                    initialEmail={searchPrefillEmail}
+                />
             )}
 
             {tab === 'new' && (
                 <PatientForm
                     onSuccess={handleNewPatientSuccess}
                     onCancel={() => navigate('/patients')}
+                    onRequestExistingAccess={handleRequestExistingAccess}
                 />
             )}
         </div>
