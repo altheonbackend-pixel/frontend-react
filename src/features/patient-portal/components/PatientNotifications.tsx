@@ -16,9 +16,10 @@ export default function PatientNotifications() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { unreadCount, invalidateUnreadCount } = usePatientPortal();
+    const activeLanguage = i18n.resolvedLanguage || i18n.language;
 
     const { data: notifications = [], isLoading, isError } = useQuery({
-        queryKey: queryKeys.patientPortal.notifications(),
+        queryKey: [...queryKeys.patientPortal.notifications(), activeLanguage],
         queryFn: patientPortalService.getNotifications,
         staleTime: 30_000,
     });
@@ -84,7 +85,7 @@ export default function PatientNotifications() {
                             >
                                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
                                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</div>
-                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatPortalRelativeTime(item.created_at, i18n.resolvedLanguage)}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{formatPortalRelativeTime(item.created_at, activeLanguage)}</div>
                                 </div>
                                 <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.body}</div>
                             </button>

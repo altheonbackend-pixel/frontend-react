@@ -19,6 +19,7 @@ const NotificationBell = () => {
     const bellRef = useRef<HTMLButtonElement>(null);
     const drawerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const activeLanguage = i18n.resolvedLanguage || i18n.language;
 
     const fetchCount = useCallback(async () => {
         try {
@@ -84,6 +85,10 @@ const NotificationBell = () => {
         return () => document.removeEventListener('keydown', handler);
     }, [open]);
 
+    useEffect(() => {
+        if (open) fetchAll();
+    }, [activeLanguage, fetchAll, open]);
+
     const handleOpen = () => {
         const next = !open;
         if (next && bellRef.current) {
@@ -94,7 +99,6 @@ const NotificationBell = () => {
             setDropPos({ top: rect.bottom + 8, left });
         }
         setOpen(next);
-        if (next) fetchAll();
     };
 
     const markAll = async () => {
@@ -113,7 +117,7 @@ const NotificationBell = () => {
         if (n.link) navigate(n.link);
     };
 
-    const timeAgo = (iso: string) => formatRelative(iso, { locale: i18n.resolvedLanguage || i18n.language });
+    const timeAgo = (iso: string) => formatRelative(iso, { locale: activeLanguage });
 
     return (
         <div className="notif-bell-wrapper">

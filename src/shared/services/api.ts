@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { API_BASE_URL } from '../../config';
+import i18n from '../../i18n';
 
 // Logout callback registered by AuthContext after login so api.ts can trigger
 // logout without importing AuthContext (avoids circular dependencies).
@@ -28,6 +29,8 @@ api.interceptors.request.use((config) => {
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
         config.headers.delete('Content-Type');
     }
+    const activeLanguage = i18n.resolvedLanguage || i18n.language || 'en';
+    config.headers.set('Accept-Language', activeLanguage.startsWith('fr') ? 'fr' : 'en');
     return config;
 });
 

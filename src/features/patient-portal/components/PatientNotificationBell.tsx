@@ -21,6 +21,7 @@ export function PatientNotificationBell() {
     const bellRef = useRef<HTMLButtonElement>(null);
     const drawerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const activeLanguage = i18n.resolvedLanguage || i18n.language;
 
     const fetchAll = useCallback(async () => {
         setLoading(true);
@@ -53,6 +54,10 @@ export function PatientNotificationBell() {
         return () => document.removeEventListener('keydown', handler);
     }, [open]);
 
+    useEffect(() => {
+        if (open) fetchAll();
+    }, [activeLanguage, fetchAll, open]);
+
     const handleOpen = () => {
         const next = !open;
         if (next && bellRef.current) {
@@ -61,7 +66,6 @@ export function PatientNotificationBell() {
             setDropPos({ top: rect.bottom + 8, left });
         }
         setOpen(next);
-        if (next) fetchAll();
     };
 
     const syncNotifQueries = () => {
@@ -127,7 +131,7 @@ export function PatientNotificationBell() {
                             >
                                 <div className="notif-item__title">{n.title}</div>
                                 {n.body && <div className="notif-item__body">{n.body}</div>}
-                                <div className="notif-item__time">{formatPortalRelativeTime(n.created_at, i18n.resolvedLanguage)}</div>
+                                <div className="notif-item__time">{formatPortalRelativeTime(n.created_at, activeLanguage)}</div>
                             </div>
                         ))}
                     </div>
