@@ -35,14 +35,19 @@ export interface AccessRequest {
     patient_initials: string;
     doctor_name: string;
     status: 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
-    delivery_method: 'push' | 'email' | 'sms' | 'in_person';
+    delivery_method: 'push' | 'email' | 'sms' | 'verbal';
+    delivery_status: 'pending' | 'sent' | 'failed' | 'not_applicable';
+    delivery_sent_at: string | null;
+    delivery_error: string;
+    delivery_target: string;
+    consent_method: 'portal_push_otp' | 'email_otp' | 'sms_otp' | 'verbal_attestation' | '';
+    verbal_consent_reason: string;
+    verbal_consent_attested_at: string | null;
     reason: string;
     created_at: string;
     expires_at: string;
     resolved_at: string | null;
     otp_attempts: number;
-    /** Only populated for in_person delivery — doctor reads OTP aloud. */
-    otp?: string;
     delivered?: { method: string; sent: boolean; reason: string };
 }
 
@@ -63,8 +68,9 @@ export const listAccessRequests = () =>
 
 export const createAccessRequest = (data: {
     patient_unique_id: string;
-    delivery_method?: 'push' | 'email' | 'sms' | 'in_person';
+    delivery_method?: 'push' | 'email' | 'sms' | 'verbal';
     reason?: string;
+    patient_verbal_consent?: boolean;
 }) => api.post<AccessRequest>('/patient-access-requests/', data);
 
 export const verifyAccessOtp = (requestId: number, otp: string) =>

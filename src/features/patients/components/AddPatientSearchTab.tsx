@@ -20,7 +20,7 @@ interface Props {
     initialEmail?: string;
 }
 
-type DeliveryMethod = 'push' | 'in_person';
+type DeliveryMethod = 'push' | 'email' | 'verbal';
 
 /**
  * Workflow B-search + B2 — find a patient across all clinics and request
@@ -29,8 +29,10 @@ type DeliveryMethod = 'push' | 'in_person';
  * opens the access-request flow:
  *   - delivery_method='push'  → patient gets a notification with the OTP,
  *     reads it back to the doctor who enters it here.
- *   - delivery_method='in_person' → backend returns the OTP to the doctor
- *     for them to read aloud; patient enters it on their phone.
+ *   - delivery_method='email' → patient receives the OTP at the email on file
+ *     and reads it back to the doctor.
+ *   - delivery_method='verbal' → patient-present verbal consent is attested
+ *     and audited; no fake OTP is issued.
  *
  * On successful OTP verify, backend mints CareTeamMembership(role=
  * one_time_visit, 24h) and we navigate to the patient detail page.
@@ -48,6 +50,7 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
     const [otpInput, setOtpInput] = useState('');
     const [reason, setReason] = useState('');
     const [delivery, setDelivery] = useState<DeliveryMethod>('push');
+    const [verbalConsent, setVerbalConsent] = useState(false);
 
     const search = useMutation({
         mutationFn: () =>
@@ -82,13 +85,22 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                 patient_unique_id: selectedCard!.unique_id,
                 delivery_method: delivery,
                 reason: reason.trim() || undefined,
+                ...(delivery === 'verbal' ? { patient_verbal_consent: verbalConsent } : {}),
             }).then(r => r.data),
         onSuccess: data => {
-            setRequest(data);
-            if (data.otp) {
+            if (data.status === 'approved') {
                 toast.success(t(
-                    'add_patient.search.otp_for_patient',
-                    'Tell the patient this code so they can read it back to confirm.',
+                    'add_patient.search.access_granted',
+                    'Access granted for 24 hours.',
+                ));
+                onAccessGranted(selectedCard!.unique_id);
+                return;
+            }
+            setRequest(data);
+            if (data.delivery_status === 'failed') {
+                toast.error(data.delivery_error || t(
+                    'add_patient.search.delivery_failed',
+                    'Could not deliver the code. Try another method.',
                 ));
             } else {
                 toast.success(t(
@@ -230,7 +242,7 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                         <button
                             key={card.unique_id}
                             type="button"
-                            onClick={() => { setSelectedCard(card); setRequest(null); }}
+                            onClick={() => { setSelectedCard(card); setRequest(null); setOtpInput(''); }}
                             style={{
                                 width: '100%',
                                 textAlign: 'left',
@@ -285,16 +297,22 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                         </div>
                         <select
                             value={delivery}
-                            onChange={e => setDelivery(e.target.value as DeliveryMethod)}
+                            onChange={e => {
+                                setDelivery(e.target.value as DeliveryMethod);
+                                setRequest(null);
+                            }}
                             style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 4 }}
                         >
                             <option value="push">{t('add_patient.search.delivery.push', 'Push to patient app')}</option>
-                            <option value="in_person">{t('add_patient.search.delivery.in_person', 'In person — give code to patient')}</option>
+                            <option value="email">{t('add_patient.search.delivery.email', 'Send OTP to patient email')}</option>
+                            <option value="verbal">{t('add_patient.search.delivery.verbal', 'Patient present — verbal consent')}</option>
                         </select>
                     </label>
                     <label>
                         <div style={{ fontSize: '0.875rem', marginBottom: 4 }}>
-                            {t('add_patient.search.reason', 'Reason (optional)')}
+                            {delivery === 'verbal'
+                                ? t('add_patient.search.reason_required', 'Reason for verbal consent')
+                                : t('add_patient.search.reason', 'Reason (optional)')}
                         </div>
                         <input
                             type="text"
@@ -304,11 +322,43 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                             style={{ width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: 4 }}
                         />
                     </label>
+                    {delivery === 'verbal' && (
+                        <label
+                            style={{
+                                display: 'flex',
+                                gap: '0.6rem',
+                                alignItems: 'flex-start',
+                                padding: '0.75rem',
+                                border: '1px solid var(--warning-border, #fcd34d)',
+                                background: 'var(--warning-bg, #fffbeb)',
+                                borderRadius: 8,
+                                color: 'var(--warning-text, #92400e)',
+                                fontSize: '0.875rem',
+                                lineHeight: 1.45,
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={verbalConsent}
+                                onChange={e => setVerbalConsent(e.target.checked)}
+                                style={{ marginTop: 2 }}
+                            />
+                            <span>
+                                {t(
+                                    'add_patient.search.verbal_attestation',
+                                    'I confirm the patient is physically present and verbally consented to temporary chart access for this visit.',
+                                )}
+                            </span>
+                        </label>
+                    )}
                     <button
                         type="button"
                         className="btn btn-primary"
                         onClick={() => startRequest.mutate()}
-                        disabled={startRequest.isPending}
+                        disabled={
+                            startRequest.isPending ||
+                            (delivery === 'verbal' && (!verbalConsent || !reason.trim()))
+                        }
                         style={{ alignSelf: 'flex-start' }}
                     >
                         {startRequest.isPending
@@ -334,24 +384,40 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                     <h2 style={{ margin: 0, fontSize: '1rem' }}>
                         {t('add_patient.search.verify_title', 'Verify code')}
                     </h2>
-                    {request.otp ? (
-                        <p style={{ margin: 0, fontSize: '0.875rem' }}>
-                            {t(
-                                'add_patient.search.in_person_hint',
-                                'Read this code to the patient — they\'ll enter it on their phone to approve.',
-                            )}
-                            <br />
-                            <strong style={{ fontFamily: 'monospace', fontSize: '1.5rem', letterSpacing: '0.25em' }}>
-                                {request.otp}
-                            </strong>
-                        </p>
-                    ) : (
-                        <p style={{ margin: 0, fontSize: '0.875rem' }}>
-                            {t(
+                    <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                        {request.delivery_method === 'email'
+                            ? t(
+                                'add_patient.search.email_hint',
+                                'The code was sent to {{target}}. Ask the patient to read the 6-digit code to you.',
+                                { target: request.delivery_target || t('add_patient.search.patient_email', 'the patient email on file') },
+                            )
+                            : t(
                                 'add_patient.search.push_hint',
                                 'The patient should see a notification with a 6-digit code. Enter it here.',
                             )}
-                        </p>
+                    </p>
+                    {request.delivery_status === 'failed' && (
+                        <div
+                            style={{
+                                padding: '0.75rem',
+                                border: '1px solid var(--danger-border, #fecaca)',
+                                background: 'var(--danger-bg, #fef2f2)',
+                                borderRadius: 8,
+                                color: 'var(--danger, #b91c1c)',
+                                fontSize: '0.875rem',
+                            }}
+                            role="alert"
+                        >
+                            <div>{request.delivery_error || t('add_patient.search.delivery_failed', 'Could not deliver the code. Try another method.')}</div>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-secondary"
+                                onClick={() => { setRequest(null); setOtpInput(''); }}
+                                style={{ marginTop: '0.75rem' }}
+                            >
+                                {t('add_patient.search.try_another_method', 'Try another method')}
+                            </button>
+                        </div>
                     )}
                     <input
                         type="text"
@@ -361,6 +427,7 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                         value={otpInput}
                         onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))}
                         placeholder="123456"
+                        disabled={request.delivery_status === 'failed'}
                         style={{
                             fontFamily: 'monospace',
                             fontSize: '1.25rem',
@@ -376,7 +443,7 @@ export default function AddPatientSearchTab({ onAccessGranted, initialEmail }: P
                         type="button"
                         className="btn btn-primary"
                         onClick={() => verifyOtp.mutate()}
-                        disabled={otpInput.length !== 6 || verifyOtp.isPending}
+                        disabled={otpInput.length !== 6 || verifyOtp.isPending || request.delivery_status === 'failed'}
                         style={{ alignSelf: 'flex-start' }}
                     >
                         {verifyOtp.isPending
