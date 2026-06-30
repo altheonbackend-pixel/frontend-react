@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import HttpBackend from 'i18next-http-backend';
 import { default as LanguageDetector } from 'i18next-browser-languagedetector';
 
+
 i18n
   .use(HttpBackend)
   .use(LanguageDetector)
