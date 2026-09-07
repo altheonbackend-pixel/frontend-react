@@ -231,6 +231,7 @@
   "auth.verify.title": "Email Verification",
   "auth.verify.verifying": "Verifying your email...",
   "brand.full": "Altheon Connect",
+  "brand.tagline": "“Healthcare, finally connected.”",
   "campaign.body_placeholder": "Personal greeting reads better — try \".heent\" or your saved smart phrases.",
   "campaign.note": "Each patient receives a secure in-app message. Not sent via SMS or email.",
   "campaign.send": "Send to {{n}}",

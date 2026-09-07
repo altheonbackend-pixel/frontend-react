@@ -131,3 +131,74 @@
     .logo-name    { font-size: 13px; letter-spacing: 1.4px; }
     .logo-sub     { font-size: 7px;  letter-spacing: 2.5px; }
 }
+
+/* ── Brand mark v2 ────────────────────────────────────────────────────────
+   A rounded "A" whose crossbar sweeps upward. Everything inherits
+   currentColor so the mark works on light and dark surfaces alike.
+   The original ECG mark's styles are untouched above — reverting the
+   USE_CLASSIC_MARK switch in Logo.tsx restores it exactly. */
+
+.altheon-logo--v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--text-primary);
+}
+
+.altheon-logo--v2.logo--inverted { color: #fff; }
+
+.altheon-logo--v2 .logo-mark { flex-shrink: 0; overflow: visible; }
+
+.logo-mark__leg,
+.logo-mark__link {
+    stroke: currentColor;
+    fill: none;
+}
+
+/* The sweep sits slightly back so the legs read as the dominant form. */
+.logo-mark__link { opacity: 0.55; }
+
+/* ── Wordmark ── */
+.logo-wordmark--v2 {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+}
+
+.logo-name-v2 {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: currentColor;
+}
+
+.logo-sub-v2 {
+    font-weight: 400;
+    font-size: 1.0625rem;
+    color: currentColor;
+    opacity: 0.75;
+}
+
+.logo-tagline {
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: 0;
+    color: currentColor;
+    opacity: 0.6;
+    white-space: nowrap;
+}
+
+/* Stacked lockup — mark above the wordmark, for splash/auth screens. */
+.altheon-logo--stacked {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.altheon-logo--stacked .logo-wordmark--v2 { align-items: center; }
+
+@media (max-width: 768px) {
+    .logo-tagline { white-space: normal; }
+}

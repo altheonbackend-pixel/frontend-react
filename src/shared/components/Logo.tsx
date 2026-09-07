@@ -1,84 +1,99 @@
+import { useTranslation } from 'react-i18next';
+
+import LogoClassic from './LogoClassic';
 import './Logo.css';
+
+// ─────────────────────────────────────────────────────────────────────────
+// Brand switch. `true` (current) keeps the original ECG-crossbar mark live —
+// it is preserved verbatim in LogoClassic.tsx. Flip to `false` to adopt the
+// new rounded-A mark below; every caller goes through this component, so
+// that one line is the whole switch, either direction.
+// ─────────────────────────────────────────────────────────────────────────
+const USE_CLASSIC_MARK = true;
 
 interface LogoProps {
     /** Icon height in px */
     size?: 'sm' | 'md' | 'lg';
     /**
-     * default  — dark A-frame on light background (main header)
-     * inverted — white A-frame on dark background (admin header)
+     * default  — dark mark on a light background (main header)
+     * inverted — light mark on a dark background (admin header)
      */
     variant?: 'default' | 'inverted';
-    /** Hide the ALTHEON / CONNECT wordmark (icon-only mode) */
+    /** Hide the Altheon / Connect wordmark (icon-only mode) */
     showWordmark?: boolean;
+    /** Show "Healthcare, finally connected." under the wordmark */
+    showTagline?: boolean;
+    /** Stack the wordmark under the mark instead of beside it */
+    stacked?: boolean;
     className?: string;
 }
 
 const SIZES = { sm: 28, md: 36, lg: 48 } as const;
 
 /**
- * ECG crossbar points — baseline y=22 in a 40×40 viewBox.
- * Pattern: flat → P-wave → flat → Q → R-spike → S → baseline → T-wave → flat
- * This traces through the exact area where the crossbar of the "A" sits.
+ * The Altheon "A": two weighted strokes rising to a rounded apex, with the
+ * crossbar drawn as an upward sweep rather than a flat bar — the join that
+ * carries the "connected" idea. Everything is `currentColor`, so the mark
+ * follows the surrounding theme in both light and dark.
  */
-const ECG =
-    '10.5,22 12,22 13,20.5 14,22 15.5,22 16.5,25.5 17.5,9.5 18.5,27.5 19.5,22 21,22 22.5,20.5 23.5,19.5 25,22 29.5,22';
-
 const Logo = ({
     size = 'md',
     variant = 'default',
     showWordmark = true,
+    showTagline = false,
+    stacked = false,
     className = '',
 }: LogoProps) => {
+    const { t } = useTranslation();
+
+    if (USE_CLASSIC_MARK) {
+        return <LogoClassic size={size} variant={variant} showWordmark={showWordmark} className={className} />;
+    }
+
     const px = SIZES[size];
     const mod = variant === 'inverted' ? ' logo--inverted' : '';
+    const stack = stacked ? ' altheon-logo--stacked' : '';
 
     return (
-        <span className={`altheon-logo${mod}${className ? ` ${className}` : ''}`}>
-            {/* ── Icon mark ── */}
+        <span className={`altheon-logo altheon-logo--v2${mod}${stack}${className ? ` ${className}` : ''}`}>
             <svg
-                className="logo-icon"
+                className="logo-mark"
                 width={px}
                 height={px}
-                viewBox="0 0 40 40"
+                viewBox="0 0 48 48"
                 fill="none"
                 aria-hidden="true"
             >
-                {/* Left leg of the A */}
-                <line
-                    className="logo-leg"
-                    x1="20" y1="3.5"
-                    x2="3.5" y2="37"
+                {/* Left stroke — sweeps out as it descends */}
+                <path
+                    className="logo-mark__leg"
+                    d="M24 6.5 C 20.5 16, 14.5 31, 9 41.5"
+                    strokeWidth="7"
                     strokeLinecap="round"
                 />
-                {/* Right leg of the A */}
-                <line
-                    className="logo-leg"
-                    x1="20" y1="3.5"
-                    x2="36.5" y2="37"
+                {/* Right stroke — mirrored */}
+                <path
+                    className="logo-mark__leg"
+                    d="M24 6.5 C 27.5 16, 33.5 31, 39 41.5"
+                    strokeWidth="7"
                     strokeLinecap="round"
                 />
-
-                {/* ECG glow — blurred cyan layer behind the trace */}
-                <polyline
-                    className="logo-ecg-glow"
-                    points={ECG}
+                {/* The join: an upward sweep where a flat crossbar would sit */}
+                <path
+                    className="logo-mark__link"
+                    d="M15.5 31.5 C 19.5 27, 28.5 27, 32.5 31.5"
+                    strokeWidth="5.5"
                     strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-                {/* ECG trace — crisp animated stroke */}
-                <polyline
-                    className="logo-ecg-trace"
-                    points={ECG}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
                 />
             </svg>
 
-            {/* ── Wordmark ── */}
             {showWordmark && (
-                <span className="logo-wordmark" aria-label="Altheon Connect">
-                    <span className="logo-name">ALTHEON</span>
-                    <span className="logo-sub">CONNECT</span>
+                <span className="logo-wordmark logo-wordmark--v2" aria-label="Altheon Connect">
+                    <span className="logo-name-v2">Altheon</span>
+                    <span className="logo-sub-v2">Connect</span>
+                    {showTagline && (
+                        <span className="logo-tagline">{t('brand.tagline')}</span>
+                    )}
                 </span>
             )}
         </span>
