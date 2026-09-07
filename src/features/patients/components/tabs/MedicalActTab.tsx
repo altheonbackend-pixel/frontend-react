@@ -11,6 +11,8 @@ import ReferralSnapshotView from '../../../referrals/components/ReferralSnapshot
 import ReferralEventTimeline from '../../../referrals/components/ReferralEventTimeline';
 import ReferralSLABadge from '../../../referrals/components/ReferralSLABadge';
 import AttachmentList from '../../../../shared/components/AttachmentList';
+import { specialtyLabel } from '../../../../shared/utils/enumLabel';
+import { enumLabel } from '../../../../shared/utils/enumLabel';
 
 interface MedicalActTabProps {
     patient: PatientWithHistory;
@@ -208,7 +210,7 @@ const MedicalActTab = ({
                                                 {r.is_draft && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('medical_act.referrals.draft', 'Draft')}</span>}
                                                 {r.referral_type_display && (
                                                     <span style={{ fontSize: '0.72rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
-                                                        {r.referral_type_display}
+                                                        {enumLabel(t, 'referrals.type', r.referral_type, r.referral_type_display)}
                                                     </span>
                                                 )}
                                             </div>
@@ -222,7 +224,7 @@ const MedicalActTab = ({
 
                                         <div className="info-item"><strong>{t('medical_act.referrals.referred_by', 'Referred by')}:</strong> {r.referred_by_details?.full_name || '—'}</div>
                                         <div className="info-item"><strong>{t('medical_act.referrals.referred_to', 'Referred to')}:</strong> {r.referred_to_details?.full_name || (r.is_external ? `${r.external_doctor_name || t('medical_act.referrals.external', 'External')} · ${r.external_hospital}` : '—')}</div>
-                                        <div className="info-item"><strong>{t('medical_act.referrals.specialty', 'Specialty')}:</strong> {r.specialty_display || r.specialty_requested}</div>
+                                        <div className="info-item"><strong>{t('medical_act.referrals.specialty', 'Specialty')}:</strong> {specialtyLabel(t, r.specialty_requested, r.specialty_display)}</div>
                                         <div className="info-item"><strong>{t('medical_act.referrals.urgency', 'Urgency')}:</strong> {r.urgency_display || r.urgency}</div>
                                         <div className="info-item"><strong>{t('medical_act.referrals.reason', 'Reason')}:</strong> {r.reason_for_referral}</div>
                                         {r.comments && <div className="info-item"><strong>{t('medical_act.referrals.note', 'Referral note')}:</strong> {r.comments}</div>}

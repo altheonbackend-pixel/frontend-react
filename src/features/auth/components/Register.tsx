@@ -15,6 +15,7 @@ import LeafletMap from '../../../shared/components/map/LeafletMap';
 import { toast } from '../../../shared/components/ui';
 import { locatorService } from '../../locator/services/locatorService';
 import LiveCameraCapture from '../../../shared/components/LiveCameraCapture';
+import { specialtyLabel } from '../../../shared/utils/enumLabel';
 
 // ── Zod schemas per step ──────────────────────────────────────────────────────
 
@@ -385,7 +386,9 @@ export default function Register() {
                                 <div className="form-field">
                                     <label htmlFor="specialty">{t('register.specialty')}</label>
                                     <select id="specialty" className="input select-input" {...s2.register('specialty')}>
-                                        {specialties.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                        {specialties.map(s => (
+                                            <option key={s.value} value={s.value}>{specialtyLabel(t, s.value, s.label)}</option>
+                                        ))}
                                         {specialties.length === 0 && <option value="general_practice">{t('specialties.general_practice')}</option>}
                                     </select>
                                     {s2.formState.errors.specialty && <span className="form-field-error">{s2.formState.errors.specialty.message}</span>}

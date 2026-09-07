@@ -299,7 +299,7 @@ function Dashboard() {
                                                 )}
                                                 <div className="db-schedule-reason">{a.reason_for_appointment}</div>
                                             </div>
-                                            <StatusBadge status={a.status} label={a.status_display} />
+                                            <StatusBadge status={a.status} />
                                         </li>
                                     );
                                 })}
@@ -431,7 +431,7 @@ function Dashboard() {
                             <Link key={p.unique_id} to={`/patients/${p.unique_id}`} className="db-recent-item">
                                 <Avatar name={`${p.first_name} ${p.last_name}`} src={p.avatar_url} size="sm" />
                                 <span className="db-recent-name">{p.first_name} {p.last_name}</span>
-                                <StatusBadge status={p.status} label={p.status_display} />
+                                <StatusBadge status={p.status} />
                             </Link>
                         ))}
                     </div>

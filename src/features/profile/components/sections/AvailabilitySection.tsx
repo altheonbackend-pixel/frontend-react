@@ -5,10 +5,13 @@ import api from '../../../../shared/services/api';
 import { toast, parseApiError } from '../../../../shared/components/ui';
 import { useDoctorProfile } from '../../hooks/useDoctorProfile';
 import { Switch } from '../../../../shared/components/Switch';
+import { specialtyLabel } from '../../../../shared/utils/enumLabel';
 
 interface DoctorOption {
     id: number;
     full_name: string;
+    /** Raw enum value — the display string from the API is English. */
+    specialty?: string;
     specialty_display?: string;
 }
 
@@ -121,7 +124,7 @@ export default function AvailabilitySection() {
                                 <option value="">{t('settings.availability.coverage_none')}</option>
                                 {coverageOptions.map(d => (
                                     <option key={d.id} value={d.id}>
-                                        Dr. {d.full_name}{d.specialty_display ? ` · ${d.specialty_display}` : ''}
+                                        Dr. {d.full_name}{d.specialty ? ` · ${specialtyLabel(t, d.specialty, d.specialty_display)}` : ''}
                                     </option>
                                 ))}
                             </select>

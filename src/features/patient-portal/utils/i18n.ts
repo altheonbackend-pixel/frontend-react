@@ -1,4 +1,3 @@
-import type { TFunction } from 'i18next';
 import {
     formatDate as sharedFormatDate,
     formatDateTime as sharedFormatDateTime,
@@ -47,11 +46,6 @@ export function formatPortalLongDate(value: string | number | Date, language: st
     return sharedFormatDate(value, { locale: normalizePortalLanguage(language), timeZone });
 }
 
-export function humanizeEnum(value: string) {
-    return value.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
-}
-
-export function enumLabel(t: TFunction, keyPrefix: string, value: string | null | undefined, fallback?: string) {
-    if (!value) return fallback ?? '';
-    return t(`${keyPrefix}.${value}`, { defaultValue: fallback ?? humanizeEnum(value) });
-}
+// Promoted to shared/utils/enumLabel so doctor-side code can use it too;
+// re-exported here so existing patient-portal callers are unaffected.
+export { humanizeEnum, enumLabel } from '../../../shared/utils/enumLabel';

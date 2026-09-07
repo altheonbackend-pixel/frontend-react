@@ -15,6 +15,7 @@ import { locatorService } from '../services/locatorService';
 import type { DoctorSearchResult } from '../types';
 import { openDirections } from '../../../shared/utils/directions';
 import './FindDoctors.css';
+import { specialtyLabel } from '../../../shared/utils/enumLabel';
 
 const DEFAULT_CENTER: [number, number] = [46.6, 2.5]; // Western Europe overview
 const DEFAULT_ZOOM = 5;
@@ -138,7 +139,7 @@ export default function FindDoctors() {
         lng: p.longitude,
         primary: p.is_primary,
         title: p.full_name,
-        subtitle: p.specialty_display,
+        subtitle: specialtyLabel(t, p.specialty, p.specialty_display),
         viewLabel: t('findDoctors.viewProfile'),
         onView: () => navigate(`/find-doctors/${p.doctor_id}`),
     })), [pinData, navigate, t]);
@@ -253,7 +254,9 @@ export default function FindDoctors() {
                 <div className="locator__filters">
                     <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} aria-label={t('findDoctors.specialty')}>
                         <option value="">{t('findDoctors.allSpecialties')}</option>
-                        {specialties?.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                        {specialties?.map(s => (
+                            <option key={s.value} value={s.value}>{specialtyLabel(t, s.value, s.label)}</option>
+                        ))}
                     </select>
 
                     {!online && (
@@ -354,7 +357,7 @@ export default function FindDoctors() {
                                 <div className="doc-card__body">
                                     <p className="doc-card__name">{d.full_name}</p>
                                     <div className="doc-card__meta">
-                                        <span className="doc-card__pill">{d.specialty_display}</span>
+                                        <span className="doc-card__pill">{specialtyLabel(t, d.specialty, d.specialty_display)}</span>
                                         {online && (
                                             <span className="doc-card__pill doc-card__pill--video">📹 {t('findDoctors.mode.videoBadge')}</span>
                                         )}

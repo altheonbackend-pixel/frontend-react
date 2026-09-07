@@ -6,6 +6,7 @@ import { usePageTitle } from '../../shared/hooks/usePageTitle';
 import { queryKeys } from '../../shared/queryKeys';
 import api from '../../shared/services/api';
 import { useFormatDateTime } from '../../shared/hooks/useUserTimezone';
+import { enumLabel } from '../../shared/utils/enumLabel';
 
 interface AuditEntry {
     id: number;
@@ -71,7 +72,7 @@ export default function AuditLog() {
                                             {formatTimestamp(entry.timestamp)}
                                         </td>
                                         <td style={{ padding: '0.625rem 0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                            {entry.action_display}
+                                            {enumLabel(t, 'audit.action', entry.action, entry.action_display)}
                                         </td>
                                         <td style={{ padding: '0.625rem 0.75rem', color: 'var(--text-secondary)' }}>
                                             {entry.target_model && (

@@ -11,6 +11,7 @@ import { Avatar } from './Avatar';
 import { toast } from './ui';
 import { Icon } from './Icons';
 import api from '../services/api';
+import { specialtyLabel } from '../utils/enumLabel';
 
 interface AppSidebarProps {
     isOpen: boolean;
@@ -88,7 +89,8 @@ export function AppSidebar({ isOpen, onClose }: AppSidebarProps) {
     };
 
     const doctorName = profile?.full_name ?? user?.full_name ?? t('common.doctor');
-    const specialty = profile?.specialty_display ?? profile?.specialty ?? '';
+    // specialty_display comes from the API in English; prefer the catalogue.
+    const specialty = specialtyLabel(t, profile?.specialty, profile?.specialty_display ?? '');
 
     return (
         <aside className={`app-sidebar${isOpen ? ' app-sidebar--open' : ''}`} aria-label={t('sidebar.main_navigation')}>

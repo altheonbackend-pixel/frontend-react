@@ -546,7 +546,7 @@ const Appointments = () => {
                                                         ? <Link to={`/patients/${appt.patient_details.unique_id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{patientName}</Link>
                                                         : patientName}
                                                 </span>
-                                                <StatusBadge status={appt.status} label={appt.status_display} />
+                                                <StatusBadge status={appt.status} />
                                             </div>
                                             <div className="card-meta" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                                                 <span>🕐 {formatTime(apptDate)}</span>

@@ -60,7 +60,7 @@ export default function PatientReferrals({ asTab = false }: { asTab?: boolean })
                             {specialtyLabel}
                             {item.referral_type_display && (
                                 <span style={{ fontWeight: 400, fontSize: '0.75rem', background: 'var(--bg-subtle)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', padding: '0.1rem 0.4rem' }}>
-                                    {item.referral_type_display}
+                                    {enumLabel(t, 'referrals.type', item.referral_type, item.referral_type_display)}
                                 </span>
                             )}
                         </div>

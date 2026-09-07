@@ -5,6 +5,7 @@ import api from '../../../shared/services/api';
 import { useAuth } from '../hooks/useAuth';
 import type { SpecialtyChoice } from '../../../shared/types';
 import '../styles/Auth.css';
+import { specialtyLabel } from '../../../shared/utils/enumLabel';
 
 const CompleteProfile = () => {
     const { t } = useTranslation();
@@ -75,7 +76,7 @@ const CompleteProfile = () => {
                             required
                         >
                             {specialties.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
+                                <option key={s.value} value={s.value}>{specialtyLabel(t, s.value, s.label)}</option>
                             ))}
                         </select>
                     </div>

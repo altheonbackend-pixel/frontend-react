@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../../../shared/services/api';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
+import { useTranslation } from 'react-i18next';
+import { enumLabel } from '../../../shared/utils/enumLabel';
 
 interface AuditEntry {
     id: number;
@@ -42,6 +44,7 @@ const ACTION_CHOICES = [
 ];
 
 export default function AdminAuditLog() {
+    const { t } = useTranslation();
     const { formatDateTimeLong } = useFormatDateTime();
     const formatTimestamp = (value: string) => formatDateTimeLong(value, { appendTzLabel: true });
     const [filters, setFilters] = useState({ doctor: '', action: '', target: '', date_from: '', date_to: '' });
@@ -102,7 +105,11 @@ export default function AdminAuditLog() {
                         value={filters.action}
                         onChange={e => setFilters(p => ({ ...p, action: e.target.value }))}
                     >
-                        {ACTION_CHOICES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+                        {ACTION_CHOICES.map(a => (
+                            <option key={a.value} value={a.value}>
+                                {a.value ? enumLabel(t, 'audit.action', a.value, a.label) : t('audit.action.all', a.label)}
+                            </option>
+                        ))}
                     </select>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: '1 1 150px' }}>
@@ -167,7 +174,7 @@ export default function AdminAuditLog() {
                                                 background: entry.action.startsWith('admin_') ? '#fef3c7' : '#eff6ff',
                                                 color: entry.action.startsWith('admin_') ? '#92400e' : '#1e40af',
                                             }}>
-                                                {entry.action_display}
+                                                {enumLabel(t, 'audit.action', entry.action, entry.action_display)}
                                             </span>
                                         </td>
                                         <td style={{ ...td, color: 'var(--text-secondary)' }}>

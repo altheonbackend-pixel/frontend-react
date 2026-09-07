@@ -9,6 +9,7 @@ import { toast, parseApiError } from '../../../../shared/components/ui';
 import api from '../../../../shared/services/api';
 import type { SpecialtyChoice } from '../../../../shared/types';
 import AvatarManager from '../../../../shared/components/AvatarManager';
+import { specialtyLabel } from '../../../../shared/utils/enumLabel';
 
 export default function AccountSection() {
     const { t } = useTranslation();
@@ -121,7 +122,7 @@ export default function AccountSection() {
                         <select id="specialty" className="select-input" {...register('specialty')}>
                             <option value="">{t('settings.account.select_specialty')}</option>
                             {specialties.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
+                                <option key={s.value} value={s.value}>{specialtyLabel(t, s.value, s.label)}</option>
                             ))}
                         </select>
                     </div>

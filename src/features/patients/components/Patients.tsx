@@ -299,7 +299,7 @@ const Patients = () => {
                                             <td style={{ color: 'var(--text-secondary)' }}>{calcAge(patient.date_of_birth)}</td>
                                             <td style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>{patient.phone_number || '—'}</td>
                                             <td>
-                                                {patient.status && <StatusBadge status={patient.status} label={patient.status_display} />}
+                                                {patient.status && <StatusBadge status={patient.status} />}
                                             </td>
                                             <td onClick={e => e.stopPropagation()}>
                                                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.375rem' }}>
