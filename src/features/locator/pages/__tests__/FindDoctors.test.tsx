@@ -10,12 +10,17 @@ vi.mock('react-i18next', () => ({
 }));
 
 // Map is not renderable under jsdom — stub it and expose viewport trigger.
-vi.mock('../../../../shared/components/map/LeafletMap', () => ({
-    default: ({ onViewportChange }: { onViewportChange?: (b: object) => void }) => {
-        onViewportChange?.({ north: 52, south: 51, east: 0, west: -1 });
-        return <div data-testid="map" />;
-    },
-}));
+// Fires the viewport callback once after mount, like a real map settling.
+vi.mock('../../../../shared/components/map/LeafletMap', async () => {
+    const { useEffect } = await import('react');
+    return {
+        default: ({ onViewportChange }: { onViewportChange?: (b: object) => void }) => {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            useEffect(() => { onViewportChange?.({ north: 52, south: 51, east: 0, west: -1 }); }, []);
+            return <div data-testid="map" />;
+        },
+    };
+});
 
 const { searchDoctors, getMapPins, geocode } = vi.hoisted(() => ({
     searchDoctors: vi.fn(), getMapPins: vi.fn(), geocode: vi.fn(),
@@ -30,6 +35,11 @@ vi.mock('../../../../shared/services/api', () => ({
 }));
 
 vi.mock('../../../../shared/hooks/usePageTitle', () => ({ usePageTitle: () => {} }));
+
+// Public page: render as an anonymous visitor (same pattern as DoctorPublicProfile.test).
+vi.mock('../../../auth/hooks/useAuth', () => ({
+    useAuth: () => ({ isAuthenticated: false, userType: null }),
+}));
 
 import FindDoctors from '../FindDoctors';
 
@@ -63,7 +73,8 @@ describe('FindDoctors', () => {
         });
         renderPage();
         expect(await screen.findByText('Dr. Jane Doe')).toBeInTheDocument();
-        expect(screen.getByText('Cardiology')).toBeInTheDocument();
+        // Specialty is localised from its code (specialties.<code>), not the API display string.
+        expect(screen.getByText('specialties.cardiology')).toBeInTheDocument();
         expect(screen.getByText('findDoctors.resultCount:1')).toBeInTheDocument();
     });
 

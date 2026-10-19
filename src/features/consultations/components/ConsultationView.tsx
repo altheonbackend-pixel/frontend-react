@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import Dialog from '../../../shared/components/ui/Dialog';
 import { amendConsultation, dismissFollowUp } from '../services/consultationService';
+import { computeBmi } from '../vitals';
 import type { Consultation } from '../../../shared/types';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 
@@ -63,12 +64,7 @@ const ConsultationView = ({ consultation: c, onClose, onAmend, onFollowUpDismiss
         }
     };
 
-    const bmi =
-        c.weight && c.height && c.height > 0
-            ? c.height_unit === 'cm'
-                ? (c.weight / ((c.height / 100) ** 2)).toFixed(1)
-                : (c.weight / (c.height ** 2) * 703).toFixed(1)
-            : null;
+    const bmi = computeBmi(c.weight, c.height, c.height_unit);
 
     return (
         <>

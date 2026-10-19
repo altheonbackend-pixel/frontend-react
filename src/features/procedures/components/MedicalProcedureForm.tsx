@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Drawer, toast, parseApiError } from '../../../shared/components/ui';
 import api from '../../../shared/services/api';
-import { procedureSchema, type ProcedureFormData, PROCEDURE_CATEGORIES } from '../procedureSchema';
+import { procedureSchema, type ProcedureFormData, PROCEDURE_CATEGORY_VALUES, procedureCategoryKey } from '../procedureSchema';
 
 interface MedicalProcedureRecord {
     id?: number;
@@ -102,13 +102,13 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
         >
             <form id="procedure-form" onSubmit={handleSubmit(onSubmit)} className="form">
                 <div className="form-group">
-                    <label htmlFor="procedure_category">Category <span className="required">*</span></label>
+                    <label htmlFor="procedure_category">{t('medical_procedure.category')} <span className="required">*</span></label>
                     <select id="procedure_category" {...register('procedure_category')}>
-                        {PROCEDURE_CATEGORIES.map(c => (
-                            <option key={c.value} value={c.value}>{c.label}</option>
+                        {PROCEDURE_CATEGORY_VALUES.map(v => (
+                            <option key={v} value={v}>{t(procedureCategoryKey(v))}</option>
                         ))}
                     </select>
-                    {errors.procedure_category && <span className="field-error">{errors.procedure_category.message}</span>}
+                    {errors.procedure_category && <span className="field-error">{t(errors.procedure_category.message ?? '')}</span>}
                 </div>
 
                 <div className="form-group">
@@ -116,16 +116,18 @@ const MedicalProcedureForm = ({ patientId, onSuccess, onCancel, procedureToEdit 
                     <input
                         type="text"
                         id="procedure_type"
-                        placeholder={procedureCategory === 'other' ? 'Describe the procedure...' : 'e.g. Appendectomy, CBC, Chest X-ray'}
+                        placeholder={procedureCategory === 'other'
+                            ? t('medical_procedure.type_placeholder_other')
+                            : t('medical_procedure.type_placeholder')}
                         {...register('procedure_type')}
                     />
-                    {errors.procedure_type && <span className="field-error">{errors.procedure_type.message}</span>}
+                    {errors.procedure_type && <span className="field-error">{t(errors.procedure_type.message ?? '')}</span>}
                 </div>
 
                 <div className="form-group">
                     <label htmlFor="procedure_date">{t('medical_procedure.date')} <span className="required">*</span></label>
                     <input type="date" id="procedure_date" {...register('procedure_date')} />
-                    {errors.procedure_date && <span className="field-error">{errors.procedure_date.message}</span>}
+                    {errors.procedure_date && <span className="field-error">{t(errors.procedure_date.message ?? '')}</span>}
                 </div>
 
                 <div className="form-group">

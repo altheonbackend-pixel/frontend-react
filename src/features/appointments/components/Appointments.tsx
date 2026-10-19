@@ -12,6 +12,7 @@ import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import AppointmentForm from './AppointmentForm';
 import DeleteAppointmentModal from './DeleteAppointmentModal';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { FEATURES, consultationWorkspacePath } from '../../../config';
 import api from '../../../shared/services/api';
 import { Dialog, Modal, toast, parseApiError } from '../../../shared/components/ui';
 import { queryKeys } from '../../../shared/queryKeys';
@@ -250,7 +251,9 @@ const Appointments = () => {
             const patientId = appt.patient_details?.unique_id ?? appt.patient;
             const isResume = res.status === 200;
             if (!isResume) toast.success(t('appointments.toast.consultation_started'));
-            navigate(`/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}&draft=true`);
+            navigate(FEATURES.consultationWorkspace
+                ? consultationWorkspacePath(String(patientId), consultation_id)
+                : `/patients/${patientId}?tab=consultations&open_consultation=${consultation_id}&draft=true`);
         } catch (err) {
             toast.error(parseApiError(err, t('appointments.toast.consultation_start_failed')));
         }

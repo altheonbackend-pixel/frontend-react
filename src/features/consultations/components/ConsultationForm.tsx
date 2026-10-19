@@ -12,6 +12,7 @@ import { useFormDraft } from '../../../shared/hooks/useFormDraft';
 import { useNavigationBlocker } from '../../../shared/hooks/useNavigationBlocker';
 import { useFormatDateTime } from '../../../shared/hooks/useUserTimezone';
 import { consultationSchema, type ConsultationFormData } from '../consultationSchema';
+import { computeVitalAlerts, VITAL_ALERT_PREFIX, numericValueAs } from '../vitals';
 import { FailedPrescriptionsPanel, type RxItem } from './FailedPrescriptionsPanel';
 import { DrugAutocomplete, type DrugChoice, type SafetyResult } from './DrugAutocomplete';
 import { SafetyAlertModal } from './SafetyAlertModal';
@@ -66,22 +67,14 @@ const RX_FREQUENCY_LABEL_KEYS: Record<string, string> = {
     other: 'common.other',
 };
 
-// Helper: convert empty string input to null for optional numeric fields.
-// Accepts the comma decimal separator ("36,9") — French writes vitals that way,
-// and the vitals inputs are type="text" so the raw string reaches us unparsed.
-// Returns NaN for genuinely unparseable input so zod reports it rather than
-// silently dropping the reading.
-export const numericValueAs = (v: unknown) => {
-    if (v == null) return null;
-    const raw = String(v).trim().replace(',', '.');
-    return raw === '' ? null : Number(raw);
-};
 
 interface Consultation {
     id?: number;
     consultation_date: string;
     consultation_type?: string;
     consultation_status?: string;
+    signed_at?: string | null;
+    amendment_reason?: string | null;
     reason_for_consultation: string;
     symptoms?: string[];
     medical_report: string | null;
@@ -126,7 +119,9 @@ interface ConsultationFormProps {
 }
 
 const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, isDraft = false, embedded = false }: ConsultationFormProps) => {
-    const { formatTime, formatDayMonth } = useFormatDateTime();
+    const { formatTime, formatDayMonth, toIsoDateInTz } = useFormatDateTime();
+    // Calendar "today" in the doctor's timezone (never the UTC date from toISOString).
+    const todayIso = () => toIsoDateInTz(new Date());
     const { t } = useTranslation();
     const { isAuthenticated, profile } = useAuth();
     const queryClient = useQueryClient();
@@ -160,7 +155,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
     } = useForm<ConsultationFormData>({
         resolver: zodResolver(consultationSchema),
         defaultValues: {
-            consultation_date: new Date().toISOString().slice(0, 10),
+            consultation_date: todayIso(),
             consultation_type: 'in_person',
             reason_for_consultation: '',
             medical_report: '',
@@ -231,7 +226,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         queryKey: ['patients', patientId, 'lastConsultVitals'],
         queryFn: async () => {
             const res = await api.get('/consultations/', {
-                params: { patient_id: patientId, ordering: '-consultation_date', limit: 1 },
+                params: { patient: patientId, ordering: '-consultation_date', limit: 1 },
             });
             const results = res.data.results ?? res.data;
             if (!results.length) return null;
@@ -312,13 +307,11 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
     const watchedTemp = watch('temperature');
     const watchedSystolic = watch('bp_systolic');
     const watchedDiastolic = watch('bp_diastolic');
-    const vitalAlerts: string[] = [];
-    if (watchedSp2 != null && watchedSp2 < 94) vitalAlerts.push(`SpO2 ${watchedSp2}% — below normal (≥94%)`);
-    if (watchedTemp != null && watchedTemp > 38.5) vitalAlerts.push(`Fever: ${watchedTemp}°C (normal ≤38.5°C)`);
-    if (watchedTemp != null && watchedTemp < 35.5) vitalAlerts.push(`Hypothermia: ${watchedTemp}°C`);
-    if (watchedSystolic != null && watchedSystolic > 180) vitalAlerts.push(`Hypertensive crisis: systolic ${watchedSystolic} mmHg`);
-    if (watchedSystolic != null && watchedSystolic < 90) vitalAlerts.push(`Hypotension: systolic ${watchedSystolic} mmHg`);
-    if (watchedDiastolic != null && watchedDiastolic > 120) vitalAlerts.push(`Hypertensive urgency: diastolic ${watchedDiastolic} mmHg`);
+    const vitalAlerts = computeVitalAlerts({
+        sp2: watchedSp2, temperature: watchedTemp, bp_systolic: watchedSystolic, bp_diastolic: watchedDiastolic,
+    }).map(a => ({ ...a, text: t(VITAL_ALERT_PREFIX + a.key, { value: a.value }) }))
+        // Critical readings first.
+        .sort((a, b) => Number(b.severity === 'critical') - Number(a.severity === 'critical'));
     const hasVitalAlerts = vitalAlerts.length > 0;
 
     const [vitalsConfirmOpen, setVitalsConfirmOpen] = useState(false);
@@ -413,7 +406,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
     useEffect(() => {
         if (consultationToEdit) {
             reset({
-                consultation_date: consultationToEdit.consultation_date || new Date().toISOString().slice(0, 10),
+                consultation_date: consultationToEdit.consultation_date || todayIso(),
                 consultation_type: (consultationToEdit.consultation_type || 'in_person') as 'in_person' | 'telemedicine' | 'home_visit',
                 reason_for_consultation: consultationToEdit.reason_for_consultation,
                 medical_report: consultationToEdit.medical_report || '',
@@ -501,7 +494,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
             if (response.status === 201 || response.status === 200) {
                 const consultationId = response.data.id;
-                const today = new Date().toISOString().slice(0, 10);
+                const today = todayIso();
 
                 // Auto-include any pending draft the doctor filled but didn't click + Add
                 const finalRxList = (rxDraft.medication_name.trim() && rxDraft.dosage.trim())
@@ -580,7 +573,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                         ...(p.notes.trim() ? { result: p.notes.trim() } : {}),
                     }));
                     if (procPayloads.length > 0) {
-                        const procResults = await Promise.allSettled(procPayloads.map(p => api.post('/procedures/', p)));
+                        const procResults = await Promise.allSettled(procPayloads.map(p => api.post('/medical-procedures/', p)));
                         const failedCount = procResults.filter(r => r.status === 'rejected').length;
                         if (failedCount > 0) {
                             toast.error(t('consultation.toast.procedures_failed', { count: failedCount }));
@@ -596,14 +589,14 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     await Promise.allSettled(deletedLabIds.map(id => api.delete(`/lab-results/${id}/`)));
                 }
                 if (deletedProcIds.length > 0) {
-                    await Promise.allSettled(deletedProcIds.map(id => api.delete(`/procedures/${id}/`)));
+                    await Promise.allSettled(deletedProcIds.map(id => api.delete(`/medical-procedures/${id}/`)));
                 }
 
                 clearDraft();
-                toast.success(isEditing && !isDraft ? t('consultation.submit_edit') : t('consultation.submit_add'));
+                toast.success(isEditing && !isUnsigned ? t('consultation.submit_edit') : t('consultation.submit_add'));
 
                 // Sign the consultation when "Save & Complete" is clicked for drafts or amendments.
-                if (shouldSign && (isDraft || isAmended)) {
+                if (shouldSign && (isUnsigned || isAmended)) {
                     try {
                         await api.post(`/consultations/${consultationId}/sign/`);
                         queryClient.invalidateQueries({ queryKey: ['appointments'] });
@@ -616,7 +609,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 // Prompt follow-up booking for new, draft, or amended consultations
                 // where a date is set but no appointment has been linked yet.
                 const alreadyHasFollowUp = !!consultationToEdit?.follow_up_appointment;
-                if ((!isEditing || isDraft || isAmended) && data.follow_up_date && !alreadyHasFollowUp) {
+                if ((isUnsigned || isAmended) && data.follow_up_date && !alreadyHasFollowUp) {
                     const apptType = data.consultation_type === 'telemedicine' ? 'telemedicine' : 'in_person';
                     setFollowUpType(apptType);
                     setPendingFollowUp({
@@ -628,7 +621,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 } else {
                     // Pass savedRx for new/draft consultations to trigger medication reconciliation.
                     // For true edits pass undefined to skip it.
-                    onSuccess(!isEditing || isDraft ? savedRx : undefined);
+                    onSuccess(isUnsigned ? savedRx : undefined);
                 }
             }
         } catch (err) {
@@ -652,6 +645,10 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
 
     const isEditing = !!consultationToEdit;
     const isAmended = consultationToEdit?.consultation_status === 'amended';
+    // New notes and drafts are unsigned: the doctor can save a draft or sign.
+    const isUnsigned = !isEditing || isDraft
+        || consultationToEdit?.consultation_status === 'draft'
+        || consultationToEdit?.consultation_status === 'in_progress';
 
     const handleCreateFollowUpAppointment = async () => {
         if (!pendingFollowUp || !followUpSelectedSlot) return;
@@ -663,10 +660,15 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 reason_for_appointment: pendingFollowUp.reason,
                 appointment_type: followUpType,
             });
-            await api.patch(`/consultations/${pendingFollowUp.consultationId}/`, {
-                follow_up_appointment: apptRes.data.id,
-            }).catch(() => {});
-            toast.success(t('consultation.toast.follow_up_scheduled'));
+            try {
+                await api.patch(`/consultations/${pendingFollowUp.consultationId}/`, {
+                    follow_up_appointment: apptRes.data.id,
+                });
+                toast.success(t('consultation.toast.follow_up_scheduled'));
+            } catch (linkErr) {
+                // The appointment exists; only the link back to this note failed.
+                toast.error(parseApiError(linkErr, t('consultation.toast.follow_up_link_failed')));
+            }
         } catch {
             toast.error(t('consultation.toast.follow_up_failed'));
         } finally {
@@ -703,8 +705,13 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             message={
                 <div>
                     <p style={{ marginBottom: '0.5rem' }}>{t('consultation.dialog.critical_vitals_body')}</p>
-                    <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-                        {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
+                    <ul className="vital-alert-list">
+                        {vitalAlerts.map(a => (
+                            <li key={a.key}>
+                                <span className={`vital-sev vital-sev--${a.severity}`}>{t(`consultation.vital_alert.severity.${a.severity}`)}</span>
+                                <span>{a.text}</span>
+                            </li>
+                        ))}
                     </ul>
                     <p style={{ marginTop: '0.75rem' }}>{t('consultation.dialog.critical_vitals_confirm_hint')}</p>
                 </div>
@@ -854,16 +861,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
         {(() => {
             const footerButtons = (
                 <>
+                    {(isUnsigned || isAmended) && (
+                        <p className="consult-sign-hint">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                            <span>{t(isAmended ? 'consultation.sign_hint_amend' : 'consultation.sign_hint')}</span>
+                        </p>
+                    )}
                     <button type="button" onClick={handleCancel} className="cancel-button" disabled={isSubmitting}>
                         {t('consultation.cancel')}
                     </button>
-                    {(isDraft || isAmended) ? (
+                    {(isUnsigned || isAmended) ? (
                         <>
                             <button type="submit" form="consultation-form" className="btn btn-secondary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : (isDraft ? t('consultation.save_draft') : t('common.save'))}
+                                {isSubmitting ? t('consultation.loading') : (isUnsigned ? t('consultation.save_draft') : t('common.save'))}
                             </button>
                             <button type="button" onClick={handleSaveAndComplete} className="btn btn-primary" disabled={isSubmitting}>
-                                {isSubmitting ? t('consultation.loading') : (isAmended ? t('consultation.save_resign') : t('consultation.save_complete'))}
+                                {isSubmitting ? t('consultation.loading') : (isAmended ? t('consultation.save_resign') : t('consultation.save_sign'))}
                             </button>
                         </>
                     ) : (
@@ -878,6 +891,22 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
             // validation so errors render in-app, in the app's language.
             const formBody = (
             <form id="consultation-form" onSubmit={handleSubmit(onSubmit)} className="form" noValidate>
+                {isAmended && (
+                    <div className="consult-amend-banner" role="status">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+                        <div>
+                            <strong>
+                                {consultationToEdit?.signed_at
+                                    ? t('consultation.amend_banner.title_dated', { date: formatDayMonth(consultationToEdit.signed_at) })
+                                    : t('consultation.amend_banner.title')}
+                            </strong>
+                            {consultationToEdit?.amendment_reason && (
+                                <span> {t('consultation.amend_banner.reason', { reason: consultationToEdit.amendment_reason })}</span>
+                            )}
+                            <span> {t('consultation.amend_banner.hint')}</span>
+                        </div>
+                    </div>
+                )}
                 {/* Consultation date */}
                 <div className="form-group">
                     <label htmlFor="consultation_date">{t('consultation.date')} <span className="required">*</span></label>
@@ -906,7 +935,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     <div className="form-group">
                         <label htmlFor="height">
                             {t('consultation.height')}
-                            <select {...register('height_unit')} style={{ marginLeft: '8px', fontWeight: 'normal', fontSize: '0.85em' }}>
+                            <select {...register('height_unit')} className="unit-select" aria-label={t('consultation.height_unit')}>
                                 <option value="cm">cm</option>
                                 <option value="m">m</option>
                             </select>
@@ -949,7 +978,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                     <div className="vital-alerts-banner" role="alert">
                         <strong>{t('consultation.clinical_alert')}</strong>
                         <ul>
-                            {vitalAlerts.map((a, i) => <li key={i}>{a}</li>)}
+                            {vitalAlerts.map(a => <li key={a.key}>{a.text}</li>)}
                         </ul>
                     </div>
                 )}
@@ -1131,7 +1160,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Prescriptions this visit — compact multi-medicine adder */}
-                {(!consultationToEdit || isDraft || isAmended) && (
+                {(isUnsigned || isAmended) && (
                     <div className="rx-section">
                         <div className="rx-section-header">
                             <span className="rx-section-label">{t('consultation.prescriptions_this_visit')}</span>
@@ -1262,7 +1291,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Lab orders for this visit */}
-                {(!consultationToEdit || isDraft || isAmended) && (
+                {(isUnsigned || isAmended) && (
                     <div className="consult-section">
                         <button
                             type="button"
@@ -1312,7 +1341,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 )}
 
                 {/* Procedures for this visit */}
-                {(!consultationToEdit || isDraft || isAmended) && (
+                {(isUnsigned || isAmended) && (
                     <div className="consult-section">
                         <button
                             type="button"
@@ -1399,7 +1428,7 @@ const ConsultationForm = ({ patientId, onSuccess, onCancel, consultationToEdit, 
                 <Drawer
                     open
                     onClose={handleCancel}
-                    title={isEditing && !isDraft ? t('consultation.title_edit') : t('consultation.title_add')}
+                    title={isEditing && !isUnsigned ? t('consultation.title_edit') : t('consultation.title_add')}
                     size="lg"
                     dirty={isDirty || failedRx.length > 0}
                     footer={footerButtons}

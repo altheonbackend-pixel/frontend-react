@@ -20,6 +20,7 @@ import ReferralSLABadge from './ReferralSLABadge';
 import ReferralMessageThread from './ReferralMessageThread';
 import { respondToReferral, deleteReferral, submitDraft, submitResult } from '../services/referralService';
 import '../styles/ReferralsList.css';
+import { enumLabel } from '../../../shared/utils/enumLabel';
 
 const PAGE_SIZE = 20;
 type Tab = 'all' | 'received' | 'sent';
@@ -713,11 +714,11 @@ const ReferralsList = () => {
                                 <div className="referral-card__header">
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div className="referral-card__badges">
-                                            <StatusBadge status={urgency} label={referral.urgency_display} size="md" />
-                                            <StatusBadge status={referral.status} label={referral.status_display} size="md" />
+                                            <StatusBadge status={urgency} size="md" />
+                                            <StatusBadge status={referral.status} size="md" />
                                             {referral.referral_type_display && (
                                                 <span className="card-meta" style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', padding: '0 6px', fontSize: '0.75rem' }}>
-                                                    {referral.referral_type_display}
+                                                    {enumLabel(t, 'referrals.type', referral.referral_type, referral.referral_type_display)}
                                                 </span>
                                             )}
                                             {isDraft && <span className="card-meta" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('referrals.list.card.draft_label')}</span>}
@@ -729,6 +730,30 @@ const ReferralsList = () => {
                                                   </Link>
                                                 : t('referrals.list.card.patient_unknown')}
                                         </div>
+                                        {/* Basic details inline: the receiving doctor has to be able to
+                                            recognise the patient and judge urgency from the queue itself,
+                                            without opening the chart first. */}
+                                        {referral.patient_details && (
+                                            <div className="referral-card__patient-brief">
+                                                {(referral.patient_details.age ?? null) !== null && (
+                                                    <span>{t('referrals.list.card.age', { age: referral.patient_details.age })}</span>
+                                                )}
+                                                {referral.patient_details.sex_display && (
+                                                    <span>{enumLabel(t, 'common.sex', referral.patient_details.sex_assigned_at_birth, referral.patient_details.sex_display)}</span>
+                                                )}
+                                                {referral.patient_details.blood_group && (
+                                                    <span>{t('referrals.list.card.blood_group')}: {referral.patient_details.blood_group}</span>
+                                                )}
+                                                {referral.patient_details.date_of_birth && (
+                                                    <span>{t('referrals.list.card.dob')}: {formatDate(referral.patient_details.date_of_birth)}</span>
+                                                )}
+                                                {referral.patient_details.phone_number && (
+                                                    <a href={`tel:${referral.patient_details.phone_number}`}>
+                                                        {referral.patient_details.phone_number}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="card-meta">
                                             {t('referrals.list.card.specialty')}: {referral.specialty_display ?? referral.specialty_requested}
                                             {' · '}
@@ -782,7 +807,7 @@ const ReferralsList = () => {
                                                 {formatTime(referral.linked_appointment_details.appointment_date)}
                                             </strong>
                                             {' · '}
-                                            {referral.linked_appointment_details.status_display}
+                                            {enumLabel(t, 'common.status', referral.linked_appointment_details.status, referral.linked_appointment_details.status_display)}
                                         </span>
                                     </div>
                                 )}

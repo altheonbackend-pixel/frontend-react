@@ -186,7 +186,8 @@ export interface Consultation {
     patient_summary: string | null;
     patient_instructions: string | null;
     follow_up_appointment_info?: { id: number; status: string; appointment_date: string } | null;
-    consultation_status?: 'draft' | 'in_progress' | 'signed' | 'amended' | 'voided' | 'entered_in_error';
+    // Voiding lives on record_status only.
+    consultation_status?: 'draft' | 'in_progress' | 'signed' | 'amended';
     signed_at?: string | null;
     signed_by?: number | null;
     amendment_reason?: string | null;
@@ -195,6 +196,8 @@ export interface Consultation {
     record_status?: 'active' | 'voided' | 'entered_in_error';
     voided_at?: string | null;
     void_reason?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
     lab_results?: Array<{
         id: number; test_name: string; status: string; test_date: string;
         result_value?: string | null; result_value_text?: string | null;
@@ -424,7 +427,22 @@ export interface Referral {
     // Nested details
     referred_to_details?: { id: number; full_name: string; specialty: string };
     referred_by_details?: { id: number; full_name: string; specialty: string };
-    patient_details?: { unique_id: string; first_name: string; last_name: string };
+    // Demographics the receiving doctor needs to triage the referral before
+    // opening the chart — served by ReferralPatientBriefSerializer.
+    patient_details?: {
+        unique_id: string;
+        first_name: string;
+        last_name: string;
+        date_of_birth?: string | null;
+        age?: number | null;
+        sex_assigned_at_birth?: string | null;
+        sex_display?: string | null;
+        blood_group?: string | null;
+        phone_number?: string | null;
+        status?: string;
+        status_display?: string;
+        avatar_url?: string | null;
+    };
 }
 
 export interface ReferralMessage {

@@ -43,6 +43,7 @@ import { isSupportedPortalLanguage } from '../features/patient-portal/utils/i18n
 const Dashboard         = lazy(() => import('../features/auth/components/Dashboard'));
 const Patients          = lazy(() => import('../features/patients/components/Patients'));
 const PatientDetail     = lazy(() => import('../features/patients/components/PatientDetail'));
+const ConsultationWorkspace = lazy(() => import('../features/consultations/workspace/ConsultationWorkspace'));
 const AddPatient        = lazy(() => import('../features/patients/components/AddPatient'));
 const EditPatient       = lazy(() => import('../features/patients/components/EditPatientPage'));
 const Appointments      = lazy(() => import('../features/appointments/components/Appointments'));
@@ -279,6 +280,7 @@ function App() {
                             <Route path="/patients/add"        element={<ErrorBoundary resetKey={location.pathname}><AddPatient /></ErrorBoundary>} />
                             <Route path="/patients/edit/:id"   element={<ErrorBoundary resetKey={location.pathname}><EditPatient /></ErrorBoundary>} />
                             <Route path="/patients/:id"        element={<ErrorBoundary resetKey={location.pathname}><PatientDetail /></ErrorBoundary>} />
+                            <Route path="/patients/:id/visit/:consultationId" element={<ErrorBoundary resetKey={location.pathname}><ConsultationWorkspace /></ErrorBoundary>} />
                             <Route path="/appointments"        element={<ErrorBoundary resetKey={location.pathname}><Appointments /></ErrorBoundary>} />
                             <Route path="/deleted-appointments" element={<ErrorBoundary resetKey={location.pathname}><DeletedAppts /></ErrorBoundary>} />
                             <Route path="/referrals"           element={<ErrorBoundary resetKey={location.pathname}><ReferralsList /></ErrorBoundary>} />

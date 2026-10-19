@@ -6,7 +6,7 @@
 // browser rejected the comma as badInput, and native form validation blocked
 // submit before react-hook-form ever ran.
 import { describe, it, expect } from 'vitest';
-import { numericValueAs } from '../components/ConsultationForm';
+import { numericValueAs } from '../vitals';
 import { consultationSchema } from '../consultationSchema';
 
 describe('numericValueAs', () => {

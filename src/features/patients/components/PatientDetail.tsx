@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { FEATURES, consultationWorkspacePath } from '../../../config';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useKeyboardShortcut } from '../../../shared/hooks/useKeyboardShortcut';
@@ -60,6 +61,7 @@ const PatientDetails = () => {
     const [patient, setPatient] = useState<PatientWithHistory | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [noAccess, setNoAccess] = useState(false);
     usePageTitle(patient ? `${patient.first_name} ${patient.last_name}` : 'Patient');
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(new Set(['overview']));
@@ -400,11 +402,12 @@ const PatientDetails = () => {
     const handleSignConsultation = async (consultationId: number) => {
         try {
             await api.post(`/consultations/${consultationId}/sign/`, {});
-            toast.success('Consultation signed.');
+            toast.success(t('consultation.toast.consultation_signed'));
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
             fetchPatientDetails();
         } catch (err) {
-            toast.error(parseApiError(err, 'Failed to sign consultation.'));
+            toast.error(parseApiError(err, t('consultation.toast.sign_failed')));
         }
     };
 
@@ -508,6 +511,7 @@ const PatientDetails = () => {
     const fetchPatientDetails = async () => {
         setLoading(true);
         setError(null);
+        setNoAccess(false);
         try {
             const response = await api.get(`/patients/${id}/`);
             setPatient(response.data);
@@ -516,8 +520,13 @@ const PatientDetails = () => {
             if (axiosErr.response?.status === 401) {
                 logout();
                 navigate('/login');
-            } else if (axiosErr.response?.status === 404) {
-                navigate('/patients');
+            } else if (axiosErr.response?.status === 404 || axiosErr.response?.status === 403) {
+                // The chart is filtered by `accessible_patient_ids`, so "no care-team
+                // access" comes back as a 404. Silently bouncing to /patients made
+                // that indistinguishable from a dead link — a doctor arriving from a
+                // referral or an appointment request just got thrown back to the list
+                // with no explanation. Say what happened instead.
+                setNoAccess(true);
             } else {
                 setError(t('patient_detail.error.load'));
             }
@@ -814,14 +823,20 @@ const PatientDetails = () => {
         }
     };
 
-    const handleDeleteConsultation = async (consultationId: number) => {
+    // Every "open the consultation form" entry point (add, edit, resume a draft,
+    // amend, deep link) goes to the full-page workspace when it is switched on.
+    useEffect(() => {
+        if (!FEATURES.consultationWorkspace || !showConsultationForm || !id) return;
+        setShowConsultationForm(false);
+        navigate(consultationWorkspacePath(id, consultationToEdit?.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showConsultationForm]);
+
+    const handleDeleteConsultation = async (consultationId: number, reason: string) => {
         try {
-            await api.post(`/consultations/${consultationId}/void/`, {
-                void_reason: voidReason.trim() || 'Voided by doctor',
-            });
+            await api.post(`/consultations/${consultationId}/void/`, { void_reason: reason });
             setConfirmDeleteConsultationId(null);
-            setVoidReason('');
-            toast.success('Consultation voided.');
+            toast.success(t('consultation.toast.consultation_voided'));
             fetchPatientDetails();
             queryClient.invalidateQueries({ queryKey: ['patients', id, 'consultations'] });
         } catch (err) {
@@ -997,6 +1012,17 @@ const PatientDetails = () => {
     };
 
     if (loading) return <PageLoader message={t('patient_detail.loading')} />;
+    if (noAccess) return (
+        <div className="page-wrapper">
+            <div className="section-card" style={{ maxWidth: '34rem', margin: '3rem auto', textAlign: 'center', padding: '2rem' }}>
+                <h2 style={{ marginTop: 0 }}>{t('patient_detail.no_access.title')}</h2>
+                <p style={{ color: 'var(--text-secondary)' }}>{t('patient_detail.no_access.body')}</p>
+                <button type="button" className="btn btn-primary" onClick={() => navigate('/patients')}>
+                    {t('patient_detail.no_access.back')}
+                </button>
+            </div>
+        </div>
+    );
     if (error) return <div className="error-message">Error: {error}</div>;
     if (!patient) return <div className="no-data-message">{t('patient_detail.error.load')}</div>;
 
@@ -1438,12 +1464,22 @@ const PatientDetails = () => {
                 <>
                 <Dialog
                     open={confirmDeleteConsultationId !== null}
-                    onClose={() => { setConfirmDeleteConsultationId(null); setVoidReason(''); }}
-                    onConfirm={() => { if (confirmDeleteConsultationId !== null) handleDeleteConsultation(confirmDeleteConsultationId); }}
-                    title="Void this consultation?"
-                    message={<div><p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>This record will be soft-voided and hidden from the active view. It cannot be undone.</p>{voidReasonInput}</div>}
+                    onClose={() => setConfirmDeleteConsultationId(null)}
+                    onConfirm={reason => { if (confirmDeleteConsultationId !== null) return handleDeleteConsultation(confirmDeleteConsultationId, reason ?? ''); }}
+                    title={
+                        <span className="dialog-title-with-icon">
+                            <span className="dialog-title-icon dialog-title-icon--danger" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9" /><path d="M5.6 5.6l12.8 12.8" /></svg>
+                            </span>
+                            {t('consultation.void_dialog.title')}
+                        </span>
+                    }
+                    message={t('consultation.void_dialog.body')}
+                    reasonLabel={t('consultation.void_dialog.reason_label')}
+                    reasonPlaceholder={t('consultation.void_dialog.reason_placeholder')}
+                    requireReason
                     tone="danger"
-                    confirmLabel="Void consultation"
+                    confirmLabel={t('consultation.void_dialog.confirm')}
                 />
                 <Dialog
                     open={confirmDeleteProcedureId !== null}

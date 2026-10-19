@@ -40,7 +40,7 @@ interface ConsultationsTabProps {
     expandedConsultIds: Set<number>;
     toggleConsult: (id: number) => void;
     canWrite: boolean;
-    profile: any;
+    profile: { id?: number } | null | undefined;
     visibleVitals: { bp: boolean; spo2: boolean; temperature: boolean; weight: boolean };
     toggleVital: (key: 'bp' | 'spo2' | 'temperature' | 'weight') => void;
     setConsultationToEdit: (c: Consultation | null) => void;
@@ -81,10 +81,10 @@ const ConsultationsTab = ({
 }: ConsultationsTabProps) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { formatDate, formatDayMonth } = useFormatDateTime();
+    const { formatDate, formatDayMonth, formatTime } = useFormatDateTime();
 
     const draftConsultations = (patient.consultations || []).filter(
-        (c: any) => c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
+        (c: Consultation) => c.consultation_status === 'draft' || c.consultation_status === 'in_progress'
     );
 
     // First active (non-voided) consultation is the "latest" — only it gets follow-up actions
@@ -143,13 +143,19 @@ const ConsultationsTab = ({
                                 const isLatest = c.id === latestActiveId;
                                 const isDraft = c.consultation_status === 'draft' || c.consultation_status === 'in_progress' || c.consultation_status === 'amended';
                                 const isSigned = c.consultation_status === 'signed';
+                                const statusKey = isVoided ? 'voided'
+                                    : c.consultation_status === 'amended' ? 'amended'
+                                    : isSigned ? 'signed' : 'draft';
+                                const statusMeta = isVoided ? null
+                                    : statusKey === 'amended' && c.amended_at ? t('patient_record.consultations.meta.reopened', { date: formatDate(c.amended_at) })
+                                    : statusKey === 'draft' && c.created_at ? t('patient_record.consultations.meta.started', { time: formatTime(c.created_at) })
+                                    : null;
 
                                 return (
                                     <li
                                         key={c.id}
                                         id={`consult-entry-${c.id}`}
-                                        className="consultation-entry detail-list-item"
-                                        style={isVoided ? { opacity: 0.55 } : undefined}
+                                        className={`consultation-entry detail-list-item${isVoided ? ' consultation-entry--voided' : ''}`}
                                     >
                                         {/* ── Collapsed row ── */}
                                         <div
@@ -164,30 +170,31 @@ const ConsultationsTab = ({
                                             <span className="consult-summary-date">
                                                 {formatDate(c.consultation_date)}
                                             </span>
-                                            <span className="consult-type-badge">{c.consultation_type_display || c.consultation_type}</span>
-                                            {c.consultation_status && c.consultation_status !== 'signed' && !isVoided && (
-                                                <span className="consult-type-badge" style={{
-                                                    background: isDraft ? 'var(--color-warning-light)' : 'var(--bg-subtle)',
-                                                    color: isDraft ? 'var(--color-warning-dark)' : 'var(--text-muted)',
-                                                    border: '1px solid currentColor',
-                                                }}>
-                                                    {c.consultation_status === 'draft' ? t('patient_record.consultations.status.draft')
-                                                        : c.consultation_status === 'in_progress' ? t('patient_record.consultations.status.in_progress')
-                                                        : c.consultation_status === 'amended' ? t('patient_record.consultations.status.amended')
-                                                        : c.consultation_status}
-                                                </span>
-                                            )}
-                                            {isVoided && (
-                                                <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
-                                                    {t('patient_record.consultations.status.voided')}
-                                                </span>
-                                            )}
+                                            <span className={`consult-status consult-status--${statusKey}`}>
+                                                {t(`patient_record.consultations.status.${statusKey}`)}
+                                            </span>
                                             <span className="consult-summary-reason" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {c.reason_for_consultation}
                                             </span>
+                                            {statusMeta && <span className="consult-status-meta">{statusMeta}</span>}
                                             {!isOwnConsultation && c.doctor_name && (
                                                 <span className="consult-type-badge" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border-default)' }}>
                                                     Dr. {c.doctor_name}
+                                                </span>
+                                            )}
+                                            {isSigned && !isVoided && (
+                                                <span
+                                                    className={`consult-visibility${c.visible_to_patient ? ' consult-visibility--on' : ''}`}
+                                                    title={c.visible_to_patient ? t('patient_record.consultations.visible_to_patient') : t('patient_record.consultations.hidden_from_patient')}
+                                                >
+                                                    {c.visible_to_patient ? (
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                                                    ) : (
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 3l18 18" /><path d="M10.6 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6" /></svg>
+                                                    )}
+                                                    <span className="consult-visibility__label">
+                                                        {c.visible_to_patient ? t('patient_record.consultations.patient_can_see') : t('patient_record.consultations.hidden_from_patient')}
+                                                    </span>
                                                 </span>
                                             )}
                                             {c.has_vital_alerts && <span className="vital-alert-dot" title={t('patient_record.overview.vital_alert')}>⚠</span>}
@@ -199,7 +206,7 @@ const ConsultationsTab = ({
                                                     style={{ fontSize: '0.75rem', padding: '2px 10px', flexShrink: 0 }}
                                                     onClick={e => { e.stopPropagation(); openEdit(c); }}
                                                 >
-                                                    {t('patient_record.consultations.open')}
+                                                    {t('patient_record.consultations.continue')}
                                                 </button>
                                             )}
                                             <span className="consult-expand-icon" style={{ marginLeft: 'auto', flexShrink: 0 }}>{isExpanded ? '▲' : '▼'}</span>
@@ -210,6 +217,7 @@ const ConsultationsTab = ({
                                             <div className="consult-expanded">
                                                 {/* Clinical details */}
                                                 <div className="consult-section">
+                                                    <div className="info-item"><strong>{t('patient_record.consultations.type')}:</strong> {c.consultation_type_display || c.consultation_type}</div>
                                                     <div className="info-item"><strong>{t('patient_record.common.reason')}:</strong> {c.reason_for_consultation}</div>
                                                     {c.symptoms?.length > 0 && (
                                                         <div className="info-item">
@@ -240,7 +248,7 @@ const ConsultationsTab = ({
                                                         <div className="consult-section-title">{t('patient_record.consultations.vitals')}</div>
                                                         <div className="vitals-row">
                                                             {c.weight && <span className="vital-chip">{t('patient_record.vitals.weight')}: {c.weight} kg</span>}
-                                                            {c.height && <span className="vital-chip">{t('patient_record.vitals.height')}: {c.height}{c.height_unit === 'ft' ? ' ft' : ' m'}</span>}
+                                                            {c.height && <span className="vital-chip">{t('patient_record.vitals.height')}: {c.height} {c.height_unit === 'm' ? 'm' : 'cm'}</span>}
                                                             {c.temperature && <span className="vital-chip">{t('patient_record.vitals.temperature')}: {c.temperature}°C</span>}
                                                             {c.sp2 && <span className="vital-chip">SpO₂: {c.sp2}%</span>}
                                                             {(c.bp_systolic || c.bp_diastolic) && <span className="vital-chip">BP: {c.blood_pressure_display ?? `${c.bp_systolic ?? '?'}/${c.bp_diastolic ?? '?'}`} mmHg</span>}
