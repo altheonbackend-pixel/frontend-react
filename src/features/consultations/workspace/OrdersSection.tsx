@@ -10,6 +10,7 @@ import { SafetyAlertModal } from '../components/SafetyAlertModal';
 import { PROCEDURE_CATEGORY_VALUES, procedureCategoryKey } from '../../procedures/procedureSchema';
 import type { ConsultationDTO } from './model';
 import { nameAllergyMatches } from './allergy';
+import { HelpText } from './help';
 
 type Tab = 'rx' | 'labs' | 'procedures';
 
@@ -145,6 +146,7 @@ function PrescriptionsPane({ patientId, consultation, allergies, readOnly, ensur
 
     return (
         <div className="ws-pane">
+            {!readOnly && <HelpText topic="rx" />}
             {consultation?.prescriptions?.length ? (
                 <ul className="ws-orderlist">
                     {consultation.prescriptions.map(r => (
@@ -246,6 +248,7 @@ function LabsPane({ patientId, consultation, readOnly, ensureSaved, onChanged }:
     };
     return (
         <div className="ws-pane">
+            {!readOnly && <HelpText topic="labs" />}
             {consultation?.lab_orders?.length ? (
                 <ul className="ws-orderlist">
                     {consultation.lab_orders.map(l => (
@@ -305,6 +308,7 @@ function ProceduresPane({ patientId, consultation, readOnly, ensureSaved, onChan
     };
     return (
         <div className="ws-pane">
+            {!readOnly && <HelpText topic="procedures" />}
             {consultation?.procedures?.length ? (
                 <ul className="ws-orderlist">
                     {consultation.procedures.map(p => (

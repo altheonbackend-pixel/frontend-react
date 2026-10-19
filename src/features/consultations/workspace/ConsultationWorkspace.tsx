@@ -27,6 +27,7 @@ import {
 import { Icon } from './icons';
 import { useSmartPhrases } from './helpers';
 import { OrdersSection } from './OrdersSection';
+import { HelpText } from './help';
 import { AfterSign, NoteHistory, SignReview } from './flow';
 import './workspace.css';
 
@@ -345,6 +346,7 @@ export default function ConsultationWorkspace() {
                             </Section>
 
                             <Section id="note" title={t('workspace.section.note')} hint={!readOnly && phrases.length ? t('workspace.phrase_tip') : undefined}>
+                                {editable && <HelpText topic="note" />}
                                 <div className="ws-soapgrid">
                                     {(['subjective', 'objective', 'assessment', 'plan'] as const).map((f, i) => (
                                         <SoapField key={f} name={f} letter={'SOAP'[i]} label={t(`workspace.soap.${f}`)} placeholder={t(`workspace.soap.${f}_ph`)}
@@ -354,10 +356,12 @@ export default function ConsultationWorkspace() {
                             </Section>
 
                             <Section id="diagnosis" title={t('workspace.section.diagnosis')}>
+                                {editable && <HelpText topic="diagnosis" />}
                                 <DiagnosisPicker register={register} setValue={setValue} watch={watch} readOnly={readOnly} changes={changes} />
                             </Section>
 
                             <Section id="orders" title={t('workspace.section.orders')} hint={amending ? t('workspace.orders_amend_hint') : undefined}>
+                                {editable && <HelpText topic="orders" />}
                                 <OrdersSection patientId={patientId} consultation={c} allergies={patient.data?.allergy_records ?? []}
                                     readOnly={readOnly} ensureSaved={ensureSaved} onChanged={() => invalidate(idRef.current)} />
                             </Section>
